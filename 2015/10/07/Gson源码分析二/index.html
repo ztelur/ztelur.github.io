@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <title>Gson源码分析二 | Carpediem</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="&amp;emsp;承接上一篇博文Gson源码分析，这篇博文主要总结一下Gson中涉及Java反射逻辑的部分。
+一个Gson例子&amp;emsp;Gson可以解析用户自定义的对象，当然你也可以使用public GsonBuilder registerTypeAdapter(Type type, Object typeAdapter)来完全按照自己的方式来解析，但是Gson其实已经为解析自定义类型对象做了适配，除">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Gson源码分析二">
+<meta property="og:url" content="http://yoursite.com/2015/10/07/Gson源码分析二/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="&amp;emsp;承接上一篇博文Gson源码分析，这篇博文主要总结一下Gson中涉及Java反射逻辑的部分。
+一个Gson例子&amp;emsp;Gson可以解析用户自定义的对象，当然你也可以使用public GsonBuilder registerTypeAdapter(Type type, Object typeAdapter)来完全按照自己的方式来解析，但是Gson其实已经为解析自定义类型对象做了适配，除">
+<meta property="og:updated_time" content="2015-10-07T15:55:22.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Gson源码分析二">
+<meta name="twitter:description" content="&amp;emsp;承接上一篇博文Gson源码分析，这篇博文主要总结一下Gson中涉及Java反射逻辑的部分。
+一个Gson例子&amp;emsp;Gson可以解析用户自定义的对象，当然你也可以使用public GsonBuilder registerTypeAdapter(Type type, Object typeAdapter)来完全按照自己的方式来解析，但是Gson其实已经为解析自定义类型对象做了适配，除">
+  
+    <link rel="alternative" href="/atom.xml" title="Carpediem" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+	<header id="header" class="inner">
+		<a href="/" class="profilepic">
+			
+			<img lazy-src="null" class="js-avatar">
+			
+		</a>
+
+		<hgroup>
+		  <h1 class="header-author"><a href="/">remCarpediem</a></h1>
+		</hgroup>
+
+		
+		<p class="header-subtitle">blog of nobody</p>
+		
+
+		
+			<div class="switch-btn">
+				<div class="icon">
+					<div class="icon-ctn">
+						<div class="icon-wrap icon-house" data-idx="0">
+							<div class="birdhouse"></div>
+							<div class="birdhouse_holes"></div>
+						</div>
+						<div class="icon-wrap icon-ribbon hide" data-idx="1">
+							<div class="ribbon"></div>
+						</div>
+						
+						<div class="icon-wrap icon-link hide" data-idx="2">
+							<div class="loopback_l"></div>
+							<div class="loopback_r"></div>
+						</div>
+						
+						
+						<div class="icon-wrap icon-me hide" data-idx="3">
+							<div class="user"></div>
+							<div class="shoulder"></div>
+						</div>
+						
+					</div>
+					
+				</div>
+				<div class="tips-box hide">
+					<div class="tips-arrow"></div>
+					<ul class="tips-inner">
+						<li>Menu</li>
+						<li>Tags</li>
+						
+						<li>Links</li>
+						
+						
+						<li>Über</li>
+						
+					</ul>
+				</div>
+			</div>
+		
+
+		<div class="switch-area">
+			<div class="switch-wrap">
+				<section class="switch-part switch-part1">
+					<nav class="header-menu">
+						<ul>
+						
+							<li><a href="/">主页</a></li>
+				        
+							<li><a href="/archives">所有文章</a></li>
+				        
+						</ul>
+					</nav>
+					<nav class="header-nav">
+						<div class="social">
+							
+								<a class="github" target="_blank" href="#" title="github">github</a>
+					        
+								<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+					        
+								<a class="rss" target="_blank" href="#" title="rss">rss</a>
+					        
+								<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+					        
+						</div>
+					</nav>
+				</section>
+				
+				
+				<section class="switch-part switch-part2">
+					<div class="widget tagcloud" id="js-tagcloud">
+						<a href="/tags/读书/" style="font-size: 10px;">-读书</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/Http/" style="font-size: 10px;">Http</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/string/" style="font-size: 10px;">string</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 20px;">第三方库</a> <a href="/tags/算法/" style="font-size: 15px;">算法</a> <a href="/tags/读书笔记/" style="font-size: 10px;">读书笔记</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a>
+					</div>
+				</section>
+				
+				
+				
+				<section class="switch-part switch-part3">
+					<div id="js-friends">
+					
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">奥巴马的博客</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">卡卡的美丽传说</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">本泽马的博客</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">吉格斯的博客</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">习大大大不同</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">托蒂的博客</a>
+			        
+			        </div>
+				</section>
+				
+
+				
+				
+				<section class="switch-part switch-part4">
+				
+					<div id="js-aboutme">我是谁，我从哪里来，我到哪里去？我就是我，是颜色不一样的吃货…</div>
+				</section>
+				
+			</div>
+		</div>
+	</header>				
+</div>
+
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+  	<div class="overlay">
+  		<div class="slider-trigger"></div>
+  		<h1 class="header-author js-mobile-header hide">remCarpediem</h1>
+  	</div>
+	<div class="intrude-less">
+		<header id="header" class="inner">
+			<div class="profilepic">
+			
+				<img lazy-src="null" class="js-avatar">
+			
+			</div>
+			<hgroup>
+			  <h1 class="header-author">remCarpediem</h1>
+			</hgroup>
+			
+			<p class="header-subtitle">blog of nobody</p>
+			
+			<nav class="header-menu">
+				<ul>
+				
+					<li><a href="/">主页</a></li>
+		        
+					<li><a href="/archives">所有文章</a></li>
+		        
+		        <div class="clearfix"></div>
+				</ul>
+			</nav>
+			<nav class="header-nav">
+				<div class="social">
+					
+						<a class="github" target="_blank" href="#" title="github">github</a>
+			        
+						<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+			        
+						<a class="rss" target="_blank" href="#" title="rss">rss</a>
+			        
+						<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+			        
+				</div>
+			</nav>
+		</header>				
+	</div>
+</nav>
+
+      <div class="body-wrap"><article id="post-Gson源码分析二" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2015/10/07/Gson源码分析二/" class="article-date">
+  	<time datetime="2015-10-07T07:48:51.000Z" itemprop="datePublished">2015-10-07</time>
+</a>
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Gson源码分析二
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+	<div class="article-tag tagcloud">
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/JSON/">JSON</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/反射/">反射</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/第三方库/">第三方库</a></li></ul>
+	</div>
+
+        
+	<div class="article-category tagcloud">
+	<a class="article-category-link" href="/categories/Java/">Java</a>
+	</div>
+
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>&emsp;承接上一篇博文<a href="http://blog.csdn.net/u012422440/article/details/48860893" target="_blank" rel="external">Gson源码分析</a>，这篇博文主要总结一下Gson中涉及Java反射逻辑的部分。</p>
+<h4 id="一个Gson例子"><a href="#一个Gson例子" class="headerlink" title="一个Gson例子"></a>一个Gson例子</h4><p>&emsp;Gson可以解析用户自定义的对象，当然你也可以使用<code>public GsonBuilder registerTypeAdapter(Type type, Object typeAdapter)</code>来完全按照自己的方式来解析，但是Gson其实已经为解析自定义类型对象做了适配，除非特殊需求，我们一般不需要定义自己的TypeAdapter。比如下边这个例子<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">MyType</span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> i = <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">private</span> String name = <span class="string">"test"</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">MyType</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">        super();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">MyType</span>(<span class="params"><span class="keyword">int</span> id,String name</span>) </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">.....</span><br><span class="line"> MyType type = <span class="keyword">new</span> MyType();</span><br><span class="line"> System.<span class="keyword">out</span>.println(gson.toJson(type));</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;这样就可以将MyType对象与JSON格式字符串进行相互转换了，不得不说这是十分方便的。而且通过<code>Excluder</code>和<code>FieldNamingStragety</code>我们还可以对Gson的转换过程进行一定的控制。<br>&emsp;更为厉害的是，Gson对相对泛型和复杂的对象支持的很好，比如<code>ArrayList&lt;MyType&gt;</code>对象，也可以直接通过Gson进行转换。</p>
+<h3 id="Gson反射基础"><a href="#Gson反射基础" class="headerlink" title="Gson反射基础"></a>Gson反射基础</h3><p>&emsp;这一部分主要讲解一下Java相关的反射基础和Gson对其进行的扩展。<br>&emsp;我们都知道Java泛型是类型擦除的，也就是说在运行期间，我们无法通过反射获得泛型对象的类型，那Gson是如何解析类似于<code>ArrayList&lt;MyType&gt;</code>这样的对象的类型的呢？<br>&emsp;上篇博文中讲到了Gson中使用TypeToken来代表对象的类型，其创建时会使用到<code>$Gson$Types</code>这个对象，我们现在就来好好研究一下这个对象。<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">public static <span class="type">Type</span> canonicalize(<span class="type">Type</span> <span class="class"><span class="keyword">type</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="class"><span class="keyword">type</span> <span class="title">instanceof</span> <span class="title">Class</span>) </span>&#123;  <span class="comment">//如果就是Class</span></span><br><span class="line">      <span class="type">Class</span>&lt;?&gt; c = (<span class="type">Class</span>&lt;?&gt;) <span class="class"><span class="keyword">type</span></span>;</span><br><span class="line">        <span class="comment">// c.getComponetType()就是返回数组对象的类型比如</span></span><br><span class="line">      <span class="keyword">return</span> c.isArray() ? <span class="keyword">new</span> <span class="type">GenericArrayTypeImpl</span>(canonicalize(c.getComponentType())) : c;</span><br><span class="line">      <span class="comment">// ????!!!! loop for ever ????</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="class"><span class="keyword">type</span> <span class="title">instanceof</span> <span class="title">ParameterizedType</span>) </span>&#123;  <span class="comment">//多级泛型 HashMap&lt;K,T&gt;</span></span><br><span class="line">      <span class="type">ParameterizedType</span> p = (<span class="type">ParameterizedType</span>) <span class="class"><span class="keyword">type</span></span>;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">new</span> <span class="type">ParameterizedTypeImpl</span>(p.getOwnerType(),</span><br><span class="line">          p.getRawType(), p.getActualTypeArguments());</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="class"><span class="keyword">type</span> <span class="title">instanceof</span> <span class="title">GenericArrayType</span>) </span>&#123;   <span class="comment">//数组泛型</span></span><br><span class="line">      <span class="type">GenericArrayType</span> g = (<span class="type">GenericArrayType</span>) <span class="class"><span class="keyword">type</span></span>;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">new</span> <span class="type">GenericArrayTypeImpl</span>(g.getGenericComponentType());</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="class"><span class="keyword">type</span> <span class="title">instanceof</span> <span class="title">WildcardType</span>) </span>&#123;   <span class="comment">// includes ?  , ? extends Number , ? super T</span></span><br><span class="line">      <span class="type">WildcardType</span> w = (<span class="type">WildcardType</span>) <span class="class"><span class="keyword">type</span></span>;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">new</span> <span class="type">WildcardTypeImpl</span>(w.getUpperBounds(), w.getLowerBounds());</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="comment">// type is either serializable as-is or unsupported</span></span><br><span class="line">      <span class="keyword">return</span> <span class="class"><span class="keyword">type</span></span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;这里的<code>ParameterizedType</code>,<code>GenericArrayType</code>,<code>WildcardType</code>还有之后会出现的<code>TypeVariable</code>是一个重点啊，他们都是<code>Type</code>的子接口，代表所有类型的公共高阶接口。详细的解释在这里有<a href="http://blog.csdn.net/u012422440/article/details/48948921" target="_blank" rel="external">转载博文</a><br>&emsp;还需要进一步的实验啊，以后再来补充这一部分。还有关于如何处理泛型类型擦除的逻辑。</p>
+<p>###ReflectiveTypeAdapterFacotry<br>&emsp;在上边博文中我们说过，Gson会使用<code>TypeToken</code>来代表转换对象的类型，然后找到对应类型的<code>TypeAdapter</code>，但是对于用户自定义的类型，Gson是如何处理的呢？<br>&emsp;Gson的<code>TypeAdapters</code>中有一个可以处理自定义类型的<code>TypeAdapterFactory</code>，它就是<code>ReflectiveTypeAdapterFactory</code>,它也是这篇博文的重点内容。<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> ConstructorConstructor constructorConstructor; <span class="comment">//构造函数</span></span><br><span class="line"> <span class="keyword">private</span> <span class="keyword">final</span> FieldNamingStrategy fieldNamingPolicy; <span class="comment">//命名规则</span></span><br><span class="line"> <span class="keyword">private</span> <span class="keyword">final</span> Excluder excluder; <span class="comment">//排除器</span></span><br></pre></td></tr></table></figure></p>
+<p>&emsp;上述是其成员变量，文章开头所说的用户控制Gson的转换过程就是通过这三个对象实现的，我接下来会一一讲解。<br>&emsp;我们知道在Gson中通过<code>TypeToken</code>获得相应的<code>TypeAdapter</code>的逻辑如下<br><figure class="highlight gauss"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (TypeAdapterFactory factory : factories) &#123;</span><br><span class="line">       TypeAdapter&lt;T&gt; candidate = factory.<span class="keyword">create</span>(this, <span class="built_in">type</span>);</span><br><span class="line">         <span class="keyword">System</span>.out.<span class="keyword">print</span>(<span class="string">"1 "</span>);</span><br><span class="line">       <span class="keyword">if</span> (candidate != <span class="built_in">null</span>) &#123;</span><br><span class="line">           <span class="keyword">System</span>.out.println(candidate.toString()+<span class="built_in">type</span>.toString());</span><br><span class="line">         <span class="keyword">call</span>.setDelegate(candidate);</span><br><span class="line">         typeTokenCache.put(<span class="built_in">type</span>, candidate);</span><br><span class="line">         <span class="keyword">return</span> candidate;</span><br><span class="line">       &#125;</span><br><span class="line">     &#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;可以看出只要对应的facotry的create返回的对象不为null，就认为找到了对应的factory了，那我们在来看一下<code>ReflectiveTypeAdapterFactory</code>的create函数<br><figure class="highlight oxygene"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> &lt;T&gt; TypeAdapter&lt;T&gt; <span class="keyword">create</span>(Gson gson, <span class="keyword">final</span> TypeToken&lt;T&gt; <span class="keyword">type</span>) <span class="comment">&#123;</span><br><span class="line">    Class&lt;? super T&gt; raw = type.getRawType();</span><br><span class="line">    if (!Object.class.isAssignableFrom(raw)) &#123;  </span><br><span class="line">    //如果Object都不是raw的最高类型,表示raw不是Object的子类啦 </span><br><span class="line">	 return null; // it's a primitive!</span><br><span class="line">    &#125;</span></span><br><span class="line">    ObjectConstructor&lt;T&gt; <span class="function"><span class="keyword">constructor</span> = <span class="title">constructorConstructor</span>.<span class="title">get</span><span class="params">(<span class="keyword">type</span>)</span>;</span></span><br><span class="line">    return <span class="keyword">new</span> Adapter&lt;T&gt;(<span class="function"><span class="keyword">constructor</span>, <span class="title">getBoundFields</span><span class="params">(gson, <span class="keyword">type</span>, raw)</span>);</span></span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;ObjectConstrutor<t>是为了构造器，为了创建一个相应的对象，主要是fromJson时使用的,而getBoundFields是为了获得对象的Filed类型。<br><figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">  <span class="keyword">final</span> InstanceCreator&lt;T&gt; typeCreator = (InstanceCreator&lt;T&gt;) instanceCreators.<span class="keyword">get</span>(type); <span class="comment">//no-args和type一一对应啊</span></span><br><span class="line">  <span class="keyword">if</span> (typeCreator != <span class="literal">null</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> new ObjectConstructor&lt;T&gt;() &#123;  <span class="comment">//这就是最基础的Constructor啊</span></span><br><span class="line">      <span class="keyword">public</span> T construct() &#123;</span><br><span class="line">        <span class="keyword">return</span> typeCreator.createInstance(type);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Next try raw type match for instance creators</span></span><br><span class="line">  <span class="meta">@SuppressWarnings(<span class="meta-string">"unchecked"</span>)</span> <span class="comment">// types must agree</span></span><br><span class="line">  <span class="keyword">final</span> InstanceCreator&lt;T&gt; rawTypeCreator =</span><br><span class="line">      (InstanceCreator&lt;T&gt;) instanceCreators.<span class="keyword">get</span>(rawType);</span><br><span class="line">  <span class="keyword">if</span> (rawTypeCreator != <span class="literal">null</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> new ObjectConstructor&lt;T&gt;() &#123;</span><br><span class="line">      <span class="keyword">public</span> T construct() &#123;</span><br><span class="line">        <span class="keyword">return</span> rawTypeCreator.createInstance(type);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  ObjectConstructor&lt;T&gt; defaultConstructor = newDefaultConstructor(rawType); <span class="comment">//默认的构造函数</span></span><br><span class="line">  <span class="keyword">if</span> (defaultConstructor != <span class="literal">null</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> defaultConstructor;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">  ObjectConstructor&lt;T&gt; defaultImplementation = newDefaultImplementationConstructor(type, rawType);</span><br><span class="line">  <span class="keyword">if</span> (defaultImplementation != <span class="literal">null</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> defaultImplementation;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// finally try unsafe</span></span><br><span class="line">  <span class="keyword">return</span> newUnsafeAllocator(type, rawType);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></t></p>
+<p>&emsp;这段代码就是为了获得对应类型的构造器对象，在<code>newDefaultConstructor</code>会使用反射<code>getDeclaredConstructor</code>来获得默认的构造器。然后我在来看一下<code>getBoundFields</code><br><figure class="highlight typescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//获得成员变量吧</span></span><br><span class="line"> <span class="keyword">private</span> Map&lt;<span class="built_in">String</span>, BoundField&gt; getBoundFields(Gson context, TypeToken&lt;?&gt; <span class="keyword">type</span>, Class&lt;?&gt; raw) &#123;</span><br><span class="line">   Map&lt;<span class="built_in">String</span>, BoundField&gt; result = <span class="keyword">new</span> LinkedHashMap&lt;<span class="built_in">String</span>, BoundField&gt;();</span><br><span class="line">   <span class="keyword">if</span> (raw.isInterface()) &#123; <span class="comment">//interface没有field啦</span></span><br><span class="line">     <span class="keyword">return</span> result;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   Type declaredType = <span class="keyword">type</span>.getType();</span><br><span class="line">   <span class="keyword">while</span> (raw != <span class="built_in">Object</span>.class) &#123; <span class="comment">//从当前类型一直遍历到最高类型，把所有的对象的成员遍历都收集到</span></span><br><span class="line">     Field[] fields = raw.getDeclaredFields();</span><br><span class="line">     <span class="keyword">for</span> (Field field : fields) &#123;  <span class="comment">//遍历所有的field</span></span><br><span class="line">       <span class="built_in">boolean</span> serialize = excludeField(field, <span class="literal">true</span>);<span class="comment">//是否需要序列化，就是是否需要转换成Json</span></span><br><span class="line">       <span class="built_in">boolean</span> deserialize = excludeField(field, <span class="literal">false</span>);<span class="comment">//是否需要从Json中转换过来</span></span><br><span class="line">       <span class="keyword">if</span> (!serialize &amp;&amp; !deserialize) &#123;</span><br><span class="line">         <span class="keyword">continue</span>;</span><br><span class="line">       &#125;</span><br><span class="line">       field.setAccessible(<span class="literal">true</span>);</span><br><span class="line">         <span class="comment">//获得Field的type</span></span><br><span class="line">       Type fieldType = $Gson$Types.resolve(<span class="keyword">type</span>.getType(), raw, field.getGenericType());<span class="comment">//获得Field的Type</span></span><br><span class="line">       BoundField boundField = createBoundField(context, field, getFieldName(field),</span><br><span class="line">           TypeToken.get(fieldType), serialize, deserialize); <span class="comment">//之后详细解释</span></span><br><span class="line">       BoundField previous = result.put(boundField.name, boundField);</span><br><span class="line">       <span class="keyword">if</span> (previous != <span class="literal">null</span>) &#123;</span><br><span class="line">         <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(declaredType</span><br><span class="line">             + <span class="string">" declares multiple JSON fields named "</span> + previous.name);</span><br><span class="line">       &#125;</span><br><span class="line">     &#125;</span><br><span class="line">     <span class="keyword">type</span> = TypeToken.get($Gson$Types.resolve(<span class="keyword">type</span>.getType(), raw, raw.getGenericSuperclass()));</span><br><span class="line">     raw = <span class="keyword">type</span>.getRawType();</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="keyword">return</span> result;</span><br><span class="line"> &#125;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">abstract</span> <span class="keyword">class</span> BoundField &#123;</span><br><span class="line">   final <span class="built_in">String</span> name;</span><br><span class="line">   final <span class="built_in">boolean</span> serialized;</span><br><span class="line">   final <span class="built_in">boolean</span> deserialized;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">protected</span> BoundField(<span class="built_in">String</span> name, <span class="built_in">boolean</span> serialized, <span class="built_in">boolean</span> deserialized) &#123;</span><br><span class="line">     <span class="keyword">this</span>.name = name;</span><br><span class="line">     <span class="keyword">this</span>.serialized = serialized;</span><br><span class="line">     <span class="keyword">this</span>.deserialized = deserialized;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;其实这一段代码逻辑很简单，主要就是遍历所有的成员遍历，大家可以看我的注释，其中涉及<code>Type</code>的操作我还没有搞懂….,但是<code>createBoundField</code>也是很重要的。<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> ReflectiveTypeAdapterFactory.BoundField createBoundField(</span><br><span class="line">      <span class="keyword">final</span> Gson context, <span class="keyword">final</span> Field field, <span class="keyword">final</span> <span class="keyword">String</span> name,</span><br><span class="line">      <span class="keyword">final</span> TypeToken&lt;?&gt; fieldType, <span class="built_in">boolean</span> serialize, <span class="built_in">boolean</span> deserialize) &#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="built_in">boolean</span> isPrimitive = Primitives.isPrimitive(fieldType.getRawType());</span><br><span class="line">    <span class="comment">// special casing primitives here saves ~5% on Android...</span></span><br><span class="line">    <span class="comment">//其实就是创建一个BoundField的子类</span></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> ReflectiveTypeAdapterFactory.BoundField(name, serialize, deserialize) &#123;</span><br><span class="line">      <span class="keyword">final</span> TypeAdapter&lt;?&gt; typeAdapter = getFieldAdapter(context, field, fieldType);<span class="comment">//获得子类的TypeAdapter&lt;?&gt;这是解析自定义类型对象的关键一步</span></span><br><span class="line">      @SuppressWarnings(&#123;<span class="string">"unchecked"</span>, <span class="string">"rawtypes"</span>&#125;) <span class="comment">// the type adapter and field type always agree</span></span><br><span class="line">      @Override <span class="keyword">void</span> write(JsonWriter writer, <span class="keyword">Object</span> value)</span><br><span class="line">          <span class="keyword">throws</span> IOException, IllegalAccessException &#123;</span><br><span class="line">        <span class="keyword">Object</span> fieldValue = field.<span class="built_in">get</span>(value);</span><br><span class="line">        TypeAdapter t =</span><br><span class="line">          <span class="keyword">new</span> TypeAdapterRuntimeTypeWrapper(context, <span class="keyword">this</span>.typeAdapter, fieldType.getType());</span><br><span class="line">        t.write(writer, fieldValue); <span class="comment">//使用TypeAdapter进行写入</span></span><br><span class="line">      &#125;</span><br><span class="line">      @Override <span class="keyword">void</span> read(JsonReader reader, <span class="keyword">Object</span> value)</span><br><span class="line">          <span class="keyword">throws</span> IOException, IllegalAccessException &#123;</span><br><span class="line">        <span class="keyword">Object</span> fieldValue = typeAdapter.read(reader);</span><br><span class="line">        <span class="keyword">if</span> (fieldValue != <span class="keyword">null</span> || !isPrimitive) &#123;</span><br><span class="line">          field.<span class="built_in">set</span>(value, fieldValue);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">public</span> <span class="built_in">boolean</span> writeField(<span class="keyword">Object</span> value) <span class="keyword">throws</span> IOException, IllegalAccessException &#123;</span><br><span class="line">        <span class="keyword">if</span> (!serialized) <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">        <span class="keyword">Object</span> fieldValue = field.<span class="built_in">get</span>(value);</span><br><span class="line">        <span class="keyword">return</span> fieldValue != value; <span class="comment">// avoid recursion for example for Throwable.cause</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;接下来我们就来看一下对应的TypeAdapter <code>private Adapter(ObjectConstructor&lt;T&gt; constructor, Map&lt;String, BoundField&gt; boundFields)</code>，主要看其read和write方法。其中两个方法最后其实都是调用了BoundField的read和write方法，我们就只看read方法啦。<br><figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span> <span class="keyword">public</span> T read(JsonReader <span class="keyword">in</span>) throws IOException &#123;</span><br><span class="line">     <span class="keyword">if</span> (<span class="keyword">in</span>.peek() == JsonToken.NULL) &#123;</span><br><span class="line">       <span class="keyword">in</span>.nextNull();</span><br><span class="line">       <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">     &#125;</span><br><span class="line"></span><br><span class="line">     T instance = <span class="keyword">constructor</span>.construct(); <span class="comment">//新建对象</span></span><br><span class="line"></span><br><span class="line">     <span class="keyword">try</span> &#123;</span><br><span class="line">       <span class="keyword">in</span>.beginObject();<span class="comment">//读出一个&#123;</span></span><br><span class="line">       <span class="keyword">while</span> (<span class="keyword">in</span>.hasNext()) &#123;</span><br><span class="line">         String name = <span class="keyword">in</span>.nextName();<span class="comment">//获得一个属性的name</span></span><br><span class="line">         BoundField field = boundFields.<span class="keyword">get</span>(name);<span class="comment">//获得Field对象</span></span><br><span class="line">         <span class="keyword">if</span> (field == <span class="literal">null</span> || !field.deserialized) &#123;<span class="comment">//如果为null或者不需要解序列化</span></span><br><span class="line">           <span class="keyword">in</span>.skipValue();</span><br><span class="line">         &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">           field.read(<span class="keyword">in</span>, instance);<span class="comment">//使用BoundField进行write，可以参考createBoundField</span></span><br><span class="line">         &#125;</span><br><span class="line">       &#125;</span><br><span class="line">     &#125; <span class="keyword">catch</span> (IllegalStateException e) &#123;</span><br><span class="line">       <span class="keyword">throw</span> new JsonSyntaxException(e);</span><br><span class="line">     &#125; <span class="keyword">catch</span> (IllegalAccessException e) &#123;</span><br><span class="line">       <span class="keyword">throw</span> new AssertionError(e);</span><br><span class="line">     &#125;</span><br><span class="line">     <span class="keyword">in</span>.endObject();</span><br><span class="line">     <span class="keyword">return</span> instance;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;这样对已自定义对象就可以自由的和JSON格式进行相互转换啦。但是有些同学可能会问了<code>ArrayList&lt;MyType&gt;</code>是如何转换的呢？那我们就要研究<code>CollectionTypeAdapterFactory</code>了，如果你去internal/bind文件夹下查看，你会发现很多类似的类。下边就贴出来其create函数<br><figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> &lt;T&gt; TypeAdapter&lt;T&gt; create(Gson gson, TypeToken&lt;T&gt; typeToken) &#123;</span><br><span class="line">   Type type = typeToken.getType();</span><br><span class="line"></span><br><span class="line">   Class&lt;? <span class="keyword">super</span> T&gt; rawType = typeToken.getRawType();</span><br><span class="line">   <span class="keyword">if</span> (!Collection.<span class="keyword">class</span>.isAssignableFrom(rawType))<span class="comment">//看是否是Collection的子类 &#123;</span></span><br><span class="line">     <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   Type elementType = $Gson$Types.getCollectionElementType(type, rawType);<span class="comment">//获得element的Type就是List&lt;T&gt;的T的类型，同学们可能会疑问泛型不是类型擦除了吗？你可以阅读一下$Gson$Types中的代码，自行了解一下，我暂时还没有完全搞懂</span></span><br><span class="line">   <span class="comment">//之后就和ReflectiveTypeAdapterFactory的逻辑类似啦</span></span><br><span class="line">   TypeAdapter&lt;?&gt; elementTypeAdapter = gson.getAdapter(TypeToken.<span class="keyword">get</span>(elementType));</span><br><span class="line">   ObjectConstructor&lt;T&gt; <span class="keyword">constructor</span> = constructorConstructor.<span class="keyword">get</span>(typeToken);</span><br><span class="line"></span><br><span class="line">   <span class="meta">@SuppressWarnings(&#123;<span class="meta-string">"unchecked"</span>, <span class="meta-string">"rawtypes"</span>&#125;)</span> <span class="comment">// create() doesn't define a type parameter</span></span><br><span class="line">   TypeAdapter&lt;T&gt; result = new Adapter(gson, elementType, elementTypeAdapter, <span class="keyword">constructor</span>);</span><br><span class="line">   <span class="keyword">return</span> result;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;感觉关于<code>TypeToken</code>和<code>$Gson$Type</code>还是没有完全明白，所以并没有过多涉及，大家如果发现神马问题，或者有好的建议，欢迎大家批判和指教。</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2015/10/17/生活学习记录一-RxJava-实习感悟/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption"><</strong>
+      <div class="article-nav-title">
+        
+          生活学习记录一:RxJava+实习感悟
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2015/10/02/Gson源码分析/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">Gson源码分析</div>
+      <strong class="article-nav-caption">></strong>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+<div class="share_jia">
+	<!-- JiaThis Button BEGIN -->
+	<div class="jiathis_style">
+		<span class="jiathis_txt">Share to: &nbsp; </span>
+		<a class="jiathis_button_facebook"></a> 
+    <a class="jiathis_button_twitter"></a>
+    <a class="jiathis_button_plus"></a> 
+    <a class="jiathis_button_tsina"></a>
+		<a class="jiathis_button_cqq"></a>
+		<a class="jiathis_button_douban"></a>
+		<a class="jiathis_button_weixin"></a>
+		<a class="jiathis_button_tumblr"></a>
+    <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	</div>
+	<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1405949716054953" charset="utf-8"></script>
+	<!-- JiaThis Button END -->
+</div>
+
+
+
+
+
+
+<div class="duoshuo">
+	<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="Gson源码分析二" data-title="Gson源码分析二" data-url="http://yoursite.com/2015/10/07/Gson源码分析二/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"true"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+	<!-- 多说公共JS代码 end -->
+</div>
+
+
+
+
+</div>
+      <footer id="footer">
+  <div class="outer">
+    <div id="footer-info">
+    	<div class="footer-left">
+    		&copy; 2016 remCarpediem
+    	</div>
+      	<div class="footer-right">
+      		<a href="http://hexo.io/" target="_blank">Hexo</a>  Theme <a href="https://github.com/litten/hexo-theme-yilia" target="_blank">Yilia</a> by Litten
+      	</div>
+    </div>
+  </div>
+</footer>
+    </div>
+    
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+
+<script>
+	var yiliaConfig = {
+		fancybox: true,
+		mathjax: true,
+		animate: true,
+		isHome: false,
+		isPost: true,
+		isArchive: false,
+		isTag: false,
+		isCategory: false,
+		open_in_new: false
+	}
+</script>
+<script src="http://7.url.cn/edu/jslib/comb/require-2.1.6,jquery-1.9.1.min.js"></script>
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <title>Window和WindowManager解析 | Carpediem</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="&amp;emsp;这几天阅读了《Android开发艺术探索》的关于Window和WindowManager的章节,特此写一片博文来整理和总结一下学到的知识.&amp;emsp;说到Window,大家都会想到所有的视图,包括Activity,Dialog,Toast,它们实际上都是附加在Window上的,Window是这些视图的管理者.今天我们就来具体将一下这些视图是如何附加在Window上的,Window有是如">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Window和WindowManager解析">
+<meta property="og:url" content="http://yoursite.com/2015/10/28/Window和WindowManager解析/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="&amp;emsp;这几天阅读了《Android开发艺术探索》的关于Window和WindowManager的章节,特此写一片博文来整理和总结一下学到的知识.&amp;emsp;说到Window,大家都会想到所有的视图,包括Activity,Dialog,Toast,它们实际上都是附加在Window上的,Window是这些视图的管理者.今天我们就来具体将一下这些视图是如何附加在Window上的,Window有是如">
+<meta property="og:updated_time" content="2015-10-28T16:29:52.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Window和WindowManager解析">
+<meta name="twitter:description" content="&amp;emsp;这几天阅读了《Android开发艺术探索》的关于Window和WindowManager的章节,特此写一片博文来整理和总结一下学到的知识.&amp;emsp;说到Window,大家都会想到所有的视图,包括Activity,Dialog,Toast,它们实际上都是附加在Window上的,Window是这些视图的管理者.今天我们就来具体将一下这些视图是如何附加在Window上的,Window有是如">
+  
+    <link rel="alternative" href="/atom.xml" title="Carpediem" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+	<header id="header" class="inner">
+		<a href="/" class="profilepic">
+			
+			<img lazy-src="null" class="js-avatar">
+			
+		</a>
+
+		<hgroup>
+		  <h1 class="header-author"><a href="/">remCarpediem</a></h1>
+		</hgroup>
+
+		
+		<p class="header-subtitle">blog of nobody</p>
+		
+
+		
+			<div class="switch-btn">
+				<div class="icon">
+					<div class="icon-ctn">
+						<div class="icon-wrap icon-house" data-idx="0">
+							<div class="birdhouse"></div>
+							<div class="birdhouse_holes"></div>
+						</div>
+						<div class="icon-wrap icon-ribbon hide" data-idx="1">
+							<div class="ribbon"></div>
+						</div>
+						
+						<div class="icon-wrap icon-link hide" data-idx="2">
+							<div class="loopback_l"></div>
+							<div class="loopback_r"></div>
+						</div>
+						
+						
+						<div class="icon-wrap icon-me hide" data-idx="3">
+							<div class="user"></div>
+							<div class="shoulder"></div>
+						</div>
+						
+					</div>
+					
+				</div>
+				<div class="tips-box hide">
+					<div class="tips-arrow"></div>
+					<ul class="tips-inner">
+						<li>Menu</li>
+						<li>Tags</li>
+						
+						<li>Links</li>
+						
+						
+						<li>Über</li>
+						
+					</ul>
+				</div>
+			</div>
+		
+
+		<div class="switch-area">
+			<div class="switch-wrap">
+				<section class="switch-part switch-part1">
+					<nav class="header-menu">
+						<ul>
+						
+							<li><a href="/">主页</a></li>
+				        
+							<li><a href="/archives">所有文章</a></li>
+				        
+						</ul>
+					</nav>
+					<nav class="header-nav">
+						<div class="social">
+							
+								<a class="github" target="_blank" href="#" title="github">github</a>
+					        
+								<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+					        
+								<a class="rss" target="_blank" href="#" title="rss">rss</a>
+					        
+								<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+					        
+						</div>
+					</nav>
+				</section>
+				
+				
+				<section class="switch-part switch-part2">
+					<div class="widget tagcloud" id="js-tagcloud">
+						<a href="/tags/读书/" style="font-size: 10px;">-读书</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/Http/" style="font-size: 10px;">Http</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/string/" style="font-size: 10px;">string</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 20px;">第三方库</a> <a href="/tags/算法/" style="font-size: 15px;">算法</a> <a href="/tags/读书笔记/" style="font-size: 10px;">读书笔记</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a>
+					</div>
+				</section>
+				
+				
+				
+				<section class="switch-part switch-part3">
+					<div id="js-friends">
+					
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">奥巴马的博客</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">卡卡的美丽传说</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">本泽马的博客</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">吉格斯的博客</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">习大大大不同</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">托蒂的博客</a>
+			        
+			        </div>
+				</section>
+				
+
+				
+				
+				<section class="switch-part switch-part4">
+				
+					<div id="js-aboutme">我是谁，我从哪里来，我到哪里去？我就是我，是颜色不一样的吃货…</div>
+				</section>
+				
+			</div>
+		</div>
+	</header>				
+</div>
+
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+  	<div class="overlay">
+  		<div class="slider-trigger"></div>
+  		<h1 class="header-author js-mobile-header hide">remCarpediem</h1>
+  	</div>
+	<div class="intrude-less">
+		<header id="header" class="inner">
+			<div class="profilepic">
+			
+				<img lazy-src="null" class="js-avatar">
+			
+			</div>
+			<hgroup>
+			  <h1 class="header-author">remCarpediem</h1>
+			</hgroup>
+			
+			<p class="header-subtitle">blog of nobody</p>
+			
+			<nav class="header-menu">
+				<ul>
+				
+					<li><a href="/">主页</a></li>
+		        
+					<li><a href="/archives">所有文章</a></li>
+		        
+		        <div class="clearfix"></div>
+				</ul>
+			</nav>
+			<nav class="header-nav">
+				<div class="social">
+					
+						<a class="github" target="_blank" href="#" title="github">github</a>
+			        
+						<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+			        
+						<a class="rss" target="_blank" href="#" title="rss">rss</a>
+			        
+						<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+			        
+				</div>
+			</nav>
+		</header>				
+	</div>
+</nav>
+
+      <div class="body-wrap"><article id="post-Window和WindowManager解析" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2015/10/28/Window和WindowManager解析/" class="article-date">
+  	<time datetime="2015-10-28T07:35:51.000Z" itemprop="datePublished">2015-10-28</time>
+</a>
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Window和WindowManager解析
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+	<div class="article-tag tagcloud">
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Android/">Android</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Window机制/">Window机制</a></li></ul>
+	</div>
+
+        
+	<div class="article-category tagcloud">
+	<a class="article-category-link" href="/categories/Android/">Android</a><a class="article-category-link" href="/categories/Android/源码分析/">源码分析</a>
+	</div>
+
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>&emsp;这几天阅读了《Android开发艺术探索》的关于Window和WindowManager的章节,特此写一片博文来整理和总结一下学到的知识.<br>&emsp;说到Window,大家都会想到所有的视图,包括Activity,Dialog,Toast,它们实际上都是附加在Window上的,Window是这些视图的管理者.今天我们就来具体将一下这些视图是如何附加在Window上的,Window有是如何管理这些视图的.</p>
+<h4 id="Window的属性和类别"><a href="#Window的属性和类别" class="headerlink" title="Window的属性和类别"></a>Window的属性和类别</h4><p>&emsp;当我们通过WindowManager添加Window时,可以通过WindowManger.LayoutParams来确定Window的属性和类别.其中Flags参数标示Window的属性,我们列出几个比较常见的属性:</p>
+<ul>
+<li><p><code>FLAG_NOT_FOCUSABLE</code> 这个参数表示Window不需要获取焦点,也不需要接收任何输入事件</p>
+</li>
+<li><p><code>FLAG_NOT_TOUCH_MODAL</code> 这个参数表示当前Window区域之外的点击事件传递给底层Window,区域之内的点击事件自己处理,一般默认开启</p>
+</li>
+<li><p><code>FLAG_SHOW_WHEN_LOCKED</code> 这个属性可以让Window显示在锁屏界面上<br>&emsp;Window不仅有属性,还有类型.Type参数表示Window的类型,分别为应用Window(activity对应的),子window(dialog对应的),和系统Window(Toast和系统通知栏).Window是分层的,每个window都有z-ordered,层级大的window会覆盖层级小的window,其大小关系为系统window&gt;子window&gt;应用window.所以系统window总会显示在最上边,但是使用系统window是需要声明相应的权限的.这一点需要注意.</p>
+<h4 id="WindowManager"><a href="#WindowManager" class="headerlink" title="WindowManager"></a>WindowManager</h4><p>&emsp;我们先来看一下WindowManager的接口,对其接口函数的了解有助于我们更好的理解Window的类别和属性.<br>&emsp;WindowManger实现了ViewManager这个接口,所提供的主要函数只有三个:</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addView</span>(<span class="params">View view, ViewGroup.LayoutParams <span class="keyword">params</span></span>)</span>;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">updateViewLayout</span>(<span class="params">View view, ViewGroup.LayoutParams <span class="keyword">params</span></span>)</span>;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">removeView</span>(<span class="params">View view</span>)</span>;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>&emsp;而且通过阅读源码,我们会发现所有的操作都是交由WindowManagerGloalal来进行.之后的小节我会依次介绍.这一节先讲一下它的比较重要的成员变量.<br> <figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 存储所有window所对应的view</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> ArrayList&lt;View&gt; mViews = <span class="keyword">new</span> ArrayList&lt;View&gt;();</span><br><span class="line">    <span class="comment">// 存在window所对应的viewRootImpl</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> ArrayList&lt;ViewRootImpl&gt; mRoots = <span class="keyword">new</span> ArrayList&lt;ViewRootImpl&gt;();</span><br><span class="line">    <span class="comment">// 存储了所有window对应的布局参数</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> ArrayList&lt;WindowManager.LayoutParams&gt; mParams =</span><br><span class="line">            <span class="keyword">new</span> ArrayList&lt;WindowManager.LayoutParams&gt;();</span><br><span class="line">    <span class="comment">// 存储了那些正在被删除的view对象,调用了removeVIew,但是没有完成的</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> ArraySet&lt;View&gt; mDyingViews = <span class="keyword">new</span> ArraySet&lt;View&gt;();</span><br></pre></td></tr></table></figure></p>
+<h4 id="Window的添加过程"><a href="#Window的添加过程" class="headerlink" title="Window的添加过程"></a>Window的添加过程</h4><p>&emsp;这是WindowManagerGlobal的对应接口</p>
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">public void addView(<span class="keyword">View</span> <span class="keyword">view</span>, ViewGroup.LayoutParams params,</span><br><span class="line">           <span class="keyword">Display</span> <span class="keyword">display</span>, <span class="keyword">Window</span> parentWindow)</span><br></pre></td></tr></table></figure>
+<p>&emsp;创建ViewRootImpl,并将View添加到相应的列表中</p>
+<figure class="highlight gauss"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建ViewRootImpl,然后将下述对象添加到列表中</span></span><br><span class="line">root = <span class="keyword">new</span> ViewRootImpl(<span class="built_in">view</span>.getContext(), display);</span><br><span class="line">       <span class="built_in">view</span>.setLayoutParams(wparams);<span class="comment">//设置Params</span></span><br><span class="line">       mViews.add(<span class="built_in">view</span>);<span class="comment">//window列表添加</span></span><br><span class="line">       mRoots.add(root);<span class="comment">//ViewRootImpl列表添加</span></span><br><span class="line">       mParams.add(wparams);<span class="comment">//布局参数列表添加</span></span><br></pre></td></tr></table></figure>
+<p>&emsp;通过ViewRootImpl来更新界面完成window的添加过程</p>
+<figure class="highlight erlang-repl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">// 添加啦!!!!!!!!这是通过ViewRootImpl的setView来完成</span><br><span class="line">root.setView(view, wparams, panelParentView);</span><br></pre></td></tr></table></figure>
+<p>&emsp;在ViewRootImpl的setView函数中,会调用requestLayout来完成异步刷新,然后在requestLayout<br>中调用scheduleTraversals来进行view绘制.</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line">   	<span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">requestLayout</span><span class="params">()</span> </span>&#123;</span><br><span class="line">       <span class="keyword">if</span> (!mHandlingLayoutInLayoutRequest) &#123;</span><br><span class="line">           checkThread();</span><br><span class="line">           mLayoutRequested = <span class="keyword">true</span>;</span><br><span class="line">           scheduleTraversals(); <span class="comment">// 实际View绘制的入口</span></span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;最后通过WindowSession来完成Window的添加过程,它是一个Binder对象,通过IPC调用来添加window.<br>&emsp;所以,Window的添加请求就交给WindowManagerService去处理,在其内部为每个应用保留一个单独的Session.</p>
+<h4 id="Window的删除过程"><a href="#Window的删除过程" class="headerlink" title="Window的删除过程"></a>Window的删除过程</h4><figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> removeView(View view, <span class="keyword">boolean</span> immediate) &#123;</span><br><span class="line">    <span class="keyword">if</span> (view == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"view must not be null"</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    synchronized (mLock) &#123;</span><br><span class="line">        <span class="keyword">int</span> <span class="keyword">index</span> = findViewLocked(view, <span class="keyword">true</span>); <span class="comment">//先找到view的index</span></span><br><span class="line">        View curView = mRoots.get(<span class="keyword">index</span>).getView();</span><br><span class="line">        removeViewLocked(<span class="keyword">index</span>, immediate);</span><br><span class="line">        <span class="keyword">if</span> (curView == view) &#123;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"Calling with view "</span> + view</span><br><span class="line">                + <span class="string">" but the ViewAncestor is attached to "</span> + curView);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;removeView先通过findViewLocked来查找待删除的View的索引,然后用removeViewLocked来做进一步删除.<br><figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> removeViewLocked(<span class="keyword">int</span> <span class="keyword">index</span>, <span class="keyword">boolean</span> immediate) &#123;</span><br><span class="line">    ViewRootImpl root = mRoots.get(<span class="keyword">index</span>); <span class="comment">//获得当前的view的viewRootImpl</span></span><br><span class="line">    View view = root.getView();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (view != <span class="keyword">null</span>) &#123; <span class="comment">//先让imm下降</span></span><br><span class="line">        InputMethodManager imm = InputMethodManager.getInstance();</span><br><span class="line">        <span class="keyword">if</span> (imm != <span class="keyword">null</span>) &#123;</span><br><span class="line">            imm.windowDismissed(mViews.get(<span class="keyword">index</span>).getWindowToken());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">boolean</span> deferred = root.die(immediate); <span class="comment">//die方法只是发送一个请求删除的消息之后就就返回</span></span><br><span class="line">    <span class="keyword">if</span> (view != <span class="keyword">null</span>) &#123;</span><br><span class="line">        view.assignParent(<span class="keyword">null</span>);</span><br><span class="line">        <span class="keyword">if</span> (deferred) &#123;</span><br><span class="line">            mDyingViews.add(view);<span class="comment">//加入dyingView</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;在WindowManager中提供了两种删除接口removeVIew()和removeViewImmediate(),它们分别表示异步和同步删除.而异步操作中会调用die函数,来发送一个MSG_DIE消息来异步删除,ViewRootImpl的Handler会调用doDie(),而如果是同步删除,那么就直接调用doDie(),然后在removeView函数中把View添加到mDyingViews中.</p>
+<h4 id="Window的更新"><a href="#Window的更新" class="headerlink" title="Window的更新"></a>Window的更新</h4><figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> updateViewLayout(View view, ViewGroup.LayoutParams params) &#123;</span><br><span class="line">      	.....</span><br><span class="line"><span class="keyword">final</span> WindowManager.LayoutParams wparams = (WindowManager.LayoutParams)params;</span><br><span class="line">       view.setLayoutParams(wparams);</span><br><span class="line">       synchronized (mLock) &#123;</span><br><span class="line">           <span class="keyword">int</span> <span class="keyword">index</span> = findViewLocked(view, <span class="keyword">true</span>);</span><br><span class="line">           ViewRootImpl root = mRoots.get(<span class="keyword">index</span>);</span><br><span class="line">           mParams.remove(<span class="keyword">index</span>);</span><br><span class="line">           mParams.add(<span class="keyword">index</span>, wparams);</span><br><span class="line">           root.setLayoutParams(wparams, <span class="keyword">false</span>);<span class="comment">//这是主要的方法</span></span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;在setLayoutParams中会调用scheduleTraversals来重新绘制.</p>
+<h4 id="Window的创建过程"><a href="#Window的创建过程" class="headerlink" title="Window的创建过程"></a>Window的创建过程</h4><p>&emsp;不同类型的Window的创建过程不同,这里我只来讲一下Activity的Window的创建过程.在Window的启动过程中,会调用attach()函数来为其关联运行过程中所依赖的一系列上下文环境变量.</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mWindow = PolicyManager.makeNewWindow(<span class="keyword">this</span>);</span><br><span class="line">mWindow.setCallback(<span class="keyword">this</span>);</span><br></pre></td></tr></table></figure>
+<p>&emsp;Window对象是通过PolicyManager的makeNewWindow方法实现的,由于Activity实现了Window的Callback接口,因此当Window接收到外界的状态改变时就会回调Activity的对应方法.而我们去追寻Window的具体实现类,会发现它就是PhoneWindow,而Activity中最常用的setContentView方法的具体操作都是在PhoneWindow的相应方法中实现的.</p>
+<p>&emsp;如果没有DecorView,那么就创建它.DecorView是一个FrameLayout,是Activity中的顶级View,一般包括标题栏和内容栏,而且内容栏的id为android.R.id.content,而DecorView的创建过程由installDecor完成,内部会通过generateDecor方法来直接创建DecorView</p>
+<figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (mContentParent == <span class="built_in">null</span>) &#123; <span class="comment">//如何没有DecorView,那么就新建一个</span></span><br><span class="line">           installDecor();</span><br><span class="line">       &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!hasFeature(FEATURE_CONTENT_TRANSITIONS)) &#123;</span><br><span class="line">           mContentParent.removeAllViews();</span><br><span class="line">       &#125;</span><br><span class="line"> 	<span class="keyword">if</span> (mDecor == <span class="built_in">null</span>) &#123;</span><br><span class="line">           mDecor = generateDecor(); <span class="comment">//直接new出一个DecorView返回</span></span><br><span class="line">           <span class="attr">...</span><span class="attr">...</span></span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">if</span> (mContentParent == <span class="built_in">null</span>) &#123;</span><br><span class="line">           <span class="comment">//[window] 这一步也是很重要的.</span></span><br><span class="line">           mContentParent = generateLayout(mDecor); </span><br><span class="line">           <span class="attr">...</span><span class="attr">...</span>.</span><br><span class="line">           &#125;</span><br><span class="line">       <span class="attr">...</span><span class="attr">...</span>.</span><br></pre></td></tr></table></figure>
+<p>&emsp;而在generateLayout中<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//根据不同的style生成不同的decorview啊</span></span><br><span class="line">       View <span class="keyword">in</span> = mLayoutInflater.inflate(layoutResource, <span class="literal">null</span>);</span><br><span class="line">       <span class="comment">// 加入到deco中,所以应该是其第一个child</span></span><br><span class="line">       decor.addView(<span class="keyword">in</span>, <span class="keyword">new</span> ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT));</span><br><span class="line">       mContentRoot = (ViewGroup) <span class="keyword">in</span>; </span><br><span class="line">       <span class="comment">//给DecorView的第一个child是mContentView</span></span><br><span class="line">       <span class="comment">// 这是获得所谓的content</span></span><br><span class="line">       ViewGroup contentParent = (ViewGroup)findViewById(ID_ANDROID_CONTENT);</span><br></pre></td></tr></table></figure></p>
+<p>  &emsp;将View添加到DecorView的mContentParent中,这步只需要一条语句就可,具体内部细节就不说啦.<br><figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//第二步,将layout添加到mContentParent</span></span><br><span class="line">       mLayoutInflater<span class="selector-class">.inflate</span>(layoutResID, mContentParent);</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;然后就是回调Acitivity的onContentChanged方法通知Activity视图已经改变了.<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">final</span> Callback cb = getCallback();</span><br><span class="line">       <span class="keyword">if</span> (cb != <span class="literal">null</span> &amp;&amp; !isDestroyed()) &#123;</span><br><span class="line">           cb.onContentChanged();</span><br><span class="line">       &#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;经历了上述三个步骤,DecorView已经创建并初始化完毕,并且Activity的布局文件已经成功添加到DecorView的mContentParent中,但是DecorView并没有添加到WindowManager中去,也无法接收外界的输入,只有到Acitivity的makeVisible()被调用时,DecorView才真正完成了添加和显示过程.<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">//DecorView正式添加并显示</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">makeVisible</span><span class="params">()</span> </span>&#123;</span><br><span class="line">   <span class="keyword">if</span> (!mWindowAdded) &#123;</span><br><span class="line">        ViewManager wm = getWindowManager();</span><br><span class="line">        wm.addView(mDecor, getWindow().getAttributes());</span><br><span class="line">        mWindowAdded = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    mDecor.setVisibility(View.VISIBLE);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>&emsp;这篇博文主要是读书笔记式的总结,本来想写一些自己的东西,但是研究的太浅,并且语言组织上还是有不足,以后还需要注意和继续努力啦.</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2015/11/04/React-Native-Android-Cookie-Problem/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption"><</strong>
+      <div class="article-nav-title">
+        
+          React Native Android Cookie Problem
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2015/10/17/生活学习记录一-RxJava-实习感悟/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">生活学习记录一:RxJava+实习感悟</div>
+      <strong class="article-nav-caption">></strong>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+<div class="share_jia">
+	<!-- JiaThis Button BEGIN -->
+	<div class="jiathis_style">
+		<span class="jiathis_txt">Share to: &nbsp; </span>
+		<a class="jiathis_button_facebook"></a> 
+    <a class="jiathis_button_twitter"></a>
+    <a class="jiathis_button_plus"></a> 
+    <a class="jiathis_button_tsina"></a>
+		<a class="jiathis_button_cqq"></a>
+		<a class="jiathis_button_douban"></a>
+		<a class="jiathis_button_weixin"></a>
+		<a class="jiathis_button_tumblr"></a>
+    <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	</div>
+	<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1405949716054953" charset="utf-8"></script>
+	<!-- JiaThis Button END -->
+</div>
+
+
+
+
+
+
+<div class="duoshuo">
+	<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="Window和WindowManager解析" data-title="Window和WindowManager解析" data-url="http://yoursite.com/2015/10/28/Window和WindowManager解析/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"true"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+	<!-- 多说公共JS代码 end -->
+</div>
+
+
+
+
+</div>
+      <footer id="footer">
+  <div class="outer">
+    <div id="footer-info">
+    	<div class="footer-left">
+    		&copy; 2016 remCarpediem
+    	</div>
+      	<div class="footer-right">
+      		<a href="http://hexo.io/" target="_blank">Hexo</a>  Theme <a href="https://github.com/litten/hexo-theme-yilia" target="_blank">Yilia</a> by Litten
+      	</div>
+    </div>
+  </div>
+</footer>
+    </div>
+    
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+
+<script>
+	var yiliaConfig = {
+		fancybox: true,
+		mathjax: true,
+		animate: true,
+		isHome: false,
+		isPost: true,
+		isArchive: false,
+		isTag: false,
+		isCategory: false,
+		open_in_new: false
+	}
+</script>
+<script src="http://7.url.cn/edu/jslib/comb/require-2.1.6,jquery-1.9.1.min.js"></script>
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+  </div>
+</body>
+</html>

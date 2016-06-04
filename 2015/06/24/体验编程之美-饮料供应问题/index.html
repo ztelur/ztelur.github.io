@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <title>体验编程之美　饮料供应问题 | Carpediem</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="动态编程，贪婪算法，实际问题的建模过程
+现实问题描述  公司水房提供很多种类饮料，已经统计获得大家对每种饮料的满意程度；STC负责给公司提供饮料，每天的总容量为V，每种饮料的单个容量都是2的方幂，比如王老吉，都是2的三次方为8升的；STC的存货也是有限的，这会是每种饮料的购买量上限。统计数据中使用饮料名字，容量，数量，满意度来描述一中饮料，问如何保证最大的满意度啊。
+问题建模  我刚看到这道题目的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="体验编程之美　饮料供应问题">
+<meta property="og:url" content="http://yoursite.com/2015/06/24/体验编程之美-饮料供应问题/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="动态编程，贪婪算法，实际问题的建模过程
+现实问题描述  公司水房提供很多种类饮料，已经统计获得大家对每种饮料的满意程度；STC负责给公司提供饮料，每天的总容量为V，每种饮料的单个容量都是2的方幂，比如王老吉，都是2的三次方为8升的；STC的存货也是有限的，这会是每种饮料的购买量上限。统计数据中使用饮料名字，容量，数量，满意度来描述一中饮料，问如何保证最大的满意度啊。
+问题建模  我刚看到这道题目的">
+<meta property="og:updated_time" content="2015-06-24T13:02:08.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="体验编程之美　饮料供应问题">
+<meta name="twitter:description" content="动态编程，贪婪算法，实际问题的建模过程
+现实问题描述  公司水房提供很多种类饮料，已经统计获得大家对每种饮料的满意程度；STC负责给公司提供饮料，每天的总容量为V，每种饮料的单个容量都是2的方幂，比如王老吉，都是2的三次方为8升的；STC的存货也是有限的，这会是每种饮料的购买量上限。统计数据中使用饮料名字，容量，数量，满意度来描述一中饮料，问如何保证最大的满意度啊。
+问题建模  我刚看到这道题目的">
+  
+    <link rel="alternative" href="/atom.xml" title="Carpediem" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+	<header id="header" class="inner">
+		<a href="/" class="profilepic">
+			
+			<img lazy-src="null" class="js-avatar">
+			
+		</a>
+
+		<hgroup>
+		  <h1 class="header-author"><a href="/">remCarpediem</a></h1>
+		</hgroup>
+
+		
+		<p class="header-subtitle">blog of nobody</p>
+		
+
+		
+			<div class="switch-btn">
+				<div class="icon">
+					<div class="icon-ctn">
+						<div class="icon-wrap icon-house" data-idx="0">
+							<div class="birdhouse"></div>
+							<div class="birdhouse_holes"></div>
+						</div>
+						<div class="icon-wrap icon-ribbon hide" data-idx="1">
+							<div class="ribbon"></div>
+						</div>
+						
+						<div class="icon-wrap icon-link hide" data-idx="2">
+							<div class="loopback_l"></div>
+							<div class="loopback_r"></div>
+						</div>
+						
+						
+						<div class="icon-wrap icon-me hide" data-idx="3">
+							<div class="user"></div>
+							<div class="shoulder"></div>
+						</div>
+						
+					</div>
+					
+				</div>
+				<div class="tips-box hide">
+					<div class="tips-arrow"></div>
+					<ul class="tips-inner">
+						<li>Menu</li>
+						<li>Tags</li>
+						
+						<li>Links</li>
+						
+						
+						<li>Über</li>
+						
+					</ul>
+				</div>
+			</div>
+		
+
+		<div class="switch-area">
+			<div class="switch-wrap">
+				<section class="switch-part switch-part1">
+					<nav class="header-menu">
+						<ul>
+						
+							<li><a href="/">主页</a></li>
+				        
+							<li><a href="/archives">所有文章</a></li>
+				        
+						</ul>
+					</nav>
+					<nav class="header-nav">
+						<div class="social">
+							
+								<a class="github" target="_blank" href="#" title="github">github</a>
+					        
+								<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+					        
+								<a class="rss" target="_blank" href="#" title="rss">rss</a>
+					        
+								<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+					        
+						</div>
+					</nav>
+				</section>
+				
+				
+				<section class="switch-part switch-part2">
+					<div class="widget tagcloud" id="js-tagcloud">
+						<a href="/tags/读书/" style="font-size: 10px;">-读书</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/Http/" style="font-size: 10px;">Http</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/string/" style="font-size: 10px;">string</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 20px;">第三方库</a> <a href="/tags/算法/" style="font-size: 15px;">算法</a> <a href="/tags/读书笔记/" style="font-size: 10px;">读书笔记</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a>
+					</div>
+				</section>
+				
+				
+				
+				<section class="switch-part switch-part3">
+					<div id="js-friends">
+					
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">奥巴马的博客</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">卡卡的美丽传说</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">本泽马的博客</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">吉格斯的博客</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">习大大大不同</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">托蒂的博客</a>
+			        
+			        </div>
+				</section>
+				
+
+				
+				
+				<section class="switch-part switch-part4">
+				
+					<div id="js-aboutme">我是谁，我从哪里来，我到哪里去？我就是我，是颜色不一样的吃货…</div>
+				</section>
+				
+			</div>
+		</div>
+	</header>				
+</div>
+
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+  	<div class="overlay">
+  		<div class="slider-trigger"></div>
+  		<h1 class="header-author js-mobile-header hide">remCarpediem</h1>
+  	</div>
+	<div class="intrude-less">
+		<header id="header" class="inner">
+			<div class="profilepic">
+			
+				<img lazy-src="null" class="js-avatar">
+			
+			</div>
+			<hgroup>
+			  <h1 class="header-author">remCarpediem</h1>
+			</hgroup>
+			
+			<p class="header-subtitle">blog of nobody</p>
+			
+			<nav class="header-menu">
+				<ul>
+				
+					<li><a href="/">主页</a></li>
+		        
+					<li><a href="/archives">所有文章</a></li>
+		        
+		        <div class="clearfix"></div>
+				</ul>
+			</nav>
+			<nav class="header-nav">
+				<div class="social">
+					
+						<a class="github" target="_blank" href="#" title="github">github</a>
+			        
+						<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+			        
+						<a class="rss" target="_blank" href="#" title="rss">rss</a>
+			        
+						<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+			        
+				</div>
+			</nav>
+		</header>				
+	</div>
+</nav>
+
+      <div class="body-wrap"><article id="post-体验编程之美-饮料供应问题" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2015/06/24/体验编程之美-饮料供应问题/" class="article-date">
+  	<time datetime="2015-06-24T05:00:05.000Z" itemprop="datePublished">2015-06-24</time>
+</a>
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      体验编程之美　饮料供应问题
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+	<div class="article-tag tagcloud">
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/动态编程/">动态编程</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/算法/">算法</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/贪婪算法/">贪婪算法</a></li></ul>
+	</div>
+
+        
+	<div class="article-category tagcloud">
+	<a class="article-category-link" href="/categories/算法/">算法</a>
+	</div>
+
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>动态编程，贪婪算法，实际问题的建模过程</p>
+<h3 id="现实问题描述"><a href="#现实问题描述" class="headerlink" title="现实问题描述"></a>现实问题描述</h3><p>  公司水房提供很多种类饮料，已经统计获得大家对每种饮料的满意程度；STC负责给公司提供饮料，每天的总容量为V，每种饮料的单个容量都是2的方幂，比如王老吉，都是2的三次方为8升的；STC的存货也是有限的，这会是每种饮料的购买量上限。统计数据中使用饮料名字，容量，数量，满意度来描述一中饮料，问如何保证最大的满意度啊。</p>
+<h3 id="问题建模"><a href="#问题建模" class="headerlink" title="问题建模"></a>问题建模</h3><p>  我刚看到这道题目的时候，其实是很困惑的，完全不知道该如何下手。因为之前刷leetocde算法题目时，每个题目是使用编程域的语言进行描述的，比如：复制一个具有随机指针的链表。而这道题却是一个完全现实问题域描述，这样我们就需要进行建模，将这个实际问题转换为之前比较常见的算法问题。</p>
+<p>   假设ST提供n种饮料，用(Si,Vi,Ci,Hi,Bi) (对应饮料的名字，容量，可能的最大数量，满意度，实际购买量)来标示第i中饮料，其中可能的最大数量指如果仅买这种饮料的可能最大数量，比如对第i种饮料，Ci=V/Vi;</p>
+<p>  基于现实域的描述，我们有以下两个公式：</p>
+<ul>
+<li><p>饮料的总数量 V= (V0<em>B0)+(V1</em>B1)+……….(Vn*Bn);          A</p>
+</li>
+<li><p>总满意度为 H=(H0<em>B0)+(H1</em>B1)+………(Hn*Bn);               B</p>
+</li>
+</ul>
+<p>  那么题目的要求就是，在满足饮料总数量为V的基础上，求解最大的总满意度。</p>
+<h3 id="动态编程"><a href="#动态编程" class="headerlink" title="动态编程"></a>动态编程</h3><p> 对于最优解问题，首先考虑到动态编程啦！用Opt(V’,i)来标示从第i,i+1,……n-1,n种饮料中，计算出总量为V’的方案中满意度之和的最大值。</p>
+<p> 然后我们思考一下最优子结构的推到公式啊。Opt(V’,n)=max{k<em>Hi+Opt(V’-Vi</em>k,i-1)} (k=0,1,2,Ci),简单描述一下就是先将V‘分成两份，一份是Si饮料容量，大小为K<em>Vi；另外一份是其他的饮料的容量，大小为V’-Vi</em>k,其中k表示这种饮料的数量。然后取不同的k值，范围为0到Ci,求最大的满意度。</p>
+<p> 我们来列出动态编程的初始化条件：</p>
+<ul>
+<li><p>Opt(0,0)=0</p>
+</li>
+<li><p>Opt(x,n)=-INF</p>
+</li>
+</ul>
+<h3 id="对动态编程的优化"><a href="#对动态编程的优化" class="headerlink" title="对动态编程的优化"></a>对动态编程的优化</h3><p>  动态编程算法的一个变形是备忘录法，备忘录法也是用一个表格来保存每个子问题的答案，并通过记忆化搜索来避免计算一些不可能到达的状态，简单来说，就是避免重复计算子问题，第一次遇到子问题的时候进行计算，然后保存结果，之后再次遇到时，直接取出结果使用。<br>&emsp;&emsp;动态编程和备忘录法的区别就是：动态编程是自下到上，而备忘录法是自顶向下的，而且备忘录法可以进行多次查询，花费了存储空间，来提高整体查询效率。</p>
+<h3 id="贪婪算法"><a href="#贪婪算法" class="headerlink" title="贪婪算法"></a>贪婪算法</h3><p>&emsp;&emsp;一般来说，如果你发现了最优子结构和重复子问题，就可以使用动态编程了，但是如果你发现了下边这条更加特殊的性质，你就可以使用贪婪算法.<br>&emsp;&emsp;这个特性就是贪心选择性质：我们可以通过局部最优（贪心）选择来构造全局最优，换句话说，当进行选择时，我们直接做出在当前问题中看来最优的选择，而不必考虑子问题的解，这就是贪婪和动态编程的区别，动态编程的每一步选择通常依赖于子问题的解，而贪婪不需要。<br>&emsp;&emsp;回到饮料供应问题，可以设想，将饮料按照满意度大小进行排序，优先最大量供应满意度最大的饮料是否就能得出这个问题的最优解呢？答案是肯定的，我们可以对这性质进行证明。<br>&emsp;&emsp;这篇文章只是分析了饮料供应问题的算法原理，并没有给出具体代码，大家可以自己动手编写一下啊，理论和实践并行啊。</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2015/09/18/初识Dagger2/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption"><</strong>
+      <div class="article-nav-title">
+        
+          初识Dagger2
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2015/06/19/西方文化和精神概述/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">西方文化和精神概述</div>
+      <strong class="article-nav-caption">></strong>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+<div class="share_jia">
+	<!-- JiaThis Button BEGIN -->
+	<div class="jiathis_style">
+		<span class="jiathis_txt">Share to: &nbsp; </span>
+		<a class="jiathis_button_facebook"></a> 
+    <a class="jiathis_button_twitter"></a>
+    <a class="jiathis_button_plus"></a> 
+    <a class="jiathis_button_tsina"></a>
+		<a class="jiathis_button_cqq"></a>
+		<a class="jiathis_button_douban"></a>
+		<a class="jiathis_button_weixin"></a>
+		<a class="jiathis_button_tumblr"></a>
+    <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	</div>
+	<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1405949716054953" charset="utf-8"></script>
+	<!-- JiaThis Button END -->
+</div>
+
+
+
+
+
+
+<div class="duoshuo">
+	<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="体验编程之美-饮料供应问题" data-title="体验编程之美　饮料供应问题" data-url="http://yoursite.com/2015/06/24/体验编程之美-饮料供应问题/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"true"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+	<!-- 多说公共JS代码 end -->
+</div>
+
+
+
+
+</div>
+      <footer id="footer">
+  <div class="outer">
+    <div id="footer-info">
+    	<div class="footer-left">
+    		&copy; 2016 remCarpediem
+    	</div>
+      	<div class="footer-right">
+      		<a href="http://hexo.io/" target="_blank">Hexo</a>  Theme <a href="https://github.com/litten/hexo-theme-yilia" target="_blank">Yilia</a> by Litten
+      	</div>
+    </div>
+  </div>
+</footer>
+    </div>
+    
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+
+<script>
+	var yiliaConfig = {
+		fancybox: true,
+		mathjax: true,
+		animate: true,
+		isHome: false,
+		isPost: true,
+		isArchive: false,
+		isTag: false,
+		isCategory: false,
+		open_in_new: false
+	}
+</script>
+<script src="http://7.url.cn/edu/jslib/comb/require-2.1.6,jquery-1.9.1.min.js"></script>
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+  </div>
+</body>
+</html>

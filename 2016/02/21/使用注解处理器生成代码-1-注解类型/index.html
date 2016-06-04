@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <title>使用注解处理器生成代码-1 注解类型 | Carpediem</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="&amp;emsp;原文地址如下：摸我&amp;emsp;我希望以此篇博文作为基于注解处理器生成代码系列博文的开篇，给大家展示注解处理器有多么强大，并在最后使用这项技术来在编译时刻生成android代码&amp;emsp;在这个系列博文中，我们会：
+
+介绍Java语言中的注解
+理解注解的基本用法和作用域
+了解Annotation Processor基础知识和作用
+学习如何在命令行，Eclipse,Maven中运行Anno">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用注解处理器生成代码-1 注解类型">
+<meta property="og:url" content="http://yoursite.com/2016/02/21/使用注解处理器生成代码-1-注解类型/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="&amp;emsp;原文地址如下：摸我&amp;emsp;我希望以此篇博文作为基于注解处理器生成代码系列博文的开篇，给大家展示注解处理器有多么强大，并在最后使用这项技术来在编译时刻生成android代码&amp;emsp;在这个系列博文中，我们会：
+
+介绍Java语言中的注解
+理解注解的基本用法和作用域
+了解Annotation Processor基础知识和作用
+学习如何在命令行，Eclipse,Maven中运行Anno">
+<meta property="og:updated_time" content="2016-02-21T20:22:06.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="使用注解处理器生成代码-1 注解类型">
+<meta name="twitter:description" content="&amp;emsp;原文地址如下：摸我&amp;emsp;我希望以此篇博文作为基于注解处理器生成代码系列博文的开篇，给大家展示注解处理器有多么强大，并在最后使用这项技术来在编译时刻生成android代码&amp;emsp;在这个系列博文中，我们会：
+
+介绍Java语言中的注解
+理解注解的基本用法和作用域
+了解Annotation Processor基础知识和作用
+学习如何在命令行，Eclipse,Maven中运行Anno">
+  
+    <link rel="alternative" href="/atom.xml" title="Carpediem" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+	<header id="header" class="inner">
+		<a href="/" class="profilepic">
+			
+			<img lazy-src="null" class="js-avatar">
+			
+		</a>
+
+		<hgroup>
+		  <h1 class="header-author"><a href="/">remCarpediem</a></h1>
+		</hgroup>
+
+		
+		<p class="header-subtitle">blog of nobody</p>
+		
+
+		
+			<div class="switch-btn">
+				<div class="icon">
+					<div class="icon-ctn">
+						<div class="icon-wrap icon-house" data-idx="0">
+							<div class="birdhouse"></div>
+							<div class="birdhouse_holes"></div>
+						</div>
+						<div class="icon-wrap icon-ribbon hide" data-idx="1">
+							<div class="ribbon"></div>
+						</div>
+						
+						<div class="icon-wrap icon-link hide" data-idx="2">
+							<div class="loopback_l"></div>
+							<div class="loopback_r"></div>
+						</div>
+						
+						
+						<div class="icon-wrap icon-me hide" data-idx="3">
+							<div class="user"></div>
+							<div class="shoulder"></div>
+						</div>
+						
+					</div>
+					
+				</div>
+				<div class="tips-box hide">
+					<div class="tips-arrow"></div>
+					<ul class="tips-inner">
+						<li>Menu</li>
+						<li>Tags</li>
+						
+						<li>Links</li>
+						
+						
+						<li>Über</li>
+						
+					</ul>
+				</div>
+			</div>
+		
+
+		<div class="switch-area">
+			<div class="switch-wrap">
+				<section class="switch-part switch-part1">
+					<nav class="header-menu">
+						<ul>
+						
+							<li><a href="/">主页</a></li>
+				        
+							<li><a href="/archives">所有文章</a></li>
+				        
+						</ul>
+					</nav>
+					<nav class="header-nav">
+						<div class="social">
+							
+								<a class="github" target="_blank" href="#" title="github">github</a>
+					        
+								<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+					        
+								<a class="rss" target="_blank" href="#" title="rss">rss</a>
+					        
+								<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+					        
+						</div>
+					</nav>
+				</section>
+				
+				
+				<section class="switch-part switch-part2">
+					<div class="widget tagcloud" id="js-tagcloud">
+						<a href="/tags/读书/" style="font-size: 10px;">-读书</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/Http/" style="font-size: 10px;">Http</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/string/" style="font-size: 10px;">string</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 20px;">第三方库</a> <a href="/tags/算法/" style="font-size: 15px;">算法</a> <a href="/tags/读书笔记/" style="font-size: 10px;">读书笔记</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a>
+					</div>
+				</section>
+				
+				
+				
+				<section class="switch-part switch-part3">
+					<div id="js-friends">
+					
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">奥巴马的博客</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">卡卡的美丽传说</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">本泽马的博客</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">吉格斯的博客</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">习大大大不同</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">托蒂的博客</a>
+			        
+			        </div>
+				</section>
+				
+
+				
+				
+				<section class="switch-part switch-part4">
+				
+					<div id="js-aboutme">我是谁，我从哪里来，我到哪里去？我就是我，是颜色不一样的吃货…</div>
+				</section>
+				
+			</div>
+		</div>
+	</header>				
+</div>
+
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+  	<div class="overlay">
+  		<div class="slider-trigger"></div>
+  		<h1 class="header-author js-mobile-header hide">remCarpediem</h1>
+  	</div>
+	<div class="intrude-less">
+		<header id="header" class="inner">
+			<div class="profilepic">
+			
+				<img lazy-src="null" class="js-avatar">
+			
+			</div>
+			<hgroup>
+			  <h1 class="header-author">remCarpediem</h1>
+			</hgroup>
+			
+			<p class="header-subtitle">blog of nobody</p>
+			
+			<nav class="header-menu">
+				<ul>
+				
+					<li><a href="/">主页</a></li>
+		        
+					<li><a href="/archives">所有文章</a></li>
+		        
+		        <div class="clearfix"></div>
+				</ul>
+			</nav>
+			<nav class="header-nav">
+				<div class="social">
+					
+						<a class="github" target="_blank" href="#" title="github">github</a>
+			        
+						<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+			        
+						<a class="rss" target="_blank" href="#" title="rss">rss</a>
+			        
+						<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+			        
+				</div>
+			</nav>
+		</header>				
+	</div>
+</nav>
+
+      <div class="body-wrap"><article id="post-使用注解处理器生成代码-1-注解类型" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2016/02/21/使用注解处理器生成代码-1-注解类型/" class="article-date">
+  	<time datetime="2016-02-21T12:18:55.000Z" itemprop="datePublished">2016-02-21</time>
+</a>
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      使用注解处理器生成代码-1 注解类型
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+	<div class="article-tag tagcloud">
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/注解/">注解</a></li></ul>
+	</div>
+
+        
+	<div class="article-category tagcloud">
+	<a class="article-category-link" href="/categories/Android/">Android</a>
+	</div>
+
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>&emsp;原文地址如下：<a href="https://deors.wordpress.com/2011/10/08/annotation-processors/" target="_blank" rel="external">摸我</a><br>&emsp;我希望以此篇博文作为基于注解处理器生成代码系列博文的开篇，给大家展示注解处理器有多么强大，并在最后使用这项技术来在编译时刻生成android代码<br>&emsp;在这个系列博文中，我们会：</p>
+<ul>
+<li>介绍Java语言中的注解</li>
+<li>理解注解的基本用法和作用域</li>
+<li>了解<code>Annotation Processor</code>基础知识和作用</li>
+<li>学习如何在命令行，<code>Eclipse</code>,<code>Maven</code>中运行<code>Annotation Processors</code></li>
+<li>学习如何使用<code>Annotation Processors</code>来生成代码</li>
+<li>学习如何<code>Apache Velocity</code>模版来生成代码</li>
+</ul>
+<h4 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h4><p>&emsp;注解首先在第三版<code>Java Language Specification</code>中被提出，并在<code>java 5</code>中被实现。<br>&emsp;使用注解我们可以给源代码添加元数据信息，比如构造或者部署信息，配置属性，编译特性或者代码质量检查。<br>&emsp;不像<code>Javadocs</code>，注解是强类型的，每个注解都对应一个预先定义好的注解类型。除此之外，程序可以在运行时获得注解信息，<code>Javadocs</code>不行。</p>
+<h4 id="注解语法"><a href="#注解语法" class="headerlink" title="注解语法"></a>注解语法</h4><p>&emsp;注解通常出现在被注解代码片段之前，单独成行，并且和代码片段有相同的缩进。<br>&emsp;注解可以应用到包，类型（类，接口，枚举，注解类型），变量（对象，局部变量-包括定义在循环结构中的变量），构造函数，方法，和参数。<br>&emsp;注解的最简单形式是不带任何元素，比如：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span>()</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">theMethod</span><span class="params">()</span> </span>&#123;…&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;在这种情况下，括号可以被省略。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">theMethod</span><span class="params">()</span> </span>&#123;…&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;注解可以包括通过冒号分离的键值对数据，类型可以是基础类型，字符串，枚举，和数组：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Author</span>(name = <span class="string">"Albert"</span>,</span><br><span class="line">            created = <span class="string">"17/09/2010"</span>,</span><br><span class="line">            revision = <span class="number">3</span>,</span><br><span class="line">            reviewers = &#123;<span class="string">"George"</span>, <span class="string">"Fred"</span>&#125;)</span><br><span class="line">    <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SimpleAnnotationsTest</span> </span>&#123;…&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;当注解只有一个元素并且其名字是value，那么它就可以被省略：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@WorkProduct</span>(<span class="string">"WP00000182"</span>)</span><br><span class="line">    <span class="meta">@Complexity</span>(ComplexityLevel.VERY_SIMPLE)</span><br><span class="line">    <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SimpleAnnotationsTest</span> </span>&#123;…&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;注解可以定义它的元素的默认值，有默认值的元素可以在注解声明使用时被省略。<br>&emsp;比如，假设注解<code>Author</code>定义了<code>revision</code>（默认为1）和<code>reviewers</code>(默认为空的字符串数组)，下边的两个注释声明是相同的：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Author</span>(name = <span class="string">"Albert"</span>,</span><br><span class="line">            created = <span class="string">"17/09/2010"</span>,</span><br><span class="line">            revision = <span class="number">1</span>,</span><br><span class="line">            reviewers = &#123;&#125;)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> class <span class="title">SimpleAnnotationsTest</span><span class="params">()</span> </span>&#123;…&#125;</span><br><span class="line">    <span class="meta">@Author</span>(name = <span class="string">"Albert"</span>,        <span class="comment">// defaults are revision 1</span></span><br><span class="line">            created = <span class="string">"17/09/2010"</span>) <span class="comment">// and no reviewers</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> class <span class="title">SimpleAnnotationsTest</span><span class="params">()</span> </span>&#123;…&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="注解的典型使用"><a href="#注解的典型使用" class="headerlink" title="注解的典型使用"></a>注解的典型使用</h4><p>&emsp;有三类注解类型在<code>Java Language Specification</code>中被定义，它们提供给java的编译器使用：</p>
+<ul>
+<li><strong>@Deprecated</strong>:表明被标记的元素不应该再被使用。当你使用被标记元素时，编译器会给出警告。也可以使用在<code>Javadoc</code>中，解释标记元素不能在使用的原因。</li>
+<li><strong>@Override</strong>：表面被标记元素为重载了超类中的元素</li>
+<li><strong>@SuppressWarnings</strong>：让编译器忽略标记元素会产生的一些特定警告</li>
+</ul>
+<p>&emsp;自从注解被引入，很多库和框架都在其最新版本中添加了注解。通过在代码中使用注解，这些库或者框架可以减少或者去除配置文件的使用。<br>&amp;emsp；最有代表性的几个库或框架如下：</p>
+<ul>
+<li>Java Enterprise Edition and its main components –  Enterprise JavaBeans, Java Persistence API or Web Services API’s.</li>
+<li>Spring Framework – used thoroughly for configuration, dependency injection and inversion of control in the core framework and in other Spring projects.</li>
+<li>Seam, Weld, Guice.</li>
+<li>Apache Struts 2.</li>
+</ul>
+<h4 id="注解类型"><a href="#注解类型" class="headerlink" title="注解类型"></a>注解类型</h4><p>&emsp;注解类型(<code>Annotation Type</code>)是定义自定义注解的特殊接口（<code>interface</code>）。<br>&emsp;一个注解类型使用<code>@interface</code>来定义：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> Author &#123;</span><br><span class="line">        <span class="function">String <span class="title">name</span><span class="params">()</span></span>;</span><br><span class="line">        <span class="function">String <span class="title">created</span><span class="params">()</span></span>;</span><br><span class="line">        <span class="function"><span class="keyword">int</span> <span class="title">revision</span><span class="params">()</span> <span class="keyword">default</span> 1</span>;</span><br><span class="line">        String[] reviewers() <span class="keyword">default</span> &#123;&#125;;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="meta">@interface</span> Complexity &#123;</span><br><span class="line">        <span class="function">ComplexityLevel <span class="title">value</span><span class="params">()</span> <span class="keyword">default</span> ComplexityLevel.MEDIUM</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">enum</span> ComplexityLevel &#123;</span><br><span class="line">        VERY_SIMPLE, SIMPLE, MEDIUM, COMPLEX, VERY_COMPLEX;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;注解类型和常规的接口有一些不同的地方：</p>
+<ul>
+<li>只有基础类型，字符串，枚举，类常量和上述类型的数组允许在注解定义中使用，一般的类和对象不允许使用，双重数组也不允许。</li>
+<li>注解元素的定义语法和类方法的语法相似，但是注意，注解元素的定义不包括修饰符和参数。</li>
+<li>默认值是使用<code>default</code>关键字定义的，其后的值必须是字面量，数组初始器和枚举值。</li>
+</ul>
+<p>&emsp;枚举类型可以在注解内部进行定义：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> Complexity &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">enum</span> Level &#123;</span><br><span class="line">            VERY_SIMPLE, SIMPLE, MEDIUM, COMPLEX, VERY_COMPLEX;</span><br><span class="line">        &#125;</span><br><span class="line">    …</span><br></pre></td></tr></table></figure></p>
+<h4 id="用来定义注解的注解"><a href="#用来定义注解的注解" class="headerlink" title="用来定义注解的注解"></a>用来定义注解的注解</h4><p>&emsp;JDK中预先定义了一些用来修改自定义注解行为的注解：</p>
+<ul>
+<li><strong>@Retention</strong>：表明被标记的注解信息会保存多长时间，一些可能的值如下：<code>CLASS</code> (默认选项，注解信息保存到class文件中，但是无法在运行时获得), <code>SOURCE</code> (当class文件被创建时被编译器抛弃) and <code>RUNTIME</code> (在程序运行时可以获得).</li>
+<li><p><strong>@Target</strong>:表明注解可以标记元素的类型，可能的值为枚举类型<code>ElementType</code>的值：<code>ANNOTATION_TYPE</code>, <code>CONSTRUCTOR</code>, <code>FIELD</code>, <code>LOCAL_VARIABLE</code>, <code>METHOD</code>, <code>PACKAGE</code>, <code>PARAMETER</code> and <code>TYPE</code>.<br>&emsp;下一篇博文为《注解处理器》，稍后会给出。</p>
+<p>—<br>(1) ”The Java Language Specification, Third Edition” is available for free download <a href="http://java.sun.com/docs/books/jls/" target="_blank" rel="external">here</a>.<br>&emsp;Update: new link to relevant JLS section in his new home at Oracle site <a href="http://docs.oracle.com/javase/specs/jls/se5.0/html/interfaces.html#9.7" target="_blank" rel="external">here</a>.</p>
+</li>
+</ul>
+
+      
+    </div>
+    
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2016/02/24/译-使用注解处理器生成代码-2-注解处理器/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption"><</strong>
+      <div class="article-nav-title">
+        
+          [译]使用注解处理器生成代码-2 注解处理器
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2016/02/11/图解Android事件传递之ViewGroup篇/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">图解Android事件传递之ViewGroup篇</div>
+      <strong class="article-nav-caption">></strong>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+<div class="share_jia">
+	<!-- JiaThis Button BEGIN -->
+	<div class="jiathis_style">
+		<span class="jiathis_txt">Share to: &nbsp; </span>
+		<a class="jiathis_button_facebook"></a> 
+    <a class="jiathis_button_twitter"></a>
+    <a class="jiathis_button_plus"></a> 
+    <a class="jiathis_button_tsina"></a>
+		<a class="jiathis_button_cqq"></a>
+		<a class="jiathis_button_douban"></a>
+		<a class="jiathis_button_weixin"></a>
+		<a class="jiathis_button_tumblr"></a>
+    <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	</div>
+	<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1405949716054953" charset="utf-8"></script>
+	<!-- JiaThis Button END -->
+</div>
+
+
+
+
+
+
+<div class="duoshuo">
+	<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="使用注解处理器生成代码-1-注解类型" data-title="使用注解处理器生成代码-1 注解类型" data-url="http://yoursite.com/2016/02/21/使用注解处理器生成代码-1-注解类型/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"true"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+	<!-- 多说公共JS代码 end -->
+</div>
+
+
+
+
+</div>
+      <footer id="footer">
+  <div class="outer">
+    <div id="footer-info">
+    	<div class="footer-left">
+    		&copy; 2016 remCarpediem
+    	</div>
+      	<div class="footer-right">
+      		<a href="http://hexo.io/" target="_blank">Hexo</a>  Theme <a href="https://github.com/litten/hexo-theme-yilia" target="_blank">Yilia</a> by Litten
+      	</div>
+    </div>
+  </div>
+</footer>
+    </div>
+    
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+
+<script>
+	var yiliaConfig = {
+		fancybox: true,
+		mathjax: true,
+		animate: true,
+		isHome: false,
+		isPost: true,
+		isArchive: false,
+		isTag: false,
+		isCategory: false,
+		open_in_new: false
+	}
+</script>
+<script src="http://7.url.cn/edu/jslib/comb/require-2.1.6,jquery-1.9.1.min.js"></script>
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+  </div>
+</body>
+</html>

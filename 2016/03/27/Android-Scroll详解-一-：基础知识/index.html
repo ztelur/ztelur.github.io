@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <title>Android Scroll详解(一)：基础知识 | Carpediem</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="&amp;emsp;在前边的文章中，我们已经对Android触摸事件处理有了大致的了解，并且详细探讨了MotionEvent的相关用法。对之前文章中的知识还不是很了解的同学，请阅读《Android MotionEvent详解》&amp;emsp;今天，我们就来探讨一下Android中界面滚动效果的相关机制，本篇文章主要讲解一下滚动相关的知识点，之后的文章会涉及实际的代码和原理。希望大家阅读完这篇文章之后，能够了解">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Android Scroll详解(一)：基础知识">
+<meta property="og:url" content="http://yoursite.com/2016/03/27/Android-Scroll详解-一-：基础知识/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="&amp;emsp;在前边的文章中，我们已经对Android触摸事件处理有了大致的了解，并且详细探讨了MotionEvent的相关用法。对之前文章中的知识还不是很了解的同学，请阅读《Android MotionEvent详解》&amp;emsp;今天，我们就来探讨一下Android中界面滚动效果的相关机制，本篇文章主要讲解一下滚动相关的知识点，之后的文章会涉及实际的代码和原理。希望大家阅读完这篇文章之后，能够了解">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2016327-androidscroll-View%E5%9D%90%E6%A0%87%E8%BD%B4.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2016327-androidscroll-view%20scroll%20example.png">
+<meta property="og:updated_time" content="2016-03-27T18:31:24.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Android Scroll详解(一)：基础知识">
+<meta name="twitter:description" content="&amp;emsp;在前边的文章中，我们已经对Android触摸事件处理有了大致的了解，并且详细探讨了MotionEvent的相关用法。对之前文章中的知识还不是很了解的同学，请阅读《Android MotionEvent详解》&amp;emsp;今天，我们就来探讨一下Android中界面滚动效果的相关机制，本篇文章主要讲解一下滚动相关的知识点，之后的文章会涉及实际的代码和原理。希望大家阅读完这篇文章之后，能够了解">
+<meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2016327-androidscroll-View%E5%9D%90%E6%A0%87%E8%BD%B4.png">
+  
+    <link rel="alternative" href="/atom.xml" title="Carpediem" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+	<header id="header" class="inner">
+		<a href="/" class="profilepic">
+			
+			<img lazy-src="null" class="js-avatar">
+			
+		</a>
+
+		<hgroup>
+		  <h1 class="header-author"><a href="/">remCarpediem</a></h1>
+		</hgroup>
+
+		
+		<p class="header-subtitle">blog of nobody</p>
+		
+
+		
+			<div class="switch-btn">
+				<div class="icon">
+					<div class="icon-ctn">
+						<div class="icon-wrap icon-house" data-idx="0">
+							<div class="birdhouse"></div>
+							<div class="birdhouse_holes"></div>
+						</div>
+						<div class="icon-wrap icon-ribbon hide" data-idx="1">
+							<div class="ribbon"></div>
+						</div>
+						
+						<div class="icon-wrap icon-link hide" data-idx="2">
+							<div class="loopback_l"></div>
+							<div class="loopback_r"></div>
+						</div>
+						
+						
+						<div class="icon-wrap icon-me hide" data-idx="3">
+							<div class="user"></div>
+							<div class="shoulder"></div>
+						</div>
+						
+					</div>
+					
+				</div>
+				<div class="tips-box hide">
+					<div class="tips-arrow"></div>
+					<ul class="tips-inner">
+						<li>Menu</li>
+						<li>Tags</li>
+						
+						<li>Links</li>
+						
+						
+						<li>Über</li>
+						
+					</ul>
+				</div>
+			</div>
+		
+
+		<div class="switch-area">
+			<div class="switch-wrap">
+				<section class="switch-part switch-part1">
+					<nav class="header-menu">
+						<ul>
+						
+							<li><a href="/">主页</a></li>
+				        
+							<li><a href="/archives">所有文章</a></li>
+				        
+						</ul>
+					</nav>
+					<nav class="header-nav">
+						<div class="social">
+							
+								<a class="github" target="_blank" href="#" title="github">github</a>
+					        
+								<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+					        
+								<a class="rss" target="_blank" href="#" title="rss">rss</a>
+					        
+								<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+					        
+						</div>
+					</nav>
+				</section>
+				
+				
+				<section class="switch-part switch-part2">
+					<div class="widget tagcloud" id="js-tagcloud">
+						<a href="/tags/读书/" style="font-size: 10px;">-读书</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/Http/" style="font-size: 10px;">Http</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/string/" style="font-size: 10px;">string</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 20px;">第三方库</a> <a href="/tags/算法/" style="font-size: 15px;">算法</a> <a href="/tags/读书笔记/" style="font-size: 10px;">读书笔记</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a>
+					</div>
+				</section>
+				
+				
+				
+				<section class="switch-part switch-part3">
+					<div id="js-friends">
+					
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">奥巴马的博客</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">卡卡的美丽传说</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">本泽马的博客</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">吉格斯的博客</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">习大大大不同</a>
+			        
+			          <a target="_blank" class="main-nav-link switch-friends-link" href="http://localhost:4000/">托蒂的博客</a>
+			        
+			        </div>
+				</section>
+				
+
+				
+				
+				<section class="switch-part switch-part4">
+				
+					<div id="js-aboutme">我是谁，我从哪里来，我到哪里去？我就是我，是颜色不一样的吃货…</div>
+				</section>
+				
+			</div>
+		</div>
+	</header>				
+</div>
+
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+  	<div class="overlay">
+  		<div class="slider-trigger"></div>
+  		<h1 class="header-author js-mobile-header hide">remCarpediem</h1>
+  	</div>
+	<div class="intrude-less">
+		<header id="header" class="inner">
+			<div class="profilepic">
+			
+				<img lazy-src="null" class="js-avatar">
+			
+			</div>
+			<hgroup>
+			  <h1 class="header-author">remCarpediem</h1>
+			</hgroup>
+			
+			<p class="header-subtitle">blog of nobody</p>
+			
+			<nav class="header-menu">
+				<ul>
+				
+					<li><a href="/">主页</a></li>
+		        
+					<li><a href="/archives">所有文章</a></li>
+		        
+		        <div class="clearfix"></div>
+				</ul>
+			</nav>
+			<nav class="header-nav">
+				<div class="social">
+					
+						<a class="github" target="_blank" href="#" title="github">github</a>
+			        
+						<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+			        
+						<a class="rss" target="_blank" href="#" title="rss">rss</a>
+			        
+						<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+			        
+				</div>
+			</nav>
+		</header>				
+	</div>
+</nav>
+
+      <div class="body-wrap"><article id="post-Android-Scroll详解-一-：基础知识" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2016/03/27/Android-Scroll详解-一-：基础知识/" class="article-date">
+  	<time datetime="2016-03-27T10:23:06.000Z" itemprop="datePublished">2016-03-27</time>
+</a>
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Android Scroll详解(一)：基础知识
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+	<div class="article-tag tagcloud">
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/scroll/">scroll</a></li></ul>
+	</div>
+
+        
+	<div class="article-category tagcloud">
+	<a class="article-category-link" href="/categories/Android/">Android</a>
+	</div>
+
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>&emsp;在前边的文章中，我们已经对Android触摸事件处理有了大致的了解，并且详细探讨了<code>MotionEvent</code>的相关用法。对之前文章中的知识还不是很了解的同学，请阅读<a href="http://ztelur.github.io/2016/03/16/Android-MotionEvent%E8%AF%A6%E8%A7%A3/" target="_blank" rel="external">《Android MotionEvent详解》</a><br>&emsp;今天，我们就来探讨一下Android中界面滚动效果的相关机制，本篇文章主要讲解一下滚动相关的知识点，之后的文章会涉及实际的代码和原理。希望大家阅读完这篇文章之后，能够了解或者掌握一下知识:</p>
+<ul>
+<li>Android 视图的组成部分</li>
+<li><code>mScrollX</code>和<code>mScrollY</code>对视图显示的影响</li>
+<li><code>scrollTo</code>和<code>scrollBy</code>的使用</li>
+<li><code>invalidate</code>和<code>postInvalidate</code>的区别</li>
+</ul>
+<h4 id="View的mScrollX和mScrollY"><a href="#View的mScrollX和mScrollY" class="headerlink" title="View的mScrollX和mScrollY"></a>View的mScrollX和mScrollY</h4><p>&emsp;我们都知道，<code>View</code>中有两个重要的成员变量，<code>mScrollX</code>,<code>mScrollY</code>.它们分别代表视图内容(view content)水平方向和竖直方向的滚动距离。我们可以通过<code>setScrollX</code>和<code>setScrollY</code>来个函数来改变它们的值，从而来滚动视图的内容。<br>&emsp;<strong>在这里需要强调的是，<code>mScrollX</code>和<code>mScrollY</code>会导致视图内容(view content)变化,但是不会影响视图背景(background)。</strong><br>&emsp;看到这里同学们或许会有写疑问，视图的内容和背景有什么区别呢？视图还有哪些组成部分呢？<br>&emsp;我们可以从View的<code>draw</code>方法中得知View的组成部分。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// http://grepcode.com/file/repository.grepcode.com/java/ext/com.google.android/android/5.1.1_r1/android/view/View.java#View</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">draw</span><span class="params">(Canvas canvas)</span> </span>&#123;</span><br><span class="line">         ........</span><br><span class="line">        <span class="comment">/*</span><br><span class="line">         * Draw traversal performs several drawing steps which must be executed</span><br><span class="line">         * in the appropriate order:</span><br><span class="line">         *</span><br><span class="line">         *      1. Draw the background</span><br><span class="line">         *      2. If necessary, save the canvas' layers to prepare for fading</span><br><span class="line">         *      3. Draw view's content</span><br><span class="line">         *      4. Draw children</span><br><span class="line">         *      5. If necessary, draw the fading edges and restore layers</span><br><span class="line">         *      6. Draw decorations (scrollbars for instance)</span><br><span class="line">         */</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">// Step 1, draw the background, if needed</span></span><br><span class="line">        <span class="keyword">if</span> (!dirtyOpaque) &#123;</span><br><span class="line">            drawBackground(canvas);</span><br><span class="line">        &#125;</span><br><span class="line">        .......</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Step 2, save the canvas' layers</span></span><br><span class="line">        .......</span><br><span class="line">        <span class="comment">// Step 3, draw the content</span></span><br><span class="line">        <span class="keyword">if</span> (!dirtyOpaque) onDraw(canvas);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Step 4, draw the children</span></span><br><span class="line">        dispatchDraw(canvas);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Step 5, draw the fade effect and restore layers</span></span><br><span class="line">        .......</span><br><span class="line">        <span class="keyword">if</span> (drawTop) &#123;</span><br><span class="line">            matrix.setScale(<span class="number">1</span>, fadeHeight * topFadeStrength);</span><br><span class="line">            matrix.postTranslate(left, top);</span><br><span class="line">            fade.setLocalMatrix(matrix);</span><br><span class="line">            p.setShader(fade);</span><br><span class="line">            canvas.drawRect(left, top, right, top + length, p);</span><br><span class="line">        &#125;</span><br><span class="line">        .....</span><br><span class="line">        <span class="comment">// Step 6, draw decorations (scrollbars)</span></span><br><span class="line">        onDrawScrollBars(canvas);</span><br><span class="line">        ......</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;View显示内容由一下几个部分组成:</p>
+<ul>
+<li>背景(background)</li>
+<li>本身的内容(content)</li>
+<li>子视图</li>
+<li>边界渐变效果(fade effect),上下左右四个边界都可能会有渐变效果，代码中只显示了上边界的渐变效果绘制。</li>
+<li>边框或者装饰效果(decorations),比如滚动条</li>
+</ul>
+<p>&emsp;举个例子吧，我们都知道在布局文件中，<code>TextView</code>有两个比较重要的属性:<code>background</code>,<code>text</code>。<code>background</code>可以设置TextView的背景，而<code>text</code>则是设置要绘制字体内容。<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">TextView</span></span><br><span class="line">    <span class="attr">android:layout_width</span>=<span class="string">"wrap_content"</span></span><br><span class="line">    <span class="attr">android:background</span>=<span class="string">"@drawable/ic_launcher"</span></span><br><span class="line">    <span class="attr">android:text</span>=<span class="string">"Test"</span></span><br><span class="line">    <span class="attr">android:layout_height</span>=<span class="string">"wrap_content"</span> /&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>&emsp;<code>mScrollX</code>和<code>mScrollY</code>对除了本身内容外的部分的绘制都有影响。只是不会影响视图背景的绘制。</p>
+<h4 id="滚动的方向性"><a href="#滚动的方向性" class="headerlink" title="滚动的方向性"></a>滚动的方向性</h4><p>&emsp;我们都知道，在Android的视图中，布局相关的数值都是有方向性的，比如<code>mLeft</code>,<code>mTop</code>。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2016327-androidscroll-View%E5%9D%90%E6%A0%87%E8%BD%B4.png" alt="View坐标轴.png"></p>
+<p>&emsp;由上图我们可以知道，Android视图坐标的原点在屏幕的左上方，x轴正方向是向右，y轴正方向是向下。<br>&emsp;所以，当你将<code>mLeft</code>和<code>mTop</code>的数值加10并且重绘视图时，视图会向右下移动。<br>&emsp;那么<code>mScrollY</code>和<code>mScrollX</code>也在这样一个坐标域中吗？它们的正方向和<code>mTop</code>和<code>mLeft</code>是一样的吗？是的，它们属于同一个坐标域，方向性相同。<br>&emsp;但是如果你将<code>mScrollX</code>和<code>mScrollY</code>的数值都增大10，然后调用<code>invalidate()</code>重新绘制界面的话，你会发现视图中的内容都向左上角移动啦！<br>&emsp;这是怎么回事呢？从概念上你可以先这样解：<code>mScrollX</code>和<code>mScrollY</code>改变导致View的可视区域的移动，并不是导致View的视图区域的移动。<br>&emsp;View的视图区域相当于无限大的，你可以在<code>onDraw</code>函数中的<code>canvas</code>中绘制任意大的图像，但是你会发现，最终屏幕上显示出来的只会是一部分，因为View自身还有大小概念，也就是<code>measure</code>和<code>layout</code>时，视图会被设置长宽还有界面中位置，这样的话，视图可视区域就被确定啦。<br>&emsp;做一个形象的比喻。View的可视区域就是一面墙上的窗户，View的视图区域就相当于墙后边的优美景色。墙外风光无线，但是你只能看到窗户中的景色。如果窗户变大啦，外边风景不变，你看到的景色就大了一点；如果窗户向右下角移动了一段距离，你就会发现外边的景色好像是向左上角”移动”了一段距离。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2016327-androidscroll-view%20scroll%20example.png" alt="view scroll example.png"></p>
+<h4 id="ScrollTo-和-ScrollBy"><a href="#ScrollTo-和-ScrollBy" class="headerlink" title="ScrollTo 和 ScrollBy"></a>ScrollTo 和 ScrollBy</h4><p>&emsp;这两个函数是用来滚动视图的API<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">scrollTo</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mScrollX != x || mScrollY != y) &#123;</span><br><span class="line">        <span class="keyword">int</span> oldX = mScrollX;</span><br><span class="line">        <span class="keyword">int</span> oldY = mScrollY;</span><br><span class="line">        mScrollX = x;</span><br><span class="line">        mScrollY = y;</span><br><span class="line">        invalidateParentCaches();</span><br><span class="line">        onScrollChanged(mScrollX, mScrollY, oldX, oldY);</span><br><span class="line">        <span class="keyword">if</span> (!awakenScrollBars()) &#123;</span><br><span class="line">            postInvalidateOnAnimation();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">scrollBy</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span> </span>&#123;</span><br><span class="line">    scrollTo(mScrollX + x, mScrollY + y);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;大家看源代码很容易就理解了二者的作用和区别:<code>scrollTo</code>就是直接改变<code>mScrollX</code>和<code>mScrollY</code>;而<code>scrollBy</code>则是给<code>mScrollX</code>和<code>mScrollY</code>加上增量。</p>
+<h4 id="invalidate和postInvalidate"><a href="#invalidate和postInvalidate" class="headerlink" title="invalidate和postInvalidate"></a>invalidate和postInvalidate</h4><p>&emsp;上边这两个函数都是请求视图重新绘制的API,但是二者的使用有些区别。<br>&emsp;<code>invalidate</code>必须在主线程(UI Thread)中调用，而<code>postInvalidate</code>可以在非主线程(Non UI Thread)中调用。<br>&emsp;除此之外，二者还有点小区别。<br>&emsp;调用<code>invalidate</code>时，它会检查上一次请求的UI重绘是否完成，如果没有完成的话，那么它就什么都不做。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">invalidateInternal</span><span class="params">(<span class="keyword">int</span> l, <span class="keyword">int</span> t, <span class="keyword">int</span> r, <span class="keyword">int</span> b, <span class="keyword">boolean</span> invalidateCache,</span><br><span class="line">            <span class="keyword">boolean</span> fullInvalidate)</span> </span>&#123;</span><br><span class="line">            .....</span><br><span class="line">         <span class="comment">//DRAWN和HAS_BOUNDS是否被设置为１，说明上一次请求执行的UI绘制已经完成，那么可以再次请求执行</span></span><br><span class="line">        <span class="keyword">if</span> ((mPrivateFlags &amp; (PFLAG_DRAWN | PFLAG_HAS_BOUNDS)) == (PFLAG_DRAWN | PFLAG_HAS_BOUNDS)</span><br><span class="line">                || (invalidateCache &amp;&amp; (mPrivateFlags &amp; PFLAG_DRAWING_CACHE_VALID) == PFLAG_DRAWING_CACHE_VALID)</span><br><span class="line">                || (mPrivateFlags &amp; PFLAG_INVALIDATED) != PFLAG_INVALIDATED</span><br><span class="line">                || (fullInvalidate &amp;&amp; isOpaque() != mLastIsOpaque)) &#123;</span><br><span class="line">                 ......</span><br><span class="line">                 <span class="keyword">final</span> AttachInfo ai = mAttachInfo;</span><br><span class="line">                <span class="keyword">final</span> ViewParent p = mParent;</span><br><span class="line">                <span class="keyword">final</span> Rect damage = ai.mTmpInvalRect;</span><br><span class="line">                damage.set(l, t, r, b);</span><br><span class="line">                p.invalidateChild(<span class="keyword">this</span>, damage);<span class="comment">//<span class="doctag">TODO:</span>这是invalidate执行的主体</span></span><br><span class="line">                .....</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;而<code>postInvalidate</code>则不会这样，它是向主线程发送个<code>Message</code>，然后<code>handleMessage</code>时，调用了<code>invalidate()</code>函数。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//View.java</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">postInvalidateDelayed</span><span class="params">(<span class="keyword">long</span> delayMilliseconds)</span> </span>&#123;</span><br><span class="line">    ...	              attachInfo.mViewRootImpl.dispatchInvalidateDelayed(<span class="keyword">this</span>, delayMilliseconds);</span><br><span class="line">    ...</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ViewRootImpl 发送Message</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">dispatchInvalidateDelayed</span><span class="params">(View view, <span class="keyword">long</span> delayMilliseconds)</span> </span>&#123;</span><br><span class="line">        Message msg = mHandler.obtainMessage(MSG_INVALIDATE, view);</span><br><span class="line">        mHandler.sendMessageDelayed(msg, delayMilliseconds);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ViewRootImpl 处理Message</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handleMessage</span><span class="params">(Message msg)</span> </span>&#123;</span><br><span class="line">            <span class="keyword">switch</span> (msg.what) &#123;</span><br><span class="line">            <span class="keyword">case</span> MSG_INVALIDATE:</span><br><span class="line">                ((View) msg.obj).invalidate();</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;所以，二者的调用时机还是有区别的，就比如使用<code>Scroller</code>进行视图滚动时，二者的调用就有所不同。</p>
+<h4 id="后续"><a href="#后续" class="headerlink" title="后续"></a>后续</h4><p>&emsp;之后还有会两篇博文，一篇是《Android Scroll详解(二)：OverScroller实战》讲解具体代码实现，另外一篇是《Android Scroll详解(三)：Android 绘制过程详解》主要是从滚动角度理解Android绘制过程,请大家多多关注啊。</p>
+<blockquote>
+<p>参考文章</p>
+<p><a href="http://stackoverflow.com/questions/7596370/what-is-the-difference-between-androids-invalidate-and-postinvalidate-metho" target="_blank" rel="external">http://stackoverflow.com/questions/7596370/what-is-the-difference-between-androids-invalidate-and-postinvalidate-metho</a></p>
+<p><a href="http://www.programering.com/a/MDN3QDNwATQ.html" target="_blank" rel="external">http://www.programering.com/a/MDN3QDNwATQ.html</a></p>
+<p><a href="http://blog.csdn.net/xiaanming/article/details/17483273" target="_blank" rel="external">http://blog.csdn.net/xiaanming/article/details/17483273</a></p>
+</blockquote>
+
+      
+    </div>
+    
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2016/04/05/《异类-不一样成功的启示录》读后感/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption"><</strong>
+      <div class="article-nav-title">
+        
+          《异类-不一样成功的启示录》读后感
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2016/03/16/Android-MotionEvent详解/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">Android MotionEvent详解</div>
+      <strong class="article-nav-caption">></strong>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+<div class="share_jia">
+	<!-- JiaThis Button BEGIN -->
+	<div class="jiathis_style">
+		<span class="jiathis_txt">Share to: &nbsp; </span>
+		<a class="jiathis_button_facebook"></a> 
+    <a class="jiathis_button_twitter"></a>
+    <a class="jiathis_button_plus"></a> 
+    <a class="jiathis_button_tsina"></a>
+		<a class="jiathis_button_cqq"></a>
+		<a class="jiathis_button_douban"></a>
+		<a class="jiathis_button_weixin"></a>
+		<a class="jiathis_button_tumblr"></a>
+    <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	</div>
+	<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1405949716054953" charset="utf-8"></script>
+	<!-- JiaThis Button END -->
+</div>
+
+
+
+
+
+
+<div class="duoshuo">
+	<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="Android-Scroll详解-一-：基础知识" data-title="Android Scroll详解(一)：基础知识" data-url="http://yoursite.com/2016/03/27/Android-Scroll详解-一-：基础知识/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"true"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+	<!-- 多说公共JS代码 end -->
+</div>
+
+
+
+
+</div>
+      <footer id="footer">
+  <div class="outer">
+    <div id="footer-info">
+    	<div class="footer-left">
+    		&copy; 2016 remCarpediem
+    	</div>
+      	<div class="footer-right">
+      		<a href="http://hexo.io/" target="_blank">Hexo</a>  Theme <a href="https://github.com/litten/hexo-theme-yilia" target="_blank">Yilia</a> by Litten
+      	</div>
+    </div>
+  </div>
+</footer>
+    </div>
+    
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+
+<script>
+	var yiliaConfig = {
+		fancybox: true,
+		mathjax: true,
+		animate: true,
+		isHome: false,
+		isPost: true,
+		isArchive: false,
+		isTag: false,
+		isCategory: false,
+		open_in_new: false
+	}
+</script>
+<script src="http://7.url.cn/edu/jslib/comb/require-2.1.6,jquery-1.9.1.min.js"></script>
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+  </div>
+</body>
+</html>
