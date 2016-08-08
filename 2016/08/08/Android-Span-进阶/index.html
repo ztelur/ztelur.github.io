@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <title>Android  Span 进阶 | Carpediem</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="&amp;emsp;在上篇文章，我们讲述了Android Span的基本概念和用法，这篇文章我们就来扩展一下我们对Android Span的了解，这一定会使你感到惊奇的，惊叹Android Span竟然还能完成这些的效果，让你在Android自定义View和动画方面有更加深刻的理解，可能会帮助你你想出更加简洁的实现方式。&amp;emsp;本篇文章主要讲述一下两个方面的内容:
+
+自定义Android Span
+使">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Android  Span 进阶">
+<meta property="og:url" content="http://yoursite.com/2016/08/08/Android-Span-进阶/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="&amp;emsp;在上篇文章，我们讲述了Android Span的基本概念和用法，这篇文章我们就来扩展一下我们对Android Span的了解，这一定会使你感到惊奇的，惊叹Android Span竟然还能完成这些的效果，让你在Android自定义View和动画方面有更加深刻的理解，可能会帮助你你想出更加简洁的实现方式。&amp;emsp;本篇文章主要讲述一下两个方面的内容:
+
+自定义Android Span
+使">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-FireWorkSpan.gif">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-MutiableForegroundSpan.gif">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-BuddleSpan.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-RectSpan.png">
+<meta property="og:updated_time" content="2016-08-08T13:29:42.084Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Android  Span 进阶">
+<meta name="twitter:description" content="&amp;emsp;在上篇文章，我们讲述了Android Span的基本概念和用法，这篇文章我们就来扩展一下我们对Android Span的了解，这一定会使你感到惊奇的，惊叹Android Span竟然还能完成这些的效果，让你在Android自定义View和动画方面有更加深刻的理解，可能会帮助你你想出更加简洁的实现方式。&amp;emsp;本篇文章主要讲述一下两个方面的内容:
+
+自定义Android Span
+使">
+<meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-FireWorkSpan.gif">
+  
+    <link rel="alternative" href="/atom.xml" title="Carpediem" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+	<header id="header" class="inner">
+		<a href="/" class="profilepic">
+			
+			<img lazy-src="null" class="js-avatar">
+			
+		</a>
+
+		<hgroup>
+		  <h1 class="header-author"><a href="/">remCarpediem</a></h1>
+		</hgroup>
+
+		
+		<p class="header-subtitle">blog of nobody</p>
+		
+
+		
+			<div class="switch-btn">
+				<div class="icon">
+					<div class="icon-ctn">
+						<div class="icon-wrap icon-house" data-idx="0">
+							<div class="birdhouse"></div>
+							<div class="birdhouse_holes"></div>
+						</div>
+						<div class="icon-wrap icon-ribbon hide" data-idx="1">
+							<div class="ribbon"></div>
+						</div>
+						
+						
+						<div class="icon-wrap icon-me hide" data-idx="3">
+							<div class="user"></div>
+							<div class="shoulder"></div>
+						</div>
+						
+					</div>
+					
+				</div>
+				<div class="tips-box hide">
+					<div class="tips-arrow"></div>
+					<ul class="tips-inner">
+						<li>Menu</li>
+						<li>Tags</li>
+						
+						
+						<li>Über</li>
+						
+					</ul>
+				</div>
+			</div>
+		
+
+		<div class="switch-area">
+			<div class="switch-wrap">
+				<section class="switch-part switch-part1">
+					<nav class="header-menu">
+						<ul>
+						
+							<li><a href="/">主页</a></li>
+				        
+							<li><a href="/archives">所有文章</a></li>
+				        
+						</ul>
+					</nav>
+					<nav class="header-nav">
+						<div class="social">
+							
+								<a class="github" target="_blank" href="#" title="github">github</a>
+					        
+								<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+					        
+								<a class="rss" target="_blank" href="#" title="rss">rss</a>
+					        
+								<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+					        
+						</div>
+					</nav>
+				</section>
+				
+				
+				<section class="switch-part switch-part2">
+					<div class="widget tagcloud" id="js-tagcloud">
+						<a href="/tags/读书/" style="font-size: 10px;">-读书</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/Http/" style="font-size: 10px;">Http</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/TCP-IP/" style="font-size: 15px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 10px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/string/" style="font-size: 10px;">string</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 20px;">第三方库</a> <a href="/tags/算法/" style="font-size: 15px;">算法</a> <a href="/tags/读书笔记/" style="font-size: 10px;">读书笔记</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a>
+					</div>
+				</section>
+				
+				
+				
+
+				
+				
+				<section class="switch-part switch-part3">
+				
+					<div id="js-aboutme">编码中</div>
+				</section>
+				
+			</div>
+		</div>
+	</header>				
+</div>
+
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+  	<div class="overlay">
+  		<div class="slider-trigger"></div>
+  		<h1 class="header-author js-mobile-header hide">remCarpediem</h1>
+  	</div>
+	<div class="intrude-less">
+		<header id="header" class="inner">
+			<div class="profilepic">
+			
+				<img lazy-src="null" class="js-avatar">
+			
+			</div>
+			<hgroup>
+			  <h1 class="header-author">remCarpediem</h1>
+			</hgroup>
+			
+			<p class="header-subtitle">blog of nobody</p>
+			
+			<nav class="header-menu">
+				<ul>
+				
+					<li><a href="/">主页</a></li>
+		        
+					<li><a href="/archives">所有文章</a></li>
+		        
+		        <div class="clearfix"></div>
+				</ul>
+			</nav>
+			<nav class="header-nav">
+				<div class="social">
+					
+						<a class="github" target="_blank" href="#" title="github">github</a>
+			        
+						<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+			        
+						<a class="rss" target="_blank" href="#" title="rss">rss</a>
+			        
+						<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+			        
+				</div>
+			</nav>
+		</header>				
+	</div>
+</nav>
+
+      <div class="body-wrap"><article id="post-Android-Span-进阶" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2016/08/08/Android-Span-进阶/" class="article-date">
+  	<time datetime="2016-08-08T13:25:54.000Z" itemprop="datePublished">2016-08-08</time>
+</a>
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Android  Span 进阶
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+	<div class="article-tag tagcloud">
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Span/">Span</a></li></ul>
+	</div>
+
+        
+	<div class="article-category tagcloud">
+	<a class="article-category-link" href="/categories/Android/">Android</a>
+	</div>
+
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>&emsp;在上篇文章，我们讲述了Android Span的基本概念和用法，这篇文章我们就来扩展一下我们对Android Span的了解，这一定会使你感到惊奇的，惊叹Android Span竟然还能完成这些的效果，让你在Android自定义View和动画方面有更加深刻的理解，可能会帮助你你想出更加简洁的实现方式。<br>&emsp;本篇文章主要讲述一下两个方面的内容:</p>
+<ul>
+<li>自定义Android Span</li>
+<li>使用Android Span实现动画</li>
+</ul>
+<p>&emsp;先贴一下本篇文章实现的自定义Span和动画的效果图<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-FireWorkSpan.gif" alt="demo"></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-MutiableForegroundSpan.gif" alt="demo"></p>
+<h4 id="自定义Span"><a href="#自定义Span" class="headerlink" title="自定义Span"></a>自定义Span</h4><p>&emsp;我们都知道，自定义View有两种方式，一种是继承特定的视图类,比如你希望修改<code>TextView</code>的行为，所以继承了<code>TextView</code>;另一种就是直接继承<code>View</code>或者<code>ViewGroup</code>,这样可以实现全新的视图和行为。如同自定义View一样，你有两种自定义Span的方法，一种直接继承特定类型的Span类，比如<code>ForegroundColorSpan</code>等，这样你可以在这些类的基础上进行修改；另一种就是继承<code>ReplaceSpan</code>这样的抽象类或者实现<code>LetterLineBackgroundSpan</code>这样的接口，你只要实现它给出的接口，就可以实现新的效果。<br>&emsp;我们先来讲解第一种方式。直接继承现有的<code>Span</code>。文章开头时展示的<code>ActionBar</code>动画就是通过继承<code>ForegroundSpan</code>来实现的。<br>&emsp;我们主要重载了<code>updateDrawsState</code>和<code>getForegroundColor</code>,这样就可以通过改变<code>setAlpha</code>函数来改变颜色，让字体从透明(alpha为0)到某个特定颜色。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">public class MutableForegroundColorSpan extends ForegroundColorSpan &#123;</span><br><span class="line">    private int mAlpha = 255;</span><br><span class="line">    private int mForegroundColor;</span><br><span class="line">    public MutableForegroundColorSpan(int alpha,int color) &#123;</span><br><span class="line">        super(color);</span><br><span class="line">        mAlpha = alpha;</span><br><span class="line">        mForegroundColor = color;</span><br><span class="line">    &#125;</span><br><span class="line">    @Override</span><br><span class="line">    public void updateDrawState(TextPaint ds) &#123;</span><br><span class="line">        ds.setColor(getForegroundColor());</span><br><span class="line">    &#125;</span><br><span class="line">    public void setAlpha(int alpha) &#123;</span><br><span class="line">        mAlpha = alpha;</span><br><span class="line">    &#125;</span><br><span class="line">    public void setForegroundColor(int foregroundColor) &#123;</span><br><span class="line">        mForegroundColor = foregroundColor;</span><br><span class="line">    &#125;</span><br><span class="line">    public float getAlpha() &#123;</span><br><span class="line">        return mAlpha;</span><br><span class="line">    &#125;</span><br><span class="line">    @Override</span><br><span class="line">    public int getForegroundColor() &#123;</span><br><span class="line">        return Color.argb(mAlpha,Color.red(mForegroundColor),Color.green(mForegroundColor),Color.blue(mForegroundColor));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;第二种方法是继承<code>Span</code>架构中的抽象类或者是实现特定接口。需要注意的是，在上一篇文章中说的<code>CharacterStyle</code>,<code>ParagraphStyle</code>.<code>UpdateAppearance</code>和<code>UpdateLayout</code>都是没有函数的，所以，我们无法直接继承或者实现它们。除了第一篇文章中所介绍的那些<code>Span</code>可以使用第一种方法进行继承。我们一般都继承或者实现<code>MetricAffectingSpan</code>,<code>ReplacementSpan</code>或者<code>LineBackgroundSpan</code>。<br>&emsp;比如我们想给每个字都添加一个不同颜色的背景，我们就可以继承<code>ReplacementSpan</code></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-BuddleSpan.png" alt="demo"></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">public class BubbleSpan extends ReplacementSpan &#123;</span><br><span class="line">    private Paint mPaint;</span><br><span class="line">    static Random random = new Random();</span><br><span class="line">    private int mWidth = -1;</span><br><span class="line">    private RectF mRectF = new RectF();</span><br><span class="line"></span><br><span class="line">    private int[] mColors = new int[20];</span><br><span class="line"></span><br><span class="line">    public BubbleSpan() &#123;</span><br><span class="line">        initPaint();</span><br><span class="line">        initColors();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private void initPaint() &#123;</span><br><span class="line">        mPaint = new Paint();</span><br><span class="line">        mPaint.setColor(Color.rgb(random.nextInt(255), random.nextInt(255), random.nextInt(255)));</span><br><span class="line">        mPaint.setAntiAlias(true);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private void initColors() &#123;</span><br><span class="line">        for(int index = 0 ; index &lt; mColors.length ; index++) &#123;</span><br><span class="line">            mColors[index] = Color.rgb(random.nextInt(255), random.nextInt(255), random.nextInt(255));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public int getSize(Paint paint, CharSequence text, int start, int end, Paint.FontMetricsInt fm) &#123;</span><br><span class="line">        //return text with relative to the Paint</span><br><span class="line">		mWidth = (int) paint.measureText(text, start, end);</span><br><span class="line">        return mWidth;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint paint) &#123;</span><br><span class="line">        float charx = x;</span><br><span class="line">        for(int i = start ; i&lt;end; i++) &#123;</span><br><span class="line">            String charAt = extractText(text, i, i + 1);</span><br><span class="line">            float charWidth = paint.measureText(charAt);</span><br><span class="line">            mRectF.set(charx, top, charx += charWidth, bottom);</span><br><span class="line">            mPaint.setColor(mColors[i % mColors.length]);</span><br><span class="line">            //根据每个字的位置绘制背景</span><br><span class="line">            canvas.drawOval(mRectF, mPaint);</span><br><span class="line">        &#125;</span><br><span class="line">        //绘制字体，如果不掉用这个函数，就不会显示字体啦。</span><br><span class="line">        canvas.drawText(text, start, end, x, y, paint);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private String extractText(CharSequence text, int start, int end) &#123;</span><br><span class="line">        return text.subSequence(start, end).toString();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;我们可以看到，我们要实现两个函数:<code>getSize</code>和<code>draw</code>。<code>getSize</code>是获得字体的长度的，所以一般都是直接使用<code>paint.measureText</code>,然后<code>draw</code>中进行绘制，你可以在这里把每个字的背景绘制出来，而且你必须也要把字体给绘制出来。如果你只想绘制背景，不想涉及字体的绘制，那么就可以直接实现<code>LineBackgroundSpan</code>接口。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">public class RectSpan extends ReplacementSpan &#123;</span><br><span class="line">    private final Paint mPaint;</span><br><span class="line">    private int mWidth;</span><br><span class="line"></span><br><span class="line">    public RectSpan() &#123;</span><br><span class="line">        mPaint = new Paint();</span><br><span class="line">        mPaint.setStyle(Paint.Style.STROKE);</span><br><span class="line">        mPaint.setColor(Color.BLUE);</span><br><span class="line">        mPaint.setAntiAlias(true);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public int getSize(Paint paint, CharSequence text, int start, int end, Paint.FontMetricsInt fm) &#123;</span><br><span class="line">        //return text with relative to the Paint</span><br><span class="line">        mWidth = (int) paint.measureText(text, start, end);</span><br><span class="line">        return mWidth;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint paint) &#123;</span><br><span class="line">        //只绘制了外围矩形，没有绘制文字。</span><br><span class="line">        canvas.drawRect(x, top, x + mWidth, bottom, mPaint);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-RectSpan.png" alt="demo"></p>
+<h4 id="通过Span实现动画"><a href="#通过Span实现动画" class="headerlink" title="通过Span实现动画"></a>通过Span实现动画</h4><p>&emsp;在上一节中，我们已经实现了<code>MutableForegroundColorSpan</code>类，那么如何使用它来实现动画呢？这里我们就要使用到<code>ObjectAnimator</code>和<code>Property&lt;T1,T2&gt;</code>。我们首先定义<code>MutableForegroundColorSpan</code>使用的<code>property</code>。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">private static final Property&lt;MutableForegroundColorSpan, Integer&gt; MUTABLE_FOREGROUND_COLOR_SPAN_PROPERTY =</span><br><span class="line">        new Property&lt;MutableForegroundColorSpan, Integer&gt;(Integer.class, &quot;MUTABLE_FOREGROUND_COLOR_SPAN_FC_PROPERTY&quot;) &#123;</span><br><span class="line"></span><br><span class="line">        @Override</span><br><span class="line">                public void set(MutableForegroundColorSpan alphaForegroundColorSpanGroup, Integer value) &#123;</span><br><span class="line">                        alphaForegroundColorSpanGroup.setForegroundColor(value);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">        @Override</span><br><span class="line">                public Integer get(MutableForegroundColorSpan span) &#123;</span><br><span class="line">                        return span.getForegroundColor();</span><br><span class="line">                &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;然后我们就可以使用<code>ObjectAnimator</code>对<code>MutableForegroundColorSpan</code>实现属性动画了。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">MutableForegroundColorSpan span = new MutableForegroundColorSpan(255, Color.BLUE);</span><br><span class="line">final SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span, 0,4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">ObjectAnimator objectAnimator = ObjectAnimator.ofInt(span, MUTABLE_FOREGROUND_COLOR_SPAN_PROPERTY, Color.BLACK, Color.RED);</span><br><span class="line">objectAnimator.setEvaluator(new ArgbEvaluator());</span><br><span class="line">objectAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() &#123;</span><br><span class="line">        @Override</span><br><span class="line">        public void onAnimationUpdate(ValueAnimator animation) &#123;</span><br><span class="line">        //refresh</span><br><span class="line">                mTvTextView.setText(spannableString);</span><br><span class="line">        &#125;       </span><br><span class="line">&#125;);</span><br><span class="line">objectAnimator.setInterpolator(mSmoothInterpolator);</span><br><span class="line">objectAnimator.setDuration(600);</span><br><span class="line">objectAnimator.start();</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;这里还只是单独一个<code>Span</code>实例的动画效果，你可以对多个Span实例进行属性动画，从而实现更加复杂的动画效果。就比如文章开始时的文字逐渐显示的动画效果。<br>&emsp;我们可以给每个字都设置一个<code>MutableForegroundColorSpan</code>实例,并将这些实例都添加到一个对象中，然后在属性动画过程中，乱序设置每个实例的<code>alpha</code>的值，从而达到文字逐渐显现的动画。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line">public class FireWorkGroup &#123;</span><br><span class="line">    private final float mProgress;</span><br><span class="line">    private final ArrayList&lt;MutableForegroundColorSpan&gt; mSpans;</span><br><span class="line">    private final ArrayList&lt;Integer&gt; mSpanIndexes;</span><br><span class="line"></span><br><span class="line">    public FireWorkGroup() &#123;</span><br><span class="line">        mProgress = 0;</span><br><span class="line">        mSpans  = new ArrayList&lt;&gt;();</span><br><span class="line">        mSpanIndexes = new ArrayList&lt;&gt;();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void addSpan(MutableForegroundColorSpan span) &#123;</span><br><span class="line">        span.setAlpha(0);</span><br><span class="line">        mSpanIndexes.add(mSpans.size());</span><br><span class="line">        mSpans.add(span);</span><br><span class="line">    &#125;</span><br><span class="line">    public void init() &#123;</span><br><span class="line">        Collections.shuffle(mSpans);</span><br><span class="line">    &#125;</span><br><span class="line">    public void setProgress(float progress) &#123;</span><br><span class="line">        int size = mSpans.size();</span><br><span class="line">        float total  = 1.0f * size * progress;</span><br><span class="line">        for (int index = 0 ; index &lt; size ; index++) &#123;</span><br><span class="line">            MutableForegroundColorSpan span = mSpans.get(index);</span><br><span class="line">            if (total &gt; 1.0f) &#123;</span><br><span class="line">                span.setAlpha(255);</span><br><span class="line">                total -= 1.0f;</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                span.setAlpha((int)(total * 255));</span><br><span class="line">                total = 0.0f;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    public float getProgress() &#123;</span><br><span class="line">        return mProgress;</span><br><span class="line">    &#125;</span><br><span class="line">    public static final Property&lt;FireWorkGroup, Float&gt; FIREWORKS_GROUP_PROGRESS_PROPERTY =</span><br><span class="line">            new Property&lt;FireWorkGroup, Float&gt;(Float.class, &quot;FIREWORKS_GROUP_PROGRESS_PROPERTY&quot;) &#123;</span><br><span class="line"></span><br><span class="line">                @Override</span><br><span class="line">                public void set(FireWorkGroup spanGroup, Float value) &#123;</span><br><span class="line">                    spanGroup.setProgress(value);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                @Override</span><br><span class="line">                public Float get(FireWorkGroup spanGroup) &#123;</span><br><span class="line">                    return spanGroup.getProgress();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h4><p>&emsp;上述的这些动画都是我在第一篇文章提到的那篇博文中实现过的效果，我在学习过程中又发现了一个实现了很多<code>TextView</code>相关动画的开源项目<a href="https://github.com/hanks-zyh/HTextView" target="_blank" rel="external">HTextView</a>。所以接下来的任务就是想使用<code>Span</code>机制去实现这个项目中的一些动画效果。希望大家继续支持我的文章，并积极指出文中的错误。<br>&emsp;!!!源码都在<a href="https://github.com/ztelur/AndroidSpan" target="_blank" rel="external">我的github</a>里。</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/08/05/Android-Span-架构介绍/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">Android Span 架构介绍</div>
+      <strong class="article-nav-caption">></strong>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+<div class="share_jia">
+	<!-- JiaThis Button BEGIN -->
+	<div class="jiathis_style">
+		<span class="jiathis_txt">Share to: &nbsp; </span>
+		<a class="jiathis_button_facebook"></a> 
+    <a class="jiathis_button_twitter"></a>
+    <a class="jiathis_button_plus"></a> 
+    <a class="jiathis_button_tsina"></a>
+		<a class="jiathis_button_cqq"></a>
+		<a class="jiathis_button_douban"></a>
+		<a class="jiathis_button_weixin"></a>
+		<a class="jiathis_button_tumblr"></a>
+    <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	</div>
+	<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1405949716054953" charset="utf-8"></script>
+	<!-- JiaThis Button END -->
+</div>
+
+
+
+
+
+
+<div class="duoshuo">
+	<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="Android-Span-进阶" data-title="Android  Span 进阶" data-url="http://yoursite.com/2016/08/08/Android-Span-进阶/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"CarpeDiem"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+	<!-- 多说公共JS代码 end -->
+</div>
+
+
+
+
+</div>
+      <footer id="footer">
+  <div class="outer">
+    <div id="footer-info">
+    	<div class="footer-left">
+    		&copy; 2016 remCarpediem
+    	</div>
+      	<div class="footer-right">
+      		<a href="http://hexo.io/" target="_blank">Hexo</a>  Theme <a href="https://github.com/litten/hexo-theme-yilia" target="_blank">Yilia</a> by Litten
+      	</div>
+    </div>
+  </div>
+</footer>
+    </div>
+    
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+
+<script>
+	var yiliaConfig = {
+		fancybox: true,
+		mathjax: true,
+		animate: true,
+		isHome: false,
+		isPost: true,
+		isArchive: false,
+		isTag: false,
+		isCategory: false,
+		open_in_new: false
+	}
+</script>
+<script src="http://7.url.cn/edu/jslib/comb/require-2.1.6,jquery-1.9.1.min.js"></script>
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+  </div>
+</body>
+</html>
