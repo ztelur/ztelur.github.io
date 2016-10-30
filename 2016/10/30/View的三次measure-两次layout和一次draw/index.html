@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <title>View的三次measure,两次layout和一次draw | Carpediem</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="&amp;emsp;我在《Android视图结构》这篇文章中已经描述了Activity,Window和View在视图架构方面的关系。前天，我突然想到为什么在setContentView中能够调用findViewById函数？View那时不是还没有被加载，测量，布局和绘制啊。然后就搜索了相关的条目，发现findViewById只需要在inflate结束之后就可以。于是，我整理了Activity生命周期和Vi">
+<meta property="og:type" content="article">
+<meta property="og:title" content="View的三次measure,两次layout和一次draw">
+<meta property="og:url" content="http://yoursite.com/2016/10/30/View的三次measure-两次layout和一次draw/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="&amp;emsp;我在《Android视图结构》这篇文章中已经描述了Activity,Window和View在视图架构方面的关系。前天，我突然想到为什么在setContentView中能够调用findViewById函数？View那时不是还没有被加载，测量，布局和绘制啊。然后就搜索了相关的条目，发现findViewById只需要在inflate结束之后就可以。于是，我整理了Activity生命周期和Vi">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20161030-111.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20161030-blog-measure1.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20161030-%E7%AC%AC%E4%B8%80%E6%AC%A1.png">
+<meta property="og:updated_time" content="2016-10-30T08:43:50.155Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="View的三次measure,两次layout和一次draw">
+<meta name="twitter:description" content="&amp;emsp;我在《Android视图结构》这篇文章中已经描述了Activity,Window和View在视图架构方面的关系。前天，我突然想到为什么在setContentView中能够调用findViewById函数？View那时不是还没有被加载，测量，布局和绘制啊。然后就搜索了相关的条目，发现findViewById只需要在inflate结束之后就可以。于是，我整理了Activity生命周期和Vi">
+<meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20161030-111.png">
+  
+    <link rel="alternative" href="/atom.xml" title="Carpediem" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+	<header id="header" class="inner">
+		<a href="/" class="profilepic">
+			
+			<img lazy-src="null" class="js-avatar">
+			
+		</a>
+
+		<hgroup>
+		  <h1 class="header-author"><a href="/">remCarpediem</a></h1>
+		</hgroup>
+
+		
+		<p class="header-subtitle">blog of nobody</p>
+		
+
+		
+			<div class="switch-btn">
+				<div class="icon">
+					<div class="icon-ctn">
+						<div class="icon-wrap icon-house" data-idx="0">
+							<div class="birdhouse"></div>
+							<div class="birdhouse_holes"></div>
+						</div>
+						<div class="icon-wrap icon-ribbon hide" data-idx="1">
+							<div class="ribbon"></div>
+						</div>
+						
+						
+						<div class="icon-wrap icon-me hide" data-idx="3">
+							<div class="user"></div>
+							<div class="shoulder"></div>
+						</div>
+						
+					</div>
+					
+				</div>
+				<div class="tips-box hide">
+					<div class="tips-arrow"></div>
+					<ul class="tips-inner">
+						<li>Menu</li>
+						<li>Tags</li>
+						
+						
+						<li>Über</li>
+						
+					</ul>
+				</div>
+			</div>
+		
+
+		<div class="switch-area">
+			<div class="switch-wrap">
+				<section class="switch-part switch-part1">
+					<nav class="header-menu">
+						<ul>
+						
+							<li><a href="/">主页</a></li>
+				        
+							<li><a href="/archives">所有文章</a></li>
+				        
+						</ul>
+					</nav>
+					<nav class="header-nav">
+						<div class="social">
+							
+								<a class="github" target="_blank" href="#" title="github">github</a>
+					        
+								<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+					        
+								<a class="rss" target="_blank" href="#" title="rss">rss</a>
+					        
+								<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+					        
+						</div>
+					</nav>
+				</section>
+				
+				
+				<section class="switch-part switch-part2">
+					<div class="widget tagcloud" id="js-tagcloud">
+						<a href="/tags/读书/" style="font-size: 10px;">-读书</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/Http/" style="font-size: 10px;">Http</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/TCP-IP/" style="font-size: 15px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 10px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/View-ViewRoot/" style="font-size: 10px;">View,ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/string/" style="font-size: 10px;">string</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 20px;">第三方库</a> <a href="/tags/算法/" style="font-size: 15px;">算法</a> <a href="/tags/读书笔记/" style="font-size: 10px;">读书笔记</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a>
+					</div>
+				</section>
+				
+				
+				
+
+				
+				
+				<section class="switch-part switch-part3">
+				
+					<div id="js-aboutme">编码中</div>
+				</section>
+				
+			</div>
+		</div>
+	</header>				
+</div>
+
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+  	<div class="overlay">
+  		<div class="slider-trigger"></div>
+  		<h1 class="header-author js-mobile-header hide">remCarpediem</h1>
+  	</div>
+	<div class="intrude-less">
+		<header id="header" class="inner">
+			<div class="profilepic">
+			
+				<img lazy-src="null" class="js-avatar">
+			
+			</div>
+			<hgroup>
+			  <h1 class="header-author">remCarpediem</h1>
+			</hgroup>
+			
+			<p class="header-subtitle">blog of nobody</p>
+			
+			<nav class="header-menu">
+				<ul>
+				
+					<li><a href="/">主页</a></li>
+		        
+					<li><a href="/archives">所有文章</a></li>
+		        
+		        <div class="clearfix"></div>
+				</ul>
+			</nav>
+			<nav class="header-nav">
+				<div class="social">
+					
+						<a class="github" target="_blank" href="#" title="github">github</a>
+			        
+						<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+			        
+						<a class="rss" target="_blank" href="#" title="rss">rss</a>
+			        
+						<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+			        
+				</div>
+			</nav>
+		</header>				
+	</div>
+</nav>
+
+      <div class="body-wrap"><article id="post-View的三次measure-两次layout和一次draw" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2016/10/30/View的三次measure-两次layout和一次draw/" class="article-date">
+  	<time datetime="2016-10-30T08:37:22.000Z" itemprop="datePublished">2016-10-30</time>
+</a>
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      View的三次measure,两次layout和一次draw
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+	<div class="article-tag tagcloud">
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/View-ViewRoot/">View,ViewRoot</a></li></ul>
+	</div>
+
+        
+	<div class="article-category tagcloud">
+	<a class="article-category-link" href="/categories/源码，视图/">源码，视图</a>
+	</div>
+
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>&emsp;我在<a href="http://ztelur.github.io/2016/04/17/Android%E8%A7%86%E5%9B%BE%E6%9E%B6%E6%9E%84%E8%AF%A6%E8%A7%A3/" target="_blank" rel="external">《Android视图结构》</a>这篇文章中已经描述了<code>Activity</code>,<code>Window</code>和<code>View</code>在视图架构方面的关系。前天，我突然想到为什么在<code>setContentView</code>中能够调用<code>findViewById</code>函数？<code>View</code>那时不是还没有被加载，测量，布局和绘制啊。然后就搜索了相关的条目，发现<code>findViewById</code>只需要在<code>inflate</code>结束之后就可以。于是，我整理了Activity生命周期和View的生命周期的关系，并再次做一下总结。</p>
+<p> 为了节约你的时间，本篇文章的主要内容为：</p>
+<ul>
+<li>Activity的生命周期和它包含的View的生命周期的关系</li>
+<li>Activity初始化时View为什么会三次measure，两次layout但只一次draw？</li>
+<li>ViewRoot的初始化过程</li>
+</ul>
+<h4 id="Activity的生命周期和View的生命周期"><a href="#Activity的生命周期和View的生命周期" class="headerlink" title="Activity的生命周期和View的生命周期"></a>Activity的生命周期和View的生命周期</h4><p> 我通过一个简单的demo来验证<code>Activity</code>生命周期方法和<code>View</code>的生命周期方法的调用先后顺序。请看如下截图<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/20161030-111.png" alt="截图"></p>
+<p>&emsp;在<code>onCreate</code>函数中，我们通常都调用<code>setContentView</code>来设置布局文件，此时Android系统就会读取布局文件,但是视图此时并没有加载到<code>Window</code>上，并且也没有进入自己的生命周期。<br> 只有等到<code>Activity</code>进入resume状态时，它所拥有的<code>View</code>才会加载到<code>Window</code>上，并进行测量，布局和绘制。所以我们会发现相关函数的调用顺序是：</p>
+<ul>
+<li>onResume(Activity)</li>
+<li>onPostResume(Activity)</li>
+<li>onAttachedToWindow(View)</li>
+<li>onMeasure(View)</li>
+<li>onMeasure(View)</li>
+<li>onLayout(View)</li>
+<li>onSizeChanged(View)</li>
+<li>onMeasure(View)</li>
+<li>onLayout(View)</li>
+<li>onDraw(View)</li>
+</ul>
+<p> 大家会发现，为什么<code>onMeasure</code>先调用了两次，然后再调用<code>onLayout</code>函数，最后还有在依次调用<code>onMeasure</code>,<code>onLayout</code>和<code>onDraw</code>函数呢？</p>
+<h4 id="ViewGroup的measure"><a href="#ViewGroup的measure" class="headerlink" title="ViewGroup的measure"></a>ViewGroup的measure</h4><p> 大家应该都知道，有些<code>ViewGroup</code>可能会让自己的子视图测量两次。比如说，父视图先让每个子视图自己测量，使用<code>View.MeasureSpec.UNSPECIFIED</code>，然后在根据每个子视图希望得到的大小不超过父视图的一些限制，就让子视图得到自己希望的大小，否则就用其他尺寸来重新测量子视图。这一类的视图有<code>FrameLayout</code>,<code>RelativeLayout</code>等。<br> 在《Android视图结构》中，我们已经知道Android视图树的根节点是<code>DecorView</code>,而它是<code>FrameLayout</code>的子类，所以就会让其子视图绘制两次，所以<code>onMeasure</code>函数会先被调用两次。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// FrameLayout的onMeasure函数，DecorView的onMeasure会调用这个函数。</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onMeasure</span><span class="params">(<span class="keyword">int</span> widthMeasureSpec, <span class="keyword">int</span> heightMeasureSpec)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> count = getChildCount();</span><br><span class="line">    .....</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; count; i++) &#123;</span><br><span class="line">        <span class="keyword">final</span> View child = getChildAt(i);</span><br><span class="line">        <span class="keyword">if</span> (mMeasureAllChildren || child.getVisibility() != GONE) &#123;</span><br><span class="line">            measureChildWithMargins(child, widthMeasureSpec, <span class="number">0</span>, heightMeasureSpec, <span class="number">0</span>);</span><br><span class="line">            ......</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ........</span><br><span class="line">    count = mMatchParentChildren.size();</span><br><span class="line">    <span class="keyword">if</span> (count &gt; <span class="number">1</span>) &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; count; i++) &#123;</span><br><span class="line">            ........</span><br><span class="line">            child.measure(childWidthMeasureSpec, childHeightMeasureSpec);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;你以为到了这里就能解释通View初始化时的三次measure,两次layout却只一次draw吗？那你就太天真了！我们都知道，视图结构中不仅仅是<code>DecorView</code>是<code>FrameLayout</code>,还有其他的需要两次measure子视图的<code>ViewGroup</code>,如果每次都导致子视图两次measure,那效率就太低了。所以<code>View</code>的<code>measure</code>函数中有相关的机制来防止这种情况。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">measure</span><span class="params">(<span class="keyword">int</span> widthMeasureSpec, <span class="keyword">int</span> heightMeasureSpec)</span> </span>&#123;</span><br><span class="line">  ......</span><br><span class="line">  <span class="comment">// 当FLAG_FORCE_LAYOUT位为１时，就是当前视图请求一次布局操作</span></span><br><span class="line">  <span class="comment">//或者当前当前widthSpec和heightSpec不等于上次调用时传入的参数的时候</span></span><br><span class="line">  <span class="comment">//才进行从新绘制。</span></span><br><span class="line">    <span class="keyword">if</span> (forceLayout || !matchingSize &amp;&amp;</span><br><span class="line">            (widthMeasureSpec != mOldWidthMeasureSpec ||</span><br><span class="line">                    heightMeasureSpec != mOldHeightMeasureSpec)) &#123;</span><br><span class="line">            ......</span><br><span class="line">            onMeasure(widthMeasureSpec, heightMeasureSpec);</span><br><span class="line">            ......</span><br><span class="line">    &#125;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;源码看到这里，我几乎失望的眼泪掉下来！没办法，只能再想其他的方法来分析这个问题。</p>
+<h4 id="断点调试大法好"><a href="#断点调试大法好" class="headerlink" title="断点调试大法好"></a>断点调试大法好</h4><p>&emsp;为了分析函数调用的层级关系，我想到了断点调试法。于是，我果断在<code>onMeasure</code>和<code>onLayout</code>函数中设置了断点，然后进行调试。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20161030-blog-measure1.png" alt="函数调用帧"></p>
+<p>&emsp;在《Android视图架构》一文中，我们知道<code>ViewRoot</code>是<code>DecorView</code>的父视图，虽然它自己并不是一个<code>View</code>，但是它实现了<code>ViewParent</code>的接口，Android正是通过它来实现整个视图系统的初始化工作。而它的<code>performTraversals</code>函数就是视图初始化的关键函数。<br>&emsp;对比两次<code>onMeasure</code>被调用时的函数调用帧，我们可以轻易发现<code>ViewRootImpl</code>的<code>performTraversals</code>函数中直接和间接的调用了两次<code>performMeasure</code>函数，从而导致了<code>View</code>最开始的两次measure过程。<br>&emsp;然后在相同的<code>performTraversals</code>函数中会调用<code>performLayout</code>函数，从而导致<code>View</code>进行一轮layout过程。<br>&emsp;但是为什么这次<code>performTraversals</code>并没有触发<code>View</code>的draw过程呢?反而是<code>View</code>又将重新进行一轮measure,layout过程之后才进行draw。</p>
+<h4 id="两次performTraversals"><a href="#两次performTraversals" class="headerlink" title="两次performTraversals"></a>两次performTraversals</h4><p>&emsp;通过断点调试，我们发现在<code>View</code>初始化的过程中，系统调用了两次<code>performTraversals</code>函数，第一次<code>performTraversals</code>函数导致了View的前两次的<code>onMeasure</code>函数调用和第一次的<code>onLayout</code>函数调用。后一次的<code>performTraversals</code>函数导致了最后的<code>onMeasure</code>,<code>onLayout</code>,和<code>onDraw</code>函数的调用。但是，第二次<code>performTraversals</code>为什么会被触发呢？我们研究一下其源码就可知道。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">performTraversals</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    ......</span><br><span class="line">    <span class="keyword">boolean</span> newSurface = <span class="keyword">false</span>;</span><br><span class="line">    <span class="comment">//<span class="doctag">TODO:</span>决定是否让newSurface为true,导致后边是否让performDraw无法被调用，而是重新scheduleTraversals</span></span><br><span class="line">    <span class="keyword">if</span> (!hadSurface) &#123;</span><br><span class="line">        <span class="keyword">if</span> (mSurface.isValid()) &#123;</span><br><span class="line">            <span class="comment">// If we are creating a new surface, then we need to</span></span><br><span class="line">            <span class="comment">// completely redraw it.  Also, when we get to the</span></span><br><span class="line">            <span class="comment">// point of drawing it we will hold off and schedule</span></span><br><span class="line">            <span class="comment">// a new traversal instead.  This is so we can tell the</span></span><br><span class="line">            <span class="comment">// window manager about all of the windows being displayed</span></span><br><span class="line">            <span class="comment">// before actually drawing them, so it can display then</span></span><br><span class="line">            <span class="comment">// all at once.</span></span><br><span class="line">            newSurface = <span class="keyword">true</span>;</span><br><span class="line">                    .....</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">            ......</span><br><span class="line">    <span class="keyword">if</span> (!cancelDraw &amp;&amp; !newSurface) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!skipDraw || mReportNextDraw) &#123;</span><br><span class="line">            ......</span><br><span class="line">            performDraw();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (viewVisibility == View.VISIBLE) &#123;</span><br><span class="line">            <span class="comment">// Try again</span></span><br><span class="line">            scheduleTraversals();</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (mPendingTransitions != <span class="keyword">null</span> &amp;&amp; mPendingTransitions.size() &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; mPendingTransitions.size(); ++i) &#123;</span><br><span class="line">                mPendingTransitions.get(i).endChangingAnimations();</span><br><span class="line">            &#125;</span><br><span class="line">            mPendingTransitions.clear();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;由源代码可以看出，当<code>newSurface</code>为真时，<code>performTraversals</code>函数并不会调用<code>performDraw</code>函数，而是调用<code>scheduleTraversals</code>函数，从而再次调用一次<code>performTraversals</code>函数，从而再次进行一次测量，布局和绘制过程。<br>&emsp;我们由断点调试可以轻易看到，第一次<code>performTraversals</code>时的<code>newSurface</code>为真，而第二次时是假。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20161030-%E7%AC%AC%E4%B8%80%E6%AC%A1.png" alt="断点调试截图"></p>
+<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>&emsp;虽然我已经通过源码得知View初始化时measure三次，layout两次，draw一次的原因，但是Android系统设计时，为什么要将整个初始化过程设计成这样？我却还没有明白，为什么当<code>Surface</code>为新的时候，要推迟绘制，重新进行一轮初始化，这些可能都要涉及到<code>Surface</code>的相关内容，我之后要继续学习相关内容！</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/10/01/重要的是商业，不是应用-Building-a-bussiness-not-an-app/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">重要的是商业，不是应用(Building a bussiness, not an app)</div>
+      <strong class="article-nav-caption">></strong>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+<div class="share_jia">
+	<!-- JiaThis Button BEGIN -->
+	<div class="jiathis_style">
+		<span class="jiathis_txt">Share to: &nbsp; </span>
+		<a class="jiathis_button_facebook"></a> 
+    <a class="jiathis_button_twitter"></a>
+    <a class="jiathis_button_plus"></a> 
+    <a class="jiathis_button_tsina"></a>
+		<a class="jiathis_button_cqq"></a>
+		<a class="jiathis_button_douban"></a>
+		<a class="jiathis_button_weixin"></a>
+		<a class="jiathis_button_tumblr"></a>
+    <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	</div>
+	<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1405949716054953" charset="utf-8"></script>
+	<!-- JiaThis Button END -->
+</div>
+
+
+
+
+
+
+<div class="duoshuo">
+	<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="View的三次measure-两次layout和一次draw" data-title="View的三次measure,两次layout和一次draw" data-url="http://yoursite.com/2016/10/30/View的三次measure-两次layout和一次draw/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"CarpeDiem"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+	<!-- 多说公共JS代码 end -->
+</div>
+
+
+
+
+</div>
+      <footer id="footer">
+  <div class="outer">
+    <div id="footer-info">
+    	<div class="footer-left">
+    		&copy; 2016 remCarpediem
+    	</div>
+      	<div class="footer-right">
+      		<a href="http://hexo.io/" target="_blank">Hexo</a>  Theme <a href="https://github.com/litten/hexo-theme-yilia" target="_blank">Yilia</a> by Litten
+      	</div>
+    </div>
+  </div>
+</footer>
+    </div>
+    
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+
+<script>
+	var yiliaConfig = {
+		fancybox: true,
+		mathjax: true,
+		animate: true,
+		isHome: false,
+		isPost: true,
+		isArchive: false,
+		isTag: false,
+		isCategory: false,
+		open_in_new: false
+	}
+</script>
+<script src="http://7.url.cn/edu/jslib/comb/require-2.1.6,jquery-1.9.1.min.js"></script>
+<script src="/js/main.js"></script>
+
+
+
+
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+  </div>
+</body>
+</html>
