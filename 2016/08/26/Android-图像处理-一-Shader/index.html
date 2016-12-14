@@ -1,12 +1,17 @@
-<!DOCTYPE html>
-<html>
+
+ <!DOCTYPE HTML>
+<html lang="Chinese">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
-  <title>Android 图像处理(一) : Shader | Carpediem</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="&amp;emsp;之前一段时间，我都在研究Android自定义View的相关知识，随着逐渐的深入，渐渐了解到了一些Android图像处理的知识，主要是Bitmap,Canvas,Shader,Matric,ColorFilter和Xfermode的使用。所以准备写一系列文章介绍一下这些方面的知识。
+    <title>Android 图像处理(一) : Shader | Carpediem</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
+    
+    <meta name="author" content="remCarpediem">
+    
+
+    
+    <meta name="description" content="&amp;emsp;之前一段时间，我都在研究Android自定义View的相关知识，随着逐渐的深入，渐渐了解到了一些Android图像处理的知识，主要是Bitmap,Canvas,Shader,Matric,ColorFilter和Xfermode的使用。所以准备写一系列文章介绍一下这些方面的知识。
 图像处理相关概念介绍&amp;emsp;要想了解Shader的概念，首先要了解Android图像处理中几个比较重要">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Android 图像处理(一) : Shader">
@@ -31,208 +36,77 @@
 <meta name="twitter:description" content="&amp;emsp;之前一段时间，我都在研究Android自定义View的相关知识，随着逐渐的深入，渐渐了解到了一些Android图像处理的知识，主要是Bitmap,Canvas,Shader,Matric,ColorFilter和Xfermode的使用。所以准备写一系列文章介绍一下这些方面的知识。
 图像处理相关概念介绍&amp;emsp;要想了解Shader的概念，首先要了解Android图像处理中几个比较重要">
 <meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-img.png">
-  
+
+    
     <link rel="alternative" href="/atom.xml" title="Carpediem" type="application/atom+xml">
-  
-  
-    <link rel="icon" href="/favicon.png">
-  
-  <link rel="stylesheet" href="/css/style.css">
+    
+    
+    
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 
-<body>
-  <div id="container">
-    <div class="left-col">
-    <div class="overlay"></div>
-<div class="intrude-less">
-	<header id="header" class="inner">
-		<a href="/" class="profilepic">
-			
-			<img lazy-src="null" class="js-avatar">
-			
-		</a>
-
-		<hgroup>
-		  <h1 class="header-author"><a href="/">remCarpediem</a></h1>
-		</hgroup>
-
+  <body>
+    <header>
+      
+<div>
 		
-		<p class="header-subtitle">blog of nobody</p>
-		
-
-		
-			<div class="switch-btn">
-				<div class="icon">
-					<div class="icon-ctn">
-						<div class="icon-wrap icon-house" data-idx="0">
-							<div class="birdhouse"></div>
-							<div class="birdhouse_holes"></div>
-						</div>
-						<div class="icon-wrap icon-ribbon hide" data-idx="1">
-							<div class="ribbon"></div>
-						</div>
-						
-						
-						<div class="icon-wrap icon-me hide" data-idx="3">
-							<div class="user"></div>
-							<div class="shoulder"></div>
-						</div>
-						
-					</div>
-					
-				</div>
-				<div class="tips-box hide">
-					<div class="tips-arrow"></div>
-					<ul class="tips-inner">
-						<li>Menu</li>
-						<li>Tags</li>
-						
-						
-						<li>Über</li>
-						
-					</ul>
-				</div>
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="Carpediem">Carpediem</a></h1>
+				<h2 class="blog-motto">blog of nobody</h2>
 			</div>
-		
-
-		<div class="switch-area">
-			<div class="switch-wrap">
-				<section class="switch-part switch-part1">
-					<nav class="header-menu">
-						<ul>
-						
-							<li><a href="/">主页</a></li>
-				        
-							<li><a href="/archives">所有文章</a></li>
-				        
-						</ul>
-					</nav>
-					<nav class="header-nav">
-						<div class="social">
-							
-								<a class="github" target="_blank" href="#" title="github">github</a>
-					        
-								<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
-					        
-								<a class="rss" target="_blank" href="#" title="rss">rss</a>
-					        
-								<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
-					        
-						</div>
-					</nav>
-				</section>
-				
-				
-				<section class="switch-part switch-part2">
-					<div class="widget tagcloud" id="js-tagcloud">
-						<a href="/tags/读书/" style="font-size: 10px;">-读书</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/Http/" style="font-size: 10px;">Http</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/TCP-IP/" style="font-size: 15px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 10px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/View-ViewRoot/" style="font-size: 10px;">View,ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/string/" style="font-size: 10px;">string</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 20px;">第三方库</a> <a href="/tags/算法/" style="font-size: 15px;">算法</a> <a href="/tags/读书笔记/" style="font-size: 10px;">读书笔记</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a>
-					</div>
-				</section>
-				
-				
-				
-
-				
-				
-				<section class="switch-part switch-part3">
-				
-					<div id="js-aboutme">编码中</div>
-				</section>
-				
-			</div>
-		</div>
-	</header>				
-</div>
-
-    </div>
-    <div class="mid-col">
-      <nav id="mobile-nav">
-  	<div class="overlay">
-  		<div class="slider-trigger"></div>
-  		<h1 class="header-author js-mobile-header hide">remCarpediem</h1>
-  	</div>
-	<div class="intrude-less">
-		<header id="header" class="inner">
-			<div class="profilepic">
-			
-				<img lazy-src="null" class="js-avatar">
-			
-			</div>
-			<hgroup>
-			  <h1 class="header-author">remCarpediem</h1>
-			</hgroup>
-			
-			<p class="header-subtitle">blog of nobody</p>
-			
-			<nav class="header-menu">
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			</a></div>
+			<nav class="animated">
 				<ul>
-				
-					<li><a href="/">主页</a></li>
-		        
-					<li><a href="/archives">所有文章</a></li>
-		        
-		        <div class="clearfix"></div>
-				</ul>
-			</nav>
-			<nav class="header-nav">
-				<div class="social">
+					<ul>
+					 
+						<li><a href="/">Home</a></li>
 					
-						<a class="github" target="_blank" href="#" title="github">github</a>
-			        
-						<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
-			        
-						<a class="rss" target="_blank" href="#" title="rss">rss</a>
-			        
-						<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
-			        
-				</div>
-			</nav>
-		</header>				
-	</div>
-</nav>
-
-      <div class="body-wrap"><article id="post-Android-图像处理-一-Shader" class="article article-type-post" itemscope itemprop="blogPost">
+						<li><a href="/archives">Archives</a></li>
+					
+						<li><a href="/about">About</a></li>
+					
+					<li>
+ 					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
+						<input type="hidden" name="q" value="site:yoursite.com">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
   
-    <div class="article-meta">
-      <a href="/2016/08/26/Android-图像处理-一-Shader/" class="article-date">
-  	<time datetime="2016-08-26T07:09:18.000Z" itemprop="datePublished">2016-08-26</time>
-</a>
-    </div>
-  
-  <div class="article-inner">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
     
-      <input type="hidden" class="isFancy" />
+      <a href="/2016/08/26/Android-图像处理-一-Shader/" title="Android 图像处理(一) : Shader" itemprop="url">Android 图像处理(一) : Shader</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2016-08-26T07:09:18.000Z" itemprop="datePublished"> Published 2016-08-26</time>
     
-    
-      <header class="article-header">
-        
-  
-    <h1 class="article-title" itemprop="name">
-      Android 图像处理(一) : Shader
-    </h1>
-  
-
-      </header>
-      
-      <div class="article-info article-info-post">
-        
-	<div class="article-tag tagcloud">
-		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Shader/">Shader</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/图像处理/">图像处理</a></li></ul>
-	</div>
-
-        
-	<div class="article-category tagcloud">
-	<a class="article-category-link" href="/categories/Android/">Android</a>
-	</div>
-
-
-        <div class="clearfix"></div>
-      </div>
-      
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>&emsp;之前一段时间，我都在研究Android自定义View的相关知识，随着逐渐的深入，渐渐了解到了一些Android图像处理的知识，主要是<code>Bitmap</code>,<code>Canvas</code>,<code>Shader</code>,<code>Matric</code>,<code>ColorFilter</code>和<code>Xfermode</code>的使用。所以准备写一系列文章介绍一下这些方面的知识。</p>
+  </p>
+</header>
+	<div class="article-content">
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">Contents</strong>
+		
+			<ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#图像处理相关概念介绍"><span class="toc-number">1.</span> <span class="toc-text">图像处理相关概念介绍</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Shader概念介绍"><span class="toc-number">2.</span> <span class="toc-text">Shader概念介绍</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Shader类型介绍"><span class="toc-number"></span> <span class="toc-text">Shader类型介绍</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#LinearGradient"><span class="toc-number">1.</span> <span class="toc-text">LinearGradient</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#SweepGradient"><span class="toc-number">2.</span> <span class="toc-text">SweepGradient</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#RadialGradient"><span class="toc-number">3.</span> <span class="toc-text">RadialGradient</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#ComposeShader"><span class="toc-number">4.</span> <span class="toc-text">ComposeShader</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#后记"><span class="toc-number">5.</span> <span class="toc-text">后记</span></a></li></ol>
+		
+		</div>
+		
+		<p>&emsp;之前一段时间，我都在研究Android自定义View的相关知识，随着逐渐的深入，渐渐了解到了一些Android图像处理的知识，主要是<code>Bitmap</code>,<code>Canvas</code>,<code>Shader</code>,<code>Matric</code>,<code>ColorFilter</code>和<code>Xfermode</code>的使用。所以准备写一系列文章介绍一下这些方面的知识。</p>
 <h4 id="图像处理相关概念介绍"><a href="#图像处理相关概念介绍" class="headerlink" title="图像处理相关概念介绍"></a>图像处理相关概念介绍</h4><p>&emsp;要想了解Shader的概念，首先要了解Android图像处理中几个比较重要的概念：bitmap,canvas,drawing primitive,paint。需要注意的是，上述四个词并不指android中的类，而是四个概念。<br>&emsp;bitmap指画布。画家画图时都需要一块画布，然后才会在画布上绘制各种形状和颜色，Android中的<code>Bitmap</code>就有画布的功能。比如下面这段代码。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">static</span> Bitmap <span class="title">makeSrc</span><span class="params">(<span class="keyword">int</span> w,<span class="keyword">int</span> h)</span> </span>&#123;</span><br><span class="line">            Bitmap bm = Bitmap.createBitmap(w,h, Bitmap.Config.ARGB_8888);</span><br><span class="line">            Canvas c = <span class="keyword">new</span> Canvas(bm);</span><br><span class="line">            Paint p = <span class="keyword">new</span> Paint(Paint.ANTI_ALIAS_FLAG);</span><br><span class="line">    </span><br><span class="line">            p.setColor(<span class="number">0xFF66AAFF</span>);</span><br><span class="line">            c.drawRect(<span class="number">100</span>,<span class="number">100</span>,<span class="number">100</span>,<span class="number">100</span>,p);</span><br><span class="line">            <span class="keyword">return</span> bm;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>&emsp;Bitmap这里就充当一个画布的作用，之后Canvas的操作都是在这个Bitmap画布进行绘制。<br>&emsp;canvas是绘制操作的集合，你可以把它理解成画家的手，通过它你可以在画布上绘制各种图像和颜色。相应的在Android的<code>Canvas</code>类中就封装了绘制相关的各种操作，比如<code>drawXXX</code>系列。<br>&emsp;drawing primitive指绘制实体或者原始内容，比如画家绘画时可能会画一个苹果，也可能只是绘制一些线段，矩形等。这些都是绘制实体。在Android中，<code>Path</code>,<code>Rect</code>,<code>Text</code>,<code>Bitmap</code>都可以充当drawing primitive的角色，因为你都可以把它们绘制到画布上。你也可以这样理解，<code>Canvas</code>中的<code>drawXXX</code>系列函数中的XXX都是指drawing primitive。<br>&emsp;paint就是指画家的神奇画笔啦。Android中的<code>Paint</code>类就充当这个角色，我们可以通过<code>Paint</code>来配置画笔的颜色，粗细，纹理等。我们系列文章主要讲解的<code>Shader</code>,<code>ColorFilter</code>,<code>Xfermode</code>三个类都和<code>Paint</code>直接相关。</p>
 <h4 id="Shader概念介绍"><a href="#Shader概念介绍" class="headerlink" title="Shader概念介绍"></a>Shader概念介绍</h4><p>&emsp;Shader,也就是所谓的着色器。它应用于计算机图形学领域，指一组提供计算机图像资源在执行绘制任务时使用的指令，<strong>用于计算图像的颜色和明暗</strong>。从技术角度来看，着色器是渲染器的一部分，它负责计算目标的颜色。以我的理解，<code>Paint</code>就是渲染器，<code>Paint.setShader</code>这个函数展示了着色器和渲染器之间的关系。下面这段代码显示了<code>Shader</code>的使用方式。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">String text = <span class="string">"Shader"</span>;</span><br><span class="line">Bitmap bitmap = BitmapFactory.decodeResource(getResources(),R.drawable.photo);</span><br><span class="line">BitmapShader bitmapShader = <span class="keyword">new</span> BitmapShader(bitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);</span><br><span class="line">Paint paint = <span class="keyword">new</span> Paint();</span><br><span class="line">paint.setShader(bitmapShader);</span><br><span class="line">paint.setTextSize(<span class="number">100</span>);</span><br><span class="line">paint.setStrokeWidth(<span class="number">50</span>);</span><br><span class="line">canvas.drawText(text,<span class="number">0</span>,text.length(),<span class="number">150</span>,<span class="number">400</span>,paint);</span><br></pre></td></tr></table></figure></p>
@@ -262,141 +136,534 @@
 <h4 id="ComposeShader"><a href="#ComposeShader" class="headerlink" title="ComposeShader"></a>ComposeShader</h4><p>&emsp;<code>ComposeShader</code>用来组合不同的Shader,可以将两个不同的Shader组合在一起，它有两个构造函数:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ComposeShader (Shader shaderA, Shader shaderB, Xfermode mode)  </span><br><span class="line">ComposeShader (Shader shaderA, Shader shaderB, PorterDuff.Mode mode)</span><br></pre></td></tr></table></figure></p>
 <p>&emsp;二者的区别就是一个使用PorterDuff的模式，另一个可以使用所有的Xfermode。这两个混合模式我们在之后的文章中将会详细讲到。</p>
 <h4 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h4><p>&emsp;这里只是简单介绍了一下Shader的概念和基本用法，之后会多加一些实际使用的情况，希望大家持续关注。</p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+<div class="article-catetags">
 
-      
-    </div>
-    
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/Android/">Android</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/Shader/">Shader</a><a href="/tags/图像处理/">图像处理</a>
   </div>
-  
-    
-<nav id="article-nav">
-  
-    <a href="/2016/10/01/重要的是商业，不是应用-Building-a-bussiness-not-an-app/" id="article-nav-newer" class="article-nav-link-wrap">
-      <strong class="article-nav-caption"><</strong>
-      <div class="article-nav-title">
-        
-          重要的是商业，不是应用(Building a bussiness, not an app)
-        
-      </div>
-    </a>
-  
-  
-    <a href="/2016/08/08/Android-Span-进阶/" id="article-nav-older" class="article-nav-link-wrap">
-      <div class="article-nav-title">Android  Span 进阶</div>
-      <strong class="article-nav-caption">></strong>
-    </a>
-  
+
+</div>
+
+
+
+	<div class="article-share" id="share">
+	
+	  <div data-url="http://yoursite.com/2016/08/26/Android-图像处理-一-Shader/" data-title="Android 图像处理(一) : Shader | Carpediem" data-tsina="null" class="share clearfix">
+	  </div>
+	
+	</div>
+
+
+</footer>
+
+   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2016/10/01/重要的是商业，不是应用-Building-a-bussiness-not-an-app/" title="重要的是商业，不是应用(Building a bussiness, not an app)">
+  <strong>上一篇：</strong><br/>
+  <span>
+  重要的是商业，不是应用(Building a bussiness, not an app)</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2016/08/08/Android-Span-进阶/"  title="Android  Span 进阶">
+ <strong>下一篇：</strong><br/> 
+ <span>Android  Span 进阶
+</span>
+</a>
+</div>
+
 </nav>
 
-  
-</article>
-
-
-<div class="share_jia">
-	<!-- JiaThis Button BEGIN -->
-	<div class="jiathis_style">
-		<span class="jiathis_txt">Share to: &nbsp; </span>
-		<a class="jiathis_button_facebook"></a> 
-    <a class="jiathis_button_twitter"></a>
-    <a class="jiathis_button_plus"></a> 
-    <a class="jiathis_button_tsina"></a>
-		<a class="jiathis_button_cqq"></a>
-		<a class="jiathis_button_douban"></a>
-		<a class="jiathis_button_weixin"></a>
-		<a class="jiathis_button_tumblr"></a>
-    <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
-	</div>
-	<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1405949716054953" charset="utf-8"></script>
-	<!-- JiaThis Button END -->
-</div>
+	
+<section id="comments" class="comment">
+	<div class="ds-thread" data-thread-key="2016/08/26/Android-图像处理-一-Shader/" data-title="Android 图像处理(一) : Shader" data-url="http://yoursite.com/2016/08/26/Android-图像处理-一-Shader/"></div>
+</section>
 
 
 
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
 
-
-
-<div class="duoshuo">
-	<!-- 多说评论框 start -->
-	<div class="ds-thread" data-thread-key="Android-图像处理-一-Shader" data-title="Android 图像处理(一) : Shader" data-url="http://yoursite.com/2016/08/26/Android-图像处理-一-Shader/"></div>
-	<!-- 多说评论框 end -->
-	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
-	<script type="text/javascript">
-	var duoshuoQuery = {short_name:"CarpeDiem"};
-	(function() {
-		var ds = document.createElement('script');
-		ds.type = 'text/javascript';ds.async = true;
-		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
-		ds.charset = 'UTF-8';
-		(document.getElementsByTagName('head')[0] 
-		 || document.getElementsByTagName('body')[0]).appendChild(ds);
-	})();
-	</script>
-	<!-- 多说公共JS代码 end -->
-</div>
-
-
-
-
-</div>
-      <footer id="footer">
-  <div class="outer">
-    <div id="footer-info">
-    	<div class="footer-left">
-    		&copy; 2016 remCarpediem
-    	</div>
-      	<div class="footer-right">
-      		<a href="http://hexo.io/" target="_blank">Hexo</a>  Theme <a href="https://github.com/litten/hexo-theme-yilia" target="_blank">Yilia</a> by Litten
-      	</div>
-    </div>
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">Contents</strong>
+ 
+ <ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#图像处理相关概念介绍"><span class="toc-number">1.</span> <span class="toc-text">图像处理相关概念介绍</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Shader概念介绍"><span class="toc-number">2.</span> <span class="toc-text">Shader概念介绍</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Shader类型介绍"><span class="toc-number"></span> <span class="toc-text">Shader类型介绍</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#LinearGradient"><span class="toc-number">1.</span> <span class="toc-text">LinearGradient</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#SweepGradient"><span class="toc-number">2.</span> <span class="toc-text">SweepGradient</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#RadialGradient"><span class="toc-number">3.</span> <span class="toc-text">RadialGradient</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#ComposeShader"><span class="toc-number">4.</span> <span class="toc-text">ComposeShader</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#后记"><span class="toc-number">5.</span> <span class="toc-text">后记</span></a></li></ol>
+ 
   </div>
-</footer>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<aside class="clearfix">
+
+  
+
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">Categories</p>
+		<ul>
+		
+		  
+		
+		  
+			<li><a href="/categories/Android/" title="Android">Android<sup>21</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/Java/" title="Java">Java<sup>4</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/Java/JavaScript/" title="JavaScript">JavaScript<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/Android/NetWork/" title="NetWork">NetWork<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/Android/Network/" title="Network">Network<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/Python/" title="Python">Python<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/c/" title="c">c<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/函数式编程/" title="函数式编程">函数式编程<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/c/数据结构/" title="数据结构">数据结构<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/源码/" title="源码">源码<sup>1</sup></a></li>
+		  
+		
+		  
+		
+		  
+			<li><a href="/categories/Android/源码分析/" title="源码分析">源码分析<sup>1</sup></a></li>
+		  
+		
+		  
+		
+		  
+			<li><a href="/categories/杂记/生活/" title="生活">生活<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/算法/" title="算法">算法<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/综合/" title="综合">综合<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/网络/" title="网络">网络<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/源码/视图/" title="视图">视图<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/计划/" title="计划">计划<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/设计/" title="设计">设计<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/随笔/" title="随笔">随笔<sup>1</sup></a></li>
+		  
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">Tags</p>
+		<ul class="clearfix">
+		
+			
+				<li><a href="/tags/第三方库/" title="第三方库">第三方库<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/注解/" title="注解">注解<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Span/" title="Span">Span<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/算法/" title="算法">算法<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Android/" title="Android">Android<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/反射/" title="反射">反射<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/JSON/" title="JSON">JSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Http/" title="Http">Http<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/animation/" title="animation">animation<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/http/" title="http">http<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/MotionEvent/" title="MotionEvent">MotionEvent<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/React-Native/" title="React Native">React Native<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Cookie/" title="Cookie">Cookie<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/SICP/" title="SICP">SICP<sup>1</sup></a></li>
+			
+		
+		</ul>
+</div>
+
+
+  
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS</a>
+</div>
+
+</aside>
+</div>
     </div>
-    
-  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+    <footer><div id="footer" >
+	
+	
+	<section class="info">
+		<p> Hello ,I&#39;m Homer in NJU. <br/>
+			This is my blog,believe it or not.</p>
+	</section>
+	 
+	<div class="social-font" class="clearfix">
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+	</div>
+			
+		
+
+		<p class="copyright">
+		Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/wuchong/jacman" target="_blank" title="Jacman">Jacman</a> © 2016 
+		
+		<a href="/about" target="_blank" title="remCarpediem">remCarpediem</a>
+		
+		
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.0.3.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+<script src="/js/jquery.qrcode-0.12.0.min.js"></script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+  
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else{
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  c.click(function(){
+    ta.css('display', 'block').addClass('fadeIn');
+  });
+  o.click(function(){
+    ta.css('display', 'none');
+  });
+  $(window).scroll(function(){
+    ta.css("top",Math.max(140,320-$(this).scrollTop()));
+  });
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina'),
+      description = $this.attr('description');
+  var html = [
+  '<div class="hoverqrcode clearfix"></div>',
+  '<a class="overlay" id="qrcode"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="微信"></a>',
+  '<a href="http://widget.renren.com/dialog/share?resourceUrl=' + encodedUrl + '&srcUrl=' + encodedUrl + '&title=' + title +'" class="article-share-renren" target="_blank" title="人人"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="微博"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+
+  $('.hoverqrcode').hide();
+
+  var myWidth = 0;
+  function updatehoverqrcode(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+    var qrsize = myWidth > 1024 ? 200:100;
+    var options = {render: 'image', size: qrsize, fill: '#2ca6cb', text: url, radius: 0.5, quiet: 1};
+    var p = $('.article-share-qrcode').position();
+    $('.hoverqrcode').empty().css('width', qrsize).css('height', qrsize)
+                          .css('left', p.left-qrsize/2+20).css('top', p.top-qrsize-10)
+                          .qrcode(options);
+  };
+  $(window).resize(function(){
+    $('.hoverqrcode').hide();
+  });
+  $('.article-share-qrcode').click(function(){
+    updatehoverqrcode();
+    $('.hoverqrcode').toggle();
+  });
+  $('.article-share-qrcode').hover(function(){}, function(){
+      $('.hoverqrcode').hide();
+  });
+});   
+</script>
+
+
+
+<script type="text/javascript">
+  var duoshuoQuery = {short_name:"CarpeDiem"};
+  (function() {
+    var ds = document.createElement('script');
+    ds.type = 'text/javascript';ds.async = true;
+    ds.src = '//static.duoshuo.com/embed.js';
+    ds.charset = 'UTF-8';
+    (document.getElementsByTagName('head')[0] 
+    || document.getElementsByTagName('body')[0]).appendChild(ds);
+  })();
+</script> 
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.article-content').each(function(i){
+    $(this).find('img').each(function(){
+      if ($(this).parent().hasClass('fancybox')) return;
+      var alt = this.alt;
+      if (alt) $(this).after('<span class="caption">' + alt + '</span>');
+      $(this).wrap('<a href="' + this.src + '" title="' + alt + '" class="fancybox"></a>');
+    });
+    $(this).find('.fancybox').each(function(){
+      $(this).attr('rel', 'article' + i);
+    });
+  });
+  if($.fancybox){
+    $('.fancybox').fancybox();
+  }
+}); 
+</script>
+
+
+
+<!-- Analytics Begin -->
+
+<script type="text/javascript">
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+ga('create', 'UA-88918565-1', 'ztelur.github.io/');  
+ga('send', 'pageview');
+</script>
+
 
 
 <script>
-	var yiliaConfig = {
-		fancybox: true,
-		mathjax: true,
-		animate: true,
-		isHome: false,
-		isPost: true,
-		isArchive: false,
-		isTag: false,
-		isCategory: false,
-		open_in_new: false
-	}
-</script>
-<script src="http://7.url.cn/edu/jslib/comb/require-2.1.6,jquery-1.9.1.min.js"></script>
-<script src="/js/main.js"></script>
-
-
-
-
-
-
-<script type="text/x-mathjax-config">
-MathJax.Hub.Config({
-    tex2jax: {
-        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
-        processEscapes: true,
-        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-    }
-});
-
-MathJax.Hub.Queue(function() {
-    var all = MathJax.Hub.getAllJax(), i;
-    for(i=0; i < all.length; i += 1) {
-        all[i].SourceElement().parentNode.className += ' has-jax';                 
-    }       
-});
-</script>
-
-<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?e6d1f421bbc9962127a50488f9ed37d1";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
 </script>
 
 
-  </div>
-</body>
+
+<!-- Analytics End -->
+
+<!-- Totop Begin -->
+
+	<div id="totop">
+	<a title="Back to Top"><img src="/img/scrollup.png"/></a>
+	</div>
+	<script src="/js/totop.js"></script>
+
+<!-- Totop End -->
+
+<!-- MathJax Begin -->
+<!-- mathjax config similar to math.stackexchange -->
+
+
+<!-- MathJax End -->
+
+<!-- Tiny_search Begin -->
+
+<!-- Tiny_search End -->
+
+  </body>
 </html>
