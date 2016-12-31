@@ -72,6 +72,74 @@
         <header class="article-info clearfix">
   <h1 itemprop="name">
     
+      <a href="/2016/05/28/Python中的plisttext和HTTP的Content-Type/" title="Python中的plisttext和HTTP的Content-Type" itemprop="url">Python中的plisttext和HTTP的Content-Type</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2016-05-28T08:51:37.000Z" itemprop="datePublished"> Published 2016-05-28</time>
+    
+  </p>
+</header>
+    <div class="article-content">
+        
+        <p>&emsp;这段时间本人在学习<code>Android Service</code>相关的内容，临时需要一个可以提供文件上传和下载功能的服务器，于是上网查找了一个简单服务器的python实现代码，本着温顾一下HTTP协议的想法，于是深入研究了一下其中的代码，发现大家对<code>SimpleHTTPRequestsHandler</code>中的<code>self.headers.plisttext.split(&quot;=&quot;)[1]</code>语句的含义不是很理解，于是自己查阅了一下python源码定义和相关HTTP协议文档，理解了这段代码的含义。</p>
+<h4 id="源码定义"><a href="#源码定义" class="headerlink" title="源码定义"></a>源码定义</h4><p>&emsp;我们先来看一下关于<code>plisttext</code>的源码定义。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#https://svn.python.org/projects/python/branches/alpha100/Lib/mimetools.py</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Message</span><span class="params">(rfc822.Message)</span>:</span></span><br><span class="line">	<span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, fp)</span>:</span></span><br><span class="line">    ....</span><br><span class="line">		self.typeheader = \</span><br><span class="line">			self.getheader(<span class="string">'content-type'</span>)</span><br><span class="line">		....</span><br><span class="line">	<span class="function"><span class="keyword">def</span> <span class="title">parsetype</span><span class="params">(self)</span>:</span></span><br><span class="line">		str = self.typeheader</span><br><span class="line">		<span class="keyword">if</span> str == <span class="keyword">None</span>:</span><br><span class="line">			str = <span class="string">'text/plain'</span></span><br><span class="line">		<span class="keyword">if</span> <span class="string">';'</span> <span class="keyword">in</span> str:</span><br><span class="line">			i = string.index(str, <span class="string">';'</span>)</span><br><span class="line">			self.plisttext = str[i:]</span><br><span class="line">			str = str[:i]</span><br><span class="line">		<span class="keyword">else</span>:</span><br><span class="line">			self.plisttext = <span class="string">''</span></span><br><span class="line">		....</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;从源码中可以得出，<code>plisttext</code>与HTTP头部<code>content-type</code>有关，这里我们就要回想一下<code>content-type</code>的有关定义了。<br>&emsp;在<a href="https://www.w3.org/Protocols/rfc1341/4_Content-Type.html" target="_blank" rel="external">w3c的文档</a>给出了<code>content-type</code>的格式定义,我们可以发现，<code>content-type</code>对的值有可选的内容，使用<code>；</code>隔开，所以<code>plisttext</code>的值就是<code>parameter</code>的内容。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">Content-Type := type &quot;/&quot; subtype *[&quot;;&quot; parameter] </span><br><span class="line"></span><br><span class="line">type :=          &quot;application&quot;     / &quot;audio&quot; </span><br><span class="line">          / &quot;image&quot;           / &quot;message&quot; </span><br><span class="line">          / &quot;multipart&quot;  / &quot;text&quot; </span><br><span class="line">          / &quot;video&quot;           / x-token </span><br><span class="line"></span><br><span class="line">x-token := &lt;The two characters &quot;X-&quot; followed, with no </span><br><span class="line">           intervening white space, by any token&gt; </span><br><span class="line"></span><br><span class="line">subtype := token </span><br><span class="line"></span><br><span class="line">parameter := attribute &quot;=&quot; value </span><br><span class="line"></span><br><span class="line">attribute := token </span><br><span class="line"></span><br><span class="line">value := token / quoted-string </span><br><span class="line"></span><br><span class="line">token := 1*&lt;any CHAR except SPACE, CTLs, or tspecials&gt; </span><br><span class="line"></span><br><span class="line">tspecials :=  &quot;(&quot; / &quot;)&quot; / &quot;&lt;&quot; / &quot;&gt;&quot; / &quot;@&quot;  ; Must be in </span><br><span class="line">           /  &quot;,&quot; / &quot;;&quot; / &quot;:&quot; / &quot;\&quot; / &lt;&quot;&gt;  ; quoted-string, </span><br><span class="line">           /  &quot;/&quot; / &quot;[&quot; / &quot;]&quot; / &quot;?&quot; / &quot;.&quot;  ; to use within </span><br><span class="line">           /  &quot;=&quot;                        ; parameter values</span><br></pre></td></tr></table></figure></p>
+<h4 id="使用原理"><a href="#使用原理" class="headerlink" title="使用原理"></a>使用原理</h4><p>&emsp;知道了<code>plisttext</code>代表的含义，我们再来看一下它在文件上传过程中的作用吧。我们先来看一下它在处理文件上传的<code>post</code>请求时的作用吧。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">boundary = self.headers.plisttext.split(<span class="string">"="</span>)[<span class="number">1</span>]</span><br><span class="line">remainbytes = int(self.headers[<span class="string">'content-length'</span>])</span><br><span class="line">line = self.rfile.readline()</span><br><span class="line">remainbytes -= len(line)</span><br><span class="line"><span class="keyword">if</span> <span class="keyword">not</span> boundary <span class="keyword">in</span> line:</span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">False</span>,<span class="string">"Content NOT begin with boundary"</span>)</span><br><span class="line">line = self.rfile.readline()</span><br><span class="line">remainbytes -= len(line)</span><br><span class="line">filename = re.findall(<span class="string">r'Content-Disposition.*name="file"; filename="(.*)"'</span>,line)</span><br><span class="line"><span class="keyword">if</span> <span class="keyword">not</span> fn:</span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">False</span>,<span class="string">"Can't find out file name"</span>)</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;我们都知道当通过<code>html</code>的<code>form</code>来进行文件提交时，浏览器会发送<code>POST</code>请求，并且content-type为<code>multipart/form-data; boundary=----WebKitFormBoundaryqdHXHkzdBEGWWZka</code>,所以，<code>plisttext</code>的值为<code>boundary=----WebKitFormBoundaryqdHXHkzdBEGWWZka</code>。<code>boundary</code>在<code>HTTP</code>的body中会使用到，因为post请求提交了很多类型的数据，所以必须使用<code>boundary</code>进行间隔，也就是所谓的<a href="https://www.w3.org/Protocols/rfc1341/7_2_Multipart.html" target="_blank" rel="external">Multipart Content-Type时的body格式</a>。详细的body的格式在w3c的文档中有详细的介绍。</p>
+<p>&emsp;这里贴一张wireShark截获的tcp包的信息，来帮助大家理解一下这段python代码的原理。通过<code>form</code>提交一份文件和一个名为other的字符串。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"> POST / HTTP/1.1</span><br><span class="line">Host: localhost:8080</span><br><span class="line">Connection: keep-alive</span><br><span class="line">Content-Length: 269353</span><br><span class="line">Cache-Control: max-age=0</span><br><span class="line">Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8</span><br><span class="line">Origin: http://localhost:8080</span><br><span class="line">User-Agent: Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/43.0.2357.81 Chrome/43.0.2357.81 Safari/537.36</span><br><span class="line">Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryqdHXHkzdBEGWWZka</span><br><span class="line">Referer: http://localhost:8080/</span><br><span class="line">Accept-Encoding: gzip, deflate</span><br><span class="line">Accept-Language: en-US,en;q=0.8,zh-CN;q=0.6,zh;q=0.4</span><br><span class="line"></span><br><span class="line">------WebKitFormBoundaryqdHXHkzdBEGWWZka</span><br><span class="line">Content-Disposition: form-data; name=&quot;file&quot;; filename=&quot;AndroidStudy.png&quot;</span><br><span class="line">Content-Type: image/png</span><br><span class="line">..... //图片内容</span><br><span class="line">------WebKitFormBoundaryqdHXHkzdBEGWWZka</span><br><span class="line">Content-Disposition: form-data; name=&quot;other&quot;</span><br><span class="line"></span><br><span class="line">ddd</span><br><span class="line">------WebKitFormBoundaryqdHXHkzdBEGWWZka--</span><br></pre></td></tr></table></figure></p>
+
+        
+        
+        <p class="article-more-link">
+          
+       </p>
+    </div>
+    <footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/python/">python</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/http/">http</a>
+  </div>
+
+</div>
+
+
+
+
+<div class="comments-count">
+	
+	  	<span></span>
+		<a href="/2016/05/28/Python中的plisttext和HTTP的Content-Type/#comments" class="ds-thread-count comments-count-link" data-thread-key="2016/05/28/Python中的plisttext和HTTP的Content-Type/" data-count-type="comments">&nbsp;</a>
+	
+</div>
+
+</footer>
+
+
+    </article>
+
+
+
+
+
+
+   
+    
+    <article class="post-expand post" itemprop="articleBody"> 
+        <header class="article-info clearfix">
+  <h1 itemprop="name">
+    
       <a href="/2016/05/09/Property-Animation框架详解-一/" title="Property Animation框架详解(一)" itemprop="url">Property Animation框架详解(一)</a>
   </h1>
   <p class="article-author">By
@@ -964,184 +1032,9 @@
 
 
 
-   
-    
-    <article class="post-expand post" itemprop="articleBody"> 
-        <header class="article-info clearfix">
-  <h1 itemprop="name">
-    
-      <a href="/2016/03/05/2016年，计划目录/" title="2016年，计划目录" itemprop="url">2016年，计划目录</a>
-  </h1>
-  <p class="article-author">By
-       
-		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
-		
-  <p class="article-time">
-    <time datetime="2016-03-05T01:34:18.000Z" itemprop="datePublished"> Published 2016-03-05</time>
-    
-  </p>
-</header>
-    <div class="article-content">
-        
-        <p>&emsp;建立一个计划目录，记录一下１６年的计划和实现情况,进行不定时的更新。</p>
-<h3 id="计划清单"><a href="#计划清单" class="headerlink" title="计划清单"></a><strong>计划清单</strong></h3><h4 id="英语学习"><a href="#英语学习" class="headerlink" title="英语学习"></a><strong>英语学习</strong></h4><h5 id="ESL-Pod-暂停"><a href="#ESL-Pod-暂停" class="headerlink" title="ESL_Pod [暂停]"></a>ESL_Pod <strong>[暂停]</strong></h5><p>《English as a second language podcast presents – Introduction to the United States》总共100课。还没有开始，从3月5日开始</p>
-<h5 id="扇贝"><a href="#扇贝" class="headerlink" title="扇贝　"></a>扇贝　</h5><ul>
-<li>单词 :在背英语单词书，5518词，完成进度8.10%　 计划每天５０词，并且阅读两篇文章 </li>
-</ul>
-<h5 id="新概念英语-从16-4月开始的"><a href="#新概念英语-从16-4月开始的" class="headerlink" title="新概念英语 [从16.4月开始的]"></a>新概念英语 <strong>[从16.4月开始的]</strong></h5><p>每天一篇小文章背诵。</p>
-<h4 id="Android学习"><a href="#Android学习" class="headerlink" title="Android学习"></a><strong>Android学习</strong></h4><h5 id="Android-Annotation-Processor学习"><a href="#Android-Annotation-Processor学习" class="headerlink" title="Android Annotation Processor学习"></a>Android Annotation Processor学习</h5><ul>
-<li>三篇文章翻译</li>
-<li>Butterknife源码分析</li>
-<li>javapoet and 其他的一些class文件修改框架  </li>
-</ul>
-<h5 id="View相关知识学习-完成，16-3-16-4-23"><a href="#View相关知识学习-完成，16-3-16-4-23" class="headerlink" title="View相关知识学习[完成，16.3~16.4.23]"></a>View相关知识学习<strong>[完成，16.3~16.4.23]</strong></h5><ul>
-<li>事件传递处理和各种手势处理</li>
-<li>View的measure,layout,draw<br>总结:</li>
-<li><a href="http://ztelur.github.io/2016/03/27/Android-Scroll%E8%AF%A6%E8%A7%A3-%E4%B8%80-%EF%BC%9A%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/" target="_blank" rel="external">《Android Scroll详解(一)：基础知识》</a></li>
-<li><a href="http://ztelur.github.io/2016/03/16/Android-MotionEvent%E8%AF%A6%E8%A7%A3/" target="_blank" rel="external">《Android MotionEvent详解》</a></li>
-<li><a href="http://ztelur.github.io/2016/02/11/%E5%9B%BE%E8%A7%A3Android%E4%BA%8B%E4%BB%B6%E4%BC%A0%E9%80%92%E4%B9%8BViewGroup%E7%AF%87/" target="_blank" rel="external">《图解Android事件传递之ViewGroup篇》</a></li>
-<li><a href="http://ztelur.github.io/2016/02/04/%E5%9B%BE%E8%A7%A3Android%E4%BA%8B%E4%BB%B6%E4%BC%A0%E9%80%92%E4%B9%8BView%E7%AF%87/" target="_blank" rel="external">《图解Android事件传递之View篇》</a>。</li>
-<li><a href="http://ztelur.github.io/2016/04/07/Android-Scroll%E8%AF%A6%E8%A7%A3-%E4%BA%8C-%EF%BC%9AOverScroller%E5%AE%9E%E6%88%98/" target="_blank" rel="external">《Android Scroll详解(二)：OverScroller实战》</a></li>
-<li><a href="http://ztelur.github.io/2016/04/17/Android%E8%A7%86%E5%9B%BE%E6%9E%B6%E6%9E%84%E8%AF%A6%E8%A7%A3/" target="_blank" rel="external">《Android视图架构详解》</a></li>
-<li><a href="http://ztelur.github.io/2016/04/21/Android-Scroll%E8%AF%A6%E8%A7%A3-%E4%B8%89-%EF%BC%9AAndroid-%E7%BB%98%E5%88%B6%E8%BF%87%E7%A8%8B%E8%AF%A6%E8%A7%A3/" target="_blank" rel="external">《Android Scroll详解(三)：Android 绘制过程详解》</a></li>
-</ul>
-<h5 id="Android动画学习-从16-4-23到5-19-暂时暂停"><a href="#Android动画学习-从16-4-23到5-19-暂时暂停" class="headerlink" title="Android动画学习 从16.4.23到5.19 暂时暂停"></a>Android动画学习 <strong>从16.4.23到5.19 暂时暂停</strong></h5><ul>
-<li><a href="https://segmentfault.com/a/1190000004354609" target="_blank" rel="external">指导文章</a></li>
-<li><a href="http://ztelur.github.io/2016/05/09/Property-Animation%E6%A1%86%E6%9E%B6%E8%AF%A6%E8%A7%A3-%E4%B8%80/" target="_blank" rel="external">Property Animation框架详解(一)</a></li>
-<li><a href="http://ztelur.github.io/2016/07/15/%E8%87%AA%E5%AE%9A%E4%B9%89Switch%E8%BF%87%E7%A8%8B%E8%AF%A6%E8%A7%A3/" target="_blank" rel="external">自定义Switch过程详解</a><h5 id="Android-Service-进程间通讯-未进行，中断"><a href="#Android-Service-进程间通讯-未进行，中断" class="headerlink" title="Android Service+进程间通讯 未进行，中断"></a>Android Service+进程间通讯 <strong>未进行，中断</strong></h5><h5 id="Android-TomatoGo开发-正在进行从10-1日开始"><a href="#Android-TomatoGo开发-正在进行从10-1日开始" class="headerlink" title="Android TomatoGo开发 正在进行从10.1日开始"></a>Android TomatoGo开发 <strong>正在进行从10.1日开始</strong></h5></li>
-</ul>
-<h5 id="Android优化学习-正在进行从12-13日开始"><a href="#Android优化学习-正在进行从12-13日开始" class="headerlink" title="Android优化学习　正在进行从12.13日开始"></a>Android优化学习　<strong>正在进行从12.13日开始</strong></h5><ul>
-<li>启动优化</li>
-<li>内存优化</li>
-<li>各类工具使用</li>
-<li>基础知识</li>
-</ul>
-<h4 id="前端-正在进行从12-13日进行"><a href="#前端-正在进行从12-13日进行" class="headerlink" title="前端　正在进行从12.13日进行"></a><strong>前端</strong>　<strong>正在进行从12.13日进行</strong></h4><ul>
-<li>《js权威指南》 800页</li>
-<li>《css scret》 300页</li>
-<li>react 网页代码学习</li>
-</ul>
-<h5 id="Hexo-自定义主题"><a href="#Hexo-自定义主题" class="headerlink" title="Hexo 自定义主题"></a>Hexo 自定义主题</h5><h4 id="要阅读的书籍"><a href="#要阅读的书籍" class="headerlink" title="要阅读的书籍"></a><strong>要阅读的书籍</strong></h4><h5 id="技术方面书籍"><a href="#技术方面书籍" class="headerlink" title="技术方面书籍"></a>技术方面书籍</h5><ul>
-<li>《计算机解释和构造》,开始时间3.30</li>
-<li>《Professional javascript for web Developers.3rd》 一天10页左右<h5 id="其他书籍"><a href="#其他书籍" class="headerlink" title="其他书籍"></a>其他书籍</h5></li>
-<li>《从美国看世界》,预计时间<strong>2个星期</strong>，<strong>开始时间3月5日</strong>,<strong>弃坑</strong></li>
-<li>《穷查理的历书》,预计时间<strong>1个星期</strong>,<strong>开始时间3月14日</strong></li>
-<li><p>《美丽新世界》开始世界4.23<br>###<strong>Update 2016.3.14</strong></p>
-<h5 id="ESL-Pod"><a href="#ESL-Pod" class="headerlink" title="ESL_Pod"></a>ESL_Pod</h5><p>《English as a second language podcast presents – Introduction to the United States》总共100课。已经完成8课</p>
-<h4 id="要阅读的书籍-1"><a href="#要阅读的书籍-1" class="headerlink" title="要阅读的书籍"></a>要阅读的书籍</h4></li>
-<li><p>《从美国看世界》：阅读1星期，只读了一半左右，主要讲述美国经济大萧条时期的经济制度，美国政府政策和帝国主义根源等问题，不是很感兴趣</p>
-</li>
-<li>《计算机解释和构造》开始阅读</li>
-<li>《穷查理的历书》开始阅读</li>
-<li>《美丽的新世界》完成</li>
-<li>《月亮和六便士》完成</li>
-<li>《自控力》正在进行从5.1日开始</li>
-<li>《金阁寺》<strong>正在进行从12.13日开始</strong></li>
-</ul>
-<p>###<strong>Update 2016.4.5</strong></p>
-<h4 id="要阅读的书籍-2"><a href="#要阅读的书籍-2" class="headerlink" title="要阅读的书籍"></a>要阅读的书籍</h4><ul>
-<li>《计算机解释和构造》完成第一章阅读，希望进行一下总结</li>
-<li>《异类 不一样的成功启示录》：清明放假一口气看完，主要讲述了“异类”成功的原因。其中的一万小时定律很是吸引人。读后感：<a href="http://ztelur.github.io/2016/04/05/%E3%80%8A%E5%BC%82%E7%B1%BB-%E4%B8%8D%E4%B8%80%E6%A0%B7%E6%88%90%E5%8A%9F%E7%9A%84%E5%90%AF%E7%A4%BA%E5%BD%95%E3%80%8B%E8%AF%BB%E5%90%8E%E6%84%9F/" target="_blank" rel="external">《异类-不一样成功的启示录》读后感</a></li>
-<li>《自控力》：读一读，感觉最近懒癌又犯了。一周读一章的节奏。</li>
-</ul>
-<h3 id="Android-学习"><a href="#Android-学习" class="headerlink" title="Android 学习"></a>Android 学习</h3><h5 id="View相关知识学习"><a href="#View相关知识学习" class="headerlink" title="View相关知识学习"></a>View相关知识学习</h5><ul>
-<li>事件传递处理和各种手势处理:<a href="http://ztelur.github.io/2016/03/27/Android-Scroll%E8%AF%A6%E8%A7%A3-%E4%B8%80-%EF%BC%9A%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/" target="_blank" rel="external">《Android Scroll详解(一)：基础知识》</a>，<br><a href="http://ztelur.github.io/2016/03/16/Android-MotionEvent%E8%AF%A6%E8%A7%A3/" target="_blank" rel="external">《Android MotionEvent详解》</a>，<a href="http://ztelur.github.io/2016/02/11/%E5%9B%BE%E8%A7%A3Android%E4%BA%8B%E4%BB%B6%E4%BC%A0%E9%80%92%E4%B9%8BViewGroup%E7%AF%87/" target="_blank" rel="external">《图解Android事件传递之ViewGroup篇》</a>，<a href="http://ztelur.github.io/2016/02/04/%E5%9B%BE%E8%A7%A3Android%E4%BA%8B%E4%BB%B6%E4%BC%A0%E9%80%92%E4%B9%8BView%E7%AF%87/" target="_blank" rel="external">《图解Android事件传递之View篇》</a>。</li>
-<li>View的measure,layout,draw</li>
-</ul>
-<h3 id="英语"><a href="#英语" class="headerlink" title="英语"></a>英语</h3><h4 id="扇贝-1"><a href="#扇贝-1" class="headerlink" title="扇贝"></a>扇贝</h4><ul>
-<li>打卡：90天</li>
-<li>单词：2016考研英语词汇大纲 5518词，学习进度13.80%</li>
-</ul>
-<h3 id="Udpate-2015-4-23"><a href="#Udpate-2015-4-23" class="headerlink" title=" Udpate 2015.4.23"></a><strong> Udpate 2015.4.23</strong></h3><h3 id="要阅读的书籍-3"><a href="#要阅读的书籍-3" class="headerlink" title="要阅读的书籍"></a>要阅读的书籍</h3><ul>
-<li>《SICP》第二章，阅读第一章时没有及时做习题，导致很多内容都忘记了，第二章时要立即做习题</li>
-<li>《自控力》放弃阅读….不太喜欢读这一类的书籍</li>
-<li>《美丽新世界》，之前读过《1984》,然后被推荐了这本书</li>
-</ul>
-<h3 id="Android学习-1"><a href="#Android学习-1" class="headerlink" title="Android学习"></a>Android学习</h3><h4 id="View相关知识学习-1"><a href="#View相关知识学习-1" class="headerlink" title="View相关知识学习"></a>View相关知识学习</h4><p>学习完结</p>
-<ul>
-<li><a href="http://ztelur.github.io/2016/04/07/Android-Scroll%E8%AF%A6%E8%A7%A3-%E4%BA%8C-%EF%BC%9AOverScroller%E5%AE%9E%E6%88%98/" target="_blank" rel="external">Android Scroll详解(二)：OverScroller实战</a></li>
-<li><a href="http://ztelur.github.io/2016/04/17/Android%E8%A7%86%E5%9B%BE%E6%9E%B6%E6%9E%84%E8%AF%A6%E8%A7%A3/" target="_blank" rel="external">Android视图架构详解</a></li>
-<li><a href="http://ztelur.github.io/2016/04/21/Android-Scroll%E8%AF%A6%E8%A7%A3-%E4%B8%89-%EF%BC%9AAndroid-%E7%BB%98%E5%88%B6%E8%BF%87%E7%A8%8B%E8%AF%A6%E8%A7%A3/" target="_blank" rel="external">Android Scroll详解(三)：Android 绘制过程详解</a></li>
-</ul>
-<p>###＃ Android Animation<br>开始学习</p>
-<h3 id="英语-1"><a href="#英语-1" class="headerlink" title="英语"></a>英语</h3><h4 id="扇贝-2"><a href="#扇贝-2" class="headerlink" title="扇贝"></a>扇贝</h4><ul>
-<li>打卡：108天</li>
-<li>单词：2016考研英语词汇大纲 5518词，学习进度17.63%</li>
-</ul>
-<h4 id="新概念英语"><a href="#新概念英语" class="headerlink" title="新概念英语"></a>新概念英语</h4><p>一天一篇小文章背诵，已经背诵了８篇了。</p>
-<h3 id="Udpate-2016-5-19"><a href="#Udpate-2016-5-19" class="headerlink" title=" Udpate 2016.5.19"></a><strong> Udpate 2016.5.19</strong></h3><h3 id="要阅读的书籍-4"><a href="#要阅读的书籍-4" class="headerlink" title="要阅读的书籍"></a>要阅读的书籍</h3><ul>
-<li>《SICP》已经看到77页，边做题边看，进度比较慢，但是感觉收获很多。</li>
-<li>《美丽的新世界》，《月亮和六便士》都已经看完了，希望写一篇《月亮和六便士》的读后感！！！</li>
-<li>正在读《自控力》</li>
-</ul>
-<h3 id="Android学习-2"><a href="#Android学习-2" class="headerlink" title="Android学习"></a>Android学习</h3><p>####Android Animation<br>暂时只有这一篇总结<br><a href="http://ztelur.github.io/2016/05/09/Property-Animation%E6%A1%86%E6%9E%B6%E8%AF%A6%E8%A7%A3-%E4%B8%80/" target="_blank" rel="external">Property Animation框架详解(一)</a></p>
-<h4 id="Service和进程间通讯"><a href="#Service和进程间通讯" class="headerlink" title="Service和进程间通讯"></a>Service和进程间通讯</h4><p>正在进行</p>
-<h3 id="英语-2"><a href="#英语-2" class="headerlink" title="英语"></a>英语</h3><h4 id="扇贝-3"><a href="#扇贝-3" class="headerlink" title="扇贝"></a>扇贝</h4><ul>
-<li>打卡：122天</li>
-<li>单词：2016考研英语词汇大纲 5518词，学习进度19.84%</li>
-</ul>
-<h4 id="新概念英语-1"><a href="#新概念英语-1" class="headerlink" title="新概念英语"></a>新概念英语</h4><p>一天一篇小文章背诵，已经背诵了10篇了。</p>
-<h4 id="Update-2016-7-6"><a href="#Update-2016-7-6" class="headerlink" title=" Update 2016.7.6"></a><strong> Update 2016.7.6</strong></h4><p>决定转变编程研究方向，学习后端开发。由于Java基础比较好，所以先通过Java web开发来熟悉后端开发，并且学习Python编程。</p>
-<h3 id="要阅读的书籍-5"><a href="#要阅读的书籍-5" class="headerlink" title="要阅读的书籍"></a>要阅读的书籍</h3><ul>
-<li>《局外人》，《西西弗神话》。加缪短片小说。荒诞！ <strong>已经读完</strong></li>
-<li>《Head First Servlet and JSP》  <strong>在读</strong><h3 id="英语-3"><a href="#英语-3" class="headerlink" title="英语"></a>英语</h3><h4 id="扇贝-4"><a href="#扇贝-4" class="headerlink" title="扇贝"></a>扇贝</h4>继续扇贝学习，中间断了半个月啦。</li>
-</ul>
-<h3 id="Update-2016-8-1"><a href="#Update-2016-8-1" class="headerlink" title=" Update 2016.8.1 "></a><strong> Update 2016.8.1 </strong></h3><h3 id="要阅读的书籍-6"><a href="#要阅读的书籍-6" class="headerlink" title="要阅读的书籍"></a>要阅读的书籍</h3><ul>
-<li>《Professional javascript for web Developers.3rd》 一天10页左右</li>
-<li>《SICP》暂时停止</li>
-</ul>
-<h3 id="Android-学习-1"><a href="#Android-学习-1" class="headerlink" title="Android 学习"></a>Android 学习</h3><h4 id="Android-Animation"><a href="#Android-Animation" class="headerlink" title="Android Animation"></a>Android Animation</h4><p>新做一篇<br><a href="http://ztelur.github.io/2016/07/15/%E8%87%AA%E5%AE%9A%E4%B9%89Switch%E8%BF%87%E7%A8%8B%E8%AF%A6%E8%A7%A3/" target="_blank" rel="external">自定义Switch过程详解</a></p>
-<h4 id="Span-and-Drawable-框架-开始"><a href="#Span-and-Drawable-框架-开始" class="headerlink" title="Span and Drawable 框架　开始"></a>Span and Drawable 框架　开始</h4><h3 id="英语-4"><a href="#英语-4" class="headerlink" title="英语"></a>英语</h3><h4 id="扇贝-5"><a href="#扇贝-5" class="headerlink" title="扇贝"></a>扇贝</h4><ul>
-<li>打卡 150</li>
-<li>单词: 进度 23.9%</li>
-</ul>
-<h3 id="Update-2016-10-1"><a href="#Update-2016-10-1" class="headerlink" title=" Update 2016.10.1 "></a><strong> Update 2016.10.1 </strong></h3><h3 id="要阅读的书籍-7"><a href="#要阅读的书籍-7" class="headerlink" title="要阅读的书籍"></a>要阅读的书籍</h3><ul>
-<li>《Professional javascript for web Developers.3rd》 一天10页左右</li>
-</ul>
-<h3 id="Android-学习-2"><a href="#Android-学习-2" class="headerlink" title="Android 学习"></a>Android 学习</h3><h4 id="TomatoGO应用开发"><a href="#TomatoGO应用开发" class="headerlink" title="TomatoGO应用开发"></a>TomatoGO应用开发</h4><h3 id="英语-5"><a href="#英语-5" class="headerlink" title="英语"></a>英语</h3><h4 id="扇贝-6"><a href="#扇贝-6" class="headerlink" title="扇贝"></a>扇贝</h4><ul>
-<li>打卡 170</li>
-</ul>
-<h3 id="update-2016-12-12"><a href="#update-2016-12-12" class="headerlink" title="update 2016.12.12 "></a><strong>update 2016.12.12 </strong></h3>
-        
-        
-        <p class="article-more-link">
-          
-       </p>
-    </div>
-    <footer class="article-footer clearfix">
-<div class="article-catetags">
-
-<div class="article-categories">
-  <span></span>
-  <a class="article-category-link" href="/categories/计划/">计划</a>
-</div>
-
-
-</div>
-
-
-
-
-<div class="comments-count">
-	
-	  	<span></span>
-		<a href="/2016/03/05/2016年，计划目录/#comments" class="ds-thread-count comments-count-link" data-thread-key="2016/03/05/2016年，计划目录/" data-count-type="comments">&nbsp;</a>
-	
-</div>
-
-</footer>
-
-
-    </article>
-
-
-
-
-
-
 
   <nav id="page-nav" class="clearfix">
-    <a class="extend prev" rel="prev" href="/"><span></span>Prev</a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><a class="page-number" href="/page/4/">4</a><a class="extend next" rel="next" href="/page/3/">Next<span></span></a>
+    <a class="extend prev" rel="prev" href="/"><span></span>Prev</a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><a class="page-number" href="/page/4/">4</a><a class="page-number" href="/page/5/">5</a><a class="extend next" rel="next" href="/page/3/">Next<span></span></a>
   </nav>
 
 </div>
@@ -1161,6 +1054,10 @@
 		
 		  
 			<li><a href="/categories/Android/" title="Android">Android<sup>21</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/Android性能/" title="Android性能">Android性能<sup>1</sup></a></li>
 		  
 		
 		  
@@ -1200,11 +1097,11 @@
 		  
 		
 		  
-			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
+			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
 		  
 		
 		  
-			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
+			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
 		  
 		
 		  
@@ -1277,11 +1174,11 @@
 			
 		
 			
-				<li><a href="/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
+				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
+				<li><a href="/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
 			
 		
 			
@@ -1290,6 +1187,10 @@
 		
 			
 				<li><a href="/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/图像处理/" title="图像处理">图像处理<sup>1</sup></a></li>
 			
 		
 			
@@ -1309,7 +1210,11 @@
 			
 		
 			
-				<li><a href="/tags/市场/" title="市场">市场<sup>1</sup></a></li>
+				<li><a href="/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/读书笔记/" title="读书笔记">读书笔记<sup>1</sup></a></li>
 			
 		
 			
@@ -1317,15 +1222,7 @@
 			
 		
 			
-				<li><a href="/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
-			
-		
-			
 				<li><a href="/tags/http/" title="http">http<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/filesystem/" title="filesystem">filesystem<sup>1</sup></a></li>
 			
 		
 			
@@ -1333,7 +1230,7 @@
 			
 		
 			
-				<li><a href="/tags/Http/" title="Http">Http<sup>1</sup></a></li>
+				<li><a href="/tags/Cookie/" title="Cookie">Cookie<sup>1</sup></a></li>
 			
 		
 		</ul>
