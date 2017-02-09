@@ -38,7 +38,7 @@
 				<h1 class="site-name"><a href="/" title="Carpediem">Carpediem</a></h1>
 				<h2 class="blog-motto">blog of nobody</h2>
 			</div>
-			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
 			</a></div>
 			<nav class="animated">
 				<ul>
@@ -54,7 +54,7 @@
  					
 					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
 						<label>Search</label>
-						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
+						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
 						<input type="hidden" name="q" value="site:remcarpediem.com">
 					</form>
 					
@@ -72,6 +72,91 @@
         <header class="article-info clearfix">
   <h1 itemprop="name">
     
+      <a href="/2015/06/24/体验编程之美-饮料供应问题/" title="体验编程之美　饮料供应问题" itemprop="url">体验编程之美　饮料供应问题</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2015-06-24T05:00:05.000Z" itemprop="datePublished"> 发表于 2015-06-24</time>
+    
+  </p>
+</header>
+    <div class="article-content">
+        
+        <p>动态编程，贪婪算法，实际问题的建模过程</p>
+<h3 id="现实问题描述"><a href="#现实问题描述" class="headerlink" title="现实问题描述"></a>现实问题描述</h3><p>  公司水房提供很多种类饮料，已经统计获得大家对每种饮料的满意程度；STC负责给公司提供饮料，每天的总容量为V，每种饮料的单个容量都是2的方幂，比如王老吉，都是2的三次方为8升的；STC的存货也是有限的，这会是每种饮料的购买量上限。统计数据中使用饮料名字，容量，数量，满意度来描述一中饮料，问如何保证最大的满意度啊。</p>
+<h3 id="问题建模"><a href="#问题建模" class="headerlink" title="问题建模"></a>问题建模</h3><p>  我刚看到这道题目的时候，其实是很困惑的，完全不知道该如何下手。因为之前刷leetocde算法题目时，每个题目是使用编程域的语言进行描述的，比如：复制一个具有随机指针的链表。而这道题却是一个完全现实问题域描述，这样我们就需要进行建模，将这个实际问题转换为之前比较常见的算法问题。</p>
+<p>   假设ST提供n种饮料，用(Si,Vi,Ci,Hi,Bi) (对应饮料的名字，容量，可能的最大数量，满意度，实际购买量)来标示第i中饮料，其中可能的最大数量指如果仅买这种饮料的可能最大数量，比如对第i种饮料，Ci=V/Vi;</p>
+<p>  基于现实域的描述，我们有以下两个公式：</p>
+<ul>
+<li><p>饮料的总数量 V= (V0<em>B0)+(V1</em>B1)+……….(Vn*Bn);          A</p>
+</li>
+<li><p>总满意度为 H=(H0<em>B0)+(H1</em>B1)+………(Hn*Bn);               B</p>
+</li>
+</ul>
+<p>  那么题目的要求就是，在满足饮料总数量为V的基础上，求解最大的总满意度。</p>
+<h3 id="动态编程"><a href="#动态编程" class="headerlink" title="动态编程"></a>动态编程</h3><p> 对于最优解问题，首先考虑到动态编程啦！用Opt(V’,i)来标示从第i,i+1,……n-1,n种饮料中，计算出总量为V’的方案中满意度之和的最大值。</p>
+<p> 然后我们思考一下最优子结构的推到公式啊。Opt(V’,n)=max{k<em>Hi+Opt(V’-Vi</em>k,i-1)} (k=0,1,2,Ci),简单描述一下就是先将V‘分成两份，一份是Si饮料容量，大小为K<em>Vi；另外一份是其他的饮料的容量，大小为V’-Vi</em>k,其中k表示这种饮料的数量。然后取不同的k值，范围为0到Ci,求最大的满意度。</p>
+<p> 我们来列出动态编程的初始化条件：</p>
+<ul>
+<li><p>Opt(0,0)=0</p>
+</li>
+<li><p>Opt(x,n)=-INF</p>
+</li>
+</ul>
+<h3 id="对动态编程的优化"><a href="#对动态编程的优化" class="headerlink" title="对动态编程的优化"></a>对动态编程的优化</h3><p>  动态编程算法的一个变形是备忘录法，备忘录法也是用一个表格来保存每个子问题的答案，并通过记忆化搜索来避免计算一些不可能到达的状态，简单来说，就是避免重复计算子问题，第一次遇到子问题的时候进行计算，然后保存结果，之后再次遇到时，直接取出结果使用。<br>&emsp;&emsp;动态编程和备忘录法的区别就是：动态编程是自下到上，而备忘录法是自顶向下的，而且备忘录法可以进行多次查询，花费了存储空间，来提高整体查询效率。</p>
+<h3 id="贪婪算法"><a href="#贪婪算法" class="headerlink" title="贪婪算法"></a>贪婪算法</h3><p>&emsp;&emsp;一般来说，如果你发现了最优子结构和重复子问题，就可以使用动态编程了，但是如果你发现了下边这条更加特殊的性质，你就可以使用贪婪算法.<br>&emsp;&emsp;这个特性就是贪心选择性质：我们可以通过局部最优（贪心）选择来构造全局最优，换句话说，当进行选择时，我们直接做出在当前问题中看来最优的选择，而不必考虑子问题的解，这就是贪婪和动态编程的区别，动态编程的每一步选择通常依赖于子问题的解，而贪婪不需要。<br>&emsp;&emsp;回到饮料供应问题，可以设想，将饮料按照满意度大小进行排序，优先最大量供应满意度最大的饮料是否就能得出这个问题的最优解呢？答案是肯定的，我们可以对这性质进行证明。<br>&emsp;&emsp;这篇文章只是分析了饮料供应问题的算法原理，并没有给出具体代码，大家可以自己动手编写一下啊，理论和实践并行啊。</p>
+
+        
+        
+        <p class="article-more-link">
+          
+       </p>
+    </div>
+    <footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/算法/">算法</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/算法/">算法</a><a href="/tags/动态编程/">动态编程</a><a href="/tags/贪婪算法/">贪婪算法</a>
+  </div>
+
+</div>
+
+
+
+
+<div class="comments-count">
+	
+	  	<span></span>
+		<a href="/2015/06/24/体验编程之美-饮料供应问题/#comments" class="ds-thread-count comments-count-link" data-thread-key="2015/06/24/体验编程之美-饮料供应问题/" data-count-type="comments">&nbsp;</a>
+	
+</div>
+
+</footer>
+
+
+    </article>
+
+
+
+
+
+
+   
+    
+    <article class="post-expand post" itemprop="articleBody"> 
+        <header class="article-info clearfix">
+  <h1 itemprop="name">
+    
       <a href="/2015/06/19/西方文化和精神概述/" title="西方文化和精神概述" itemprop="url">西方文化和精神概述</a>
   </h1>
   <p class="article-author">By
@@ -79,7 +164,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2015-06-19T13:07:02.000Z" itemprop="datePublished"> Published 2015-06-19</time>
+    <time datetime="2015-06-19T13:07:02.000Z" itemprop="datePublished"> 发表于 2015-06-19</time>
     
   </p>
 </header>
@@ -142,7 +227,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2015-06-17T08:35:28.000Z" itemprop="datePublished"> Published 2015-06-17</time>
+    <time datetime="2015-06-17T08:35:28.000Z" itemprop="datePublished"> 发表于 2015-06-17</time>
     
   </p>
 </header>
@@ -201,10 +286,10 @@
   </nav>
 
 </div>
-      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
 
 <div id="asidepart">
-<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
 <aside class="clearfix">
 
   
@@ -212,7 +297,7 @@
 
   
 <div class="categorieslist">
-	<p class="asidetitle">Categories</p>
+	<p class="asidetitle">分类</p>
 		<ul>
 		
 		  
@@ -260,11 +345,11 @@
 		  
 		
 		  
-			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
+			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
 		  
 		
 		  
-			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
+			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
 		  
 		
 		  
@@ -304,6 +389,10 @@
 		  
 		
 		  
+			<li><a href="/categories/读书笔记/" title="读书笔记">读书笔记<sup>1</sup></a></li>
+		  
+		
+		  
 			<li><a href="/categories/随笔/" title="随笔">随笔<sup>1</sup></a></li>
 		  
 		
@@ -313,7 +402,7 @@
 
   
 <div class="tagslist">
-	<p class="asidetitle">Tags</p>
+	<p class="asidetitle">标签</p>
 		<ul class="clearfix">
 		
 			
@@ -325,7 +414,7 @@
 			
 		
 			
-				<li><a href="/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
+				<li><a href="/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
 			
 		
 			
@@ -333,7 +422,7 @@
 			
 		
 			
-				<li><a href="/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
+				<li><a href="/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
 			
 		
 			
@@ -353,11 +442,11 @@
 			
 		
 			
-				<li><a href="/tags/SICP/" title="SICP">SICP<sup>1</sup></a></li>
+				<li><a href="/tags/filesystem/" title="filesystem">filesystem<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/工具/" title="工具">工具<sup>1</sup></a></li>
+				<li><a href="/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
 			
 		
 			
@@ -369,23 +458,19 @@
 			
 		
 			
-				<li><a href="/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
-			
-		
-			
 				<li><a href="/tags/MotionEvent/" title="MotionEvent">MotionEvent<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/animation/" title="animation">animation<sup>1</sup></a></li>
+				<li><a href="/tags/Http/" title="Http">Http<sup>1</sup></a></li>
 			
 		
 			
 				<li><a href="/tags/http/" title="http">http<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/animation/" title="animation">animation<sup>1</sup></a></li>
 			
 		
 			
@@ -396,6 +481,10 @@
 				<li><a href="/tags/Cookie/" title="Cookie">Cookie<sup>1</sup></a></li>
 			
 		
+			
+				<li><a href="/tags/SICP/" title="SICP">SICP<sup>1</sup></a></li>
+			
+		
 		</ul>
 </div>
 
@@ -404,7 +493,7 @@
 
 
   <div class="rsspart">
-	<a href="/atom.xml" target="_blank" title="rss">RSS</a>
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
 </div>
 
 </aside>
@@ -575,7 +664,7 @@ var _hmt = _hmt || [];
 <!-- Totop Begin -->
 
 	<div id="totop">
-	<a title="Back to Top"><img src="/img/scrollup.png"/></a>
+	<a title="返回顶部"><img src="/img/scrollup.png"/></a>
 	</div>
 	<script src="/js/totop.js"></script>
 
