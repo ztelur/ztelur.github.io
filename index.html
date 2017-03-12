@@ -72,6 +72,83 @@
         <header class="article-info clearfix">
   <h1 itemprop="name">
     
+      <a href="/2017/03/12/关于Android-MVP模式的思考/" title="关于Android MVP模式的思考" itemprop="url">关于Android MVP模式的思考</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2017-03-12T09:09:22.000Z" itemprop="datePublished"> 发表于 2017-03-12</time>
+    
+  </p>
+</header>
+    <div class="article-content">
+        
+        <p> 这一周对现有的Android项目进行了框架重构，使用MVP模式来重新构建整个项目和包结构。今天就来总结一下我在这个过程中理解和实践吧。</p>
+<h3 id="MVP概述"><a href="#MVP概述" class="headerlink" title="MVP概述"></a>MVP概述</h3><p> MVP是指Model，View和Presenter的缩写，是MVC模式的一种改进版。MVP是一种非常适合Android应用的开发模式，它<strong>将把逻辑相关代码从presentation Layer中分离出去</strong>，所以，所有界面应该显示什么和界面如何显示这些是相互分离的，  在理想状态下，MVP模式可以随意切换视图显示的形式。<br> 但是，需要首先声明的是，MVP并不是<strong>一个框架模式</strong>，它只负责presentation Layer。在Android项目中，还可能存在Domain Layer和Data Layer，它们分别负责业务逻辑和数据存储。关于三个layer的讨论，可以查看<a href="https://github.com/android10/Android-CleanArchitecture" target="_blank" rel="external">clear Architecture</a>。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017312-mvp-mvp.png" alt="mvp.png"></p>
+<h4 id="The-presenter"><a href="#The-presenter" class="headerlink" title="The presenter"></a>The presenter</h4><p> The presenter充当的是view和model模块中间人的角色。它从model模块获得数据并发送给view模块。<strong>但是不同于MVC，presenter模块也决定用户和界面交互时界面如何响应</strong>。</p>
+<h4 id="The-View"><a href="#The-View" class="headerlink" title="The View"></a>The View</h4><p> View模块，一般由Activity或者Fragment实现，每个View实例一般都包含一个presenter实例的引用，并负责实例化presenter。理想情况下，你可以使用dagger来实现依赖注入。view的任务就是当用户操作界面时，调用presenter实例的功能来进行响应。</p>
+<h4 id="The-Model"><a href="#The-Model" class="headerlink" title="The Model"></a>The Model</h4><p> 在设计良好的分层架构中，model应该只是domain layer和业务逻辑的入口，比如说，<a href="http://blog.8thlight.com/uncle-bob/2012/08/13/the-clean-architecture.html" target="_blank" rel="external">clear architecture</a>。但是你也可以把所有界面显示无关的逻辑都作为model。</p>
+<h3 id="MVP示例"><a href="#MVP示例" class="headerlink" title="MVP示例"></a>MVP示例</h3><p> 关于MVP架构的实例有很多，比如<a href="https://github.com/googlesamples/android-architecture" target="_blank" rel="external">google官方架构</a>。这里我就给出一下我重构项目一个模块的类图，然后大致说一下实现。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017312-mvp-webwxgetmsgimg.jpg" alt="webwxgetmsgimg.jpg"></p>
+<p>&emsp;首先定义了<code>BaseView</code>和<code>BasePresenter</code>两个接口，实现了<code>BaseActivity</code>和<code>BaseFragment</code>两个基础类。需要注意的是，因为每个View都需要持有一个特定类型的presenter对象，所以，在<code>BaseView</code>定义时，使用了范型。除此之外，你可以在<code>initPresenter</code>函数中构造出所需要的presenter对象。<code>showLoading</code>和<code>stopLoading</code>函数是所有视图进行网络数据加载时所需要的方法，其具体使用场景后边可以看到，这里这两个接口是在<code>BaseActivity</code>中实现的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">BaseView</span>&lt;<span class="title">T</span>&gt; </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">showLoading</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">stopLoading</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">initPresnter</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="function">T <span class="title">getPresenter</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">BasePresenter</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BaseActivity</span> <span class="keyword">extends</span> <span class="title">Activity</span></span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">showLoading</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">stopLoading</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BaseFragment</span> <span class="keyword">extends</span> <span class="title">Fragment</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">showLoading</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">stopLoading</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;然后是data模块中的相关类和接口的定义。我们在<code>DataContract</code>接口中定义所有相关的view和data。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">DataContract</span> </span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">interface</span> <span class="title">DataView</span> <span class="keyword">extends</span> <span class="title">BaseView</span>&lt;<span class="title">DataPresenter</span>&gt; </span>&#123;</span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">showFragment</span><span class="params">(BaseFragment fragment)</span></span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="class"><span class="keyword">interface</span> <span class="title">DataPresenter</span> <span class="keyword">extends</span> <span class="title">BasePresenter</span> </span>&#123;</span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">switchToDataList</span><span class="params">()</span></span>;</span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">switchToDataTree</span><span class="params">()</span></span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="class"><span class="keyword">interface</span> <span class="title">DataListView</span> <span class="keyword">extends</span> <span class="title">BaseView</span>&lt;<span class="title">DataListPresenter</span>&gt; </span>&#123;</span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">showDataList</span><span class="params">(List&lt;String&gt; data)</span></span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="class"><span class="keyword">interface</span> <span class="title">DataListPresenter</span> <span class="keyword">extends</span> <span class="title">BasePresenter</span> </span>&#123;</span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">loadDataList</span><span class="params">()</span></span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="class"><span class="keyword">interface</span> <span class="title">DataTreeView</span> <span class="keyword">extends</span> <span class="title">BaseView</span>&lt;<span class="title">DataTreePresenter</span>&gt; </span>&#123;&#125;</span><br><span class="line">    <span class="class"><span class="keyword">interface</span> <span class="title">DataTreePresenter</span> <span class="keyword">extends</span> <span class="title">BasePresenter</span> </span>&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;在<code>DataContract</code>接口中，我们可以清晰的看到这个模块中所有的view和presenter类型和他们的接口。这样无疑可以帮助其他程序员快速了解本模块的业务逻辑。下面，我们来看一下<code>DataListFragmnet</code>和<code>DataListPresenter</code>的实现。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DataListFragment</span> <span class="keyword">extends</span> <span class="title">BaseFragment</span> <span class="keyword">implements</span> <span class="title">DataContract</span>.<span class="title">DataListView</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> DataContract.DataListPresenter mPresenter;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">initPresnter</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        mPresenter = <span class="keyword">new</span> DataListPresenter(<span class="keyword">this</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> DataContract.<span class="function">DataListPresenter <span class="title">getPresenter</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> mPresenter;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onCreate</span><span class="params">(Bundle savedInstanceState)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">super</span>.onCreate(savedInstanceState);</span><br><span class="line">        initPresnter();</span><br><span class="line">        <span class="comment">//需要加载数据或者接收到界面点击事件时，调用presenter接口进行初始化或者响应。</span></span><br><span class="line">        mPresenter.loadDataList();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> View <span class="title">onCreateView</span><span class="params">(LayoutInflater inflater, ViewGroup container,</span><br><span class="line">                             Bundle savedInstanceState)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> inflater.inflate(R.layout.fragment_data_list, container, <span class="keyword">false</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">showDataList</span><span class="params">(List&lt;String&gt; data)</span> </span>&#123;</span><br><span class="line">        <span class="comment">//将数据传给adapter等数据展示的视图</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DataListPresenter</span> <span class="keyword">implements</span> <span class="title">DataContract</span>.<span class="title">DataListPresenter</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> DataContract.DataListView mView;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">DataListPresenter</span><span class="params">(DataContract.DataListView view)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">super</span>();</span><br><span class="line">        <span class="keyword">this</span>.mView = view;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">loadDataList</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="comment">//调用baseview的接口，这些接口实现在baseFragment或者BaseActivity中</span></span><br><span class="line">        mView.showLoading();</span><br><span class="line">        <span class="comment">//getdata from network</span></span><br><span class="line">        mView.stopLoading();</span><br><span class="line">        mView.showDataList(Arrays.asList(<span class="string">"a"</span>,<span class="string">"b"</span>,<span class="string">"c"</span>));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;上述代码中有很多可以好好思考的地方。首先是<code>showLoading</code>和<code>stopLoading</code>这两个函数。这两个函数接口定义在<code>BaseView</code>,实现在<code>BaseFragment</code>，所以当<code>DataListFragment</code>继承了<code>BaseFragment</code>并且实现了<code>BaseView</code>时，它并不需要再次定义上述两个接口，毕竟在一个app中，网络加载时的laoding动画一般都是一致的。然后是view和presenter之间函数调用的问题。首先，view在需要初始化或者需要处理点击事件时，需要调用presenter的函数，而不是自己来进行处理。而且二者之间的数据传递必须是presenter调用view的接口传递给view数据，而不是view调用presenter接口获得数据然后自己展示。</p>
+<h3 id="MVP实践中的问题和思考"><a href="#MVP实践中的问题和思考" class="headerlink" title="MVP实践中的问题和思考"></a>MVP实践中的问题和思考</h3><p>&emsp;在实现MVP的过程中，我发现有些模块的代码很容易重构为MVP模式，而有些模块的代码却需要花费大量的时间。那些难重构的模块的所有代码都写在了Activity类中，而那些容易重构的模块已经做了逻辑代码和视图代码的分离。可以说，MVP模式不就是将视图和逻辑分离嘛，你不使用MVP模式，也可以按照自己的理解进行良好的设计。但是，当一个团队开发项目时，问题就变得不同了。不同程序员的水平有一定差异，你无法通过他们的水平来确保他们代码都是良好设计的。<strong>你必须通过MVP模式来强制他们去思考如何分离界面和逻辑,否则，他们估计会把所有代码都写在Activity类中</strong>。我认为这是所谓模式和框架的第一层好处，也就是<strong>强迫程序员使用一个种良好的思维方式去思考如何进行代码组织</strong>。<br>&emsp;第二点的思考是，模式其实就是良好的代码思考的结晶，如何写出内聚的函数？如何写入内聚的类？如何让模块之间耦合小？如何命名？很多模式都是对这些问题思考结果的总和。<br>&emsp;如果大家对MVP或者移动开发框架有什么思考，欢迎在文章底下进行评论。</p>
+
+        
+        
+        <p class="article-more-link">
+          
+       </p>
+    </div>
+    <footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/思考/">思考</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/框架/">框架</a>
+  </div>
+
+</div>
+
+
+
+
+<div class="comments-count">
+	
+	  	<span></span>
+		<a href="/2017/03/12/关于Android-MVP模式的思考/#comments" class="ds-thread-count comments-count-link" data-thread-key="2017/03/12/关于Android-MVP模式的思考/" data-count-type="comments">&nbsp;</a>
+	
+</div>
+
+</footer>
+
+
+    </article>
+
+
+
+
+
+
+   
+    
+    <article class="post-expand post" itemprop="articleBody"> 
+        <header class="article-info clearfix">
+  <h1 itemprop="name">
+    
       <a href="/2017/02/09/《暗时间》摘要一/" title="《暗时间》摘要一" itemprop="url">《暗时间》摘要一</a>
   </h1>
   <p class="article-author">By
@@ -969,104 +1046,6 @@
 
 
 
-   
-    
-    <article class="post-expand post" itemprop="articleBody"> 
-        <header class="article-info clearfix">
-  <h1 itemprop="name">
-    
-      <a href="/2016/07/06/Python文件系统相关API总结/" title="Python文件系统相关API总结" itemprop="url">Python文件系统相关API总结</a>
-  </h1>
-  <p class="article-author">By
-       
-		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
-		
-  <p class="article-time">
-    <time datetime="2016-07-06T14:50:29.000Z" itemprop="datePublished"> 发表于 2016-07-06</time>
-    
-  </p>
-</header>
-    <div class="article-content">
-        
-        <p>&emsp;前段时间毕业，然后希望在上研究生之前实习两个月赚点生活费，可是被公司拒掉了，所以只得回家继续苦练内功。我准备利用暑假的时间学习一下python，主要方便以后写一些自动化脚本。<br>&emsp;首先，我就开始用python进行文件系统的相关操作，比如文件和文件夹的新添，移动，删除，遍历。在这里总结一下，便于以后查阅。</p>
-<p>&emsp;为了节约你的时间，本文内容如下所示：</p>
-<ul>
-<li>os模块与文件相关的API</li>
-<li>shutil模块的相关API</li>
-<li>os.path模块相关API</li>
-</ul>
-<h4 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h4><p>&emsp;python的模块中 文件相关的有os,os.path,shutil等。其中os是系统服务应用程序接口，os.path实现了一些有用的文件路径相关的接口，shutil则提供一些文件或文件集相关的高级操作。</p>
-<h4 id="os模块"><a href="#os模块" class="headerlink" title="os模块"></a>os模块</h4><p>&emsp;os模块提供很多系统命令，比如文件(目录)的增删改，文件(目录)属性更改，用户相关操作，进程相关操作。<br>&emsp;下面就列举一下os中常用的API:</p>
-<ul>
-<li><code>os.chdir(src)</code>: 更改当前工作目录。</li>
-<li><code>os.getcwd()</code>: 获得当前工作目录路径的字符串表示。</li>
-<li><code>os.chmod(path,mode)</code>:改变path所指的文件的mode。</li>
-<li><code>os.listdir(path)</code>:返回路径下所有文件的文件名</li>
-<li><code>os.mkdir(path[,mode])</code>:创建一个文件夹，如果路径中有文件夹不存在，就取消创建</li>
-<li><code>os.makedirs(path[,mode])</code>:创建多层级的文件夹，如果路径中有文件夹不存在，直接全部创建出来。</li>
-<li><code>os.rename(src,dst)</code>:文件重命名</li>
-<li><code>os.walk(top[,topdown=True,onerror=None,followlinks=False])</code>:遍历top所指路径，返回(dirpath,dirnames,filenames)的三元组。</li>
-</ul>
-<h4 id="shutil模块"><a href="#shutil模块" class="headerlink" title="shutil模块"></a>shutil模块</h4><p>&emsp;shutil模块主要提供了对文件或文件集的拷贝和删除操作。</p>
-<ul>
-<li><code>shutil.copyfileobj(fsrc,fdst[,length])</code>:把一个文件对象的内容拷贝到另外一个文件对象中。</li>
-<li><code>shutil.copyfile(src,dst)</code>:把src路径所指的文件内容拷贝到dst路径下。不会拷贝文件元信息。</li>
-<li><code>shutil.copymode(src,dst)</code>:拷贝文件的权限</li>
-<li><code>shutil.copystat(src,dst)</code>:拷贝文件的stat，比如权限位，最后访问时间，最后修改时间，和flags等。</li>
-<li><code>shutil.copy(src,dst)</code>:拷贝文件。</li>
-<li><code>shutil.move(srcc,dst)</code>:移动文件。</li>
-</ul>
-<h4 id="os-path模块"><a href="#os-path模块" class="headerlink" title="os.path模块"></a>os.path模块</h4><p>&emsp;os.path模块主要提供文件目录相关的操作。</p>
-<ul>
-<li><code>os.path.basename(path)</code>:返回路径的basename。比如/home/randy/program，返回program。</li>
-<li><code>os.path.dirname(path)</code>:返回当前路径的文件夹名。比如/home/randy/program返回/home/randy。</li>
-<li><code>os.path.isfile(path)</code>:判断path路径是否为标准文件。</li>
-<li><code>os.path.isdir(path)</code>:判断path是否为已经存在的文件夹。</li>
-<li><code>os.path.exist(path)</code>:判断path路径是否存在。</li>
-</ul>
-
-        
-        
-        <p class="article-more-link">
-          
-       </p>
-    </div>
-    <footer class="article-footer clearfix">
-<div class="article-catetags">
-
-<div class="article-categories">
-  <span></span>
-  <a class="article-category-link" href="/categories/Python/">Python</a>
-</div>
-
-
-  <div class="article-tags">
-  
-  <span></span> <a href="/tags/filesystem/">filesystem</a>
-  </div>
-
-</div>
-
-
-
-
-<div class="comments-count">
-	
-	  	<span></span>
-		<a href="/2016/07/06/Python文件系统相关API总结/#comments" class="ds-thread-count comments-count-link" data-thread-key="2016/07/06/Python文件系统相关API总结/" data-count-type="comments">&nbsp;</a>
-	
-</div>
-
-</footer>
-
-
-    </article>
-
-
-
-
-
-
 
   <nav id="page-nav" class="clearfix">
     <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><a class="extend next" rel="next" href="/page/2/">Next<span></span></a>
@@ -1128,15 +1107,19 @@
 		  
 		
 		  
+			<li><a href="/categories/思考/" title="思考">思考<sup>1</sup></a></li>
+		  
+		
+		  
 			<li><a href="/categories/c/数据结构/" title="数据结构">数据结构<sup>1</sup></a></li>
 		  
 		
 		  
-			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
+			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
 		  
 		
 		  
-			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
+			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
 		  
 		
 		  
@@ -1201,11 +1184,11 @@
 			
 		
 			
-				<li><a href="/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
+				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/Span/" title="Span">Span<sup>2</sup></a></li>
+				<li><a href="/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
 			
 		
 			
@@ -1217,23 +1200,23 @@
 			
 		
 			
+				<li><a href="/tags/Span/" title="Span">Span<sup>2</sup></a></li>
+			
+		
+			
 				<li><a href="/tags/算法/" title="算法">算法<sup>2</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
+				<li><a href="/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
+				<li><a href="/tags/读书笔记/" title="读书笔记">读书笔记<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/filesystem/" title="filesystem">filesystem<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
+				<li><a href="/tags/图像处理/" title="图像处理">图像处理<sup>1</sup></a></li>
 			
 		
 			
@@ -1245,19 +1228,23 @@
 			
 		
 			
-				<li><a href="/tags/MotionEvent/" title="MotionEvent">MotionEvent<sup>1</sup></a></li>
+				<li><a href="/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/Http/" title="Http">Http<sup>1</sup></a></li>
+				<li><a href="/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/http/" title="http">http<sup>1</sup></a></li>
+				<li><a href="/tags/Shader/" title="Shader">Shader<sup>1</sup></a></li>
 			
 		
 			
 				<li><a href="/tags/animation/" title="animation">animation<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/http/" title="http">http<sup>1</sup></a></li>
 			
 		
 			
@@ -1266,10 +1253,6 @@
 		
 			
 				<li><a href="/tags/Cookie/" title="Cookie">Cookie<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/SICP/" title="SICP">SICP<sup>1</sup></a></li>
 			
 		
 		</ul>

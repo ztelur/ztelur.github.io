@@ -72,6 +72,104 @@
         <header class="article-info clearfix">
   <h1 itemprop="name">
     
+      <a href="/2016/03/27/Android-Scroll详解-一-：基础知识/" title="Android Scroll详解(一)：基础知识" itemprop="url">Android Scroll详解(一)：基础知识</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2016-03-27T10:23:06.000Z" itemprop="datePublished"> 发表于 2016-03-27</time>
+    
+  </p>
+</header>
+    <div class="article-content">
+        
+        <p>&emsp;在前边的文章中，我们已经对Android触摸事件处理有了大致的了解，并且详细探讨了<code>MotionEvent</code>的相关用法。对之前文章中的知识还不是很了解的同学，请阅读<a href="http://ztelur.github.io/2016/03/16/Android-MotionEvent%E8%AF%A6%E8%A7%A3/" target="_blank" rel="external">《Android MotionEvent详解》</a><br>&emsp;今天，我们就来探讨一下Android中界面滚动效果的相关机制，本篇文章主要讲解一下滚动相关的知识点，之后的文章会涉及实际的代码和原理。希望大家阅读完这篇文章之后，能够了解或者掌握一下知识:</p>
+<ul>
+<li>Android 视图的组成部分</li>
+<li><code>mScrollX</code>和<code>mScrollY</code>对视图显示的影响</li>
+<li><code>scrollTo</code>和<code>scrollBy</code>的使用</li>
+<li><code>invalidate</code>和<code>postInvalidate</code>的区别</li>
+</ul>
+<h4 id="View的mScrollX和mScrollY"><a href="#View的mScrollX和mScrollY" class="headerlink" title="View的mScrollX和mScrollY"></a>View的mScrollX和mScrollY</h4><p>&emsp;我们都知道，<code>View</code>中有两个重要的成员变量，<code>mScrollX</code>,<code>mScrollY</code>.它们分别代表视图内容(view content)水平方向和竖直方向的滚动距离。我们可以通过<code>setScrollX</code>和<code>setScrollY</code>来个函数来改变它们的值，从而来滚动视图的内容。<br>&emsp;<strong>在这里需要强调的是，<code>mScrollX</code>和<code>mScrollY</code>会导致视图内容(view content)变化,但是不会影响视图背景(background)。</strong><br>&emsp;看到这里同学们或许会有写疑问，视图的内容和背景有什么区别呢？视图还有哪些组成部分呢？<br>&emsp;我们可以从View的<code>draw</code>方法中得知View的组成部分。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// http://grepcode.com/file/repository.grepcode.com/java/ext/com.google.android/android/5.1.1_r1/android/view/View.java#View</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">draw</span><span class="params">(Canvas canvas)</span> </span>&#123;</span><br><span class="line">         ........</span><br><span class="line">        <span class="comment">/*</span><br><span class="line">         * Draw traversal performs several drawing steps which must be executed</span><br><span class="line">         * in the appropriate order:</span><br><span class="line">         *</span><br><span class="line">         *      1. Draw the background</span><br><span class="line">         *      2. If necessary, save the canvas' layers to prepare for fading</span><br><span class="line">         *      3. Draw view's content</span><br><span class="line">         *      4. Draw children</span><br><span class="line">         *      5. If necessary, draw the fading edges and restore layers</span><br><span class="line">         *      6. Draw decorations (scrollbars for instance)</span><br><span class="line">         */</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">// Step 1, draw the background, if needed</span></span><br><span class="line">        <span class="keyword">if</span> (!dirtyOpaque) &#123;</span><br><span class="line">            drawBackground(canvas);</span><br><span class="line">        &#125;</span><br><span class="line">        .......</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Step 2, save the canvas' layers</span></span><br><span class="line">        .......</span><br><span class="line">        <span class="comment">// Step 3, draw the content</span></span><br><span class="line">        <span class="keyword">if</span> (!dirtyOpaque) onDraw(canvas);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Step 4, draw the children</span></span><br><span class="line">        dispatchDraw(canvas);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Step 5, draw the fade effect and restore layers</span></span><br><span class="line">        .......</span><br><span class="line">        <span class="keyword">if</span> (drawTop) &#123;</span><br><span class="line">            matrix.setScale(<span class="number">1</span>, fadeHeight * topFadeStrength);</span><br><span class="line">            matrix.postTranslate(left, top);</span><br><span class="line">            fade.setLocalMatrix(matrix);</span><br><span class="line">            p.setShader(fade);</span><br><span class="line">            canvas.drawRect(left, top, right, top + length, p);</span><br><span class="line">        &#125;</span><br><span class="line">        .....</span><br><span class="line">        <span class="comment">// Step 6, draw decorations (scrollbars)</span></span><br><span class="line">        onDrawScrollBars(canvas);</span><br><span class="line">        ......</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;View显示内容由一下几个部分组成:</p>
+<ul>
+<li>背景(background)</li>
+<li>本身的内容(content)</li>
+<li>子视图</li>
+<li>边界渐变效果(fade effect),上下左右四个边界都可能会有渐变效果，代码中只显示了上边界的渐变效果绘制。</li>
+<li>边框或者装饰效果(decorations),比如滚动条</li>
+</ul>
+<p>&emsp;举个例子吧，我们都知道在布局文件中，<code>TextView</code>有两个比较重要的属性:<code>background</code>,<code>text</code>。<code>background</code>可以设置TextView的背景，而<code>text</code>则是设置要绘制字体内容。<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">TextView</span></span><br><span class="line">    <span class="attr">android:layout_width</span>=<span class="string">"wrap_content"</span></span><br><span class="line">    <span class="attr">android:background</span>=<span class="string">"@drawable/ic_launcher"</span></span><br><span class="line">    <span class="attr">android:text</span>=<span class="string">"Test"</span></span><br><span class="line">    <span class="attr">android:layout_height</span>=<span class="string">"wrap_content"</span> /&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>&emsp;<code>mScrollX</code>和<code>mScrollY</code>对除了本身内容外的部分的绘制都有影响。只是不会影响视图背景的绘制。</p>
+<h4 id="滚动的方向性"><a href="#滚动的方向性" class="headerlink" title="滚动的方向性"></a>滚动的方向性</h4><p>&emsp;我们都知道，在Android的视图中，布局相关的数值都是有方向性的，比如<code>mLeft</code>,<code>mTop</code>。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2016327-androidscroll-View%E5%9D%90%E6%A0%87%E8%BD%B4.png" alt="View坐标轴.png"></p>
+<p>&emsp;由上图我们可以知道，Android视图坐标的原点在屏幕的左上方，x轴正方向是向右，y轴正方向是向下。<br>&emsp;所以，当你将<code>mLeft</code>和<code>mTop</code>的数值加10并且重绘视图时，视图会向右下移动。<br>&emsp;那么<code>mScrollY</code>和<code>mScrollX</code>也在这样一个坐标域中吗？它们的正方向和<code>mTop</code>和<code>mLeft</code>是一样的吗？是的，它们属于同一个坐标域，方向性相同。<br>&emsp;但是如果你将<code>mScrollX</code>和<code>mScrollY</code>的数值都增大10，然后调用<code>invalidate()</code>重新绘制界面的话，你会发现视图中的内容都向左上角移动啦！<br>&emsp;这是怎么回事呢？从概念上你可以先这样解：<code>mScrollX</code>和<code>mScrollY</code>改变导致View的可视区域的移动，并不是导致View的视图区域的移动。<br>&emsp;View的视图区域相当于无限大的，你可以在<code>onDraw</code>函数中的<code>canvas</code>中绘制任意大的图像，但是你会发现，最终屏幕上显示出来的只会是一部分，因为View自身还有大小概念，也就是<code>measure</code>和<code>layout</code>时，视图会被设置长宽还有界面中位置，这样的话，视图可视区域就被确定啦。<br>&emsp;做一个形象的比喻。View的可视区域就是一面墙上的窗户，View的视图区域就相当于墙后边的优美景色。墙外风光无线，但是你只能看到窗户中的景色。如果窗户变大啦，外边风景不变，你看到的景色就大了一点；如果窗户向右下角移动了一段距离，你就会发现外边的景色好像是向左上角”移动”了一段距离。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2016327-androidscroll-view%20scroll%20example.png" alt="view scroll example.png"></p>
+<h4 id="ScrollTo-和-ScrollBy"><a href="#ScrollTo-和-ScrollBy" class="headerlink" title="ScrollTo 和 ScrollBy"></a>ScrollTo 和 ScrollBy</h4><p>&emsp;这两个函数是用来滚动视图的API<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">scrollTo</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mScrollX != x || mScrollY != y) &#123;</span><br><span class="line">        <span class="keyword">int</span> oldX = mScrollX;</span><br><span class="line">        <span class="keyword">int</span> oldY = mScrollY;</span><br><span class="line">        mScrollX = x;</span><br><span class="line">        mScrollY = y;</span><br><span class="line">        invalidateParentCaches();</span><br><span class="line">        onScrollChanged(mScrollX, mScrollY, oldX, oldY);</span><br><span class="line">        <span class="keyword">if</span> (!awakenScrollBars()) &#123;</span><br><span class="line">            postInvalidateOnAnimation();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">scrollBy</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span> </span>&#123;</span><br><span class="line">    scrollTo(mScrollX + x, mScrollY + y);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;大家看源代码很容易就理解了二者的作用和区别:<code>scrollTo</code>就是直接改变<code>mScrollX</code>和<code>mScrollY</code>;而<code>scrollBy</code>则是给<code>mScrollX</code>和<code>mScrollY</code>加上增量。</p>
+<h4 id="invalidate和postInvalidate"><a href="#invalidate和postInvalidate" class="headerlink" title="invalidate和postInvalidate"></a>invalidate和postInvalidate</h4><p>&emsp;上边这两个函数都是请求视图重新绘制的API,但是二者的使用有些区别。<br>&emsp;<code>invalidate</code>必须在主线程(UI Thread)中调用，而<code>postInvalidate</code>可以在非主线程(Non UI Thread)中调用。<br>&emsp;除此之外，二者还有点小区别。<br>&emsp;调用<code>invalidate</code>时，它会检查上一次请求的UI重绘是否完成，如果没有完成的话，那么它就什么都不做。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">invalidateInternal</span><span class="params">(<span class="keyword">int</span> l, <span class="keyword">int</span> t, <span class="keyword">int</span> r, <span class="keyword">int</span> b, <span class="keyword">boolean</span> invalidateCache,</span><br><span class="line">            <span class="keyword">boolean</span> fullInvalidate)</span> </span>&#123;</span><br><span class="line">            .....</span><br><span class="line">         <span class="comment">//DRAWN和HAS_BOUNDS是否被设置为１，说明上一次请求执行的UI绘制已经完成，那么可以再次请求执行</span></span><br><span class="line">        <span class="keyword">if</span> ((mPrivateFlags &amp; (PFLAG_DRAWN | PFLAG_HAS_BOUNDS)) == (PFLAG_DRAWN | PFLAG_HAS_BOUNDS)</span><br><span class="line">                || (invalidateCache &amp;&amp; (mPrivateFlags &amp; PFLAG_DRAWING_CACHE_VALID) == PFLAG_DRAWING_CACHE_VALID)</span><br><span class="line">                || (mPrivateFlags &amp; PFLAG_INVALIDATED) != PFLAG_INVALIDATED</span><br><span class="line">                || (fullInvalidate &amp;&amp; isOpaque() != mLastIsOpaque)) &#123;</span><br><span class="line">                 ......</span><br><span class="line">                 <span class="keyword">final</span> AttachInfo ai = mAttachInfo;</span><br><span class="line">                <span class="keyword">final</span> ViewParent p = mParent;</span><br><span class="line">                <span class="keyword">final</span> Rect damage = ai.mTmpInvalRect;</span><br><span class="line">                damage.set(l, t, r, b);</span><br><span class="line">                p.invalidateChild(<span class="keyword">this</span>, damage);<span class="comment">//<span class="doctag">TODO:</span>这是invalidate执行的主体</span></span><br><span class="line">                .....</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;而<code>postInvalidate</code>则不会这样，它是向主线程发送个<code>Message</code>，然后<code>handleMessage</code>时，调用了<code>invalidate()</code>函数。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//View.java</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">postInvalidateDelayed</span><span class="params">(<span class="keyword">long</span> delayMilliseconds)</span> </span>&#123;</span><br><span class="line">    ...	              attachInfo.mViewRootImpl.dispatchInvalidateDelayed(<span class="keyword">this</span>, delayMilliseconds);</span><br><span class="line">    ...</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ViewRootImpl 发送Message</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">dispatchInvalidateDelayed</span><span class="params">(View view, <span class="keyword">long</span> delayMilliseconds)</span> </span>&#123;</span><br><span class="line">        Message msg = mHandler.obtainMessage(MSG_INVALIDATE, view);</span><br><span class="line">        mHandler.sendMessageDelayed(msg, delayMilliseconds);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ViewRootImpl 处理Message</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handleMessage</span><span class="params">(Message msg)</span> </span>&#123;</span><br><span class="line">            <span class="keyword">switch</span> (msg.what) &#123;</span><br><span class="line">            <span class="keyword">case</span> MSG_INVALIDATE:</span><br><span class="line">                ((View) msg.obj).invalidate();</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;所以，二者的调用时机还是有区别的，就比如使用<code>Scroller</code>进行视图滚动时，二者的调用就有所不同。</p>
+<h4 id="后续"><a href="#后续" class="headerlink" title="后续"></a>后续</h4><p>&emsp;之后还有会两篇博文，一篇是《Android Scroll详解(二)：OverScroller实战》讲解具体代码实现，另外一篇是《Android Scroll详解(三)：Android 绘制过程详解》主要是从滚动角度理解Android绘制过程,请大家多多关注啊。</p>
+<blockquote>
+<p>参考文章</p>
+<p><a href="http://stackoverflow.com/questions/7596370/what-is-the-difference-between-androids-invalidate-and-postinvalidate-metho" target="_blank" rel="external">http://stackoverflow.com/questions/7596370/what-is-the-difference-between-androids-invalidate-and-postinvalidate-metho</a></p>
+<p><a href="http://www.programering.com/a/MDN3QDNwATQ.html" target="_blank" rel="external">http://www.programering.com/a/MDN3QDNwATQ.html</a></p>
+<p><a href="http://blog.csdn.net/xiaanming/article/details/17483273" target="_blank" rel="external">http://blog.csdn.net/xiaanming/article/details/17483273</a></p>
+</blockquote>
+
+        
+        
+        <p class="article-more-link">
+          
+       </p>
+    </div>
+    <footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/Android/">Android</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/scroll/">scroll</a>
+  </div>
+
+</div>
+
+
+
+
+<div class="comments-count">
+	
+	  	<span></span>
+		<a href="/2016/03/27/Android-Scroll详解-一-：基础知识/#comments" class="ds-thread-count comments-count-link" data-thread-key="2016/03/27/Android-Scroll详解-一-：基础知识/" data-count-type="comments">&nbsp;</a>
+	
+</div>
+
+</footer>
+
+
+    </article>
+
+
+
+
+
+
+   
+    
+    <article class="post-expand post" itemprop="articleBody"> 
+        <header class="article-info clearfix">
+  <h1 itemprop="name">
+    
       <a href="/2016/03/16/Android-MotionEvent详解/" title="Android MotionEvent详解" itemprop="url">Android MotionEvent详解</a>
   </h1>
   <p class="article-author">By
@@ -944,144 +1042,6 @@
 
 
 
-   
-    
-    <article class="post-expand post" itemprop="articleBody"> 
-        <header class="article-info clearfix">
-  <h1 itemprop="name">
-    
-      <a href="/2016/01/01/Material-Design-标注图/" title="Material Design 标注图" itemprop="url">Material Design 标注图</a>
-  </h1>
-  <p class="article-author">By
-       
-		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
-		
-  <p class="article-time">
-    <time datetime="2016-01-01T10:40:33.000Z" itemprop="datePublished"> 发表于 2016-01-01</time>
-    
-  </p>
-</header>
-    <div class="article-content">
-        
-        <p>&emsp;最近发现自己在实现产品需求时,在界面元素的细节部分把握不够准确,经常被leader告知需要微调一下界面元素的各类尺寸.虽然导致这个因素的最重要的原因是我场的设计太懒,不给标注,但是作为一个终端工程师,了解并掌握足够的设计相关的知识还是十分必要的,于是最近就开始研究其google的Material Design设计风格.<br>&emsp;本篇文章主要是收集一些MD风格的设计标注图和注意事项,主要内容都来自于<a href="http://www.uisdc.com/comprehensive-material-design-note#" target="_blank" rel="external">重磅教程！帮你全面彻底搞定MATERIAL DESIGN的学习笔记</a>.</p>
-<blockquote>
-<p>MD风格的精髓在于<br>把物理世界的体验带进屏幕,去掉现实的杂质和随机性,保留保留其最原始纯净的形态、空间关系、变化与过渡，配合虚拟世界的灵活特性，还原最贴近真实的体验，达到简洁与直观的效果</p>
-</blockquote>
-<p>&emsp;其实以我现在的理解就是:</p>
-<ul>
-<li>界面元素的层次性</li>
-<li>交互时强调带有意义并且具有现实特性的动画</li>
-<li>两种纯色作为应用的基本颜色</li>
-</ul>
-<p>&emsp;这篇只是收藏MD风格中关于一些特定界面元素的标注图以备以后使用</p>
-<h4 id="文字排版"><a href="#文字排版" class="headerlink" title="文字排版"></a>文字排版</h4><p>常用字号：</p>
-<ul>
-<li>12sp 小字提示</li>
-<li>14sp（桌面端13sp） 正文/按钮文字</li>
-<li>16sp（桌面端15sp） 小标题</li>
-<li>20sp Appbar文字</li>
-<li>24sp 大标题</li>
-<li>34sp/45sp/56sp/112sp 超大号文字</li>
-</ul>
-<p>&emsp;长篇幅正文，每行建议60字符（英文）左右。短文本，建议每行30字符（英文）左右。</p>
-<h4 id="常用尺寸"><a href="#常用尺寸" class="headerlink" title="常用尺寸"></a>常用尺寸</h4><blockquote>
-<p>所有可操作元素最小点击区域尺寸：48dp X 48dp。<br>  栅格系统的最小单位是8dp，一切距离、尺寸都应该是8dp的整数倍。以下是一些常见的尺寸与距离：</p>
-</blockquote>
-<ul>
-<li>顶部状态栏高度：24dp</li>
-<li>Appbar最小高度：56dp</li>
-<li>底部导航栏高度：48dp</li>
-<li>悬浮按钮尺寸：56x56dp/40x40dp</li>
-<li>用户头像尺寸：64x64dp/40x40dp</li>
-<li>小图标点击区域：48x48dp</li>
-<li>侧边抽屉到屏幕右边的距离：56dp</li>
-<li>卡片间距：8dp</li>
-<li>分隔线上下留白：8dp</li>
-<li>大多元素的留白距离：16dp</li>
-<li>屏幕左右对齐基线：16dp</li>
-<li><p>文字左侧对齐基线：72dp<br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/MD_a-33.png" alt="enter image description here"></p>
-<h4 id="Button-sheets"><a href="#Button-sheets" class="headerlink" title="Button sheets"></a>Button sheets</h4><p><img src="http://7xjsjy.com1.z0.glb.clouddn.com/MD_button_sheet_1.png" alt="enter image description here"><br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/MD_button_sheet_2.png" alt="enter image description here"></p>
-<h4 id="Buttons"><a href="#Buttons" class="headerlink" title="Buttons"></a>Buttons</h4><p>&emsp;按钮分为悬浮按钮,凸起按钮和扁平按钮</p>
-</li>
-<li><p>悬浮按钮的操作都是正向操作</p>
-</li>
-<li>建议只用一个悬浮按钮</li>
-<li>悬浮按钮可以贴在纸片边缘或者接缝处，但不要贴在对话框、侧边抽屉和菜单的边缘</li>
-<li>悬浮按钮不能被其他元素盖住，也不能挡住其他按钮</li>
-<li>列表滚动至底部时，悬浮按钮应该隐藏，防止它挡住列表项<br>悬浮按钮的位置不能随意摆放，可以贴着左右两边的对齐基线</li>
-</ul>
-<h4 id="Cards"><a href="#Cards" class="headerlink" title="Cards"></a>Cards</h4><ul>
-<li>卡片统一带有2dp的圆角</li>
-<li>同时展现多种不同内容</li>
-<li>卡片内容之间不需要进行比较</li>
-<li>包含了长度不确定的内容，比如评论</li>
-<li>包含丰富的内容与操作项，比如赞、滚动条、评论</li>
-<li>本该是列表，但文字超过3行</li>
-<li><p>本该是网格，但需要展现更多文字<br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/MD_cards_1.png" alt="enter image description here"></p>
-<h4 id="Dialogs"><a href="#Dialogs" class="headerlink" title="Dialogs"></a>Dialogs</h4></li>
-<li><p>注意有些对话框点击周围会消失,但是有些是不会消失的</p>
-</li>
-<li><p>对话框的四周留白比较大，通常是24dp。<br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/MD_dialog_1.png" alt="enter image description here"></p>
-<h4 id="Dividers"><a href="#Dividers" class="headerlink" title="Dividers"></a>Dividers</h4></li>
-<li><p>列表中有头像、图片等元素时，使用内嵌分隔线，左端与文字对齐。</p>
-</li>
-<li>没有头像、图标等元素时，需要用通栏分隔线。</li>
-<li>谨慎使用分隔线，留白和小标题也能起到分隔作用。能用留白的地方，优先使用留白。分隔线的层级高于留白。</li>
-</ul>
-<h4 id="Lists"><a href="#Lists" class="headerlink" title="Lists"></a>Lists</h4><ul>
-<li><p>列表由行构成，行内包含瓦片。如果列表项内容文字超过3行，请改用卡片。如果列表项的主要区别在于图片，请改用网格。<br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/MD_list_1.png" alt="enter image description here"><br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/MD_list_2.png" alt="enter image description here"></p>
-<h4 id="Pickers"><a href="#Pickers" class="headerlink" title="Pickers"></a>Pickers</h4><p><img src="http://7xjsjy.com1.z0.glb.clouddn.com/MD_pickers_1.png" alt="日期选择器"><br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/MD_pickers_1.png" alt="时间选择器"></p>
-<h4 id="Progress-amp-activity"><a href="#Progress-amp-activity" class="headerlink" title="Progress &amp; activity"></a>Progress &amp; activity</h4></li>
-<li><p>进度条分为确定时间和不确定时间,不同的类型,动画效果不同</p>
-</li>
-<li>进度条可以使用在一些本来就有的元素上,比如悬浮按钮</li>
-</ul>
-<h4 id="Snackbars"><a href="#Snackbars" class="headerlink" title="Snackbars"></a>Snackbars</h4><p><img src="http://7xjsjy.com1.z0.glb.clouddn.com/MD_snackbars_1.png" alt="snackbars尺寸"></p>
-<h4 id="Text-fields"><a href="#Text-fields" class="headerlink" title="Text fields"></a>Text fields</h4><p><img src="http://7xjsjy.com1.z0.glb.clouddn.com/MD_text_fields_1.png" alt="Text1"><br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/MD_text_fields_2.png" alt="Text2"><br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/MD_text_fields_3.png" alt="Text3"></p>
-<h4 id="NavigatorBar"><a href="#NavigatorBar" class="headerlink" title="NavigatorBar"></a>NavigatorBar</h4><p><img src="http://7xjsjy.com1.z0.glb.clouddn.com/MD_navigator_1.png" alt="navigator尺寸"></p>
-
-        
-        
-        <p class="article-more-link">
-          
-       </p>
-    </div>
-    <footer class="article-footer clearfix">
-<div class="article-catetags">
-
-<div class="article-categories">
-  <span></span>
-  <a class="article-category-link" href="/categories/设计/">设计</a>
-</div>
-
-
-  <div class="article-tags">
-  
-  <span></span> <a href="/tags/Material-Design/">Material Design</a>
-  </div>
-
-</div>
-
-
-
-
-<div class="comments-count">
-	
-	  	<span></span>
-		<a href="/2016/01/01/Material-Design-标注图/#comments" class="ds-thread-count comments-count-link" data-thread-key="2016/01/01/Material-Design-标注图/" data-count-type="comments">&nbsp;</a>
-	
-</div>
-
-</footer>
-
-
-    </article>
-
-
-
-
-
-
 
   <nav id="page-nav" class="clearfix">
     <a class="extend prev" rel="prev" href="/page/2/"><span></span>Prev</a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><a class="page-number" href="/page/5/">5</a><a class="extend next" rel="next" href="/page/4/">Next<span></span></a>
@@ -1143,15 +1103,19 @@
 		  
 		
 		  
+			<li><a href="/categories/思考/" title="思考">思考<sup>1</sup></a></li>
+		  
+		
+		  
 			<li><a href="/categories/c/数据结构/" title="数据结构">数据结构<sup>1</sup></a></li>
 		  
 		
 		  
-			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
+			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
 		  
 		
 		  
-			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
+			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
 		  
 		
 		  
@@ -1216,11 +1180,11 @@
 			
 		
 			
-				<li><a href="/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
+				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/Span/" title="Span">Span<sup>2</sup></a></li>
+				<li><a href="/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
 			
 		
 			
@@ -1232,23 +1196,23 @@
 			
 		
 			
+				<li><a href="/tags/Span/" title="Span">Span<sup>2</sup></a></li>
+			
+		
+			
 				<li><a href="/tags/算法/" title="算法">算法<sup>2</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
+				<li><a href="/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
+				<li><a href="/tags/读书笔记/" title="读书笔记">读书笔记<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/filesystem/" title="filesystem">filesystem<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
+				<li><a href="/tags/图像处理/" title="图像处理">图像处理<sup>1</sup></a></li>
 			
 		
 			
@@ -1260,19 +1224,23 @@
 			
 		
 			
-				<li><a href="/tags/MotionEvent/" title="MotionEvent">MotionEvent<sup>1</sup></a></li>
+				<li><a href="/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/Http/" title="Http">Http<sup>1</sup></a></li>
+				<li><a href="/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/http/" title="http">http<sup>1</sup></a></li>
+				<li><a href="/tags/Shader/" title="Shader">Shader<sup>1</sup></a></li>
 			
 		
 			
 				<li><a href="/tags/animation/" title="animation">animation<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/http/" title="http">http<sup>1</sup></a></li>
 			
 		
 			
@@ -1281,10 +1249,6 @@
 		
 			
 				<li><a href="/tags/Cookie/" title="Cookie">Cookie<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/SICP/" title="SICP">SICP<sup>1</sup></a></li>
 			
 		
 		</ul>
