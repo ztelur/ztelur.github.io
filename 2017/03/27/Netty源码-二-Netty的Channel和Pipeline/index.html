@@ -4,29 +4,28 @@
 <head>
   <meta charset="UTF-8">
   
-    <title>生活学习记录一:RxJava+实习感悟 | Carpediem</title>
+    <title>Netty源码(二):Netty的Channel和Pipeline | Carpediem</title>
     <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
     
     <meta name="author" content="remCarpediem">
     
 
     
-    <meta name="description" content="&amp;emsp;很久之前就希望自己可以把生活中的点滴都化为文字,记录下来了,今天就写下第一篇博文吧.希望有个好的开始,然后坚持下去.&amp;emsp;前一段时间,在腾讯员工的微信群中看到了有关RxJava和eventBus的对比文章的分享,于是趁着周末,研究一下最近很火的RxJava的使用.&amp;emsp;在学习RxJava的过程中主要参考了下列的几篇文章:
-
-给android开发者的RxJava详解 ,这是我">
+    <meta name="description" content="本文主要讲述Netty框架中Channel相关的知识，Netty通过Channel和Pipeline等一些组件提供了所谓的Universal Communication API．与Channel相关的知识点比较多，本篇文章就主要讲解一下Channel和Pipeline的事件处理流原理．Channel,EventLoop和ChannelFuture的相关知识下篇文章中再进行讲述．
+官方文档上的Ch">
 <meta property="og:type" content="article">
-<meta property="og:title" content="生活学习记录一:RxJava+实习感悟">
-<meta property="og:url" content="http://remcarpediem.com/2015/10/17/生活学习记录一-RxJava-实习感悟/index.html">
+<meta property="og:title" content="Netty源码(二):Netty的Channel和Pipeline">
+<meta property="og:url" content="http://remcarpediem.com/2017/03/27/Netty源码-二-Netty的Channel和Pipeline/index.html">
 <meta property="og:site_name" content="Carpediem">
-<meta property="og:description" content="&amp;emsp;很久之前就希望自己可以把生活中的点滴都化为文字,记录下来了,今天就写下第一篇博文吧.希望有个好的开始,然后坚持下去.&amp;emsp;前一段时间,在腾讯员工的微信群中看到了有关RxJava和eventBus的对比文章的分享,于是趁着周末,研究一下最近很火的RxJava的使用.&amp;emsp;在学习RxJava的过程中主要参考了下列的几篇文章:
-
-给android开发者的RxJava详解 ,这是我">
-<meta property="og:updated_time" content="2015-10-17T17:56:18.000Z">
+<meta property="og:description" content="本文主要讲述Netty框架中Channel相关的知识，Netty通过Channel和Pipeline等一些组件提供了所谓的Universal Communication API．与Channel相关的知识点比较多，本篇文章就主要讲解一下Channel和Pipeline的事件处理流原理．Channel,EventLoop和ChannelFuture的相关知识下篇文章中再进行讲述．
+官方文档上的Ch">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2017327-netty-stream.png">
+<meta property="og:updated_time" content="2017-03-27T13:41:12.003Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="生活学习记录一:RxJava+实习感悟">
-<meta name="twitter:description" content="&amp;emsp;很久之前就希望自己可以把生活中的点滴都化为文字,记录下来了,今天就写下第一篇博文吧.希望有个好的开始,然后坚持下去.&amp;emsp;前一段时间,在腾讯员工的微信群中看到了有关RxJava和eventBus的对比文章的分享,于是趁着周末,研究一下最近很火的RxJava的使用.&amp;emsp;在学习RxJava的过程中主要参考了下列的几篇文章:
-
-给android开发者的RxJava详解 ,这是我">
+<meta name="twitter:title" content="Netty源码(二):Netty的Channel和Pipeline">
+<meta name="twitter:description" content="本文主要讲述Netty框架中Channel相关的知识，Netty通过Channel和Pipeline等一些组件提供了所谓的Universal Communication API．与Channel相关的知识点比较多，本篇文章就主要讲解一下Channel和Pipeline的事件处理流原理．Channel,EventLoop和ChannelFuture的相关知识下篇文章中再进行讲述．
+官方文档上的Ch">
+<meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2017327-netty-stream.png">
 
     
     <link rel="alternative" href="/atom.xml" title="Carpediem" type="application/atom+xml">
@@ -77,14 +76,14 @@
 		<header class="article-info clearfix">
   <h1 itemprop="name">
     
-      <a href="/2015/10/17/生活学习记录一-RxJava-实习感悟/" title="生活学习记录一:RxJava+实习感悟" itemprop="url">生活学习记录一:RxJava+实习感悟</a>
+      <a href="/2017/03/27/Netty源码-二-Netty的Channel和Pipeline/" title="Netty源码(二):Netty的Channel和Pipeline" itemprop="url">Netty源码(二):Netty的Channel和Pipeline</a>
   </h1>
   <p class="article-author">By
        
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2015-10-17T09:54:47.000Z" itemprop="datePublished"> Published 2015-10-17</time>
+    <time datetime="2017-03-27T13:38:03.000Z" itemprop="datePublished"> Published 2017-03-27</time>
     
   </p>
 </header>
@@ -93,23 +92,35 @@
 		<div id="toc" class="toc-article">
 			<strong class="toc-title">Contents</strong>
 		
-			
+			<ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#官方文档上的Channel"><span class="toc-number">1.</span> <span class="toc-text">官方文档上的Channel</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#我眼中的Channel"><span class="toc-number">1.1.</span> <span class="toc-text">我眼中的Channel</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ChannelHandler和ChannelPipeline"><span class="toc-number">2.</span> <span class="toc-text">ChannelHandler和ChannelPipeline</span></a></li></ol>
 		
 		</div>
 		
-		<p>&emsp;很久之前就希望自己可以把生活中的点滴都化为文字,记录下来了,今天就写下第一篇博文吧.希望有个好的开始,然后坚持下去.<br>&emsp;前一段时间,在腾讯员工的微信群中看到了有关RxJava和eventBus的对比文章的分享,于是趁着周末,研究一下最近很火的RxJava的使用.<br>&emsp;在学习RxJava的过程中主要参考了下列的几篇文章:</p>
+		<p> 本文主要讲述Netty框架中Channel相关的知识，Netty通过Channel和Pipeline等一些组件提供了所谓的<code>Universal Communication API</code>．与<code>Channel</code>相关的知识点比较多，本篇文章就主要讲解一下<code>Channel</code>和<code>Pipeline</code>的事件处理流原理．<code>Channel</code>,<code>EventLoop</code>和<code>ChannelFuture</code>的相关知识下篇文章中再进行讲述．</p>
+<h3 id="官方文档上的Channel"><a href="#官方文档上的Channel" class="headerlink" title="官方文档上的Channel"></a>官方文档上的Channel</h3><p> 官方文档上给出的解释是Channel是与网络Socket相关的或具有一定I/O能力的组件．一个<code>Channel</code>可以给用户提供:</p>
 <ul>
-<li><p><a href="http://gank.io/post/560e15be2dca930e00da1083" target="_blank" rel="external">给android开发者的RxJava详解</a> ,这是我主要学习的一篇,大多数有关RxJava的知识都是从这里获得的.</p>
-</li>
-<li><p><a href="http://nicholas.ren/2015/07/19/rx-revisit.html" target="_blank" rel="external">Rx revisit</a>   ,作者主要讲述了Netflix开发Rx系列的原由,Observable和Iterator的区别</p>
-</li>
-<li><p><a href="http://nerds.weddingpartyapp.com/tech/2014/12/24/implementing-an-event-bus-with-rxjava-rxbus/" target="_blank" rel="external">Implementing an Event Bus With RxJava - RxBus</a> ,主要讲述了Observer pattern和Pub-sub pattern的区别,和如何使用RxJava去模仿EventBus.</p>
-</li>
-<li><p><a href="http://www.zhihu.com/topic/20027327" target="_blank" rel="external">知乎-RxJava和EventBus的区别</a> ,看看知友的回答</p>
-</li>
-<li><p><a href="https://github.com/lzyzsd/Awesome-RxJava" target="_blank" rel="external">Awesome-RxJava</a>, github的有关Rx的文章集合<br>&emsp;阅读了那么多的文章,并且写了一些例子,但是还是感觉没有领会到RxJava的精髓.还需要在正式的项目中使用,才可以算是正在的入了门.<br>&emsp;最近的实习也不是很顺利,出现了很多的问题.不过这也很好,在扇贝的实习所学习到的和在腾讯实习正好是相互补充的.在腾讯实习时,可能是大家都比较忙,代码的质量由开发者自己保证,mentor也不会太认真的帮你进行reivew.而在扇贝则是不太一样,要求比较高的代码的质量,涉及的一些规则和原则其实我也都知道,但是在实际的开发过程中,开始时,代码质量还可以保持在较高的水平,但是随之开发的进行,需求的修改,debug,代码就开始有了”腐烂”的气味.知道原则而不是在实际过程中使用就等于不知道.所以,在单纯的编码方面你还是需要更加的谨慎.<br>&emsp;而在腾讯,大家都比较关注新技术,喜欢紧跟技术潮流,在软件工程的各个流程都做的很好,但是代码方面都是依靠个人保证.<br>&emsp;而且在实习阶段中,我也越发的感觉与公司其他员工的交流和沟通特别重要,不管是日常事务还是工作事务.你需要融入公司的这个大家庭里去啊.</p>
-</li>
+<li>当前<code>Channel</code>的状态(比如，是否保存Open状态，是否处于连接状态)</li>
+<li><code>Channel</code>的配置参数，比如说buffer的大小</li>
+<li><code>Channel</code>支持的相关I/O操作，比如说<code>read</code>,<code>write</code>,<code>connect</code>和<code>bind</code></li>
+<li>提供一个<code>ChannelPipeline</code>来处理所有与该<code>Channel</code>相关的I/O事件和请求</li>
 </ul>
+<p> <code>Channel</code>上进行的所有I/O操作都是异步的，也就是说，所有涉及I/O操作的调用都会立刻返回，并不保证操作完成，而是会返回一个<code>ChannelFuture</code>对象来通知你操作是否完成．<br> Channel是有层级的，这样的话，你就可以很方便的利用其他已有的Channel来构建自己需要的<code>channel</code>,比如说基于<code>SocketChannel</code>来实现关于<code>SSH</code>的<code>Channel</code></p>
+<p> 此外，当你完成某些操作之后调用<code>close()</code>或在<code>close(ChannelPromise)</code>是非常重要的，这样能确保你正确的释放了所有资源．</p>
+<h4 id="我眼中的Channel"><a href="#我眼中的Channel" class="headerlink" title="我眼中的Channel"></a>我眼中的Channel</h4><p> 首先，我们应该都知道Netty支持很多I/O通信协议:</p>
+<ul>
+<li>基于TCP的NIO: <code>NioServerSocketChannel</code>,<code>NioSocketChannel</code></li>
+<li>基于UDP的NIO:<code>NioDatagramChannel</code></li>
+<li>基于TCP的OIO:<code>OioSocketChannel</code>和<code>OioServerSocketChannel</code></li>
+<li>基于UDP的OIO:<code>OioDatagramChannel</code><br>如果把关于Channel的类图列出来的话，你会发现支持各种协议的<code>Channel</code>,不信你就看一下这个类图．</li>
+</ul>
+<p> 这样想一下，<strong><em><code>Channel</code>不就是<code>Netty</code>框架用来封装不同协议逻辑的组件吗?</em></strong>，有了<code>Channel</code>的存在，所有于通信协议相关的逻辑都隐藏在不同的<code>Channel</code>实现里，然后在对外提供相对统一的API.<br> 说道这里，你可能还不知道，即使是<code>OIOChannel</code>,它提供的I/O操作也是异步的．也就是说<strong><em>在Netty框架中，不论是OIO还是NIO模型，读写都会阻塞</em></strong>．这样也体现了<code>Universal Communication API</code>的思想，这就使得我们切换Channel非常方便．我们只要初始化不同的Channel即可．<br><code>ServerBootstrap b = new ServerBootstrap(); 
+            b.group(bossGroup, workerGroup)
+             .channel(NioServerSocketChannel.class)
+ServerBootstrap b = new ServerBootstrap(); 
+            b.group(bossGroup, workerGroup)
+             .channel(OioServerSocketChannel.class)</code><br> 有关<code>Channel</code>协议相关的底层知识，我们会在下一篇文章时进行介绍．</p>
+<h3 id="ChannelHandler和ChannelPipeline"><a href="#ChannelHandler和ChannelPipeline" class="headerlink" title="ChannelHandler和ChannelPipeline"></a>ChannelHandler和ChannelPipeline</h3><p> 只有<code>Channel</code>的支持，还不足以实现<code>Universal Communication API</code>,还需要上述两个类来提供<code>ChannelHandler</code>的编程模式，基于<code>ChannelHandler</code>来开发业务逻辑，而不需要考虑网络通讯方面的事情．<br> Netty源码中一张图形象的描述了这个机制<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017327-netty-stream.png" alt="示意图"></p>
+<p>&emsp;Netty中的<code>ChannelPipeline</code>包含两条线路：Upstream和<code>Downstream</code>．Upstream对应上行，接受信息，被动的状态改变，都属于Upstream．Downstream则对应下行，发送消息，主动状态的改变．Upstream对应InBound Handler,Downstream对应Outbound Handler.从Netty内部IO线程接读到IO数据，依次经过N个Handler到达最内部的逻辑处理单元，这种称之为Inbound Handler；从Channel发出IO请求，依次经过M个Handler到达Netty内部IO线程，这种称之为Outbound Handler<br>&emsp;需要注意的是，这个Handler链中消息或在事件不会自动的向下或在向上流动或转发，而是需要由上一个Handler显示的调用<code>ChannelPipeline.sendUp(down)stream</code>来交给下一个Handler来处理．也就是说，每个Handler接受到一个<code>ChannelEvent</code>,处理结束后，如果需要继续处理，那么它需要向下一个或在上一个Handler发起一个事件．</p>
   
 	</div>
 		<footer class="article-footer clearfix">
@@ -117,13 +128,13 @@
 
 <div class="article-categories">
   <span></span>
-  <a class="article-category-link" href="/categories/Java/">Java</a>►<a class="article-category-link" href="/categories/Java/杂记/">杂记</a>
+  <a class="article-category-link" href="/categories/NIO/">NIO</a>
 </div>
 
 
   <div class="article-tags">
   
-  <span></span> <a href="/tags/RxJava/">RxJava</a><a href="/tags/实习/">实习</a>
+  <span></span> <a href="/tags/Netty/">Netty</a>
   </div>
 
 </div>
@@ -132,7 +143,7 @@
 
 	<div class="article-share" id="share">
 	
-	  <div data-url="http://remcarpediem.com/2015/10/17/生活学习记录一-RxJava-实习感悟/" data-title="生活学习记录一:RxJava+实习感悟 | Carpediem" data-tsina="null" class="share clearfix">
+	  <div data-url="http://remcarpediem.com/2017/03/27/Netty源码-二-Netty的Channel和Pipeline/" data-title="Netty源码(二):Netty的Channel和Pipeline | Carpediem" data-tsina="null" class="share clearfix">
 	  </div>
 	
 	</div>
@@ -145,19 +156,11 @@
 	
 <nav class="article-nav clearfix">
  
- <div class="prev" >
- <a href="/2015/10/28/Window和WindowManager解析/" title="Window和WindowManager解析">
-  <strong>上一篇：</strong><br/>
-  <span>
-  Window和WindowManager解析</span>
-</a>
-</div>
-
 
 <div class="next">
-<a href="/2015/10/07/Gson源码分析二/"  title="Gson源码分析二">
+<a href="/2017/03/22/Netty源码-一-Netty中的Buffer/"  title="Netty源码(一):Netty中的Buffer">
  <strong>下一篇：</strong><br/> 
- <span>Gson源码分析二
+ <span>Netty源码(一):Netty中的Buffer
 </span>
 </a>
 </div>
@@ -166,7 +169,7 @@
 
 	
 <section id="comments" class="comment">
-	<div class="ds-thread" data-thread-key="2015/10/17/生活学习记录一-RxJava-实习感悟/" data-title="生活学习记录一:RxJava+实习感悟" data-url="http://remcarpediem.com/2015/10/17/生活学习记录一-RxJava-实习感悟/"></div>
+	<div class="ds-thread" data-thread-key="2017/03/27/Netty源码-二-Netty的Channel和Pipeline/" data-title="Netty源码(二):Netty的Channel和Pipeline" data-url="http://remcarpediem.com/2017/03/27/Netty源码-二-Netty的Channel和Pipeline/"></div>
 </section>
 
 
@@ -177,7 +180,7 @@
   <div id="toc" class="toc-aside">
   <strong class="toc-title">Contents</strong>
  
- 
+ <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#官方文档上的Channel"><span class="toc-number">1.</span> <span class="toc-text">官方文档上的Channel</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#我眼中的Channel"><span class="toc-number">1.1.</span> <span class="toc-text">我眼中的Channel</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ChannelHandler和ChannelPipeline"><span class="toc-number">2.</span> <span class="toc-text">ChannelHandler和ChannelPipeline</span></a></li></ol>
  
   </div>
 
