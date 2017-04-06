@@ -12,21 +12,21 @@
 
     
     <meta name="description" content="今天我们来研究学习一下AbstractQueuedSynchronizer类的相关原理,java.util.concurrent包中很多类都依赖于这个类所提供的队列式的同步器,比如说常用的ReentranLock,Semaphore和CountDownLatch等. 为了方便理解,我们以一段使用ReentranLock的代码为例,讲解ReentranLock每个方法中有关AQS的使用.
-Ree">
+Reen">
 <meta property="og:type" content="article">
 <meta property="og:title" content="AbstractQueuedSynchronizer超详细原理解析">
 <meta property="og:url" content="http://remcarpediem.com/2017/04/06/AbstractQueuedSynchronizer超详细原理解析/index.html">
 <meta property="og:site_name" content="Carpediem">
 <meta property="og:description" content="今天我们来研究学习一下AbstractQueuedSynchronizer类的相关原理,java.util.concurrent包中很多类都依赖于这个类所提供的队列式的同步器,比如说常用的ReentranLock,Semaphore和CountDownLatch等. 为了方便理解,我们以一段使用ReentranLock的代码为例,讲解ReentranLock每个方法中有关AQS的使用.
-Ree">
+Reen">
 <meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201746-aqs-AQS1.png">
 <meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201746-aqs-AQS2.png">
 <meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201746-aqs-AQS3.png">
-<meta property="og:updated_time" content="2017-04-06T13:57:17.851Z">
+<meta property="og:updated_time" content="2017-04-06T14:08:29.787Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="AbstractQueuedSynchronizer超详细原理解析">
 <meta name="twitter:description" content="今天我们来研究学习一下AbstractQueuedSynchronizer类的相关原理,java.util.concurrent包中很多类都依赖于这个类所提供的队列式的同步器,比如说常用的ReentranLock,Semaphore和CountDownLatch等. 为了方便理解,我们以一段使用ReentranLock的代码为例,讲解ReentranLock每个方法中有关AQS的使用.
-Ree">
+Reen">
 <meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201746-aqs-AQS1.png">
 
     
@@ -98,8 +98,7 @@ Ree">
 		
 		</div>
 		
-		<hr>
-<p> 今天我们来研究学习一下<code>AbstractQueuedSynchronizer</code>类的相关原理,<code>java.util.concurrent</code>包中很多类都依赖于这个类所提供的队列式的同步器,比如说常用的<code>ReentranLock</code>,<code>Semaphore</code>和<code>CountDownLatch</code>等.<br> 为了方便理解,我们以一段使用<code>ReentranLock</code>的代码为例,讲解<code>ReentranLock</code>每个方法中有关<code>AQS</code>的使用.</p>
+		<p> 今天我们来研究学习一下<code>AbstractQueuedSynchronizer</code>类的相关原理,<code>java.util.concurrent</code>包中很多类都依赖于这个类所提供的队列式的同步器,比如说常用的<code>ReentranLock</code>,<code>Semaphore</code>和<code>CountDownLatch</code>等.<br> 为了方便理解,我们以一段使用<code>ReentranLock</code>的代码为例,讲解<code>ReentranLock</code>每个方法中有关<code>AQS</code>的使用.</p>
 <h3 id="ReentranLock示例"><a href="#ReentranLock示例" class="headerlink" title="ReentranLock示例"></a>ReentranLock示例</h3><p> 我们都知道<code>ReentranLock</code>的加锁行为和<code>Synchronized</code>类似,都是可重入的锁,但是二者的实现方式确实完全不同的,我们之后也会讲解<code>Synchronized</code>的原理.<strong><em>除此之外,Synchronized的阻塞无法被中断,而ReentrantLock则提供了可中断的阻塞</em></strong>下面的代码是<code>ReentranLock</code>的相关API,我们就以此为顺序,依次讲解.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ReentrantLock lock = <span class="keyword">new</span> ReentrantLock();</span><br><span class="line">lock.lock();</span><br><span class="line">lock.unlock();</span><br></pre></td></tr></table></figure></p>
 <h3 id="公平锁和非公平锁"><a href="#公平锁和非公平锁" class="headerlink" title="公平锁和非公平锁"></a>公平锁和非公平锁</h3><p> ReentranLock分为公平锁和非公平锁.二者的区别就在获取锁是否和排队顺序相关.我们都知道,如果当前锁被另一个线程持有,那么当前申请锁的线程会被挂起等待,然后加入一个等待队列里.理论上,先调用<code>lock</code>函数被挂起等待的线程应该排在等待队列的前端,后调用的就排在后边.如果此时,锁被释放,需要通知等待线程再次尝试获取锁,公平锁会让最先进入队列的线程获得锁,而非公平锁则会唤醒所有线程,让它们再次尝试获取锁,所以可能会导致后来的线程先获得了锁,则就是非公平.</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">ReentrantLock</span><span class="params">(<span class="keyword">boolean</span> fair)</span> </span>&#123;</span><br><span class="line">    sync = fair ? <span class="keyword">new</span> FairSync() : <span class="keyword">new</span> NonfairSync();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -135,7 +134,7 @@ Ree">
 
   <div class="article-tags">
   
-  <span></span> <a href="/tags/AQS/">AQS</a><a href="/tags/锁/">锁</a>
+  <span></span> <a href="/tags/AQS/">AQS</a>
   </div>
 
 </div>
@@ -254,11 +253,11 @@ Ree">
 		  
 		
 		  
-			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
+			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
 		  
 		
 		  
-			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
+			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
 		  
 		
 		  
@@ -315,11 +314,11 @@ Ree">
 		<ul class="clearfix">
 		
 			
-				<li><a href="/tags/Netty/" title="Netty">Netty<sup>3</sup></a></li>
+				<li><a href="/tags/第三方库/" title="第三方库">第三方库<sup>3</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/第三方库/" title="第三方库">第三方库<sup>3</sup></a></li>
+				<li><a href="/tags/Netty/" title="Netty">Netty<sup>3</sup></a></li>
 			
 		
 			
@@ -327,11 +326,11 @@ Ree">
 			
 		
 			
-				<li><a href="/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
+				<li><a href="/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
+				<li><a href="/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
 			
 		
 			
@@ -359,27 +358,7 @@ Ree">
 			
 		
 			
-				<li><a href="/tags/文件系统/" title="文件系统">文件系统<sup>1</sup></a></li>
-			
-		
-			
 				<li><a href="/tags/View-Architecture/" title="View Architecture">View Architecture<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/Http/" title="Http">Http<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/epoll/" title="epoll">epoll<sup>1</sup></a></li>
 			
 		
 			
@@ -391,7 +370,27 @@ Ree">
 			
 		
 			
-				<li><a href="/tags/draw/" title="draw">draw<sup>1</sup></a></li>
+				<li><a href="/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/MotionEvent/" title="MotionEvent">MotionEvent<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/epoll/" title="epoll">epoll<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/AQS/" title="AQS">AQS<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/animation/" title="animation">animation<sup>1</sup></a></li>
 			
 		
 		</ul>
