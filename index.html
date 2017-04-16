@@ -72,6 +72,101 @@
         <header class="article-info clearfix">
   <h1 itemprop="name">
     
+      <a href="/2017/04/16/分布式一致性算法Paxos/" title="分布式一致性算法Paxos" itemprop="url">分布式一致性算法Paxos</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2017-04-16T06:42:35.000Z" itemprop="datePublished"> Published 2017-04-16</time>
+    
+  </p>
+</header>
+    <div class="article-content">
+        
+        <p> 最近在学习zookeeper原理的时候了解到了paxos算法,看了几篇文章之后还是感觉有些迷糊,后来看了知行学社的<a href="http://www.tudou.com/programs/view/e8zM8dAL6hM/" target="_blank" rel="external">paxos视频</a>才对这个算法有了一定的了解,这里就做一下总结.</p>
+<h3 id="Paxos简介"><a href="#Paxos简介" class="headerlink" title="Paxos简介"></a>Paxos简介</h3><p> Paxos是Lamport于1990年提出的一种基于消息传递而具有高度容错特性的分布式一致性算法.这个算法是分布式中最为重要的算法,Google Chubby的作者Mike Burrows说过这个世界上只有一种一致性算法,那就是Paxos,其他算法都是残次品.具体Paxos算法的详细内涵和故事背景大家可以参考知乎上的<a href="https://www.zhihu.com/question/19787937" target="_blank" rel="external">回答</a>;</p>
+<h3 id="Paxos的使用场景和假设"><a href="#Paxos的使用场景和假设" class="headerlink" title="Paxos的使用场景和假设"></a>Paxos的使用场景和假设</h3><p> 我们都知道基于消息传递通信模型的分布式系列,不可避免的会发生以下错误:进程可能会慢,被杀死或在重启,消息可能会有延迟,丢失和重复.Paxos算法解决的问题就是在一个可能发生上述异常的分布式系统中如何就某个值达成一致,保证无论发生以上任何异常,都不会破坏决议的一致性。但是Paxos算法也有一定的使用假设。一个假设是在消息传递的过程中不会出现拜占庭将军问题：即虽然有可能一个消息被传递两次，但是绝对不会出现错误的消息。另一个假设是提议不会被反对，只能被同意或在被更新的提议替换。<br> Paxos协议中有三种角色，每个节点可以扮演多个角色：</p>
+<ul>
+<li>倡议者(Proposer):提议者可以提出提议(数值或在操作命令)以供投票表决。</li>
+<li>接受者(Acceptor):接受者可以对提议者提出的提议进行投票表决，提议有超过半数的接收者投票即被选中。</li>
+<li>学习者(Learner):学习者无投票者，只是从接收者那里获取哪个提议被选中。</li>
+</ul>
+<p> 在Paxos算法中，一个或在多个Proposer都可以并发的提出提议；系统必须针对所有提议中的某个提议达成一致（超过半数大的接受者选中）；最多只能对一个确定的提议达成一致；只要超过半数的节点存活且可以互相通信，整个系统一定可以达成一致，即选择一个确定的提议。<br> 如果直接讲解Paxos算法，大家可能会有些难以理解，这里我们就按着视频里的顺序，先从简单的分布式一致性算法开始，然后不断进行优化，最后将其演变成Paxos算法。</p>
+<h3 id="图解Paxos主要流程"><a href="#图解Paxos主要流程" class="headerlink" title="图解Paxos主要流程"></a>图解Paxos主要流程</h3><p> Paxoso算法分为两个的阶段，我们就将其分别记为Phase1和Phase2.每个Proposer都持有一个独有的变量epoch,每个Acceptor都保存三个状态：lastest_prepared__epoch,accepted_epoch和accepted_value.lastest_prepared_epoch是指Acceptor授予访问权的Proposer的epoch值，accepted_epoch是Acceptor接受提议的Proposer的epoch值，而accepted_value就是Acceptor接受的提议值喽，他们的初始值都为null。</p>
+<h4 id="阶段一"><a href="#阶段一" class="headerlink" title="阶段一"></a>阶段一</h4><p> Phase1过程中，Proposer向Acceptor发起<code>Prepare(epoch)</code>请求来获取访问权。将自己的epoch发送给Acceptor.而Acceptor只会接受比lastest_prepared_epoch更大的epoch,并给予访问权，并将epoch记录到lastest_prepared_epoch的值中，返回当前的accepted_epoch和accepted_value的值。在初始化状态下，二者都是null,所以返回的是<null,null>。如果epoch小于lastest_prepared_epoch则不授予访问权，并返回<error>。<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017416-paxos-paxos1.png" alt="phase1"><br> 如上图所示，Proposer1向5个Acceptor发送了Prepare(#1)的请求，其中前三个请求顺利到达，Acceptor授予访问权，返回<null,null>，并修改lastest_prepared_epoch为1。而后两个请求发生了网络延迟,一直未到达相应的Acceptor。<br> 在阶段一中，Proposer需要获得半数以上的Acceptor的访问权和对应的一组value的取值才会进行第二阶段，这样才会确保，一个Proposer提出的确定的议案会被另外一个Proposer发现，从而在阶段二中会进行正确的操作。</null,null></error></null,null></p>
+<h4 id="阶段二"><a href="#阶段二" class="headerlink" title="阶段二"></a>阶段二</h4><p> 第二阶段采取“后者认同前者”的原则进行。在肯定旧epoch无法生成确定性取值时，新的epoch会提交自己的取值，不会冲突；一旦旧epoch形成了确定性取值，那么该proposer一定可以获得该取值，并且会认同该取值，不会破坏。<br> 如果Proposer在第一阶段获取的value值都是null,则旧epoch无法形成确定性取值，此时让自己的<epoch,v>成为确定性取值：</epoch,v></p>
+<ul>
+<li>向epoch对应的所有acceptor提交取值<epoch,v></epoch,v></li>
+<li>如果收到半数以上的成功应答，则返回<ok,v></ok,v></li>
+<li>否则返回<error></error></li>
+</ul>
+<p> 如果value的取值不为null,则认同最大accepted_epoch对应的取值f,使<epoch，f>成为确定性取值，其中epoch是自己的epoch.</epoch，f></p>
+<ul>
+<li>如果f出现半数以上，则说明f已经是确定性取值了，直接返回<ok,f></ok,f></li>
+<li>否则，向epoch所对应的acceptor提交取值<epoch,f></epoch,f></li>
+</ul>
+<p> Acceptor在接收到accept(epoch,V)的请求之后，先查看epoch是不是自己记录的lastest_prepared_epoch，如果是则设置<accepted_epoch,accepted_value> = <prepared_epoch,v> 。否在则会返回error</prepared_epoch,v></accepted_epoch,accepted_value></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017416-paxos-paxos2.png" alt="paxos2"></p>
+<p> 如上图所示，由于在阶段一中Proposer1接受到的<accepted_epoch>和<accepted_value>值都为null,所以，决定将自己的值设置为确定值，于是发送accept(1,V1)请求。Acceptor1接受到了这个请求，检查lastest_prepared_epoch也等于1,所以将自己存储的<accepted_epoch,accepted_value>设置为<1,v1>。而Proposer1的另外两个accept请求发生了网络延迟。<br> 如果此时，Proposer2向Acceptor进行propose会怎么样呢？我们来模拟propose来分析一下。</1,v1></accepted_epoch,accepted_value></accepted_value></accepted_epoch></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017416-paxos-paxos3.png" alt="paxos3"></p>
+<p> 如上图所示，Proposer2向Acceptor发送了prepare(#2)的请求，Acceptor1先检测一下发现2大于现在的lastest_prepared_epoch,所以同意发送访问权，将lastest_prepared_epoch修改为2，并将自己保存的accepted_epoch和acceped_value返回给Proposer2；Acceptor3的操作也是类似，只不过因为Proposer1发送的accept请求发生了延迟，所以Acceptor3返回的是<null,null>；而Acceptor5的操作和我们在文章第一张图中的Acceptor1的操作相同，他们都是第一次接收到prepare请求。<br> 然后Proposer2进行第二阶段的操作，从所有的返回数据中，找到accepted_epoch最大的那个accepted_value.这里就是Acceptor返回的<1,v1>，所以，Proposer2会尽力让V1成为确定值，所以它向Acceptor发送accept(2,V1)的请求。然后Acceptor1,Acceptor3,Acceptor5三个Acceptor接受了这个accept请求，更新自己的<accepted_epoch,accepted_value>。此时，已经有三个acceptor形成了一致性的值，所以V1就成了整个系统的确定性取值。<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017416-paxos-paxos7.png" alt="paxos7.png"></accepted_epoch,accepted_value></1,v1></null,null></p>
+<p> 那么Proposer1对Acceptor3发送的accept请求在此时达到Acceptor3会怎么样呢？Acceptor3发现当前lastest_prepared_epoch是2,所以直接拒绝了这个请求。</p>
+<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p> 不清楚大家现在对Paxos算法的过程是否已经有了清楚的了解啊？那么我来问几个问题，大家可以考虑一下：</p>
+<ul>
+<li>在本文的情景下，假如Proposer2向Acceptor2,3,4发送了prepare请求，而不是向Acceptor1,3,5发送的请求，会怎么样呢？</li>
+<li>为什么强调prepare阶段时必须接受到一般以上Acceptor的返回，才能进行第二阶段?<br>&emsp;后续希望能够分析一下<code>Zookeeper</code>关于Paxos的具体使用场景和算法，希望大家多多关注。</li>
+</ul>
+
+        
+        
+        <p class="article-more-link">
+          
+       </p>
+    </div>
+    <footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/分布式/">分布式</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/算法/">算法</a>
+  </div>
+
+</div>
+
+
+
+
+<div class="comments-count">
+	
+	  	<span></span>
+		<a href="/2017/04/16/分布式一致性算法Paxos/#comments" class="ds-thread-count comments-count-link" data-thread-key="2017/04/16/分布式一致性算法Paxos/" data-count-type="comments">&nbsp;</a>
+	
+</div>
+
+</footer>
+
+
+    </article>
+
+
+
+
+
+
+   
+    
+    <article class="post-expand post" itemprop="articleBody"> 
+        <header class="article-info clearfix">
+  <h1 itemprop="name">
+    
       <a href="/2017/04/06/AbstractQueuedSynchronizer超详细原理解析/" title="AbstractQueuedSynchronizer超详细原理解析" itemprop="url">AbstractQueuedSynchronizer超详细原理解析</a>
   </h1>
   <p class="article-author">By
@@ -883,142 +978,6 @@ ServerBootstrap b = new ServerBootstrap();
 
 
 
-   
-    
-    <article class="post-expand post" itemprop="articleBody"> 
-        <header class="article-info clearfix">
-  <h1 itemprop="name">
-    
-      <a href="/2016/10/01/重要的是商业，不是应用-Building-a-bussiness-not-an-app/" title="重要的是商业，不是应用(Building a bussiness, not an app)" itemprop="url">重要的是商业，不是应用(Building a bussiness, not an app)</a>
-  </h1>
-  <p class="article-author">By
-       
-		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
-		
-  <p class="article-time">
-    <time datetime="2016-10-01T08:10:32.000Z" itemprop="datePublished"> Published 2016-10-01</time>
-    
-  </p>
-</header>
-    <div class="article-content">
-        
-        <blockquote>
-<p>本文是翻译文章，原文地址如下：<a href="https://stratechery.com/2014/pleco-building-business-just-app/" target="_blank" rel="external">地址</a>。转载请表明原文作者地址。</p>
-</blockquote>
-<p>&emsp;导读：两个例子：Unread是很流行的RSS app，开发者每个月赚1750刀，还不如去找份工作；Pleco是给老外学汉语的app，界面不算精致，但赚的盆满钵满</p>
-<p>&emsp;过去几周来独立开发者对应用商店的焦虑之潮再次袭来，并且比以往来的更加猛烈。导致这次焦虑之潮的主要原因有：手游金卡戴珊:好莱坞今年收入将要达到两亿美元；与之相反的是Brent Simmos在<a href="http://inessential.com/2014/07/25/who_at_the_table_is_an_indie_ios_develop" target="_blank" rel="external">博文</a>中表示现在似乎并没有多少独立iOS开发者(我认为这篇博文开始了这次讨论；Simmos的<a href="http://inessential.com/" target="_blank" rel="external">博客</a>也包括了随之而来的参与这次讨论的博文的摘要)<br>&emsp;焦虑之潮在Jared Sinclair<a href="http://blog.jaredsinclair.com/post/93118460565/a-candid-look-at-unreads-first-year" target="_blank" rel="external">公布</a>他开发的RSS阅读器Unread的销售数据时达到了最高点:</p>
-<blockquote>
-<p>Unread在iphone平台上一共挣了三万四千美元，在iPad平台上挣了一万美元。在去除掉40%的个体经营税(self-employment taxes)和每月350美元的高级健康护理支持(一共12个月)，实际的利润为两万一千美元，平均一个月赚1750美元。</p>
-<p>考虑到这些年来我为这些app所付出的巨大努力，这个数据令人失望。如果我一直在公司工作，凭借我的技能和能力，一定能赚到更多的钱。这证明了开发预先收费的应用并不能稳定且持续的赚钱。</p>
-</blockquote>
-<p>&emsp;首先,Unread是一款我自用的质量极其高的应用。并且Sinclair是一位十分有趣，并且启发性强的博客作者，他发表了很多关于设计和iOS 7的<a href="http://blog.jaredsinclair.com/post/65778971101/form-follows-function-is-more-complicated-than-ios-7" target="_blank" rel="external">好文</a>。我也十分高兴和他进行私人会见，并把他当做自己的朋友。我十分赞赏他勇于分享自己财政情况的精神，即使他并没有赚到和预期一样多的钱。<br>&emsp;然而，与之相反的是。<br>&emsp;Sinclair的遭遇并不是任何事情的“重要证据之一”。它们只是IT世界的趣闻之一。我们无法只基于单一的实例就得出一个宏大的观点，我们必须去了解更多不同的实例。所以，有请我的另外一位朋友登场，Mike Love。<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/2016101-business-pleco-phone.png" alt="Pelco的界面"><br>&emsp;Love在iOS和Android平台上开发了一款优秀的中文字典应用Pleco。Pleco并不是一个创造性的应用；事实上，它最初是一款Palm应用(我曾经为了方便地使用Pleco而购买了Palm设备)。这里是Love经历的起源。</p>
-<blockquote>
-<p>我作为交换生去过中国并且在Palm平台上开发过一款应用。当时没有任何一款app具有手写识别的功能。中文字典应用的一个问题是Palm并没有内置中文字体，而且它并不支持Unicode编码…你必须通过各种hacking技巧来让中文应用正常运行。因此拥有所有的相关功能，不需要额外的安装需求，不需要购买三款不同的30美元的其他应用来让它工作，这就是这款应用成功的关键之一。</p>
-<p>除了手写识别和中文支持之外，我们独占了袖珍牛津英汉字典的版权，其他的中文字典应用都使用<a href="https://en.wikipedia.org/wiki/CEDICT" target="_blank" rel="external">CEDICT</a>。CEDICT并没有被精心编撰并且没有包含发音和示例。</p>
-</blockquote>
-<p>&emsp;令我惊奇的是，Love成功并不是因为他对设计，易用性和其他一些我们经常来赞扬开发者的属性的关注。相反的，他关注一些并不怎么有趣的事情，比如版权。当然，版权是字典应用的重要组成部分，但是更加多的观点认为Love的成功并不是因为他的代码。巨大的成功从来都不是因为代码！</p>
-<blockquote>
-<p>我几乎在苹果公司宣布应用商店成立时就决定开发iOS平台上的应用了…但是我当时正在进行Palm和WP平台上应用的更新开发，因此我们推出Pleco的iOS版本时已经很迟了，在应用商店上已经有很多同类型的字典应用了。</p>
-</blockquote>
-<p>&emsp;Love指出虽然Pleco出现的比较晚-当时应用商店中已经有很多款中文字典应用了-但是，他们是非常幸运的，苹果公司正好开始允许免费应用提供应用内购买功能。因此，虽然Pleco在Palm平台上都是付费下载的，Love立刻就充分利用了这种新的商业模式：</p>
-<blockquote>
-<p>我们的原本的计划是开发一些免费的轻应用，一些低价格的具有最少功能集的应用，然后你可以购买一些附加功能包。可是苹果公司在2009年宣布解除免费应用不能有内置付费功能的禁令。于是，我们立即将计划转变成开发带有内置付费功能的免费软件上。</p>
-</blockquote>
-<p>&emsp;Love认为对新型商业模型的清晰认识给他带来了巨大优势，但是我认为他低估了自己；毕竟，大多数独立开发者在五年后的今天才开始认识到有内置付费功能的免费应用是唯一一种可行的商业模型。换句话说，Love的成功不仅来源于他精湛的开发技艺，还来自于他对商业模式的独到见解。</p>
-<blockquote>
-<p>不同于其他的应用，我们的免费应用并不只有CC-CEDICT的版权(CEDICT的进化版)，还有PLC中英字典的版权。我们在应用中免费提供PLC字典，我们认为这样可以让我们的应用不同于其他的只提供CC-CEDICT的应用，因为PLC字典有示例语句和一些CC-CEDICT没有的内容。</p>
-</blockquote>
-<p>&emsp;这个观点让我十分震惊。Love花了真金白银来让自己的免费应用脱颖而出(Love仍然有自己的优秀的手写识别引擎，但是iOS内置的手写引擎降低了他在这方面的优势)。Love十分自信的认为当他的免费应用赢得优势之后，他可以用大量的付费附加功能来让自己获得大量收入。这些付费的附加功能不仅包括各种独家的中英字典，也包括很多优秀的特性模块，比如笔画顺序图、个性化字体、文本阅读器和光学字符识别等。</p>
-<p>&emsp;这个时候，我询问他关于应用定价方面的问题。需要注意的是，在Palm平台上开发的应用可以适当定价高一点。Pleco在Palm上有三个付费版本，按照你选择的字典不同，价格从60美元到120美元不等。这种价格在iOS上显然是无法被人接受的，但是真的无法被人接受吗？</p>
-<blockquote>
-<p>我们有一个基础的50美元付费包，一个专业的100美元付费包，还有一个150美元的完全版付费包。其实已经很接近Palm平台上的价格啦。</p>
-</blockquote>
-<p>&emsp;但是价格确实有降低，对吧？</p>
-<blockquote>
-<p>其实，我们应用在各个平台上的价格是几乎相同的。我们应用付费包的最低价格为40美元，但是它不包括额外的字典，只包括一些功能特性。因为一些购买用户不喜欢基础购买包中绑定的字典，所以我们认为提供不包含任何额外字典的价格更低的付费包更加灵活，这样可以让用户自由选择购买他们想要的字典。这样的降价行为让我们卖出了更多的基础购买包。降价让我们的应用更受欢迎！</p>
-</blockquote>
-<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2016101-business-Pleco-pricing.png" alt="Peloc付费包，独立的特性和字典是分开出售的"><br>&emsp;Love应用的高价格并没有影响到他的盈利：</p>
-<ul>
-<li>Pleco在iOS平台上的用户量大约是Pleco在Palm和WP上用户量的一百倍(因为应用下载免费，并且可以免费使用一些基础的功能)</li>
-<li>免费用户转化率大约为5%，也就是说应用的付费用户多了4倍左右(因为Palm和WP平台上的应用没有免费版本)</li>
-<li>从每个用户身上获得的净利润减少了三分之一，主要是因为被意识到Pleco会减少他们书籍销量的出版社征收了更高的版权税。</li>
-</ul>
-<p>&emsp;Pleco也有Android版本，但收入有iOS版本的三分之一左右，可是Love在Android版本上花费了很多时间和精力。于是，我询问他这是否值得：</p>
-<blockquote>
-<p>为了品牌的推广，当然值得。我们应用之所以有那么多的用户数量，主要是因为当一位学生要开始他的中文课程或者交换项目时，他就会得到一份列表，列表上写着“学习中文必须知道的几件事情”，而使用Pleco就是其中之一。这个表单是很有价值的，我们必须确保Pleco是其中唯一被推荐的应用，如果没有Android版本，表单就有可能为此推荐另外一款应用，所以，我们开发了Android版本。这一切都是值得的。</p>
-</blockquote>
-<p>&emsp;我认为最为关键的一点是：Love的应用有自己的准确的市场定位和商机，并且他愿意做任何事情来保持这一点。</p>
-<hr>
-<p>&emsp;Sinclair在随后的博文又说道：</p>
-<blockquote>
-<p>那些认为我在2014年开发并推广一个RSS阅读器应用的行为是十分愚蠢的人都没有理解我上篇博文的中心观点。推广和市场化任何一个领域的优秀应用都是博彩行为。增加应用市场化或者推广的费用既可能增加潜在收入，也可能增加潜在损失。每个应用的市场定位都是平等和普通的，它们的成功都靠运气，推广它们都是一场赌博。</p>
-</blockquote>
-<p>&emsp;但是Love的经历证明Sinclair观点是不正确的。他有一个准确的市场-中文学习，而且他已经进行这个领域的应用的开发很长时间了。他的大多数的时间并不是花费在设计和开发上，而是花费在聆听和理解用户(比如之前提到的将额外字典从基础付费包中去除并降价的行为)，和出版社合作，细致的关于定价的思考和应用商店的推广，还有并不能获得足够利润的Android版本开发上。这些让他成为了中文学习领域的领导者和独角兽。<br>&emsp;我现在要问一下那些感叹自己应用命运的独立开发者们：</p>
-<ul>
-<li>你是否有一个有需求明确，大量愿意付款的用户的市场呢？</li>
-<li>你应用是否有持续的与众不同的特性，这些特性并不只是简单的界面美观和操作简易？</li>
-<li>你是否有仔细考虑过的，可以让你从每个用户获得足够利润的定价模型。如果你的应用足够的与众不同，你就可以从用户那里获得收入？</li>
-<li>你是否在市场合作，版权和推广等非开发行为上付出了足够的时间和努力？</li>
-<li>你是否开发了相应的Android应用?</li>
-</ul>
-<p>&emsp;这些都是任何开发者的必备技能，无论你是否是独立开发者。尽管我和Sinclair关系很好，但是我从他的经历中收获的教训并不是苹果应用商店有问题，而是他的商业行为很糟糕(特别是他关于市场的选择行为)。如果你认为我上边列出的事项都没有吸引力或者不现实，如果你想的只是开发出精美的界面，那么你就去找一份付钱让你这么做的工作吧。要成为一名独立开发者，首先并且最为重要的就是成为一名商人。这也是Love最令我赞赏的地方。他的开发技能只是他成功的前提条件之一，而不是最终起到决定作用的能力。</p>
-<p>&emsp;苹果公司为了各种类型的开发者都提供了方便快捷的付费方式。其中的两种方式可以让你的应用创造不同。</p>
-<ul>
-<li>试用：Love应用的一个巨大优势是可以提供一个极高可用性和与众不同的免费版本供用户使用，然后通过大量的付费附加功能包进行盈利。但是其他领域的一些应用如果去掉一些特性就会导致应用无法提供足够的功能。这些应用就需要应用商店来提供具有时间限制的试用功能来让用户体验它们。</li>
-</ul>
-<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2016101-business-windows-trial.png" alt="设置有时间限制的试用功能"><br>&emsp;这样就可以让用户快速了解一款应用，并知道哪款应用是最为优秀的，因为用户可以逐一的试用这些应用，而且开发者可以根据试用情况进行收费。长此以往，应用商店中就会有大量的不同价格的应用，这些价格彰显着它们的质量(当然了，用户可以通过试用来验证)。</p>
-<ul>
-<li>付费升级：商业行为的关键就是从你最好的客户手中赚到钱，无论你是餐馆老板，航空公司管理人员还是应用开发者。无论是拥有服务模块的应用，比如Evernote，还是拥有大量内购模块的应用，比如Pleco,它们在这方面都做的很好，从而都取得了巨大的成功。但是也有一些其他类型的应用有着不同的遭遇。它们的开发者没有一点动力投入时间来优化它们，因为那些最可能喜欢这些优化的当前应用使用者并没有给开发者带来足够的收入。开发者当然可以再次发布一个全新的应用，但是你丧失了原来应用的数据，而且无法让那些老用户知道为了它们应该更新。</li>
-</ul>
-<p>&emsp;苹果公司应该清楚的认识到：iOS生态系统是iPhone手机最为与众不同的地方之一，也是苹果公司保持巨大利润的原因之一。但是独立软件开发者也应该感谢iOS应用商店提供了一个让他们成为商人的机会，因为它的入门门槛很低，并且有大量的具有消费能力的用户可以让他们创造出巨大的商机。</p>
-<p>&emsp;Love回忆到：</p>
-<blockquote>
-<p> 我十分怀念在Palm平台上进行开发的时光，因为当时我为了那些喜欢我的人开发应用。但是iOS应用商店已经不像它早期那样运作了，不再按照以前那种方式运作了，这导致当今很多人抱怨它的现状。使用Palm平台的用户只是希望你添加一些cool的功能。他们希望更多的特性，他们可以和我一样为相同的事物感到兴奋。</p>
-</blockquote>
-<p>&emsp;引人深思的是：开发者都希望为自己开发应用，而不是为了自己的用户开发。这就是为什么类似于RSS阅读器的应用无法赚到钱的原因。有很多具有大量潜在用户的需求-比如中文学习都等着有能力的人去掘金。他们不仅要会编写代码，还要能进行市场调查，建立商业模型，并做那些可以创造真正不同和可持续商业的繁杂事务。</p>
-
-        
-        
-        <p class="article-more-link">
-          
-       </p>
-    </div>
-    <footer class="article-footer clearfix">
-<div class="article-catetags">
-
-<div class="article-categories">
-  <span></span>
-  <a class="article-category-link" href="/categories/综合/">综合</a>
-</div>
-
-
-  <div class="article-tags">
-  
-  <span></span> <a href="/tags/市场/">市场</a>
-  </div>
-
-</div>
-
-
-
-
-<div class="comments-count">
-	
-	  	<span></span>
-		<a href="/2016/10/01/重要的是商业，不是应用-Building-a-bussiness-not-an-app/#comments" class="ds-thread-count comments-count-link" data-thread-key="2016/10/01/重要的是商业，不是应用-Building-a-bussiness-not-an-app/" data-count-type="comments">&nbsp;</a>
-	
-</div>
-
-</footer>
-
-
-    </article>
-
-
-
-
-
-
 
   <nav id="page-nav" class="clearfix">
     <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><a class="extend next" rel="next" href="/page/2/">Next<span></span></a>
@@ -1088,6 +1047,10 @@ ServerBootstrap b = new ServerBootstrap();
 		  
 		
 		  
+			<li><a href="/categories/分布式/" title="分布式">分布式<sup>1</sup></a></li>
+		  
+		
+		  
 			<li><a href="/categories/思考/" title="思考">思考<sup>1</sup></a></li>
 		  
 		
@@ -1096,11 +1059,11 @@ ServerBootstrap b = new ServerBootstrap();
 		  
 		
 		  
-			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
+			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
 		  
 		
 		  
-			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
+			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
 		  
 		
 		  
@@ -1165,15 +1128,11 @@ ServerBootstrap b = new ServerBootstrap();
 			
 		
 			
+				<li><a href="/tags/算法/" title="算法">算法<sup>3</sup></a></li>
+			
+		
+			
 				<li><a href="/tags/注解/" title="注解">注解<sup>3</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
 			
 		
 			
@@ -1181,23 +1140,23 @@ ServerBootstrap b = new ServerBootstrap();
 			
 		
 			
-				<li><a href="/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/算法/" title="算法">算法<sup>2</sup></a></li>
-			
-		
-			
 				<li><a href="/tags/Span/" title="Span">Span<sup>2</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/React-Native/" title="React Native">React Native<sup>1</sup></a></li>
+				<li><a href="/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
 			
 		
 			
@@ -1221,15 +1180,19 @@ ServerBootstrap b = new ServerBootstrap();
 			
 		
 			
-				<li><a href="/tags/MotionEvent/" title="MotionEvent">MotionEvent<sup>1</sup></a></li>
+				<li><a href="/tags/工具/" title="工具">工具<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/epoll/" title="epoll">epoll<sup>1</sup></a></li>
+				<li><a href="/tags/draw/" title="draw">draw<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/AQS/" title="AQS">AQS<sup>1</sup></a></li>
+				<li><a href="/tags/市场/" title="市场">市场<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/http/" title="http">http<sup>1</sup></a></li>
 			
 		
 			

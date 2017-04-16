@@ -72,6 +72,111 @@
         <header class="article-info clearfix">
   <h1 itemprop="name">
     
+      <a href="/2016/02/21/使用注解处理器生成代码-1-注解类型/" title="使用注解处理器生成代码-1 注解类型" itemprop="url">使用注解处理器生成代码-1 注解类型</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2016-02-21T12:18:55.000Z" itemprop="datePublished"> Published 2016-02-21</time>
+    
+  </p>
+</header>
+    <div class="article-content">
+        
+        <p>&emsp;原文地址如下：<a href="https://deors.wordpress.com/2011/10/08/annotation-processors/" target="_blank" rel="external">摸我</a><br>&emsp;我希望以此篇博文作为基于注解处理器生成代码系列博文的开篇，给大家展示注解处理器有多么强大，并在最后使用这项技术来在编译时刻生成android代码<br>&emsp;在这个系列博文中，我们会：</p>
+<ul>
+<li>介绍Java语言中的注解</li>
+<li>理解注解的基本用法和作用域</li>
+<li>了解<code>Annotation Processor</code>基础知识和作用</li>
+<li>学习如何在命令行，<code>Eclipse</code>,<code>Maven</code>中运行<code>Annotation Processors</code></li>
+<li>学习如何使用<code>Annotation Processors</code>来生成代码</li>
+<li>学习如何<code>Apache Velocity</code>模版来生成代码</li>
+</ul>
+<h4 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h4><p>&emsp;注解首先在第三版<code>Java Language Specification</code>中被提出，并在<code>java 5</code>中被实现。<br>&emsp;使用注解我们可以给源代码添加元数据信息，比如构造或者部署信息，配置属性，编译特性或者代码质量检查。<br>&emsp;不像<code>Javadocs</code>，注解是强类型的，每个注解都对应一个预先定义好的注解类型。除此之外，程序可以在运行时获得注解信息，<code>Javadocs</code>不行。</p>
+<h4 id="注解语法"><a href="#注解语法" class="headerlink" title="注解语法"></a>注解语法</h4><p>&emsp;注解通常出现在被注解代码片段之前，单独成行，并且和代码片段有相同的缩进。<br>&emsp;注解可以应用到包，类型（类，接口，枚举，注解类型），变量（对象，局部变量-包括定义在循环结构中的变量），构造函数，方法，和参数。<br>&emsp;注解的最简单形式是不带任何元素，比如：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span>()</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">theMethod</span><span class="params">()</span> </span>&#123;…&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;在这种情况下，括号可以被省略。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">theMethod</span><span class="params">()</span> </span>&#123;…&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;注解可以包括通过冒号分离的键值对数据，类型可以是基础类型，字符串，枚举，和数组：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Author</span>(name = <span class="string">"Albert"</span>,</span><br><span class="line">            created = <span class="string">"17/09/2010"</span>,</span><br><span class="line">            revision = <span class="number">3</span>,</span><br><span class="line">            reviewers = &#123;<span class="string">"George"</span>, <span class="string">"Fred"</span>&#125;)</span><br><span class="line">    <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SimpleAnnotationsTest</span> </span>&#123;…&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;当注解只有一个元素并且其名字是value，那么它就可以被省略：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@WorkProduct</span>(<span class="string">"WP00000182"</span>)</span><br><span class="line">    <span class="meta">@Complexity</span>(ComplexityLevel.VERY_SIMPLE)</span><br><span class="line">    <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SimpleAnnotationsTest</span> </span>&#123;…&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;注解可以定义它的元素的默认值，有默认值的元素可以在注解声明使用时被省略。<br>&emsp;比如，假设注解<code>Author</code>定义了<code>revision</code>（默认为1）和<code>reviewers</code>(默认为空的字符串数组)，下边的两个注释声明是相同的：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Author</span>(name = <span class="string">"Albert"</span>,</span><br><span class="line">            created = <span class="string">"17/09/2010"</span>,</span><br><span class="line">            revision = <span class="number">1</span>,</span><br><span class="line">            reviewers = &#123;&#125;)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> class <span class="title">SimpleAnnotationsTest</span><span class="params">()</span> </span>&#123;…&#125;</span><br><span class="line">    <span class="meta">@Author</span>(name = <span class="string">"Albert"</span>,        <span class="comment">// defaults are revision 1</span></span><br><span class="line">            created = <span class="string">"17/09/2010"</span>) <span class="comment">// and no reviewers</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> class <span class="title">SimpleAnnotationsTest</span><span class="params">()</span> </span>&#123;…&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="注解的典型使用"><a href="#注解的典型使用" class="headerlink" title="注解的典型使用"></a>注解的典型使用</h4><p>&emsp;有三类注解类型在<code>Java Language Specification</code>中被定义，它们提供给java的编译器使用：</p>
+<ul>
+<li><strong>@Deprecated</strong>:表明被标记的元素不应该再被使用。当你使用被标记元素时，编译器会给出警告。也可以使用在<code>Javadoc</code>中，解释标记元素不能在使用的原因。</li>
+<li><strong>@Override</strong>：表面被标记元素为重载了超类中的元素</li>
+<li><strong>@SuppressWarnings</strong>：让编译器忽略标记元素会产生的一些特定警告</li>
+</ul>
+<p>&emsp;自从注解被引入，很多库和框架都在其最新版本中添加了注解。通过在代码中使用注解，这些库或者框架可以减少或者去除配置文件的使用。<br>&amp;emsp；最有代表性的几个库或框架如下：</p>
+<ul>
+<li>Java Enterprise Edition and its main components –  Enterprise JavaBeans, Java Persistence API or Web Services API’s.</li>
+<li>Spring Framework – used thoroughly for configuration, dependency injection and inversion of control in the core framework and in other Spring projects.</li>
+<li>Seam, Weld, Guice.</li>
+<li>Apache Struts 2.</li>
+</ul>
+<h4 id="注解类型"><a href="#注解类型" class="headerlink" title="注解类型"></a>注解类型</h4><p>&emsp;注解类型(<code>Annotation Type</code>)是定义自定义注解的特殊接口（<code>interface</code>）。<br>&emsp;一个注解类型使用<code>@interface</code>来定义：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> Author &#123;</span><br><span class="line">        <span class="function">String <span class="title">name</span><span class="params">()</span></span>;</span><br><span class="line">        <span class="function">String <span class="title">created</span><span class="params">()</span></span>;</span><br><span class="line">        <span class="function"><span class="keyword">int</span> <span class="title">revision</span><span class="params">()</span> <span class="keyword">default</span> 1</span>;</span><br><span class="line">        String[] reviewers() <span class="keyword">default</span> &#123;&#125;;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="meta">@interface</span> Complexity &#123;</span><br><span class="line">        <span class="function">ComplexityLevel <span class="title">value</span><span class="params">()</span> <span class="keyword">default</span> ComplexityLevel.MEDIUM</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">enum</span> ComplexityLevel &#123;</span><br><span class="line">        VERY_SIMPLE, SIMPLE, MEDIUM, COMPLEX, VERY_COMPLEX;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;注解类型和常规的接口有一些不同的地方：</p>
+<ul>
+<li>只有基础类型，字符串，枚举，类常量和上述类型的数组允许在注解定义中使用，一般的类和对象不允许使用，双重数组也不允许。</li>
+<li>注解元素的定义语法和类方法的语法相似，但是注意，注解元素的定义不包括修饰符和参数。</li>
+<li>默认值是使用<code>default</code>关键字定义的，其后的值必须是字面量，数组初始器和枚举值。</li>
+</ul>
+<p>&emsp;枚举类型可以在注解内部进行定义：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> Complexity &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">enum</span> Level &#123;</span><br><span class="line">            VERY_SIMPLE, SIMPLE, MEDIUM, COMPLEX, VERY_COMPLEX;</span><br><span class="line">        &#125;</span><br><span class="line">    …</span><br></pre></td></tr></table></figure></p>
+<h4 id="用来定义注解的注解"><a href="#用来定义注解的注解" class="headerlink" title="用来定义注解的注解"></a>用来定义注解的注解</h4><p>&emsp;JDK中预先定义了一些用来修改自定义注解行为的注解：</p>
+<ul>
+<li><strong>@Retention</strong>：表明被标记的注解信息会保存多长时间，一些可能的值如下：<code>CLASS</code> (默认选项，注解信息保存到class文件中，但是无法在运行时获得), <code>SOURCE</code> (当class文件被创建时被编译器抛弃) and <code>RUNTIME</code> (在程序运行时可以获得).</li>
+<li><p><strong>@Target</strong>:表明注解可以标记元素的类型，可能的值为枚举类型<code>ElementType</code>的值：<code>ANNOTATION_TYPE</code>, <code>CONSTRUCTOR</code>, <code>FIELD</code>, <code>LOCAL_VARIABLE</code>, <code>METHOD</code>, <code>PACKAGE</code>, <code>PARAMETER</code> and <code>TYPE</code>.<br>&emsp;下一篇博文为《注解处理器》，稍后会给出。</p>
+<p>—<br>(1) ”The Java Language Specification, Third Edition” is available for free download <a href="http://java.sun.com/docs/books/jls/" target="_blank" rel="external">here</a>.<br>&emsp;Update: new link to relevant JLS section in his new home at Oracle site <a href="http://docs.oracle.com/javase/specs/jls/se5.0/html/interfaces.html#9.7" target="_blank" rel="external">here</a>.</p>
+</li>
+</ul>
+
+        
+        
+        <p class="article-more-link">
+          
+       </p>
+    </div>
+    <footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/Android/">Android</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/注解/">注解</a>
+  </div>
+
+</div>
+
+
+
+
+<div class="comments-count">
+	
+	  	<span></span>
+		<a href="/2016/02/21/使用注解处理器生成代码-1-注解类型/#comments" class="ds-thread-count comments-count-link" data-thread-key="2016/02/21/使用注解处理器生成代码-1-注解类型/" data-count-type="comments">&nbsp;</a>
+	
+</div>
+
+</footer>
+
+
+    </article>
+
+
+
+
+
+
+   
+    
+    <article class="post-expand post" itemprop="articleBody"> 
+        <header class="article-info clearfix">
+  <h1 itemprop="name">
+    
       <a href="/2016/02/11/图解Android事件传递之ViewGroup篇/" title="图解Android事件传递之ViewGroup篇" itemprop="url">图解Android事件传递之ViewGroup篇</a>
   </h1>
   <p class="article-author">By
@@ -782,105 +887,6 @@
 
 
 
-   
-    
-    <article class="post-expand post" itemprop="articleBody"> 
-        <header class="article-info clearfix">
-  <h1 itemprop="name">
-    
-      <a href="/2015/10/28/Window和WindowManager解析/" title="Window和WindowManager解析" itemprop="url">Window和WindowManager解析</a>
-  </h1>
-  <p class="article-author">By
-       
-		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
-		
-  <p class="article-time">
-    <time datetime="2015-10-28T07:35:51.000Z" itemprop="datePublished"> Published 2015-10-28</time>
-    
-  </p>
-</header>
-    <div class="article-content">
-        
-        <p>&emsp;这几天阅读了《Android开发艺术探索》的关于Window和WindowManager的章节,特此写一片博文来整理和总结一下学到的知识.<br>&emsp;说到Window,大家都会想到所有的视图,包括Activity,Dialog,Toast,它们实际上都是附加在Window上的,Window是这些视图的管理者.今天我们就来具体将一下这些视图是如何附加在Window上的,Window有是如何管理这些视图的.</p>
-<h4 id="Window的属性和类别"><a href="#Window的属性和类别" class="headerlink" title="Window的属性和类别"></a>Window的属性和类别</h4><p>&emsp;当我们通过WindowManager添加Window时,可以通过WindowManger.LayoutParams来确定Window的属性和类别.其中Flags参数标示Window的属性,我们列出几个比较常见的属性:</p>
-<ul>
-<li><p><code>FLAG_NOT_FOCUSABLE</code> 这个参数表示Window不需要获取焦点,也不需要接收任何输入事件</p>
-</li>
-<li><p><code>FLAG_NOT_TOUCH_MODAL</code> 这个参数表示当前Window区域之外的点击事件传递给底层Window,区域之内的点击事件自己处理,一般默认开启</p>
-</li>
-<li><p><code>FLAG_SHOW_WHEN_LOCKED</code> 这个属性可以让Window显示在锁屏界面上<br>&emsp;Window不仅有属性,还有类型.Type参数表示Window的类型,分别为应用Window(activity对应的),子window(dialog对应的),和系统Window(Toast和系统通知栏).Window是分层的,每个window都有z-ordered,层级大的window会覆盖层级小的window,其大小关系为系统window&gt;子window&gt;应用window.所以系统window总会显示在最上边,但是使用系统window是需要声明相应的权限的.这一点需要注意.</p>
-<h4 id="WindowManager"><a href="#WindowManager" class="headerlink" title="WindowManager"></a>WindowManager</h4><p>&emsp;我们先来看一下WindowManager的接口,对其接口函数的了解有助于我们更好的理解Window的类别和属性.<br>&emsp;WindowManger实现了ViewManager这个接口,所提供的主要函数只有三个:</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">public void addView(View view, ViewGroup.LayoutParams params);</span><br><span class="line">public void updateViewLayout(View view, ViewGroup.LayoutParams params);</span><br><span class="line">public void removeView(View view);</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-<p>&emsp;而且通过阅读源码,我们会发现所有的操作都是交由WindowManagerGloalal来进行.之后的小节我会依次介绍.这一节先讲一下它的比较重要的成员变量.<br> <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">// 存储所有window所对应的view</span><br><span class="line">    private final ArrayList&lt;View&gt; mViews = new ArrayList&lt;View&gt;();</span><br><span class="line">    // 存在window所对应的viewRootImpl</span><br><span class="line">    private final ArrayList&lt;ViewRootImpl&gt; mRoots = new ArrayList&lt;ViewRootImpl&gt;();</span><br><span class="line">    // 存储了所有window对应的布局参数</span><br><span class="line">    private final ArrayList&lt;WindowManager.LayoutParams&gt; mParams =</span><br><span class="line">            new ArrayList&lt;WindowManager.LayoutParams&gt;();</span><br><span class="line">    // 存储了那些正在被删除的view对象,调用了removeVIew,但是没有完成的</span><br><span class="line">    private final ArraySet&lt;View&gt; mDyingViews = new ArraySet&lt;View&gt;();</span><br></pre></td></tr></table></figure></p>
-<h4 id="Window的添加过程"><a href="#Window的添加过程" class="headerlink" title="Window的添加过程"></a>Window的添加过程</h4><p>&emsp;这是WindowManagerGlobal的对应接口</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">public void addView(View view, ViewGroup.LayoutParams params,</span><br><span class="line">           Display display, Window parentWindow)</span><br></pre></td></tr></table></figure>
-<p>&emsp;创建ViewRootImpl,并将View添加到相应的列表中</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">// 创建ViewRootImpl,然后将下述对象添加到列表中</span><br><span class="line">root = new ViewRootImpl(view.getContext(), display);</span><br><span class="line">       view.setLayoutParams(wparams);//设置Params</span><br><span class="line">       mViews.add(view);//window列表添加</span><br><span class="line">       mRoots.add(root);//ViewRootImpl列表添加</span><br><span class="line">       mParams.add(wparams);//布局参数列表添加</span><br></pre></td></tr></table></figure>
-<p>&emsp;通过ViewRootImpl来更新界面完成window的添加过程</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">// 添加啦!!!!!!!!这是通过ViewRootImpl的setView来完成</span><br><span class="line">root.setView(view, wparams, panelParentView);</span><br></pre></td></tr></table></figure>
-<p>&emsp;在ViewRootImpl的setView函数中,会调用requestLayout来完成异步刷新,然后在requestLayout<br>中调用scheduleTraversals来进行view绘制.</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">@Override</span><br><span class="line">   	public void requestLayout() &#123;</span><br><span class="line">       if (!mHandlingLayoutInLayoutRequest) &#123;</span><br><span class="line">           checkThread();</span><br><span class="line">           mLayoutRequested = true;</span><br><span class="line">           scheduleTraversals(); // 实际View绘制的入口</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
-<p>&emsp;最后通过WindowSession来完成Window的添加过程,它是一个Binder对象,通过IPC调用来添加window.<br>&emsp;所以,Window的添加请求就交给WindowManagerService去处理,在其内部为每个应用保留一个单独的Session.</p>
-<h4 id="Window的删除过程"><a href="#Window的删除过程" class="headerlink" title="Window的删除过程"></a>Window的删除过程</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">public void removeView(View view, boolean immediate) &#123;</span><br><span class="line">    if (view == null) &#123;</span><br><span class="line">        throw new IllegalArgumentException(&quot;view must not be null&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    synchronized (mLock) &#123;</span><br><span class="line">        int index = findViewLocked(view, true); //先找到view的index</span><br><span class="line">        View curView = mRoots.get(index).getView();</span><br><span class="line">        removeViewLocked(index, immediate);</span><br><span class="line">        if (curView == view) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        throw new IllegalStateException(&quot;Calling with view &quot; + view</span><br><span class="line">                + &quot; but the ViewAncestor is attached to &quot; + curView);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>&emsp;removeView先通过findViewLocked来查找待删除的View的索引,然后用removeViewLocked来做进一步删除.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">private void removeViewLocked(int index, boolean immediate) &#123;</span><br><span class="line">    ViewRootImpl root = mRoots.get(index); //获得当前的view的viewRootImpl</span><br><span class="line">    View view = root.getView();</span><br><span class="line"></span><br><span class="line">    if (view != null) &#123; //先让imm下降</span><br><span class="line">        InputMethodManager imm = InputMethodManager.getInstance();</span><br><span class="line">        if (imm != null) &#123;</span><br><span class="line">            imm.windowDismissed(mViews.get(index).getWindowToken());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    boolean deferred = root.die(immediate); //die方法只是发送一个请求删除的消息之后就就返回</span><br><span class="line">    if (view != null) &#123;</span><br><span class="line">        view.assignParent(null);</span><br><span class="line">        if (deferred) &#123;</span><br><span class="line">            mDyingViews.add(view);//加入dyingView</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;在WindowManager中提供了两种删除接口removeVIew()和removeViewImmediate(),它们分别表示异步和同步删除.而异步操作中会调用die函数,来发送一个MSG_DIE消息来异步删除,ViewRootImpl的Handler会调用doDie(),而如果是同步删除,那么就直接调用doDie(),然后在removeView函数中把View添加到mDyingViews中.</p>
-<h4 id="Window的更新"><a href="#Window的更新" class="headerlink" title="Window的更新"></a>Window的更新</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">public void updateViewLayout(View view, ViewGroup.LayoutParams params) &#123;</span><br><span class="line">      	.....</span><br><span class="line">final WindowManager.LayoutParams wparams = (WindowManager.LayoutParams)params;</span><br><span class="line">       view.setLayoutParams(wparams);</span><br><span class="line">       synchronized (mLock) &#123;</span><br><span class="line">           int index = findViewLocked(view, true);</span><br><span class="line">           ViewRootImpl root = mRoots.get(index);</span><br><span class="line">           mParams.remove(index);</span><br><span class="line">           mParams.add(index, wparams);</span><br><span class="line">           root.setLayoutParams(wparams, false);//这是主要的方法</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
-<p>&emsp;在setLayoutParams中会调用scheduleTraversals来重新绘制.</p>
-<h4 id="Window的创建过程"><a href="#Window的创建过程" class="headerlink" title="Window的创建过程"></a>Window的创建过程</h4><p>&emsp;不同类型的Window的创建过程不同,这里我只来讲一下Activity的Window的创建过程.在Window的启动过程中,会调用attach()函数来为其关联运行过程中所依赖的一系列上下文环境变量.</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mWindow = PolicyManager.makeNewWindow(this);</span><br><span class="line">mWindow.setCallback(this);</span><br></pre></td></tr></table></figure>
-<p>&emsp;Window对象是通过PolicyManager的makeNewWindow方法实现的,由于Activity实现了Window的Callback接口,因此当Window接收到外界的状态改变时就会回调Activity的对应方法.而我们去追寻Window的具体实现类,会发现它就是PhoneWindow,而Activity中最常用的setContentView方法的具体操作都是在PhoneWindow的相应方法中实现的.</p>
-<p>&emsp;如果没有DecorView,那么就创建它.DecorView是一个FrameLayout,是Activity中的顶级View,一般包括标题栏和内容栏,而且内容栏的id为android.R.id.content,而DecorView的创建过程由installDecor完成,内部会通过generateDecor方法来直接创建DecorView</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">if (mContentParent == null) &#123; //如何没有DecorView,那么就新建一个</span><br><span class="line">           installDecor();</span><br><span class="line">       &#125; else if (!hasFeature(FEATURE_CONTENT_TRANSITIONS)) &#123;</span><br><span class="line">           mContentParent.removeAllViews();</span><br><span class="line">       &#125;</span><br><span class="line"> 	if (mDecor == null) &#123;</span><br><span class="line">           mDecor = generateDecor(); //直接new出一个DecorView返回</span><br><span class="line">           ......</span><br><span class="line">       &#125;</span><br><span class="line">       if (mContentParent == null) &#123;</span><br><span class="line">           //[window] 这一步也是很重要的.</span><br><span class="line">           mContentParent = generateLayout(mDecor); </span><br><span class="line">           .......</span><br><span class="line">           &#125;</span><br><span class="line">       .......</span><br></pre></td></tr></table></figure>
-<p>&emsp;而在generateLayout中<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">//根据不同的style生成不同的decorview啊</span><br><span class="line">       View in = mLayoutInflater.inflate(layoutResource, null);</span><br><span class="line">       // 加入到deco中,所以应该是其第一个child</span><br><span class="line">       decor.addView(in, new ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT));</span><br><span class="line">       mContentRoot = (ViewGroup) in; </span><br><span class="line">       //给DecorView的第一个child是mContentView</span><br><span class="line">       // 这是获得所谓的content</span><br><span class="line">       ViewGroup contentParent = (ViewGroup)findViewById(ID_ANDROID_CONTENT);</span><br></pre></td></tr></table></figure></p>
-<p>  &emsp;将View添加到DecorView的mContentParent中,这步只需要一条语句就可,具体内部细节就不说啦.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">//第二步,将layout添加到mContentParent</span><br><span class="line">       mLayoutInflater.inflate(layoutResID, mContentParent);</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;然后就是回调Acitivity的onContentChanged方法通知Activity视图已经改变了.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">final Callback cb = getCallback();</span><br><span class="line">       if (cb != null &amp;&amp; !isDestroyed()) &#123;</span><br><span class="line">           cb.onContentChanged();</span><br><span class="line">       &#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;经历了上述三个步骤,DecorView已经创建并初始化完毕,并且Activity的布局文件已经成功添加到DecorView的mContentParent中,但是DecorView并没有添加到WindowManager中去,也无法接收外界的输入,只有到Acitivity的makeVisible()被调用时,DecorView才真正完成了添加和显示过程.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">//DecorView正式添加并显示</span><br><span class="line">void makeVisible() &#123;</span><br><span class="line">   if (!mWindowAdded) &#123;</span><br><span class="line">        ViewManager wm = getWindowManager();</span><br><span class="line">        wm.addView(mDecor, getWindow().getAttributes());</span><br><span class="line">        mWindowAdded = true;</span><br><span class="line">    &#125;</span><br><span class="line">    mDecor.setVisibility(View.VISIBLE);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>&emsp;这篇博文主要是读书笔记式的总结,本来想写一些自己的东西,但是研究的太浅,并且语言组织上还是有不足,以后还需要注意和继续努力啦.</p>
-
-        
-        
-        <p class="article-more-link">
-          
-       </p>
-    </div>
-    <footer class="article-footer clearfix">
-<div class="article-catetags">
-
-<div class="article-categories">
-  <span></span>
-  <a class="article-category-link" href="/categories/Android/">Android</a>►<a class="article-category-link" href="/categories/Android/源码分析/">源码分析</a>
-</div>
-
-
-  <div class="article-tags">
-  
-  <span></span> <a href="/tags/Android/">Android</a><a href="/tags/Window机制/">Window机制</a>
-  </div>
-
-</div>
-
-
-
-
-<div class="comments-count">
-	
-	  	<span></span>
-		<a href="/2015/10/28/Window和WindowManager解析/#comments" class="ds-thread-count comments-count-link" data-thread-key="2015/10/28/Window和WindowManager解析/" data-count-type="comments">&nbsp;</a>
-	
-</div>
-
-</footer>
-
-
-    </article>
-
-
-
-
-
-
 
   <nav id="page-nav" class="clearfix">
     <a class="extend prev" rel="prev" href="/page/3/"><span></span>Prev</a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><span class="page-number current">4</span><a class="page-number" href="/page/5/">5</a><a class="extend next" rel="next" href="/page/5/">Next<span></span></a>
@@ -950,6 +956,10 @@
 		  
 		
 		  
+			<li><a href="/categories/分布式/" title="分布式">分布式<sup>1</sup></a></li>
+		  
+		
+		  
 			<li><a href="/categories/思考/" title="思考">思考<sup>1</sup></a></li>
 		  
 		
@@ -958,11 +968,11 @@
 		  
 		
 		  
-			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
+			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
 		  
 		
 		  
-			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
+			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
 		  
 		
 		  
@@ -1027,15 +1037,11 @@
 			
 		
 			
+				<li><a href="/tags/算法/" title="算法">算法<sup>3</sup></a></li>
+			
+		
+			
 				<li><a href="/tags/注解/" title="注解">注解<sup>3</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
 			
 		
 			
@@ -1043,23 +1049,23 @@
 			
 		
 			
-				<li><a href="/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/算法/" title="算法">算法<sup>2</sup></a></li>
-			
-		
-			
 				<li><a href="/tags/Span/" title="Span">Span<sup>2</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/React-Native/" title="React Native">React Native<sup>1</sup></a></li>
+				<li><a href="/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
 			
 		
 			
@@ -1083,15 +1089,19 @@
 			
 		
 			
-				<li><a href="/tags/MotionEvent/" title="MotionEvent">MotionEvent<sup>1</sup></a></li>
+				<li><a href="/tags/工具/" title="工具">工具<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/epoll/" title="epoll">epoll<sup>1</sup></a></li>
+				<li><a href="/tags/draw/" title="draw">draw<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/AQS/" title="AQS">AQS<sup>1</sup></a></li>
+				<li><a href="/tags/市场/" title="市场">市场<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/http/" title="http">http<sup>1</sup></a></li>
 			
 		
 			
