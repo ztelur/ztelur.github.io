@@ -72,6 +72,104 @@
         <header class="article-info clearfix">
   <h1 itemprop="name">
     
+      <a href="/2016/05/09/Property-Animation框架详解-一/" title="Property Animation框架详解(一)" itemprop="url">Property Animation框架详解(一)</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2016-05-09T06:14:19.000Z" itemprop="datePublished"> Published 2016-05-09</time>
+    
+  </p>
+</header>
+    <div class="article-content">
+        
+        <p>作者： <a href="http://ztelur.github.io/" target="_blank" rel="external">ztelur</a><br>联系方式：<a href="https://segmentfault.com/u/remcarpediem" target="_blank" rel="external">segmentfault</a>，<a href="http://blog.csdn.net/u012422440" target="_blank" rel="external">csdn</a>，<a href="http://www.jianshu.com/users/481d9f540fb9/latest_articles" target="_blank" rel="external">简书</a></p>
+<blockquote>
+<p>本文转载请注明原作者、文章来源，链接，版权归原文作者所有。</p>
+</blockquote>
+<p>&emsp;前段时间阅读了一篇关于Android动画学习的文章《如何学习 Android Animation？》，深感Android动画种类繁复，类型多遍，虽然自己实现过很多动画效果，但是对Android动画的整体领悟还有所欠缺，所以决定最近好好研究一下Android动画的相关内容。<br>&emsp;我首先决定好好看一下Android属性动画的相关源码，因为平时属性动画用的最多而且涉及的知识点也很多。于是写下这个系列的总结笔记吧，预计一共两篇文章。<br>&emsp;为了节约你的时间，本文主要内容如下:</p>
+<ul>
+<li><code>ValueAnimator</code>,<code>PropertyValuesHolder</code>和<code>Keyframe</code>之间的关系</li>
+<li>使用<code>ValueAnimator</code>实现动画的背后原理，本篇不包括<code>Choreographer</code>原理的分析。</li>
+<li><code>Keyframe</code>的动画数据计算原理。</li>
+<li><code>ObjectAnimator</code>的属性赋值问题。</li>
+</ul>
+<p>&emsp;先上一张Android Animation相关的UML图吧。<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/2016510-animation-Animation.jpg" alt="Android Property Animation 类图"></p>
+<h4 id="使用ValueAnimator实现动画"><a href="#使用ValueAnimator实现动画" class="headerlink" title="使用ValueAnimator实现动画"></a><strong>使用ValueAnimator实现动画</strong></h4><p>&emsp;我们先来看<code>ValueAnimator</code>实现一个Android动画的小例子吧。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ValueAnimator animation = ValueAnimator.ofFloat(<span class="number">0f</span>, <span class="number">1f</span>);</span><br><span class="line">animation.setDuration(<span class="number">1000</span>);</span><br><span class="line">animation.start();</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;当然，上述并不是全部的代码，你需要使用<code>AnimatorUpdateListener</code>来监控<code>ValueAnimator</code>来自己实视图属性设置来完成动画。<br>&emsp;下面，我们就以上述实例为基础，来讲述一下Android属性动画原理。</p>
+<h4 id="ValueAnimator的初始化"><a href="#ValueAnimator的初始化" class="headerlink" title="ValueAnimator的初始化"></a><strong>ValueAnimator的初始化</strong></h4><p>&emsp;相信大家在使用<code>ValueAnimator</code>或者<code>ObjectAnimator</code>的使用，一般都是直接使用其工厂方法来获得对象实例，而不是直接new出来。我们现在就从<code>ofFloat</code>这个工厂方法入手，来分析一下<code>ValueAnimator</code>的初始化过程。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> ValueAnimator <span class="title">ofFloat</span><span class="params">(<span class="keyword">float</span>... values)</span> </span>&#123;</span><br><span class="line">    ValueAnimator anim = <span class="keyword">new</span> ValueAnimator();</span><br><span class="line">    anim.setFloatValues(values);</span><br><span class="line">    <span class="keyword">return</span> anim;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;首先这个函数的参数是一个可变长参数，也就是说你既可以想第一节的例子一样传入两个值，也可以传入三个，四个值，也就是说传入的数值个数是不限的。传入数值个数不同，对其内部初始化过程有很大的影响，具体影响之后会讲到。</p>
+<p>&emsp;<code>ValueAnimator</code>的构造函数是一个空函数，没有任何内容，所以我们直接调到<code>setFloatValues</code>函数。大家要注意的是，这个函数有对应的一系列函数，比如<code>setIntValues</code>，但是<code>setIntValues</code>会在<code>ofInt</code>这个工厂方法中被调用。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setFloatValues</span><span class="params">(<span class="keyword">float</span>... values)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (values == <span class="keyword">null</span> || values.length == <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// mValues如果没有初始化或者无值的话</span></span><br><span class="line">    <span class="keyword">if</span> (mValues == <span class="keyword">null</span> || mValues.length == <span class="number">0</span>) &#123;</span><br><span class="line">        setValues(PropertyValuesHolder.ofFloat(<span class="string">""</span>, values));</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">//否则直接取出第一个位置的对象，进行复制。</span></span><br><span class="line">        PropertyValuesHolder valuesHolder = mValues[<span class="number">0</span>];</span><br><span class="line">        valuesHolder.setFloatValues(values);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// New property/values/target should cause re-initialization prior to starting</span></span><br><span class="line">    mInitialized = <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;上述代码主要是进行<code>mValues</code>的初始化或者赋值，并涉及到<code>PropertyValuesHolder</code>的初始化过程了，相应得，<code>PropertyValuesHolder</code>的<code>setFloatValues</code>和<code>ofFloat</code>函数也是一系列函数中的一个，用于Float数据的初始化。<br>&emsp;<code>PropertyValuesHolder</code>这个类包含了属性(<code>Property</code>)和在动画期间属性的相关数值，它是属性动画中很重要的一个类，基本上属性的反射赋值，属性数值随时间变化的原理都在其中。它的<code>ofFloat</code>方法中就是实例化了一个<code>FloatPropertyValuesHolder</code>对象，它是<code>PropertyValuesHolder</code>的子类。所以我们直接看对应的构造函数及其相关函数。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="title">PropertyValuesHolder</span><span class="params">(String propertyName)</span> </span>&#123;</span><br><span class="line">    mPropertyName = propertyName;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">FloatPropertyValuesHolder</span><span class="params">(String propertyName, <span class="keyword">float</span>... values)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>(propertyName);</span><br><span class="line">    setFloatValues(values);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;从代码中可以看出，构造函数只是将传入的属性名赋值给<code>mPropertyName</code>,并且调用<code>setFloatValues</code>函数，仔细的读者可能会发现发现在<code>ValueAnimator</code>的<code>setFloatValues</code>函数中也调用了<code>PropertyValueHoler</code>的这个函数。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setFloatValues</span><span class="params">(<span class="keyword">float</span>... values)</span> </span>&#123;</span><br><span class="line">   <span class="comment">//做了两个事情,一是设置了类型,另外一个是生成了Keyframe,关键的类就是Keyframe啦</span></span><br><span class="line">    mValueType = <span class="keyword">float</span>.class;</span><br><span class="line">    mKeyframes = KeyframeSet.ofFloat(values);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;在<code>setFloatValues</code>中，函数记录了数值的类型<code>float.class</code>，这个在属性赋值时需要用到，并且使用<code>KeyframeSet</code>的<code>ofFloat</code>方法实例化了一个<code>Keyframe</code>。我们之前说<code>PropertyValueHoler</code>负责动画期间数值的变化，其实真正负责的对象是<code>Keyframe</code>。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> KeyframeSet <span class="title">ofFloat</span><span class="params">(<span class="keyword">float</span>... values)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> numKeyframes = values.length;</span><br><span class="line">    FloatKeyframe keyframes[] = <span class="keyword">new</span> FloatKeyframe[Math.max(numKeyframes,<span class="number">2</span>)];</span><br><span class="line">    <span class="keyword">if</span> (numKeyframes == <span class="number">1</span>) &#123;</span><br><span class="line">        keyframes[<span class="number">0</span>] = (FloatKeyframe) Keyframe.ofFloat(<span class="number">0f</span>);</span><br><span class="line">        keyframes[<span class="number">1</span>] = (FloatKeyframe) Keyframe.ofFloat(<span class="number">1f</span>, values[<span class="number">0</span>]);</span><br><span class="line">        ....</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        keyframes[<span class="number">0</span>] = (FloatKeyframe) Keyframe.ofFloat(<span class="number">0f</span>, values[<span class="number">0</span>]);</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt; numKeyframes; ++i) &#123;</span><br><span class="line">            <span class="comment">// ofFloat的第一个参数会从小逐渐变大，最后为1f</span></span><br><span class="line">            keyframes[i] = (FloatKeyframe) Keyframe.ofFloat(</span><br><span class="line">                                      (<span class="keyword">float</span>) i / (numKeyframes - <span class="number">1</span>), values[i]);</span><br><span class="line">            ....</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    .....</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> FloatKeyframeSet(keyframes);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;说实话，刚看到这里，我并不是很明白<code>Keyframe</code>初始化的传参问题，为什么第一个参数fraction是从小到大最终为1呢？我们可以往看一下。<code>FloatKeyframe</code>的工厂方法和构造函数都很简单，只是将传入的参数赋值给成员变量。<code>FloatKeyframeSet</code>的构造函数也只是调用了<code>KeyframeSet</code>的构造函数。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">KeyframeSet</span><span class="params">(Keyframe... keyframes)</span> </span>&#123;</span><br><span class="line">    mNumKeyframes = keyframes.length;</span><br><span class="line">    mKeyframes = Arrays.asList(keyframes);</span><br><span class="line">    mFirstKeyframe = keyframes[<span class="number">0</span>];</span><br><span class="line">    mLastKeyframe = keyframes[mNumKeyframes - <span class="number">1</span>];</span><br><span class="line">    mInterpolator = mLastKeyframe.getInterpolator();<span class="comment">//以最后一个为准</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;看到这里大家可能感到疑惑，我们好像没有看到<code>Keyframe</code>中的<code>Interpolator</code>初始化啊，这是怎么回事呢？我检查了代码，它在<code>Keyframe</code>中确实没有初始化，而且必须通过<code>setInterpolator</code>，而且<code>KeyframeSet</code>中也没有进行相应的初始化。<br>&emsp;至此，<code>ValueAnimator</code>的整个初始化就结束了，它将<code>ValueAnimator</code>,<code>PropertyValueHoler</code>还有<code>Keyframe</code>连接起来，三者的职责划分十分清楚明了。</p>
+<h4 id="动画start之后"><a href="#动画start之后" class="headerlink" title="动画start之后"></a><strong>动画start之后</strong></h4><p>&emsp;接着，我们就来看start函数调用之后的源码吧。我们直接来看<code>start(boolean)</code>这个函数。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">start</span><span class="params">(<span class="keyword">boolean</span> playBackwards)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (Looper.myLooper() == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> AndroidRuntimeException(<span class="string">"Animators may only be run on Looper threads"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    .....</span><br><span class="line">    <span class="comment">//这边是重点，涉及到ThreadLocal的使用</span></span><br><span class="line">    AnimationHandler animationHandler = getOrCreateAnimationHandler();</span><br><span class="line">    animationHandler.mPendingAnimations.add(<span class="keyword">this</span>);</span><br><span class="line">    ....</span><br><span class="line">    animationHandler.start();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;省略的内容中是一些成员变量的赋值，比如<code>mPlayingBackwards</code>，<code>mSeekFraction</code>，和<code>mPlayingState</code>。大家从字面上就能理解它们的作用，这里就不细说。<br>&emsp;<code>getOrCreateAnimationHandler</code>中涉及到<code>ThreadLocal</code>的使用，相比了解<code>Handler</code>,<code>Looper</code>相关原理的同学都比较了解，这里也不具体讲解，感兴趣的同学可以去学习一下，可以简单的理解为每个线程都可以保存一个单例的一种实现方法。<br>&emsp;我们着重的了解一下<code>AnimationHandler</code>,它是<code>Runnable</code>的子类。它的<code>start</code>函数中直接调用了<code>scheduleAnimation</code>函数。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">scheduleAnimation</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!mAnimationScheduled) &#123;</span><br><span class="line">        mChoreographer.postCallback(Choreographer.CALLBACK_ANIMATION, <span class="keyword">this</span>, <span class="keyword">null</span>);</span><br><span class="line">        mAnimationScheduled = <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;这里涉及了另外一个比较重要的类<code>Choreographer</code>，我们将在写一篇文章中详细说明这个类的代码，现在大家只要知道使用<code>postCallback</code>注册了这个类之后，它会协调不同动画或者其他活动的时间，并每隔一定时间之后调用该<code>Runnable</code>的<code>run</code>方法,并且<code>getFrameTime</code>可以获得调用时的时间，需要注意的是这个时间不一定是<code>System.nanoTime</code>。<br>&emsp;在<code>run()</code>函数里调用了<code>doAnimationFrame</code>并将<code>Choreographer</code>的<code>getFrameTime</code>获得的时间值传递进去。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">doAnimationFrame</span><span class="params">(<span class="keyword">long</span> frameTime)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mPlayingState == STOPPED) &#123;</span><br><span class="line">        mPlayingState = RUNNING;</span><br><span class="line">        ...</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (mPaused) &#123;</span><br><span class="line">        ....</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (mResumed) &#123;</span><br><span class="line">      ....</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">long</span> currentTime = Math.max(frameTime, mStartTime);</span><br><span class="line">    <span class="keyword">return</span> animationFrame(currentTime);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;在<code>doAnimationFrame</code>中，程序会根据<code>mPlayingState</code>做一些相应的操作，并改变状态值，最后调用<code>animationFrame</code>。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">animationFrame</span><span class="params">(<span class="keyword">long</span> currentTime)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">boolean</span> done = <span class="keyword">false</span>;</span><br><span class="line">    <span class="keyword">switch</span> (mPlayingState) &#123;</span><br><span class="line">    <span class="keyword">case</span> RUNNING:</span><br><span class="line">    <span class="keyword">case</span> SEEKED:</span><br><span class="line">        <span class="keyword">float</span> fraction = mDuration &gt; <span class="number">0</span> ? (<span class="keyword">float</span>)(currentTime - mStartTime) / mDuration : <span class="number">1f</span>;</span><br><span class="line">        ....</span><br><span class="line">        animateValue(fraction);</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> done;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;我们可以看到，这里通过开始时间，当前事件和每帧动画间隔事件求出了一个<code>fraction</code>,然后代码中的省略部分主要是处理动画重复播放和倒着播发时的<code>fraction</code>处理，最后调用<code>animateValue</code>函数。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">animateValue</span><span class="params">(<span class="keyword">float</span> fraction)</span> </span>&#123;</span><br><span class="line">    fraction = mInterpolator.getInterpolation(fraction);</span><br><span class="line">    mCurrentFraction = fraction;</span><br><span class="line">    <span class="keyword">int</span> numValues = mValues.length;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; numValues; ++i) &#123;</span><br><span class="line">        mValues[i].calculateValue(fraction);<span class="comment">//ViewPropertyViewHolder</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (mUpdateListeners != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">int</span> numListeners = mUpdateListeners.size();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; numListeners; ++i) &#123;</span><br><span class="line">            <span class="comment">//这边就结束啦，直接传递给AnimationUpdateListener</span></span><br><span class="line">            mUpdateListeners.get(i).onAnimationUpdate(<span class="keyword">this</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;这个函数是理解动画流程的关键之一，你首先可以看到<code>Interpolator</code>的使用，这个参数传入的<code>fraction</code>是通过动画开始时间和当前时间计算出来的，而通过不同<code>Interpolator</code>进行转换，无论是<code>BounceInterpolator</code>还是<code>LinerInterpolator</code>。接着，<code>ValueAnimator</code>调用了<code>mValues</code>保存的所有<code>ViewPropertyViewHolder</code>的<code>calculateValue</code>方法，让其去计算动画需要的数据。最后通过<code>AnimatorUpdateListenters</code>通知用户，然后我们会在回调函数中进行响应的操作。<code>ObjectAnimator</code>会override这个函数，然后加上属性反射赋值的相关逻辑。我们先来看如何计算动画所需的数值吧。</p>
+<h4 id="动画所需数值计算"><a href="#动画所需数值计算" class="headerlink" title="动画所需数值计算"></a><strong>动画所需数值计算</strong></h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">calculateValue</span><span class="params">(<span class="keyword">float</span> fraction)</span> </span>&#123;</span><br><span class="line">    mFloatAnimatedValue = mFloatKeyframes.getFloatValue(fraction);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;从代码上来看，<code>FloatViewPropertyViewHolder</code>将计算动画所需的数值的任务又交给了<code>Keyframe</code>,这也符合二者的职责分配。我们按照之前的分析，来看一下<code>FloatKeyframeSet</code>的响应操作。<code>getValue</code>中直接调用了<code>getFloatValue</code>函数，而后者是了解动画相关数值计算的关键函数。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">float</span> <span class="title">getFloatValue</span><span class="params">(<span class="keyword">float</span> fraction)</span> </span>&#123;</span><br><span class="line">  <span class="comment">//分为两种情况,一个是2 Keyframe时一般就是你给出两个值进行初始化,另外一个是多个keyframe时</span></span><br><span class="line">    <span class="keyword">if</span> (mNumKeyframes == <span class="number">2</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (firstTime) &#123;</span><br><span class="line">            firstTime = <span class="keyword">false</span>;</span><br><span class="line">            firstValue = ((FloatKeyframe) mKeyframes.get(<span class="number">0</span>)).getFloatValue();</span><br><span class="line">            lastValue = ((FloatKeyframe) mKeyframes.get(<span class="number">1</span>)).getFloatValue();</span><br><span class="line">            deltaValue = lastValue - firstValue;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//如果KeyframeSet也有Interpolator</span></span><br><span class="line">        <span class="keyword">if</span> (mInterpolator != <span class="keyword">null</span>) &#123;</span><br><span class="line">            fraction = mInterpolator.getInterpolation(fraction);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//如果有Evaluator，那么使用它计算，如果没有就使用默认计算方法。</span></span><br><span class="line">        <span class="keyword">if</span> (mEvaluator == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> firstValue + fraction * deltaValue;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> ((Number)mEvaluator.evaluate(fraction, firstValue, lastValue)).floatValue();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//处理多个Keyframe的情况</span></span><br><span class="line">    ..... <span class="comment">//省略代码处是处理fraction&lt;=0和fraction&gt;=1的特殊情况</span></span><br><span class="line">    FloatKeyframe prevKeyframe = (FloatKeyframe) mKeyframes.get(<span class="number">0</span>);</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt; mNumKeyframes; ++i) &#123;</span><br><span class="line">        FloatKeyframe nextKeyframe = (FloatKeyframe) mKeyframes.get(i);</span><br><span class="line">        <span class="comment">//找到第一个可以处理这个fraction的keyframe。</span></span><br><span class="line">        <span class="keyword">if</span> (fraction &lt; nextKeyframe.getFraction()) &#123;</span><br><span class="line">            <span class="keyword">final</span> TimeInterpolator interpolator = nextKeyframe.getInterpolator();</span><br><span class="line">            <span class="keyword">if</span> (interpolator != <span class="keyword">null</span>) &#123;</span><br><span class="line">                fraction = interpolator.getInterpolation(fraction);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//在构造Keyframe时，我们知道第i个Keyframe的fraction就是i/(总个数)</span></span><br><span class="line">            <span class="comment">//所以下边这个计算公式就是将整个动画区间的fraction转变成prevKeyframe到nextKeyframe</span></span><br><span class="line">            <span class="comment">//这个小区间中的fraction</span></span><br><span class="line">            <span class="keyword">float</span> intervalFraction = (fraction - prevKeyframe.getFraction()) /</span><br><span class="line">                (nextKeyframe.getFraction() - prevKeyframe.getFraction());</span><br><span class="line">            <span class="comment">//用于计算动画数值的值区间是前一个Keyframe的value和当前的value</span></span><br><span class="line">            <span class="keyword">float</span> prevValue = prevKeyframe.getFloatValue();</span><br><span class="line">            <span class="keyword">float</span> nextValue = nextKeyframe.getFloatValue();</span><br><span class="line">            <span class="comment">//默认计算方式或者使用Evaluator进行计算</span></span><br><span class="line">            <span class="keyword">return</span> mEvaluator == <span class="keyword">null</span> ?</span><br><span class="line">                    prevValue + intervalFraction * (nextValue - prevValue) :</span><br><span class="line">                    ((Number)mEvaluator.evaluate(intervalFraction, prevValue, nextValue)).</span><br><span class="line">                        floatValue();</span><br><span class="line">        &#125;</span><br><span class="line">        prevKeyframe = nextKeyframe;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ((Number)mKeyframes.get(mNumKeyframes - <span class="number">1</span>).getValue()).floatValue();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;代码中有很详细的注释，大家自己阅读吧，理解这段代码，感觉对Android动画框架的理解十分的重要，你会对其中动画数值的计算有更加深刻的理解。</p>
+<h4 id="ObjectAnimator的属性赋值"><a href="#ObjectAnimator的属性赋值" class="headerlink" title="ObjectAnimator的属性赋值"></a><strong>ObjectAnimator的属性赋值</strong></h4><p>&emsp;如果你使用<code>ObjectAnimator</code>来实现动画的话，我们可以验证上述关于<code>ValueAnimator</code>的梳理路线继续走下去，动画所需的数值已经计算完全，之后就是对属性继续赋值了。我们来看<code>ObjectAnimator</code>的<code>animateValue</code>函数。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">animateValue</span><span class="params">(<span class="keyword">float</span> fraction)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> Object target = getTarget();</span><br><span class="line">    <span class="comment">//target是一个WeakReference，使用前需要检查。</span></span><br><span class="line">    <span class="keyword">if</span> (mTarget != <span class="keyword">null</span> &amp;&amp; target == <span class="keyword">null</span>) &#123;</span><br><span class="line">        cancel();</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">super</span>.animateValue(fraction);</span><br><span class="line">    <span class="keyword">int</span> numValues = mValues.length;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; numValues; ++i) &#123;</span><br><span class="line">        <span class="comment">//这是使用反射将值赋给对象的啦.</span></span><br><span class="line">        mValues[i].setAnimatedValue(target);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;这个函数首先调用了父函数，进行计算数值，然后遍历<code>mValues</code>来设置对象的属性值。我们直接看<code>FloatPropertyValuesHolder</code>的<code>setAnimatedValue</code>函数。当然不同的<code>PropertyValuesHolder</code>子类的这个函数的实现都是差不多，只是涉及的数据类型不同。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">setAnimatedValue</span><span class="params">(Object target)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mFloatProperty != <span class="keyword">null</span>) &#123;</span><br><span class="line">        mFloatProperty.setValue(target, mFloatAnimatedValue);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (mProperty != <span class="keyword">null</span>) &#123;</span><br><span class="line">        mProperty.set(target, mFloatAnimatedValue);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (mJniSetter != <span class="number">0</span>) &#123;</span><br><span class="line">        nCallFloatMethod(target, mJniSetter, mFloatAnimatedValue);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (mSetter != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            mTmpValueArray[<span class="number">0</span>] = mFloatAnimatedValue;</span><br><span class="line">            mSetter.invoke(target, mTmpValueArray);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InvocationTargetException e) &#123;</span><br><span class="line">            Log.e(<span class="string">"PropertyValuesHolder"</span>, e.toString());</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IllegalAccessException e) &#123;</span><br><span class="line">            Log.e(<span class="string">"PropertyValuesHolder"</span>, e.toString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;通过上述代码，<code>ObjectAnimator</code>就将每一次计算而来的数值赋值给View的对象的相应属性上，形成了动画。</p>
+<h4 id="后记"><a href="#后记" class="headerlink" title="后记"></a><strong>后记</strong></h4><p>&emsp;本文介绍了Android属性动画的基本框架流程，为的是让大家更好的理解Andorid动画。但是Android动画这一类的知识还是需要多多实践和练习才能发挥其正真的价值，所以，希望自己之后写出几个比较好的动画效果在来和大家进行分享吧。</p>
+
+        
+        
+        <p class="article-more-link">
+          
+       </p>
+    </div>
+    <footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/Android/">Android</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/animation/">animation</a>
+  </div>
+
+</div>
+
+
+
+
+<div class="comments-count">
+	
+	  	<span></span>
+		<a href="/2016/05/09/Property-Animation框架详解-一/#comments" class="ds-thread-count comments-count-link" data-thread-key="2016/05/09/Property-Animation框架详解-一/" data-count-type="comments">&nbsp;</a>
+	
+</div>
+
+</footer>
+
+
+    </article>
+
+
+
+
+
+
+   
+    
+    <article class="post-expand post" itemprop="articleBody"> 
+        <header class="article-info clearfix">
+  <h1 itemprop="name">
+    
       <a href="/2016/05/01/SICP-习题2-6之丘奇数/" title="SICP 习题2.6之丘奇数" itemprop="url">SICP 习题2.6之丘奇数</a>
   </h1>
   <p class="article-author">By
@@ -1041,109 +1139,6 @@
 
 
 
-   
-    
-    <article class="post-expand post" itemprop="articleBody"> 
-        <header class="article-info clearfix">
-  <h1 itemprop="name">
-    
-      <a href="/2016/02/24/译-使用注解处理器生成代码-2-注解处理器/" title="[译]使用注解处理器生成代码-2 注解处理器" itemprop="url">[译]使用注解处理器生成代码-2 注解处理器</a>
-  </h1>
-  <p class="article-author">By
-       
-		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
-		
-  <p class="article-time">
-    <time datetime="2016-02-24T14:12:03.000Z" itemprop="datePublished"> Published 2016-02-24</time>
-    
-  </p>
-</header>
-    <div class="article-content">
-        
-        <p> 原文请看<a href="https://deors.wordpress.com/2011/10/08/annotation-processors/" target="_blank" rel="external">摸我</a><br> 这是有关注解代码生成技术系列博文的第二部分。在第一部分（<a href="https://deors.wordpress.com/2011/09/26/annotation-types/" target="_blank" rel="external">摸我</a>）中，我们介绍了注解的基本概念与用法。<br> 在本篇博文中我们将介绍注解处理器的基本概念和使用运行方法。</p>
-<h4 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h4><p> 注解功能强大。你可以使用注解来设置各类元数据或者配置信息，语法格式优雅并且功能强大。<br> 从目前我们了解的知识来看，注解比起<code>Javadoc</code>来有很多优势，但是这些好像都不足以委员会将其加入java语言之中。那么，我们可以更好的利用和了解注解吗？当然可以啦：</p>
-<ul>
-<li>在运行时刻，带有<code>runtime retention policy</code>的注解可以通过反射获得，<code>Class</code>类中的<code>getAnnotation()</code>和<code>getAnnotations()</code>方法可以做到这些。</li>
-<li>在编译时刻，注解处理器可以处理在编译时发现的各类注解。</li>
-</ul>
-<p>####注解处理器API<br> 当注解在Java 5 首次被引入时，注解处理器API还不是很成熟和规范化。处理注解需要一个单独的工具，叫做<code>apt</code>,注解处理工具；还需要<code>Mirror</code> API(com.sun.mirror),用于编写自定义处理器。<br> 从java 6开始，注解处理通过<code>JSR 269(2)</code>被标准化，被集成进标准库并且<code>apt</code>无缝的集成到java编译器javac中。<br> 因为我们只详细讲述Java 6 中的注解处理器相关API,你可以在<a href="http://download.oracle.com/javase/1.5.0/docs/guide/apt/" target="_blank" rel="external">这里</a>和<a href="http://download.oracle.com/javase/1.5.0/docs/guide/apt/mirror/overview-summary.html" target="_blank" rel="external">这里</a>找到关于java 5中注解的更多信息,并在<a href="http://www.javalobby.org/java/forums/t17876.html" target="_blank" rel="external">这里</a>找到一些例子。<br> 自定义注解处理器只是实现了<code>javax.annotation.processing.Processor</code>接口并准从指定的协议。为了我们的便利，自定义处理器一些常用的功能都由<code>javax.annotation.processing.AbstractProcessor</code>这个类给出了抽象实现。<br> 自定义注解处理器可以使用到一下三个注解来配置自己：</p>
-<ul>
-<li><strong>javax.annotation.processing.SupportedAnnotationTypes</strong>：这个注解用来注册注解处理器要处理的注解类型。有效值为完全限定名（就是带所在包名和路径的类全名）-通配符（此次英语原文为Wildcards,就是？这个符号代表的类型。比如说<code>List&lt;? extends String</code>,想要深入了解，可以看一下<a href="http://stackoverflow.com/questions/18176594/when-to-use-generic-methods-and-when-to-use-wild-card" target="_blank" rel="external">这里</a>）也可以。</li>
-<li><strong>javax.annotation.processing.SupportedSourceVersion</strong>:这是用来注册注解处理器要处理的源代码版本。</li>
-<li><strong>javax.annotation.processing.SupportedOptions</strong>:这个注解用来注册可能通过命令行传递给处理器的操作选项。<br>(译者语：对于android注解处理器，第一个注解比较有用，另外两个了解就可)<br> 最后，我们提供<code>process()</code>方法的实现。<h4 id="实现我们第一个注解处理器"><a href="#实现我们第一个注解处理器" class="headerlink" title="实现我们第一个注解处理器"></a>实现我们第一个注解处理器</h4> 让我们开始第一个注解处理器的实现。按照之前章节的知识，我们实现了下面这个类来处理第一篇博文中的<code>Complexity</code>注解：<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> sdc.assets.annotations.processors;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">import</span> …</span><br><span class="line"></span><br><span class="line">   <span class="meta">@SupportedAnnotationTypes</span>(<span class="string">"sdc.assets.annotations.Complexity"</span>)</span><br><span class="line">   <span class="meta">@SupportedSourceVersion</span>(SourceVersion.RELEASE_6)</span><br><span class="line">   <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ComplexityProcessor</span> <span class="keyword">extends</span> <span class="title">AbstractProcessor</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="title">ComplexityProcessor</span><span class="params">()</span> </span>&#123;</span><br><span class="line">           <span class="keyword">super</span>();</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       <span class="meta">@Override</span></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">process</span><span class="params">(Set&lt;? extends TypeElement&gt; annotations,</span><br><span class="line">                              RoundEnvironment roundEnv)</span> </span>&#123;</span><br><span class="line">           <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-<p> 这个未完全完成的类，尽管没有任何操作，但是注册可以支持处理<code>sdc.assets.annotations.Complexity</code>注解类型。因此，每次java编译器遇到一个被<code>Complexity</code>标记的类都有执行这个处理器，假设这个处理器在那个路径中可以被获得（具体原由之后会看到）。<br> <code>process()</code>方法会受到两个输入参数：</p>
-<ul>
-<li><strong>Set&lt;? extends TypeElement&gt;</strong>：注解处理需要执行一次或者多次。每次执行时，处理器方法被调用，并且传入了当前要处理的注解类型。</li>
-<li><strong>RoundEnvironment</strong>:这个对象提供当前或者上一次注解处理中被注解标注的源文件元素。（简单点说，就是可以获得所有被标注的元素，无论是类，参数，函数还是变量）<br> 除了上述两个参数之外，<code>ProcessingEnvironment</code>对象也可以通过<code>processingEnv</code>实例获得。这个对象可以提供一些关于日志，文件读写的通用工具类；它的一些功能之后会讨论到。<br> 使用<code>RoundEnvironment</code>对象和<code>Element</code>接口的反射相关的函数，我们可以实现一个打印<code>Complexity</code>标注元素名的注解处理器。</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (Element elem :roundEnv.getElementsAnnotatedWith(Complexity.class)) &#123;     </span><br><span class="line">  Complexity complexity = elem.getAnnotation(Complexity.class);     </span><br><span class="line">  String message = <span class="string">"annotation found in "</span> + elem.getSimpleName()                     + <span class="string">" with complexity "</span> + complexity.value();       processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, message); </span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">true</span>; <span class="comment">// no further processing of this annotation type</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h4 id="打包并且注册注解处理器"><a href="#打包并且注册注解处理器" class="headerlink" title="打包并且注册注解处理器"></a>打包并且注册注解处理器</h4><p> 自定义注解处理器的最后一步就是打包并且向java编译器获取其他可以识别处理器的工具进行注册。</p>
-<p> 注册处理器的最简单方法就是使用标注java服务机制：</p>
-<ul>
-<li>把你的注解处理器打包到jar文件中。</li>
-<li>把jar文件加入到META-INF/services目录。</li>
-<li>把javax.annotation.processing.Processor文件加入到目录。</li>
-<li>把处理器的全限定名写入一个文件中，一个处理器名一行。</li>
-</ul>
-<p> java编译器或者其他工具会搜索这个文件中标记的所有处理器，并且在注解处理过程中使用。<br> 在我们这个例子中，目录结构和文件内容如下：<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/apt-apt1.png" alt="picture1.png"></p>
-<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/apt-apt2.png" alt="picture2.png"><br> 一旦打包完成，我们就准备使用它。<br>(译者语：关于android平台的自动打包和使用，可以参考butterknife的方法，就是使用<a href="https://github.com/google/auto/tree/master/service" target="_blank" rel="external">AutoService</a>,这个详细知识之后我会单独博文讲解)</p>
-<h4 id="使用javac运行处理器"><a href="#使用javac运行处理器" class="headerlink" title="使用javac运行处理器"></a>使用javac运行处理器</h4><p> 想象一下你在一个项目中使用了一些自定义注解并且可以使用注解处理器。在java 5中，编译和注解处理是不同的两步，但是在java 6中，两个任务都集成到java编译器工具javac中。<br> 如果你把注解处理器加入到javac的路径中并且他们使用服务机制进行了注册，他们就会被javac执行调用啦。<br> 在我们这个例子中，下边这个命令会编译并且执行注解处理：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&gt;javac -cp sdc.assets.annotations-1.0-SNAPSHOT.jar;  </span><br><span class="line">sdc.assets.annotations.processors-1.0-SNAPSHOT.jar    </span><br><span class="line">SimpleAnnotationsTest.java</span><br></pre></td></tr></table></figure></p>
-<p> 用于处理的java类文件内容如下：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> sdc.startupassets.annotations.base.client; </span><br><span class="line"><span class="keyword">import</span> ... </span><br><span class="line"><span class="meta">@Complexity</span>(ComplexityLevel.VERY_SIMPLE) </span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SimpleAnnotationsTest</span> </span>&#123; </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="title">SimpleAnnotationsTest</span><span class="params">()</span> </span><br><span class="line">  </span>&#123; </span><br><span class="line">    <span class="keyword">super</span>(); </span><br><span class="line">  &#125; </span><br><span class="line">  <span class="meta">@Complexity</span>() <span class="comment">// this annotation type applies also to methods //   the default value 'ComplexityLevel.MEDIUM' is assumed </span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">theMethod</span><span class="params">()</span> </span><br><span class="line">  </span>&#123; </span><br><span class="line">    System.out.println(<span class="string">"consoleut"</span>); </span><br><span class="line">  &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p> 上述执行结果如下：</p>
-<p><img src="http://upload-images.jianshu.io/upload_images/623378-17ebea47a83ec437.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="picture3.png"></p>
-<p> 有一些javac的选项可以在一些特殊的情况下使用：</p>
-<ul>
-<li>-Akey[=value]：用来传递选项值给处理器，处理器只会接收在通过<code>SupportedOptions</code>注解注册的选项。</li>
-<li>-proc:{none|only}:默认情况下，javac会运行注解处理并且编译源码。使用<code>proc:none</code>选项，将不执行注解处理；使用<code>proc:only</code>选项将只执行注解处理过程-当你在注解处理器中运行验证或者质量检查工具或者代码审查工具时。</li>
-<li>-processorpath path：用来确定注解处理器和它的依赖的位置</li>
-<li>-s dir：用来确定通过注解处理生成的源代码放置在哪个文件夹中。这个目录在执行命令行之前必须存在。</li>
-<li>-processor class1[,class2,class3…]：用来给出将要执行的注解处理器全限定名，当使用这个选项时，默认的通过服务机制寻找到的注解处理器将被替换，直接使用命令行给出的处理器进行处理。<br>（译者语：下边两个章节因为和主干内容没有太大关系，所以没有翻译，请感兴趣的朋友自行查阅）<h4 id="Eclipse-中运行注解处理器"><a href="#Eclipse-中运行注解处理器" class="headerlink" title="Eclipse 中运行注解处理器"></a>Eclipse 中运行注解处理器</h4><h4 id="Maven中运行注解处理器"><a href="#Maven中运行注解处理器" class="headerlink" title="Maven中运行注解处理器"></a>Maven中运行注解处理器</h4></li>
-</ul>
-
-        
-        
-        <p class="article-more-link">
-          
-       </p>
-    </div>
-    <footer class="article-footer clearfix">
-<div class="article-catetags">
-
-<div class="article-categories">
-  <span></span>
-  <a class="article-category-link" href="/categories/Android/">Android</a>
-</div>
-
-
-  <div class="article-tags">
-  
-  <span></span> <a href="/tags/注解/">注解</a>
-  </div>
-
-</div>
-
-
-
-
-<div class="comments-count">
-	
-	  	<span></span>
-		<a href="/2016/02/24/译-使用注解处理器生成代码-2-注解处理器/#comments" class="ds-thread-count comments-count-link" data-thread-key="2016/02/24/译-使用注解处理器生成代码-2-注解处理器/" data-count-type="comments">&nbsp;</a>
-	
-</div>
-
-</footer>
-
-
-    </article>
-
-
-
-
-
-
 
   <nav id="page-nav" class="clearfix">
     <a class="extend prev" rel="prev" href="/page/2/"><span></span>Prev</a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><a class="page-number" href="/page/5/">5</a><a class="extend next" rel="next" href="/page/4/">Next<span></span></a>
@@ -1170,10 +1165,6 @@
 		
 		  
 			<li><a href="/categories/Android性能/" title="Android性能">Android性能<sup>1</sup></a></li>
-		  
-		
-		  
-			<li><a href="/categories/JUC/" title="JUC">JUC<sup>1</sup></a></li>
 		  
 		
 		  
@@ -1214,6 +1205,10 @@
 		
 		  
 			<li><a href="/categories/分布式/" title="分布式">分布式<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/并发/" title="并发">并发<sup>2</sup></a></li>
 		  
 		
 		  
@@ -1302,7 +1297,15 @@
 			
 		
 			
+				<li><a href="/tags/JUC/" title="JUC">JUC<sup>2</sup></a></li>
+			
+		
+			
 				<li><a href="/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
 			
 		
 			
@@ -1314,10 +1317,6 @@
 			
 		
 			
-				<li><a href="/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
-			
-		
-			
 				<li><a href="/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
 			
 		
@@ -1326,7 +1325,7 @@
 			
 		
 			
-				<li><a href="/tags/View-Architecture/" title="View Architecture">View Architecture<sup>1</sup></a></li>
+				<li><a href="/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
 			
 		
 			
@@ -1338,10 +1337,6 @@
 			
 		
 			
-				<li><a href="/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
-			
-		
-			
 				<li><a href="/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
 			
 		
@@ -1350,11 +1345,11 @@
 			
 		
 			
-				<li><a href="/tags/draw/" title="draw">draw<sup>1</sup></a></li>
+				<li><a href="/tags/MotionEvent/" title="MotionEvent">MotionEvent<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/市场/" title="市场">市场<sup>1</sup></a></li>
+				<li><a href="/tags/animation/" title="animation">animation<sup>1</sup></a></li>
 			
 		
 			
@@ -1362,7 +1357,7 @@
 			
 		
 			
-				<li><a href="/tags/animation/" title="animation">animation<sup>1</sup></a></li>
+				<li><a href="/tags/Animation/" title="Animation">Animation<sup>1</sup></a></li>
 			
 		
 		</ul>
