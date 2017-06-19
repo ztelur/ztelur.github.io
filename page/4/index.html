@@ -72,6 +72,122 @@
         <header class="article-info clearfix">
   <h1 itemprop="name">
     
+      <a href="/2016/03/07/译-使用注解处理器生成代码-3-生成源代码/" title="[译]使用注解处理器生成代码-3 生成源代码" itemprop="url">[译]使用注解处理器生成代码-3 生成源代码</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2016-03-07T13:51:20.000Z" itemprop="datePublished"> Published 2016-03-07</time>
+    
+  </p>
+</header>
+    <div class="article-content">
+        
+        <p> 本博文原文地址<a href="https://deors.wordpress.com/2011/10/31/annotation-generators/" target="_blank" rel="external">摸我</a><br> 本篇博文是关于使用注解处理器生成java代码系列的第三篇也是最后一篇文章。在第一篇（在<a href="http://www.jianshu.com/p/ed2a755fc053" target="_blank" rel="external">这里</a>）中，我们介绍了注解和其一般用法。在第二篇（在<a href="http://www.jianshu.com/p/d294bf008bec" target="_blank" rel="external">这里</a>）中，我们介绍了注解处理器，如何构造并且使用它。 在本篇博文中，我们将想你展示如何使用注解处理器来生成源代码。</p>
+<h4 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h4><p> 生成源代码很简单。生成正确的源代码却很难。优雅高效的去生成正确的代码是很麻烦的任务。<br> 幸运的是，Model-Driver Engineering(1)为我们提供了基于已经证明有效的过程和工具的成熟的方法理论。</p>
+<h4 id="MDE-的-Model-和-Meta-model"><a href="#MDE-的-Model-和-Meta-model" class="headerlink" title="MDE 的 Model 和 Meta-model"></a>MDE 的 Model 和 Meta-model</h4><p> 在讨论如何使用注解处理器生成源代码之前，有几个相关的概念我们要实现讲明，那就是<strong>models</strong> 和 <strong>meta-model</strong><br> MDE的理论基础之一为抽象的构造(construction of abstractions)。我们将软件系统在不同的层次和细节上使用不同的方法进行建模。当软件在一个抽象层次上被建模完成之后，我们就开始对下一个抽象层次进行建模，知道建立一个完备的，可部署的产品。<br> 在这种理论环境下，一个model 就是我们用来在某一抽象层级上表示软件系统的抽象。<br> meta-model就是我们用来写model的规则，你可以理解为model的纲要或者语法。</p>
+<h4 id="使用注解处理器生成源代码"><a href="#使用注解处理器生成源代码" class="headerlink" title="使用注解处理器生成源代码"></a>使用注解处理器生成源代码</h4><p> 由上述描述可见，注解是定义model和meta-model的好方法，注解类型(Annotation Type)充当meta-model的角色，标注在一段代码上的注解来提供model。<br> 我们可以使用这个model来生成配置文件或者从现有代码中生成新代码。比如，通过注解bean来生成远程代理或者数据访问对象。<br> 这个方法的核心就是使用注解处理器。注解处理器可以读取在源代码中发现的注解，并且对注解做任何想做的事情-比如，打开文件，写文件，等等。</p>
+<h4 id="Filter"><a href="#Filter" class="headerlink" title="Filter"></a>Filter</h4><p> 我们在第二篇博文中曾经说过，每个处理器都可以通过处理环境(processing environment)对象获得一些有用的工具，Filter就是其中之一。<br> <strong>javax.annotation.processing.Filer</strong>接口定义了一些关于创建源文件，类文件和一般资源的方法。通过使用<code>Filter</code>我们可以使用正确的文件目录，并且确保不会丢失文件系统中的生成的文件或者资源。<br> 下面这个例子可以显示如何在注解处理器中生成代码。生成的类名就是被注解的类名加上BeanInfo的后缀：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">if</span> (e.getKind() == ElementKind.CLASS) &#123;     </span><br><span class="line">  TypeElement classElement = (TypeElement) e;</span><br><span class="line">  PackageElement packageElement =         </span><br><span class="line">        (PackageElement) classElement.getEnclosingElement();  </span><br><span class="line">  JavaFileObject jfo =  processingEnv.getFiler().</span><br><span class="line">        createSourceFile(classElement.getQualifiedName() </span><br><span class="line">        + <span class="string">"BeanInfo"</span>);     </span><br><span class="line"></span><br><span class="line">  BufferedWriter bw = <span class="keyword">new</span> BufferedWriter(jfo.openWriter());       </span><br><span class="line">  bw.append(<span class="string">"package "</span>);      </span><br><span class="line">  bw.append(packageElement.getQualifiedName());     </span><br><span class="line">  bw.append(<span class="string">";"</span>);     </span><br><span class="line">  bw.newLine();     </span><br><span class="line">  bw.newLine();     </span><br><span class="line">  <span class="comment">// rest of generated class contents</span></span><br></pre></td></tr></table></figure></p>
+<p>####不要这样生成代码<br> 上边这个例子十分简单，有趣但是很混乱。<br> 我们把从注解中读取信息的逻辑和写生成的源文件的逻辑混一起拉。<br> 按照上述那种方式很难写出简洁的代码，如果当我们遇到一些更加复杂的逻辑时，就更难啦。<br> 我们需要一个更加优雅的实现方式：- 将不同逻辑分离- 使用模版来让代码生成更加简单<br> 让我们看看使用Apache的Velocity构造代码生成器的例子吧。</p>
+<h4 id="Velocity简介"><a href="#Velocity简介" class="headerlink" title="Velocity简介"></a>Velocity简介</h4><p> <a href="http://velocity.apache.org/" target="_blank" rel="external">Velocity</a> 是通过混合模版和java类的数据来生成各类文本文件的模版引擎。 <code>Velocity</code>可以在<code>MVC</code>框架中渲染视图或者在<code>xml</code>传输数据时替代<code>XSLT</code><br> <code>Velocity</code>有它自己的语言叫做Velocity Template Language（VTL）。在VTL中，我们可以定义变量，控制流，迭代和获取java对象中的数据。<br> 下面就是<code>Velocity</code>模版的一个片段:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">**#foreach($field in $fields)**     </span><br><span class="line">/**      </span><br><span class="line">* Returns the $&#123;field.simpleName&#125; property descriptor.      </span><br><span class="line">*      </span><br><span class="line">* @return the property descriptor      </span><br><span class="line">*/     </span><br><span class="line">public PropertyDescriptor </span><br><span class="line">$&#123;field.simpleName&#125;PropertyDescriptor() &#123;         </span><br><span class="line">  PropertyDescriptor theDescriptor = null;         </span><br><span class="line">  return theDescriptor;     </span><br><span class="line">&#125; </span><br><span class="line">#end </span><br><span class="line">#foreach($method in $methods)     </span><br><span class="line">/**      </span><br><span class="line">* Returns the </span><br><span class="line">*</span><br><span class="line">*$&#123;method.simpleName&#125;**() method descriptor.      </span><br><span class="line">*      </span><br><span class="line">* @return the method descriptor      </span><br><span class="line">*/     </span><br><span class="line">public MethodDescriptor</span><br><span class="line">$&#123;method.simpleName&#125;MethodDescriptor() &#123;         </span><br><span class="line">  MethodDescriptor descriptor = null;</span><br></pre></td></tr></table></figure></p>
+<p> 正如你所看到的，VTL十分简单并且易于理解。<code>#foreach($field in $fields)</code>代表对对象集合的迭代；<code>${method.simpleName}</code>则是打印数据信息。</p>
+<h4 id="Velocity代码生成器"><a href="#Velocity代码生成器" class="headerlink" title="Velocity代码生成器"></a>Velocity代码生成器</h4><p> 既然我们决定使用<code>Veloctiy</code>来增强我们的代码生成器，那么我们就要重新进行设计：</p>
+<ul>
+<li>设计用来生成代码的模版</li>
+<li>注解处理器会从<code>round environment</code>中读取被注解元素，并且将其保存到对象中，比如保存成员变量，方法，或者类，包的表.</li>
+<li>注解处理器需要初始化<code>Velocity</code>相关上下文- 注解处理器需要加载<code>Velocity</code>模版- 注解处理器会创建源文件(使用<code>Filer</code>)并且传递一个<code>Writer</code>给<code>Velocity</code>模版</li>
+<li><code>Veloctiy</code>引擎生成源代码<br> 使用这个方案，我们会发现处理器和生成器相关的代码是清晰，良好组织并且易于理解和维护。<br> 让我们一步一步的来实现这个方案吧。<br>####步骤一:实现一个模版<br> 为了简单，我们并不会展示<code>BeanInfo</code>生成器的全部代码，而是只展示我们注解处理器需要使用的一部分成员变量和方法。<br> 我们先创建一个名为beaninfovm的文件，并且放置在Maven的<code>src/main/resource</code>下。文件内容如下:<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br></pre></td><td class="code"><pre><span class="line">package $&#123;packageName&#125;;</span><br><span class="line">import java.beans.MethodDescriptor;</span><br><span class="line">import java.beans.ParameterDescriptor;</span><br><span class="line">import java.beans.PropertyDescriptor;</span><br><span class="line">import java.lang.reflect.Method;</span><br><span class="line">public class $&#123;className&#125;BeanInfo </span><br><span class="line">        extends java.beans.SimpleBeanInfo </span><br><span class="line">&#123; </span><br><span class="line">  /** * Gets the bean class object. </span><br><span class="line">  * </span><br><span class="line">  * @return the bean class </span><br><span class="line">  */ </span><br><span class="line">  public static Class getBeanClass() &#123; </span><br><span class="line">    return $&#123;packageName&#125;.$&#123;className&#125;.class; </span><br><span class="line">  &#125; </span><br><span class="line">  /** </span><br><span class="line">  * Gets the bean class name. </span><br><span class="line">  * </span><br><span class="line">  * @return the bean class name </span><br><span class="line">  */ </span><br><span class="line">  public static String getBeanClassName() &#123; </span><br><span class="line">    return "$&#123;packageName&#125;.$&#123;className&#125;"; </span><br><span class="line">  &#125; </span><br><span class="line">  /** </span><br><span class="line">  * Finds the right method by comparing name &amp; number of parameters in the class </span><br><span class="line">  * method list. </span><br><span class="line">  * </span><br><span class="line">  * @param classObject the class object </span><br><span class="line">  * @param methodName the method name </span><br><span class="line">  * @param parameterCount the number of parameters </span><br><span class="line">  * </span><br><span class="line">  * @return the method if found, &lt;code&gt;null&lt;/code&gt; otherwise       </span><br><span class="line">  */ </span><br><span class="line">  public static Method findMethod(Class classObject, String methodName, int parameterCount) &#123; </span><br><span class="line">    try &#123; </span><br><span class="line">      // since this method attempts to find a method by getting all     </span><br><span class="line">      // methods from the class, this method should only be called if </span><br><span class="line">      // getMethod cannot find the method </span><br><span class="line">      Method[] methods = classObject.getMethods(); </span><br><span class="line">      for (Method method : methods) &#123; </span><br><span class="line">        if (method.getParameterTypes().length ==</span><br><span class="line">            parameterCount &amp;&amp;method.getName().</span><br><span class="line">                equals(methodName)) &#123; </span><br><span class="line">          return method; </span><br><span class="line">        &#125; </span><br><span class="line">      &#125; </span><br><span class="line">    &#125; catch (Throwable t) &#123; </span><br><span class="line">      return null; </span><br><span class="line">    &#125; </span><br><span class="line">    return null; </span><br><span class="line">    &#125;</span><br><span class="line">#foreach($field in $fields) </span><br><span class="line">/** </span><br><span class="line">  * Returns the $&#123;field.simpleName&#125; property descriptor. </span><br><span class="line">  * </span><br><span class="line">  * @return the property descriptor </span><br><span class="line">  */ </span><br><span class="line">public PropertyDescriptor </span><br><span class="line">$&#123;field.simpleName&#125;PropertyDescriptor() &#123; </span><br><span class="line">   PropertyDescriptor theDescriptor = null; </span><br><span class="line">   return theDescriptor; </span><br><span class="line">&#125;</span><br><span class="line">#end#foreach($method in $methods) </span><br><span class="line">/** </span><br><span class="line">  * Returns the $&#123;method.simpleName&#125;() method descriptor. </span><br><span class="line">  * </span><br><span class="line">  * @return the method descriptor </span><br><span class="line">  */ </span><br><span class="line">public MethodDescriptor $&#123;method.simpleName&#125;MethodDescriptor() &#123; </span><br><span class="line">   MethodDescriptor descriptor = null; </span><br><span class="line">   Method method = null; </span><br><span class="line">   try &#123; </span><br><span class="line">    // finds the method using getMethod with parameter types </span><br><span class="line">    // TODO parameterize parameter types </span><br><span class="line">      Class[] parameterTypes =  </span><br><span class="line">        &#123;java.beans.PropertyChangeListener.class&#125;; </span><br><span class="line">     method=getBeanClass().</span><br><span class="line">         getMethod("$&#123;method.simpleName&#125;", parameterTypes); </span><br><span class="line">  &#125; catch (Throwable t) &#123; </span><br><span class="line">    // alternative: use findMethod </span><br><span class="line">    // TODO parameterize number of parameters </span><br><span class="line">    method = findMethod(getBeanClass(), "$&#123;method.simpleName&#125;", 1); </span><br><span class="line"> &#125; </span><br><span class="line">  try &#123; </span><br><span class="line">    // creates the method descriptor with parameter descriptors     </span><br><span class="line">    // TODO parameterize parameter descriptors     </span><br><span class="line">    ParameterDescriptor parameterDescriptor1 = new   </span><br><span class="line">        ParameterDescriptor();     </span><br><span class="line">    parameterDescriptor1.setName("listener"); </span><br><span class="line">    parameterDescriptor1.setDisplayName("listener"); </span><br><span class="line">    ParameterDescriptor[] parameterDescriptors = </span><br><span class="line">      &#123;parameterDescriptor1&#125;; </span><br><span class="line">    descriptor = new MethodDescriptor(method,   </span><br><span class="line">        parameterDescriptors); </span><br><span class="line">   &#125; catch (Throwable t) &#123; </span><br><span class="line">      // alternative: create a plain method descriptor </span><br><span class="line">      descriptor = new MethodDescriptor(method); </span><br><span class="line">   &#125; </span><br><span class="line">  // TODO parameterize descriptor properties   </span><br><span class="line">   descriptor.setDisplayName("$&#123;method.simpleName&#125;    </span><br><span class="line">        (java.beans.PropertyChangeListener)"); </span><br><span class="line">   descriptor.setShortDescription("Adds a property change </span><br><span class="line">        listener."); </span><br><span class="line">   descriptor.setExpert(false); </span><br><span class="line">   descriptor.setHidden(false); </span><br><span class="line">   descriptor.setValue("preferred", false); </span><br><span class="line">   return descriptor; </span><br><span class="line"> &#125;</span><br><span class="line">#end</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p> 为了使用上述的模版，我们需要向<code>Velocity</code>传递下边这些信息:</p>
+<ul>
+<li><code>packageName</code>:生成类的全限定包名</li>
+<li><code>className</code>:生成类名</li>
+<li><code>field</code>:生成类中的成员变量集合；每个成员变量我们需要以下信息:<ul>
+<li><code>simpleName</code>:成员变量名 - <code>type</code>:成员变量的类型(在本例中并未使用)</li>
+<li><code>description</code>:自我解释型信息(在本例中并未使用) </li>
+<li>…</li>
+</ul>
+</li>
+<li><p><code>method</code>:生成类中函数的集合；每个函数我们需要一下信息：       </p>
+<ul>
+<li><code>simpleName</code>:函数名 </li>
+<li><code>arguments</code>:函数的参数(在本例中并未使用) </li>
+<li><code>returnType</code>: 函数返回值类型(在本例中并未使用) </li>
+<li><code>description</code>:自我解释性信息(在本例中并未使用) </li>
+<li>…</li>
+</ul>
+</li>
+</ul>
+<p> 所有的这些信息都会从源文件中的注解中获得，并保存到<code>JavaBean</code>中，再传递给<code>Velocity</code>。</p>
+<h4 id="步骤二-注解处理器读取信息"><a href="#步骤二-注解处理器读取信息" class="headerlink" title="步骤二:注解处理器读取信息"></a>步骤二:注解处理器读取信息</h4><p> 让我们来实现一个注解处理器，并且注解它支持处理<code>BeanInfo</code>注解类型，相关原理请查看第二篇博文。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@SupportedAnnotationTypes</span>(<span class="string">"example.annotations.beaninfo.BeanInfo"</span>)</span><br><span class="line"><span class="meta">@SupportedSourceVersion</span>(SourceVersion.RELEASE_6)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BeanInfoProcessor</span> <span class="keyword">extends</span> <span class="title">AbstractProcessor</span> </span>&#123;</span><br></pre></td></tr></table></figure></p>
+<p> 注解处理器需要从注解和源文件中提取。你可以使用<code>JavaBean</code>来保存你需要的信息。但是在这个例子中，我们将使用<code>javax.lang.model.element</code>,因为我们不计划传递给<code>Velocity</code>过多信息:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">  String packageName = <span class="keyword">null</span>; </span><br><span class="line">  Map&lt;String, VariableElement&gt; fields = <span class="keyword">new</span> HashMap&lt;String,     </span><br><span class="line">    VariableElement&gt;(); </span><br><span class="line">  Map&lt;String, ExecutableElement&gt; methods = <span class="keyword">new</span> </span><br><span class="line">    HashMap&lt;String, ExecutableElement&gt;(); </span><br><span class="line">  <span class="keyword">for</span> (Element e : roundEnv.</span><br><span class="line">      getElementsAnnotatedWith(BeanInfo.class)) &#123; </span><br><span class="line">    <span class="keyword">if</span> (e.getKind() == ElementKind.CLASS) &#123; </span><br><span class="line">      TypeElement classElement = (TypeElement) e; </span><br><span class="line">      PackageElement packageElement = (PackageElement) </span><br><span class="line">        classElement.getEnclosingElement();   </span><br><span class="line">      processingEnv.getMessager().printMessage( </span><br><span class="line">            Diagnostic.Kind.NOTE, <span class="string">"annotated class: "</span> + </span><br><span class="line">            classElement.getQualifiedName(), e); </span><br><span class="line">      fqClassName = classElement.getQualifiedName().</span><br><span class="line">                toString(); </span><br><span class="line">      className =  classElement.getSimpleName().toString(); </span><br><span class="line">      packageName = packageElement.getQualifiedName().</span><br><span class="line">                toString(); </span><br><span class="line">   &#125; <span class="keyword">else</span> <span class="keyword">if</span> (e.getKind() == ElementKind.FIELD) &#123; </span><br><span class="line">      VariableElement varElement = (VariableElement) e;   </span><br><span class="line">      processingEnv.getMessager().printMessage( </span><br><span class="line">        Diagnostic.Kind.NOTE, <span class="string">"annotated field: "</span> + </span><br><span class="line">        varElement.getSimpleName(), e); </span><br><span class="line">      fields.put(varElement.getSimpleName().toString(),       </span><br><span class="line">        varElement); </span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (e.getKind() == ElementKind.METHOD) &#123; </span><br><span class="line">      ExecutableElement exeElement = (ExecutableElement) e;     </span><br><span class="line">      processingEnv.getMessager().printMessage( </span><br><span class="line">        Diagnostic.Kind.NOTE, <span class="string">"annotated method: "</span> + </span><br><span class="line">        exeElement.getSimpleName(), e); </span><br><span class="line">      methods.put(exeElement.getSimpleName().toString(),   </span><br><span class="line">        exeElement); </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="步骤三-初始化Velocity并且加载模版"><a href="#步骤三-初始化Velocity并且加载模版" class="headerlink" title="步骤三:初始化Velocity并且加载模版"></a>步骤三:初始化<code>Velocity</code>并且加载模版</h4><p> 下边的代码片段展示了如何初始化<code>Velocity</code>并且加载模版<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">if (fqClassName != null) &#123; </span><br><span class="line">  Properties props = new Properties(); </span><br><span class="line">  URL url = this.getClass().getClassLoader().</span><br><span class="line">        getResource("velocity.properties"); </span><br><span class="line">  props.load(url.openStream()); </span><br><span class="line">  VelocityEngine ve = new VelocityEngine(props); </span><br><span class="line">  ve.init(); </span><br><span class="line">  VelocityContext vc = new VelocityContext(); </span><br><span class="line">  vc.put("classNameassName); </span><br><span class="line">  vc.put("packageNameckageName); </span><br><span class="line">  vc.put("fieldselds); </span><br><span class="line">  vc.put("methodsthods); </span><br><span class="line">  Template vt = ve.getTemplate("beaninfo.vm");</span><br></pre></td></tr></table></figure></p>
+<p> <code>Velocity</code>的配置文件，应该命名为<code>Velocity.properties</code>,并放置在<code>src/main/resources</code>文件夹下。配置文件的内容如下：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">runtime.log.logsystem.class = org.apache.velocity.runtime.log.SystemLogChute</span><br><span class="line">resource.loader = classpath</span><br><span class="line">classpath.resource.loader.class = org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader</span><br></pre></td></tr></table></figure></p>
+<p> 这些属性配置了<code>Velocity</code>的日志和寻找模版的类路径。</p>
+<h4 id="步骤四：创建新的文件并且生成代码"><a href="#步骤四：创建新的文件并且生成代码" class="headerlink" title="步骤四：创建新的文件并且生成代码"></a>步骤四：创建新的文件并且生成代码</h4><p> 最后，我们建立新的代码文件并以这个文件为目标运行模版。下边的代码片段展示了如何如何去做上述操作:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">JavaFileObject jfo = processingEnv.getFiler().createSourceFile</span><br><span class="line">    ( fqClassName + <span class="string">"BeanInfo"</span>); </span><br><span class="line">processingEnv.getMessager().printMessage( </span><br><span class="line">    Diagnostic.Kind.NOTE, <span class="string">"creating source file: "</span> + jfo.toUri()); </span><br><span class="line">Writer writer = jfo.openWriter(); </span><br><span class="line">processingEnv.getMessager().printMessage(   </span><br><span class="line">    Diagnostic.Kind.NOTE, <span class="string">"applying velocity template: "</span> + </span><br><span class="line">    vt.getName());</span><br><span class="line">vt.merge(vc, writer); </span><br><span class="line">writer.close();</span><br></pre></td></tr></table></figure></p>
+<h4 id="步骤五：打包并运行"><a href="#步骤五：打包并运行" class="headerlink" title="步骤五：打包并运行"></a>步骤五：打包并运行</h4><p> 最终，注册注解处理器（可以回想一下在第二篇博文中的服务配置相关内容），打包处理器并且在命令行，eclipse和Maven构建项目时使用它。<br> 假设下边就是需要处理的类：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> example.velocity.client;</span><br><span class="line"><span class="keyword">import</span> example.annotations.beaninfo.BeanInfo;</span><br><span class="line"><span class="meta">@BeanInfo</span> </span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Article</span> </span>&#123; </span><br><span class="line">  <span class="meta">@BeanInfo</span> </span><br><span class="line">  <span class="keyword">private</span> String id; </span><br><span class="line">  <span class="meta">@BeanInfo</span> </span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">int</span> department; </span><br><span class="line">  <span class="meta">@BeanInfo</span> </span><br><span class="line">  <span class="keyword">private</span> String status; </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="title">Article</span><span class="params">()</span> </span>&#123; <span class="keyword">super</span>(); &#125; </span><br><span class="line">  <span class="function"><span class="keyword">public</span> String <span class="title">getId</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> id; &#125; </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setId</span><span class="params">(String id)</span> </span>&#123; <span class="keyword">this</span>.id = id; &#125; </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getDepartment</span><span class="params">()</span> </span>&#123; </span><br><span class="line">    <span class="keyword">return</span> department; </span><br><span class="line">  &#125; </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setDepartment</span><span class="params">(<span class="keyword">int</span> department)</span> </span>&#123; </span><br><span class="line">    <span class="keyword">this</span>.department = department; </span><br><span class="line">  &#125; </span><br><span class="line">  <span class="function"><span class="keyword">public</span> String <span class="title">getStatus</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> status; &#125; </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setStatus</span><span class="params">(String status)</span> </span>&#123; </span><br><span class="line">    <span class="keyword">this</span>.status = status; </span><br><span class="line">  &#125; </span><br><span class="line">  <span class="meta">@BeanInfo</span> </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">activate</span><span class="params">()</span> </span>&#123; setStatus(<span class="string">"active"</span>); &#125; </span><br><span class="line">  <span class="meta">@BeanInfo</span> <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">deactivate</span><span class="params">()</span> </span>&#123; </span><br><span class="line">    setStatus(<span class="string">"inactive"</span>); </span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p> 当我们使用命令行执行编译任务时，我们在终端上看到被注解标注的元素被找到并且BeanInfo类被生成。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">Article.java:6: Note: annotated class: </span><br><span class="line">example.annotations.velocity.client.Article</span><br><span class="line">public class Article &#123; </span><br><span class="line">  ^</span><br><span class="line">Article.java:9: Note: annotated field: id </span><br><span class="line">  private String id; </span><br><span class="line">    ^</span><br><span class="line">Article.java:12: Note: annotated field: department </span><br><span class="line">  private int department; </span><br><span class="line">    ^</span><br><span class="line">Article.java:15: Note: annotated field: status </span><br><span class="line">  private String status; </span><br><span class="line">    ^</span><br><span class="line">Article.java:53: Note: annotated method: activate </span><br><span class="line">  public void <span class="function"><span class="title">activate</span></span>() &#123; </span><br><span class="line">    ^</span><br><span class="line">Article.java:59: Note: annotated method: deactivate </span><br><span class="line">  public void <span class="function"><span class="title">deactivate</span></span>() &#123; </span><br><span class="line">    ^ </span><br><span class="line">Note: creating <span class="built_in">source</span> file: file:/c:/projects/example.annotations.velocity.client/src/main/java/example/annotations/velocity/client/ArticleBeanInfo.java</span><br><span class="line">Note: applying velocity template: beaninfo.vm</span><br><span class="line">Note: example\annotations\velocity\client\ArticleBeanInfo.java uses unchecked or unsafe operations.</span><br><span class="line">Note: Recompile with -Xlint:unchecked <span class="keyword">for</span> details.</span><br></pre></td></tr></table></figure></p>
+<p> 检查相应的文件夹我们会发现<code>BeanInfo</code>类文件被创建。任务完成！</p>
+<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p> 在这个系列文章中，我们学习了如何使用Java6中的注解处理器框架生成源代码：</p>
+<ul>
+<li>我们学习了注解和注解类型的概念和他们的基本用法</li>
+<li>我们学习了注解处理器的概念，还有如何编写，以及从不同工具运行它。</li>
+<li>我们大致讨论了一下<code>Model-Drive Engineer</code>和代码生成。</li>
+<li>我们展示了如何使用注解处理器生成代码</li>
+<li>我们学习了如何使用<code>Velocity</code>来创建优雅的，强大的，可维护的基于注解处理器的代码生成器。<br> 现在是时候实现你自己的项目去啦。<br>-<br>(1) 如何你想详细了解<code>MDE</code>,请查看<a href="http://en.wikipedia.org/wiki/Model-driven_engineering" target="_blank" rel="external">这篇文件</a><br>(2) <code>Filter</code>的API文档可以在<a href="http://download.oracle.com/javase/6/docs/api/javax/annotation/processing/Filer.html" target="_blank" rel="external">这里</a>进行查看</li>
+</ul>
+
+        
+        
+        <p class="article-more-link">
+          
+       </p>
+    </div>
+    <footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/Android/">Android</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/注解/">注解</a>
+  </div>
+
+</div>
+
+
+
+
+<div class="comments-count">
+	
+	  	<span></span>
+		<a href="/2016/03/07/译-使用注解处理器生成代码-3-生成源代码/#comments" class="ds-thread-count comments-count-link" data-thread-key="2016/03/07/译-使用注解处理器生成代码-3-生成源代码/" data-count-type="comments">&nbsp;</a>
+	
+</div>
+
+</footer>
+
+
+    </article>
+
+
+
+
+
+
+   
+    
+    <article class="post-expand post" itemprop="articleBody"> 
+        <header class="article-info clearfix">
+  <h1 itemprop="name">
+    
       <a href="/2016/03/05/2016年，计划目录/" title="2016年，计划目录" itemprop="url">2016年，计划目录</a>
   </h1>
   <p class="article-author">By
@@ -955,83 +1071,6 @@
 
 
 
-   
-    
-    <article class="post-expand post" itemprop="articleBody"> 
-        <header class="article-info clearfix">
-  <h1 itemprop="name">
-    
-      <a href="/2015/11/18/OkHttp解析系列-重定向和出错重试/" title="OkHttp解析系列-重定向和出错重试" itemprop="url">OkHttp解析系列-重定向和出错重试</a>
-  </h1>
-  <p class="article-author">By
-       
-		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
-		
-  <p class="article-time">
-    <time datetime="2015-11-18T14:00:10.000Z" itemprop="datePublished"> Published 2015-11-18</time>
-    
-  </p>
-</header>
-    <div class="article-content">
-        
-        <p>&emps;这是OkHttp系列博文的第一篇，之前写过一篇草稿，介绍OkHttp的整体框架，但是感觉涉及的知识太多，无法在一篇中讲述清楚，所以，之后的博文都只关注某一方面的知识，争取文章短小精悍。<br>&emsp;今天主要研究一下OkHttp发送<code>Http</code>请求过程中的重定向和出错重试，主要涉及的源码文件有<code>Call.java``HttpEngine.java</code>。<br>&emsp;我们今天研究<code>Call</code>的<code>Response getResponse(Request request, boolean forWebSocket) throws IOException</code>函数，它是你调用<code>Call.execute()</code>返回<code>Response</code>所调用的核心函数，主要功能是新建一个<code>HttpEngine</code>发送<code>Request</code>然后处理出错重试和重定向问题。</p>
-<h4 id="设置Headers"><a href="#设置Headers" class="headerlink" title="设置Headers"></a>设置Headers</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Copy body metadata to the appropriate request headers.</span></span><br><span class="line">  RequestBody body = request.body();</span><br><span class="line">  <span class="keyword">if</span> (body != <span class="keyword">null</span>) &#123;</span><br><span class="line">    Request.Builder requestBuilder = request.newBuilder();<span class="comment">//拷贝了内部数据</span></span><br><span class="line"></span><br><span class="line">    MediaType contentType = body.contentType();</span><br><span class="line">    <span class="keyword">if</span> (contentType != <span class="keyword">null</span>) &#123;</span><br><span class="line">      requestBuilder.header(<span class="string">"Content-Type"</span>, contentType.toString());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">long</span> contentLength = body.contentLength();</span><br><span class="line">    <span class="keyword">if</span> (contentLength != -<span class="number">1</span>) &#123;</span><br><span class="line">      requestBuilder.header(<span class="string">"Content-Length"</span>, Long.toString(contentLength));</span><br><span class="line">      requestBuilder.removeHeader(<span class="string">"Transfer-Encoding"</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      requestBuilder.header(<span class="string">"Transfer-Encoding"</span>, <span class="string">"chunked"</span>);</span><br><span class="line">      requestBuilder.removeHeader(<span class="string">"Content-Length"</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    request = requestBuilder.build();</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
-<p>&emsp;这是函数的第一部分，主要是将<code>RequestBody</code>的一些元数据拷贝到<code>Header</code>的首部中,主要是<code>Content-Type</code>和<code>Transfer-Encoding</code>。<code>Content-Type</code>相信大家都了解，标示<code>RequestBody</code>的<code>Mime-Type</code>，格式为<code>主类型/子类型</code>，比如<code>text/xml</code>。而<code>Transfer-Encoding</code>是表示一种网络传输的方式，想具体了解的同学可以看一下这个链接<a href="https://imququ.com/post/transfer-encoding-header-in-http.html" target="_blank" rel="external">点我</a>.</p>
-<h4 id="出错重试"><a href="#出错重试" class="headerlink" title="出错重试"></a>出错重试</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Create the initial HTTP engine. Retries and redirects need new engine for each attempt.</span></span><br><span class="line">    <span class="comment">// 建立一个初始的http 引擎，每次重试和重定向都需要新的引擎</span></span><br><span class="line">    engine = <span class="keyword">new</span> HttpEngine(client, request, <span class="keyword">false</span>, <span class="keyword">false</span>, forWebSocket, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="keyword">null</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> followUpCount = <span class="number">0</span>; <span class="comment">//连续发送请求</span></span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span> (canceled) &#123; <span class="comment">//如果被取消啦</span></span><br><span class="line">        engine.releaseConnection();</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Canceled"</span>);</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        engine.sendRequest();</span><br><span class="line">        engine.readResponse();</span><br><span class="line">      &#125; <span class="keyword">catch</span> (RequestException e) &#123;</span><br><span class="line">        <span class="comment">// The attempt to interpret the request failed. Give up.</span></span><br><span class="line">        <span class="keyword">throw</span> e.getCause();</span><br><span class="line">      &#125; <span class="keyword">catch</span> (RouteException e) &#123;</span><br><span class="line">        <span class="comment">// The attempt to connect via a route failed. The request will not have been sent.</span></span><br><span class="line">        HttpEngine retryEngine = engine.recover(e); <span class="comment">//重试引擎</span></span><br><span class="line">        <span class="keyword">if</span> (retryEngine != <span class="keyword">null</span>) &#123;</span><br><span class="line">          engine = retryEngine;</span><br><span class="line">          <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// Give up; recovery is not possible.</span></span><br><span class="line">        <span class="keyword">throw</span> e.getLastConnectException();</span><br><span class="line">      &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        <span class="comment">// An attempt to communicate with a server failed. The request may have been sent.</span></span><br><span class="line">        HttpEngine retryEngine = engine.recover(e, <span class="keyword">null</span>);</span><br><span class="line">        <span class="keyword">if</span> (retryEngine != <span class="keyword">null</span>) &#123;</span><br><span class="line">          engine = retryEngine;</span><br><span class="line">          <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Give up; recovery is not possible.</span></span><br><span class="line">        <span class="keyword">throw</span> e;</span><br><span class="line">      &#125;</span><br><span class="line">      .......</span><br></pre></td></tr></table></figure>
-<p>&emsp;在这段代码中，<code>OkHttp</code>建立一个<code>HttpEngine</code>对象来负责<code>Http</code>层级的请求的发送和回复的接收，<code>HttpEngine</code>会在之后的博文中详细讲解。然后进入了一个<code>while</code>循环,这个循环其实主要是处理重定向问题的。我们在这一节中主要关注<code>catch</code>中的逻辑，这是用于处理出错重试的逻辑。由于外层有一个<code>while</code>循环，所以在<code>catch</code>中尝试获得<code>retryEngine</code>，如果有就<code>continue</code>,没有就抛出异常。</p>
-<h4 id="重定向处理"><a href="#重定向处理" class="headerlink" title="重定向处理"></a>重定向处理</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">Response response = engine.getResponse();</span><br><span class="line">      <span class="comment">// followUp这个是优化http connection的使用率的吗？</span></span><br><span class="line">      Request followUp = engine.followUpRequest();</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (followUp == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!forWebSocket) &#123; <span class="comment">//如果没有followup并且不是为了websocket</span></span><br><span class="line">          engine.releaseConnection();<span class="comment">//关闭连接</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> response;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (++followUpCount &gt; MAX_FOLLOW_UPS) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ProtocolException(<span class="string">"Too many follow-up requests: "</span> + followUpCount);</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (!engine.sameConnection(followUp.httpUrl())) &#123; <span class="comment">//如果followup的httpUrl不是同一个连接,也就是</span></span><br><span class="line">        <span class="comment">//schema，host or port 有一个不同</span></span><br><span class="line">        engine.releaseConnection();</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//复用了上一次的connection啊！！！！</span></span><br><span class="line">      Connection connection = engine.close();</span><br><span class="line">      request = followUp;</span><br><span class="line">      <span class="comment">//继续处理，有可能是重定向啦</span></span><br><span class="line">      engine = <span class="keyword">new</span> HttpEngine(client, request, <span class="keyword">false</span>, <span class="keyword">false</span>, forWebSocket, connection, <span class="keyword">null</span>, <span class="keyword">null</span>,</span><br><span class="line">          response);</span><br></pre></td></tr></table></figure>
-<p>&emsp;这里我们可以看到<code>Http</code>重定向的机制。<code>Request request = engine.followUpRequest()</code>来获得重定向需要发送的<code>Request</code>，如果没有或者重定向次数大于<code>MAX_FOLLOW_UPS</code>就不会重新发送重定向请求。然后判断重定向请求和原请求的HttpUrl是否相同，否则也不会发送重定向请求。然后<code>Connection connection = engine.close()</code>会释放资源并且复用上次的连接，然后新建一个<code>HttpEngine</code>然后继续<code>While</code>循环发送请求。</p>
-<h4 id="重定向状态码解析"><a href="#重定向状态码解析" class="headerlink" title="重定向状态码解析"></a>重定向状态码解析</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Request <span class="title">followUpRequest</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (userResponse == <span class="keyword">null</span>) <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException();</span><br><span class="line">  Proxy selectedProxy = getRoute() != <span class="keyword">null</span></span><br><span class="line">      ? getRoute().getProxy()</span><br><span class="line">      : client.getProxy();</span><br><span class="line">  <span class="keyword">int</span> responseCode = userResponse.code();</span><br><span class="line"></span><br><span class="line">  <span class="keyword">switch</span> (responseCode) &#123;</span><br><span class="line">    <span class="keyword">case</span> HTTP_PROXY_AUTH: <span class="comment">//407 Proxy authentication required 要先经过代理服务器认证</span></span><br><span class="line">      <span class="keyword">if</span> (selectedProxy.type() != Proxy.Type.HTTP) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ProtocolException(<span class="string">"Received HTTP_PROXY_AUTH (407) code while not using proxy"</span>);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">// fall-through</span></span><br><span class="line">    <span class="keyword">case</span> HTTP_UNAUTHORIZED: <span class="comment">//401 没有身份认证</span></span><br><span class="line">      <span class="keyword">return</span> OkHeaders.processAuthHeader(client.getAuthenticator(), userResponse, selectedProxy);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">case</span> HTTP_PERM_REDIRECT:<span class="comment">// 308</span></span><br><span class="line">    <span class="keyword">case</span> HTTP_TEMP_REDIRECT: <span class="comment">//307</span></span><br><span class="line">      <span class="comment">// "If the 307 or 308 status code is received in response to a request other than GET</span></span><br><span class="line">      <span class="comment">// or HEAD, the user agent MUST NOT automatically redirect the request"</span></span><br><span class="line">      <span class="keyword">if</span> (!userRequest.method().equals(<span class="string">"GET"</span>) &amp;&amp; !userRequest.method().equals(<span class="string">"HEAD"</span>)) &#123;</span><br><span class="line">          <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">      &#125; <span class="comment">//如果不是get和head 那么就不能自动转发</span></span><br><span class="line">      <span class="comment">// fall-through</span></span><br><span class="line">    <span class="keyword">case</span> HTTP_MULT_CHOICE: <span class="comment">//300</span></span><br><span class="line">    <span class="keyword">case</span> HTTP_MOVED_PERM:<span class="comment">// 301</span></span><br><span class="line">    <span class="keyword">case</span> HTTP_MOVED_TEMP:<span class="comment">//302</span></span><br><span class="line">    <span class="keyword">case</span> HTTP_SEE_OTHER: <span class="comment">//303</span></span><br><span class="line">      <span class="comment">// Does the client allow redirects?</span></span><br><span class="line">      <span class="keyword">if</span> (!client.getFollowRedirects()) <span class="keyword">return</span> <span class="keyword">null</span>;<span class="comment">//如果不允许重定向</span></span><br><span class="line"></span><br><span class="line">      String location = userResponse.header(<span class="string">"Location"</span>);<span class="comment">//从response的头部获得的location</span></span><br><span class="line">      <span class="keyword">if</span> (location == <span class="keyword">null</span>) <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">      HttpUrl url = userRequest.httpUrl().resolve(location);<span class="comment">//使用request的解析location</span></span><br><span class="line"></span><br><span class="line">      <span class="comment">// Don't follow redirects to unsupported protocols.</span></span><br><span class="line">      <span class="keyword">if</span> (url == <span class="keyword">null</span>) <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line"></span><br><span class="line">      <span class="comment">// If configured, don't follow redirects between SSL and non-SSL.</span></span><br><span class="line">      <span class="keyword">boolean</span> sameScheme = url.scheme().equals(userRequest.httpUrl().scheme());</span><br><span class="line">      <span class="keyword">if</span> (!sameScheme &amp;&amp; !client.getFollowSslRedirects()) <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line"></span><br><span class="line">      <span class="comment">// Redirects don't include a request body.</span></span><br><span class="line">      Request.Builder requestBuilder = userRequest.newBuilder();</span><br><span class="line">      <span class="keyword">if</span> (HttpMethod.permitsRequestBody(userRequest.method())) &#123;</span><br><span class="line">        requestBuilder.method(<span class="string">"GET"</span>, <span class="keyword">null</span>);</span><br><span class="line">        requestBuilder.removeHeader(<span class="string">"Transfer-Encoding"</span>);</span><br><span class="line">        requestBuilder.removeHeader(<span class="string">"Content-Length"</span>);</span><br><span class="line">        requestBuilder.removeHeader(<span class="string">"Content-Type"</span>);</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="comment">// When redirecting across hosts, drop all authentication headers. This</span></span><br><span class="line">      <span class="comment">// is potentially annoying to the application layer since they have no</span></span><br><span class="line">      <span class="comment">// way to retain them.</span></span><br><span class="line">      <span class="keyword">if</span> (!sameConnection(url)) &#123;</span><br><span class="line">        requestBuilder.removeHeader(<span class="string">"Authorization"</span>);</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">return</span> requestBuilder.url(url).build();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">default</span>:</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
-<p>&emsp;这一段就是根据回复的状态码生成重定向请求的代码逻辑。</p>
-<ul>
-<li>HTTP_PROXY_AUTH 407  表示需要经过代理服务器认证 ，这时抛出异常，不进行重定向</li>
-<li>HTTP_UNAUTHORIZED 401 身份未认证</li>
-<li>HTTP_PERM_REDIRECT 308 HTTP_TEMP_REDIRECT 307 这两种状态码时，只有当请求的<code>method</code>不为<code>GET</code>和<code>HEAD</code>时不进行重定向，否则按照下边一列状态码的方式处理</li>
-<li>HTTP_MULT_CHOICE  300 HTTP_MOVED_PERM 301 HTTP_MOVED_TEMP 302 HTTP_SEE_OTHER 303 当是这些状态码时，先判断是否运行重定向，然后获得<code>Response</code>中的<code>Location</code>首部的值，然后用<code>HttpUrl</code>去解析，如果是<code>host</code>不同，那么去掉所有的认证首部，这是为了安全。<h4 id="结语"><a href="#结语" class="headerlink" title="结语"></a>结语</h4>&emsp;今天所总结的只是<code>Http</code>的重定向部分和<code>OkHttp</code>中的关于重定向的逻辑部分。之后会陆陆续续的继续总结关于<code>Http</code>的知识。</li>
-</ul>
-
-        
-        
-        <p class="article-more-link">
-          
-       </p>
-    </div>
-    <footer class="article-footer clearfix">
-<div class="article-catetags">
-
-<div class="article-categories">
-  <span></span>
-  <a class="article-category-link" href="/categories/Android/">Android</a>►<a class="article-category-link" href="/categories/Android/NetWork/">NetWork</a>
-</div>
-
-
-  <div class="article-tags">
-  
-  <span></span> <a href="/tags/OkHttp/">OkHttp</a>
-  </div>
-
-</div>
-
-
-
-
-<div class="comments-count">
-	
-	  	<span></span>
-		<a href="/2015/11/18/OkHttp解析系列-重定向和出错重试/#comments" class="ds-thread-count comments-count-link" data-thread-key="2015/11/18/OkHttp解析系列-重定向和出错重试/" data-count-type="comments">&nbsp;</a>
-	
-</div>
-
-</footer>
-
-
-    </article>
-
-
-
-
-
-
 
   <nav id="page-nav" class="clearfix">
     <a class="extend prev" rel="prev" href="/page/3/"><span></span>Prev</a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><span class="page-number current">4</span><a class="page-number" href="/page/5/">5</a><a class="page-number" href="/page/6/">6</a><a class="extend next" rel="next" href="/page/5/">Next<span></span></a>
@@ -1101,6 +1140,10 @@
 		  
 		
 		  
+			<li><a href="/categories/多线程/" title="多线程">多线程<sup>1</sup></a></li>
+		  
+		
+		  
 			<li><a href="/categories/并发/" title="并发">并发<sup>3</sup></a></li>
 		  
 		
@@ -1113,11 +1156,11 @@
 		  
 		
 		  
-			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
+			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
 		  
 		
 		  
-			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
+			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
 		  
 		
 		  
@@ -1182,7 +1225,7 @@
 			
 		
 			
-				<li><a href="/tags/Netty/" title="Netty">Netty<sup>3</sup></a></li>
+				<li><a href="/tags/注解/" title="注解">注解<sup>3</sup></a></li>
 			
 		
 			
@@ -1190,19 +1233,7 @@
 			
 		
 			
-				<li><a href="/tags/注解/" title="注解">注解<sup>3</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
+				<li><a href="/tags/Netty/" title="Netty">Netty<sup>3</sup></a></li>
 			
 		
 			
@@ -1214,23 +1245,27 @@
 			
 		
 			
+				<li><a href="/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
+			
+		
+			
 				<li><a href="/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/Shader/" title="Shader">Shader<sup>1</sup></a></li>
+				<li><a href="/tags/filesystem/" title="filesystem">filesystem<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/图像处理/" title="图像处理">图像处理<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/反射/" title="反射">反射<sup>1</sup></a></li>
+				<li><a href="/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
 			
 		
 			
@@ -1238,19 +1273,27 @@
 			
 		
 			
-				<li><a href="/tags/Animation/" title="Animation">Animation<sup>1</sup></a></li>
+				<li><a href="/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/epoll/" title="epoll">epoll<sup>1</sup></a></li>
+				<li><a href="/tags/工具/" title="工具">工具<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/draw/" title="draw">draw<sup>1</sup></a></li>
+				<li><a href="/tags/图像处理/" title="图像处理">图像处理<sup>1</sup></a></li>
 			
 		
 			
 				<li><a href="/tags/animation/" title="animation">animation<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/http/" title="http">http<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Shader/" title="Shader">Shader<sup>1</sup></a></li>
 			
 		
 		</ul>
