@@ -72,6 +72,97 @@
         <header class="article-info clearfix">
   <h1 itemprop="name">
     
+      <a href="/2015/12/12/Android文件存储位置简述/" title="Android文件存储位置简述" itemprop="url">Android文件存储位置简述</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2015-12-12T09:11:54.000Z" itemprop="datePublished"> Published 2015-12-12</time>
+    
+  </p>
+</header>
+    <div class="article-content">
+        
+        <p>&emsp;最近一段时间,工作和学习方面都比较忙,所以,博客方面有一段时间没有投入时间啦,今天学习了一下android文件存储方面的知识,主要是<code>Internal Storage</code>和<code>External Storage</code>的相关特性.主要知识来自android的官方文档和其他人的博客.</p>
+<h4 id="Internal-Storage"><a href="#Internal-Storage" class="headerlink" title="Internal Storage"></a>Internal Storage</h4><p>&emsp;一般来说,你可以直接存储文件在机器的internal storage中,存储在这个位置的文件是私有的,其他应用无法获得.但是当用户卸载你的应用时,文件就被删除啦.</p>
+<blockquote>
+<p>通过<code>openFileOutput()</code>传入文件的名字和操作模式,就可以获得<code>FileOutputStream</code>,然后就可以<code>write()</code>,然后<code>close</code>啦.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">String FILENAME = <span class="string">"hello_file"</span>;</span><br><span class="line">String string = <span class="string">"hello world!"</span>;</span><br><span class="line"></span><br><span class="line">FileOutputStream fos = openFileOutput(FILENAME, Context.MODE_PRIVATE);</span><br><span class="line">fos.write(string.getBytes());</span><br><span class="line">fos.close();</span><br></pre></td></tr></table></figure></p>
+<p><code>MODE_PRIVATE</code>模式会创建或者替换同名文件,并让文件变为私有的,其他的一些模式还有<code>MODE_APPEND</code>(追加模式),<code>MODE_WORLD_READABLE</code>(全局可读)和<code>MODE_WORLD_WRITEABLE</code>(全局可写).<br>通过<code>OpenFileInput()</code>函数可以进行文件的读取.</p>
+</blockquote>
+<p>&emsp;Android的内部存储路径为/data/data/packagename/,加入你的应用名为com.example.test,那么这个路径就为/data/data/com.example.test,这个路径下一般会有files,cache和你自己生成的文件夹.那么如下的操作返回的路径如下</p>
+<ul>
+<li>Context.getFileDir(),获得/data/data/com.example.test/files这个文件夹的File对象</li>
+<li>Context.openFileInput()和Context.openFileOutput,读取的是files文件夹下的文件</li>
+<li>Context.fileList(),返回的是files下的所有文件名</li>
+<li>Context.deleteFile(),删除files下指定名称的文件</li>
+<li>Context.getCacheDir(),该方法返回的是/data/data/com.example.test/cache的File对象.当Android的内部存储容量过低时,android会自动清除缓存文件.</li>
+<li>getDir(String name,int mode),返回的是/data/data/com.example.test/下指定名称的文件夹的File对象</li>
+</ul>
+<h4 id="External-Storage"><a href="#External-Storage" class="headerlink" title="External Storage"></a>External Storage</h4><p>&emsp;所有android设备都会提供外部存储,你可以用来保存文件,但是存储在外部存储的文件是完全公开的,并且可以被用户修改,外部存储可能无法获得,并且存储的文件的安全性很低,会被修改或者删除.<br>&emsp;获得    外部存储的访问权必须需要申请<code>READ_EXTERNAL_STORAGE</code>或者<code>WRITE_EXTERNAL_STORAGE</code>权限,如果申请了写权限,那么相应的读权限也获得啦.如果是Android 6.0,那么权限的申请可能就更加麻烦 :<a href="http://jijiaxin89.com/2015/08/30/Android-s-Runtime-Permission/" target="_blank" rel="external">6.0新的权限管理系统</a><br>&emsp;在使用外部存储设备之前,必须先检查外部存储设备的挂载情况,然后再进行文件操作<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Checks if external storage is available for read and write */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">isExternalStorageWritable</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String state = Environment.getExternalStorageState();</span><br><span class="line">    <span class="keyword">if</span> (Environment.MEDIA_MOUNTED.equals(state)) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* Checks if external storage is available to at least read */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">isExternalStorageReadable</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String state = Environment.getExternalStorageState();</span><br><span class="line">    <span class="keyword">if</span> (Environment.MEDIA_MOUNTED.equals(state) ||</span><br><span class="line">        Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;如果你想存储一些可以和其他应用共享的文件时,一般存储在共享的文件夹中,比如<code>Music/</code>,’Pictures/‘,’Ringtones/‘通过<code>Environment.getExternalStoragePublicDirectory</code>,传递给其文件夹的类型,比如<code>DIRECTORY_MUSIC</code>,<code>DIRECTORY_PICTURES</code>,就可以获得响应文件夹的File对象.<br>&emsp;当你不想其他应用读取你的文件时,你可能需要使用私有文件夹.通过<code>getExternalFilesDir()</code>,并传递给其子文件夹的type,就可以打开响应的文件夹,在4.4之后,读取私有文件夹下的文件,是不需要外部存储设备权限的.<br>&emsp;外部存储设备的路径一般都以/mnt/sdcard开始,如下的一些函数获得路径如下:</p>
+<ul>
+<li>getExternalCacheDir() 获得/mnt/sdcard/Android/data/com.example.test/cache 文件夹的File对象</li>
+<li>getExternalFilesDir(type)获得/mnt/sdcard/Android/data/com.example.test/files文件夹下响应子文件夹的File对象</li>
+<li>Environment.getExternalStorageDiretory() 获得的是/mnt/sdcard文件夹的File对象</li>
+<li>Environment.getDataDirectory() 获得是的/data文件夹的File对象,需要注意的是,/data/data/Android/就是内部存储文件夹啦.</li>
+<li>Environment.getDownloadCacheDirectory() 获得的是/cache文件夹的File对象.</li>
+</ul>
+<p>参考文章:</p>
+<ul>
+<li><a href="http://blog.csdn.net/ljh347917444/article/details/16984199" target="_blank" rel="external">android 系统文件路径.sdcard路径.外部路径</a> </li>
+<li><a href="http://developer.android.com/intl/zh-cn/guide/topics/data/data-storage.html#filesInternal" target="_blank" rel="external">Android Doc</a></li>
+</ul>
+
+        
+        
+        <p class="article-more-link">
+          
+       </p>
+    </div>
+    <footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/Android/">Android</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/文件系统/">文件系统</a>
+  </div>
+
+</div>
+
+
+
+
+<div class="comments-count">
+	
+	  	<span></span>
+		<a href="/2015/12/12/Android文件存储位置简述/#comments" class="ds-thread-count comments-count-link" data-thread-key="2015/12/12/Android文件存储位置简述/" data-count-type="comments">&nbsp;</a>
+	
+</div>
+
+</footer>
+
+
+    </article>
+
+
+
+
+
+
+   
+    
+    <article class="post-expand post" itemprop="articleBody"> 
+        <header class="article-info clearfix">
+  <h1 itemprop="name">
+    
       <a href="/2015/11/18/OkHttp解析系列-重定向和出错重试/" title="OkHttp解析系列-重定向和出错重试" itemprop="url">OkHttp解析系列-重定向和出错重试</a>
   </h1>
   <p class="article-author">By
@@ -856,91 +947,6 @@
 
 
 
-   
-    
-    <article class="post-expand post" itemprop="articleBody"> 
-        <header class="article-info clearfix">
-  <h1 itemprop="name">
-    
-      <a href="/2015/06/24/体验编程之美-饮料供应问题/" title="体验编程之美　饮料供应问题" itemprop="url">体验编程之美　饮料供应问题</a>
-  </h1>
-  <p class="article-author">By
-       
-		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
-		
-  <p class="article-time">
-    <time datetime="2015-06-24T05:00:05.000Z" itemprop="datePublished"> Published 2015-06-24</time>
-    
-  </p>
-</header>
-    <div class="article-content">
-        
-        <p>动态编程，贪婪算法，实际问题的建模过程</p>
-<h3 id="现实问题描述"><a href="#现实问题描述" class="headerlink" title="现实问题描述"></a>现实问题描述</h3><p>  公司水房提供很多种类饮料，已经统计获得大家对每种饮料的满意程度；STC负责给公司提供饮料，每天的总容量为V，每种饮料的单个容量都是2的方幂，比如王老吉，都是2的三次方为8升的；STC的存货也是有限的，这会是每种饮料的购买量上限。统计数据中使用饮料名字，容量，数量，满意度来描述一中饮料，问如何保证最大的满意度啊。</p>
-<h3 id="问题建模"><a href="#问题建模" class="headerlink" title="问题建模"></a>问题建模</h3><p>  我刚看到这道题目的时候，其实是很困惑的，完全不知道该如何下手。因为之前刷leetocde算法题目时，每个题目是使用编程域的语言进行描述的，比如：复制一个具有随机指针的链表。而这道题却是一个完全现实问题域描述，这样我们就需要进行建模，将这个实际问题转换为之前比较常见的算法问题。</p>
-<p>   假设ST提供n种饮料，用(Si,Vi,Ci,Hi,Bi) (对应饮料的名字，容量，可能的最大数量，满意度，实际购买量)来标示第i中饮料，其中可能的最大数量指如果仅买这种饮料的可能最大数量，比如对第i种饮料，Ci=V/Vi;</p>
-<p>  基于现实域的描述，我们有以下两个公式：</p>
-<ul>
-<li><p>饮料的总数量 V= (V0<em>B0)+(V1</em>B1)+……….(Vn*Bn);          A</p>
-</li>
-<li><p>总满意度为 H=(H0<em>B0)+(H1</em>B1)+………(Hn*Bn);               B</p>
-</li>
-</ul>
-<p>  那么题目的要求就是，在满足饮料总数量为V的基础上，求解最大的总满意度。</p>
-<h3 id="动态编程"><a href="#动态编程" class="headerlink" title="动态编程"></a>动态编程</h3><p> 对于最优解问题，首先考虑到动态编程啦！用Opt(V’,i)来标示从第i,i+1,……n-1,n种饮料中，计算出总量为V’的方案中满意度之和的最大值。</p>
-<p> 然后我们思考一下最优子结构的推到公式啊。Opt(V’,n)=max{k<em>Hi+Opt(V’-Vi</em>k,i-1)} (k=0,1,2,Ci),简单描述一下就是先将V‘分成两份，一份是Si饮料容量，大小为K<em>Vi；另外一份是其他的饮料的容量，大小为V’-Vi</em>k,其中k表示这种饮料的数量。然后取不同的k值，范围为0到Ci,求最大的满意度。</p>
-<p> 我们来列出动态编程的初始化条件：</p>
-<ul>
-<li><p>Opt(0,0)=0</p>
-</li>
-<li><p>Opt(x,n)=-INF</p>
-</li>
-</ul>
-<h3 id="对动态编程的优化"><a href="#对动态编程的优化" class="headerlink" title="对动态编程的优化"></a>对动态编程的优化</h3><p>  动态编程算法的一个变形是备忘录法，备忘录法也是用一个表格来保存每个子问题的答案，并通过记忆化搜索来避免计算一些不可能到达的状态，简单来说，就是避免重复计算子问题，第一次遇到子问题的时候进行计算，然后保存结果，之后再次遇到时，直接取出结果使用。<br>&emsp;&emsp;动态编程和备忘录法的区别就是：动态编程是自下到上，而备忘录法是自顶向下的，而且备忘录法可以进行多次查询，花费了存储空间，来提高整体查询效率。</p>
-<h3 id="贪婪算法"><a href="#贪婪算法" class="headerlink" title="贪婪算法"></a>贪婪算法</h3><p>&emsp;&emsp;一般来说，如果你发现了最优子结构和重复子问题，就可以使用动态编程了，但是如果你发现了下边这条更加特殊的性质，你就可以使用贪婪算法.<br>&emsp;&emsp;这个特性就是贪心选择性质：我们可以通过局部最优（贪心）选择来构造全局最优，换句话说，当进行选择时，我们直接做出在当前问题中看来最优的选择，而不必考虑子问题的解，这就是贪婪和动态编程的区别，动态编程的每一步选择通常依赖于子问题的解，而贪婪不需要。<br>&emsp;&emsp;回到饮料供应问题，可以设想，将饮料按照满意度大小进行排序，优先最大量供应满意度最大的饮料是否就能得出这个问题的最优解呢？答案是肯定的，我们可以对这性质进行证明。<br>&emsp;&emsp;这篇文章只是分析了饮料供应问题的算法原理，并没有给出具体代码，大家可以自己动手编写一下啊，理论和实践并行啊。</p>
-
-        
-        
-        <p class="article-more-link">
-          
-       </p>
-    </div>
-    <footer class="article-footer clearfix">
-<div class="article-catetags">
-
-<div class="article-categories">
-  <span></span>
-  <a class="article-category-link" href="/categories/算法/">算法</a>
-</div>
-
-
-  <div class="article-tags">
-  
-  <span></span> <a href="/tags/算法/">算法</a><a href="/tags/动态编程/">动态编程</a><a href="/tags/贪婪算法/">贪婪算法</a>
-  </div>
-
-</div>
-
-
-
-
-<div class="comments-count">
-	
-	  	<span></span>
-		<a href="/2015/06/24/体验编程之美-饮料供应问题/#comments" class="ds-thread-count comments-count-link" data-thread-key="2015/06/24/体验编程之美-饮料供应问题/" data-count-type="comments">&nbsp;</a>
-	
-</div>
-
-</footer>
-
-
-    </article>
-
-
-
-
-
-
 
   <nav id="page-nav" class="clearfix">
     <a class="extend prev" rel="prev" href="/page/4/"><span></span>Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><a class="page-number" href="/page/4/">4</a><span class="page-number current">5</span><a class="page-number" href="/page/6/">6</a><a class="extend next" rel="next" href="/page/6/">Next<span></span></a>
@@ -1074,6 +1080,10 @@
 		  
 		
 		  
+			<li><a href="/categories/运维/" title="运维">运维<sup>1</sup></a></li>
+		  
+		
+		  
 			<li><a href="/categories/随笔/" title="随笔">随笔<sup>1</sup></a></li>
 		  
 		
@@ -1095,7 +1105,7 @@
 			
 		
 			
-				<li><a href="/tags/注解/" title="注解">注解<sup>3</sup></a></li>
+				<li><a href="/tags/Netty/" title="Netty">Netty<sup>3</sup></a></li>
 			
 		
 			
@@ -1103,7 +1113,7 @@
 			
 		
 			
-				<li><a href="/tags/Netty/" title="Netty">Netty<sup>3</sup></a></li>
+				<li><a href="/tags/注解/" title="注解">注解<sup>3</sup></a></li>
 			
 		
 			
@@ -1111,7 +1121,7 @@
 			
 		
 			
-				<li><a href="/tags/Span/" title="Span">Span<sup>2</sup></a></li>
+				<li><a href="/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
 			
 		
 			
@@ -1119,11 +1129,7 @@
 			
 		
 			
-				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
+				<li><a href="/tags/Span/" title="Span">Span<sup>2</sup></a></li>
 			
 		
 			
@@ -1131,7 +1137,15 @@
 			
 		
 			
-				<li><a href="/tags/filesystem/" title="filesystem">filesystem<sup>1</sup></a></li>
+				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Cookie/" title="Cookie">Cookie<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Jenkins/" title="Jenkins">Jenkins<sup>1</sup></a></li>
 			
 		
 			
@@ -1139,31 +1153,27 @@
 			
 		
 			
-				<li><a href="/tags/JSON/" title="JSON">JSON<sup>1</sup></a></li>
-			
-		
-			
 				<li><a href="/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/工具/" title="工具">工具<sup>1</sup></a></li>
+				<li><a href="/tags/反射/" title="反射">反射<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/图像处理/" title="图像处理">图像处理<sup>1</sup></a></li>
+				<li><a href="/tags/JSON/" title="JSON">JSON<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/animation/" title="animation">animation<sup>1</sup></a></li>
+				<li><a href="/tags/Http/" title="Http">Http<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/http/" title="http">http<sup>1</sup></a></li>
+				<li><a href="/tags/draw/" title="draw">draw<sup>1</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/Shader/" title="Shader">Shader<sup>1</sup></a></li>
+				<li><a href="/tags/epoll/" title="epoll">epoll<sup>1</sup></a></li>
 			
 		
 		</ul>
