@@ -72,6 +72,93 @@
         <header class="article-info clearfix">
   <h1 itemprop="name">
     
+      <a href="/2017/03/27/Netty源码-二-Netty的Channel和Pipeline/" title="Netty源码(二):Netty的Channel和Pipeline" itemprop="url">Netty源码(二):Netty的Channel和Pipeline</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2017-03-27T13:38:03.000Z" itemprop="datePublished"> Published 2017-03-27</time>
+    
+  </p>
+</header>
+    <div class="article-content">
+        
+        <p> 本文主要讲述Netty框架中Channel相关的知识，Netty通过Channel和Pipeline等一些组件提供了所谓的<code>Universal Communication API</code>．与<code>Channel</code>相关的知识点比较多，本篇文章就主要讲解一下<code>Channel</code>和<code>Pipeline</code>的事件处理流原理．<code>Channel</code>,<code>EventLoop</code>和<code>ChannelFuture</code>的相关知识下篇文章中再进行讲述．</p>
+<h3 id="官方文档上的Channel"><a href="#官方文档上的Channel" class="headerlink" title="官方文档上的Channel"></a>官方文档上的Channel</h3><p> 官方文档上给出的解释是Channel是与网络Socket相关的或具有一定I/O能力的组件．一个<code>Channel</code>可以给用户提供:</p>
+<ul>
+<li>当前<code>Channel</code>的状态(比如，是否保存Open状态，是否处于连接状态)</li>
+<li><code>Channel</code>的配置参数，比如说buffer的大小</li>
+<li><code>Channel</code>支持的相关I/O操作，比如说<code>read</code>,<code>write</code>,<code>connect</code>和<code>bind</code></li>
+<li>提供一个<code>ChannelPipeline</code>来处理所有与该<code>Channel</code>相关的I/O事件和请求</li>
+</ul>
+<p> <code>Channel</code>上进行的所有I/O操作都是异步的，也就是说，所有涉及I/O操作的调用都会立刻返回，并不保证操作完成，而是会返回一个<code>ChannelFuture</code>对象来通知你操作是否完成．<br> Channel是有层级的，这样的话，你就可以很方便的利用其他已有的Channel来构建自己需要的<code>channel</code>,比如说基于<code>SocketChannel</code>来实现关于<code>SSH</code>的<code>Channel</code></p>
+<p> 此外，当你完成某些操作之后调用<code>close()</code>或在<code>close(ChannelPromise)</code>是非常重要的，这样能确保你正确的释放了所有资源．</p>
+<h4 id="我眼中的Channel"><a href="#我眼中的Channel" class="headerlink" title="我眼中的Channel"></a>我眼中的Channel</h4><p> 首先，我们应该都知道Netty支持很多I/O通信协议:</p>
+<ul>
+<li>基于TCP的NIO: <code>NioServerSocketChannel</code>,<code>NioSocketChannel</code></li>
+<li>基于UDP的NIO:<code>NioDatagramChannel</code></li>
+<li>基于TCP的OIO:<code>OioSocketChannel</code>和<code>OioServerSocketChannel</code></li>
+<li>基于UDP的OIO:<code>OioDatagramChannel</code><br>如果把关于Channel的类图列出来的话，你会发现支持各种协议的<code>Channel</code>,不信你就看一下这个类图．</li>
+</ul>
+<p> 这样想一下，<strong><em><code>Channel</code>不就是<code>Netty</code>框架用来封装不同协议逻辑的组件吗?</em></strong>，有了<code>Channel</code>的存在，所有于通信协议相关的逻辑都隐藏在不同的<code>Channel</code>实现里，然后在对外提供相对统一的API.<br> 说道这里，你可能还不知道，即使是<code>OIOChannel</code>,它提供的I/O操作也是异步的．也就是说<strong><em>在Netty框架中，不论是OIO还是NIO模型，读写都会阻塞</em></strong>．这样也体现了<code>Universal Communication API</code>的思想，这就使得我们切换Channel非常方便．我们只要初始化不同的Channel即可．<br><code>ServerBootstrap b = new ServerBootstrap(); 
+            b.group(bossGroup, workerGroup)
+             .channel(NioServerSocketChannel.class)
+ServerBootstrap b = new ServerBootstrap(); 
+            b.group(bossGroup, workerGroup)
+             .channel(OioServerSocketChannel.class)</code><br> 有关<code>Channel</code>协议相关的底层知识，我们会在下一篇文章时进行介绍．</p>
+<h3 id="ChannelHandler和ChannelPipeline"><a href="#ChannelHandler和ChannelPipeline" class="headerlink" title="ChannelHandler和ChannelPipeline"></a>ChannelHandler和ChannelPipeline</h3><p> 只有<code>Channel</code>的支持，还不足以实现<code>Universal Communication API</code>,还需要上述两个类来提供<code>ChannelHandler</code>的编程模式，基于<code>ChannelHandler</code>来开发业务逻辑，而不需要考虑网络通讯方面的事情．<br> Netty源码中一张图形象的描述了这个机制<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017327-netty-stream.png" alt="示意图"></p>
+<p>&emsp;Netty中的<code>ChannelPipeline</code>包含两条线路：Upstream和<code>Downstream</code>．Upstream对应上行，接受信息，被动的状态改变，都属于Upstream．Downstream则对应下行，发送消息，主动状态的改变．Upstream对应InBound Handler,Downstream对应Outbound Handler.从Netty内部IO线程接读到IO数据，依次经过N个Handler到达最内部的逻辑处理单元，这种称之为Inbound Handler；从Channel发出IO请求，依次经过M个Handler到达Netty内部IO线程，这种称之为Outbound Handler<br>&emsp;需要注意的是，这个Handler链中消息或在事件不会自动的向下或在向上流动或转发，而是需要由上一个Handler显示的调用<code>ChannelPipeline.sendUp(down)stream</code>来交给下一个Handler来处理．也就是说，每个Handler接受到一个<code>ChannelEvent</code>,处理结束后，如果需要继续处理，那么它需要向下一个或在上一个Handler发起一个事件．</p>
+
+        
+        
+        <p class="article-more-link">
+          
+       </p>
+    </div>
+    <footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/NIO/">NIO</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/Netty/">Netty</a>
+  </div>
+
+</div>
+
+
+
+
+<div class="comments-count">
+	
+	  	<span></span>
+		<a href="/2017/03/27/Netty源码-二-Netty的Channel和Pipeline/#comments" class="ds-thread-count comments-count-link" data-thread-key="2017/03/27/Netty源码-二-Netty的Channel和Pipeline/" data-count-type="comments">&nbsp;</a>
+	
+</div>
+
+</footer>
+
+
+    </article>
+
+
+
+
+
+
+   
+    
+    <article class="post-expand post" itemprop="articleBody"> 
+        <header class="article-info clearfix">
+  <h1 itemprop="name">
+    
       <a href="/2017/03/22/Netty源码-一-Netty中的Buffer/" title="Netty源码(一):Netty中的Buffer" itemprop="url">Netty源码(一):Netty中的Buffer</a>
   </h1>
   <p class="article-author">By
@@ -969,104 +1056,6 @@
 
 
 
-   
-    
-    <article class="post-expand post" itemprop="articleBody"> 
-        <header class="article-info clearfix">
-  <h1 itemprop="name">
-    
-      <a href="/2016/07/15/自定义Switch过程详解/" title="自定义Switch过程详解" itemprop="url">自定义Switch过程详解</a>
-  </h1>
-  <p class="article-author">By
-       
-		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
-		
-  <p class="article-time">
-    <time datetime="2016-07-15T14:13:49.000Z" itemprop="datePublished"> Published 2016-07-15</time>
-    
-  </p>
-</header>
-    <div class="article-content">
-        
-        <p>作者： <a href="http://ztelur.github.io/" target="_blank" rel="external">remcarpediem</a><br>联系方式：<a href="https://segmentfault.com/u/remcarpediem" target="_blank" rel="external">segmentfault</a>，<a href="http://blog.csdn.net/u012422440" target="_blank" rel="external">csdn</a>，<a href="http://www.jianshu.com/users/481d9f540fb9/latest_articles" target="_blank" rel="external">简书</a></p>
-<blockquote>
-<p>本文转载请注明作者、文章来源，链接，版权归作者所有。</p>
-</blockquote>
-<p>&emsp;前段时间，我看到了一篇关于Android动画的文章<a href="http://blog.csdn.net/bfbx5173/article/details/45191147" target="_blank" rel="external">Android View 仿iOS SwitchButton Material Design</a>，十分喜欢文章作者的笔风，可惜每个人的笔风都不同，不过我倒是实现了一个类似的Switch组件,项目地址为<a href="https://github.com/ztelur/FunSwitch" target="_blank" rel="external">https://github.com/ztelur/FunSwitch</a>，就用这篇文章来讲述一下实现过程和机制吧。</p>
-<h4 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h4><p>&emsp;我的自定义Switch是模仿github上的<a href="https://github.com/lilei644/LLSwitch" target="_blank" rel="external">LLSwitch</a>,其UI设计来源于Dribbble，链接<a href="https://dribbble.com/shots/2706143-Dribbble-Debut-Boring-Funny-Slider-Animation" target="_blank" rel="external">摸我</a>,其效果图如下</p>
-<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160715-sample.gif" alt="效果图"></p>
-<h4 id="自定义View需要重载的函数"><a href="#自定义View需要重载的函数" class="headerlink" title="自定义View需要重载的函数"></a>自定义View需要重载的函数</h4><p>&emsp;我们都知道以<code>View</code>为父类来自定义视图需要重载一系列函数，下面我们就来按照调用顺序来介绍一下这些函数。需要重载的函数列表如下:</p>
-<ul>
-<li><code>onMeasure</code>  </li>
-<li><code>onSizeChanged</code></li>
-<li><code>onDraw</code></li>
-<li><code>onTouchEvent</code></li>
-<li><code>onSaveInstanceState</code></li>
-<li><code>onRestoreInstanceState</code></li>
-</ul>
-<p>&emsp;首先就是<code>onMeasure</code>函数，用于确定自定义视图的长和高。对于本文的Switch,我们让其高为宽的固定比例大小就可以了，所以重构函数实现得十分简单。<strong>这个函数确定的只是测量的长和高，并不是最终视图所显示的长和高</strong>。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onMeasure</span><span class="params">(<span class="keyword">int</span> widthMeasureSpec, <span class="keyword">int</span> heightMeasureSpec)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>.onMeasure(widthMeasureSpec, heightMeasureSpec);</span><br><span class="line">    <span class="keyword">int</span> width = MeasureSpec.getSize(widthMeasureSpec);</span><br><span class="line">    <span class="keyword">int</span> height = (<span class="keyword">int</span>) (width * DEFAULT_WIDTH_HEIGHT_PERCENT);</span><br><span class="line">    setMeasuredDimension(width,height);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;然后就是视图确定真正大小(<code>onLayout</code>)之后要调用的<code>onSizeChanged</code>函数了。这个函数调用之后，<code>draw</code>函数就可能被调用，所以，一般我们在这个函数中计算绘制时所需要的数据。<br>&emsp;接着是<code>draw</code>函数，在这个函数中，我们绘制各种图像来构成视图的UI。需要注意的是，这个函数会被频繁的调用，所以不要在函数内执行耗时的操作。<br>&emsp;最后是<code>onTouchEvent</code>函数，这个函数是用户触摸屏幕时才会被调用的，主要进行视图的触摸处理，由于我们的自定义Switch支持的触摸事件比较简单，只是支持点击事件，所以此函数的实现也比较简单。<br>&emsp;最后就是涉及到视图状态保存的两个函数。我们都知道，一定情况下，activity会被销毁，然后重新建立，比如你旋转屏幕时。这个时候，你需要保存视图的一些属性数据，以备重新建立视图时使用，来恢复之前的视图。<strong>你需要注意的是，光重载这两个函数还是不够的，还需要设置View ID和调用setSaveEnabled函数</strong>。<br>&emsp;我们接下来就一步一步的来实现这个自定义组件吧。</p>
-<h4 id="田径场式背景"><a href="#田径场式背景" class="headerlink" title="田径场式背景"></a>田径场式背景</h4><p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160715-boke1.png" alt="田径场背景"></p>
-<p>&emsp;我们先来看一下这个Switch的背景，它是一个形如田径场跑道的形状，由两个半圆和一个矩形组成，我们先来看一下如何来绘制出这样的图案。我们使用<code>Path</code>来构造出这样的图案，然后再进行绘制，代码如下所示:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onSizeChanged</span><span class="params">(<span class="keyword">int</span> w, <span class="keyword">int</span> h, <span class="keyword">int</span> oldw, <span class="keyword">int</span> oldh)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>.onSizeChanged(w, h, oldw, oldh);</span><br><span class="line">    <span class="comment">//TODO：还有padding的问题偶！！！</span></span><br><span class="line">    mWidth = w;</span><br><span class="line">    mHeight = h;</span><br><span class="line">    <span class="keyword">float</span> top = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">float</span> left = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">float</span> bottom = h*<span class="number">0.8f</span>; <span class="comment">//下边预留0.2空间来画阴影</span></span><br><span class="line">    <span class="keyword">float</span> right = w;</span><br><span class="line"></span><br><span class="line">    RectF backgroundRecf = <span class="keyword">new</span> RectF(left,top,bottom,bottom);</span><br><span class="line">    mBackgroundPath = <span class="keyword">new</span> Path();</span><br><span class="line">    <span class="comment">//<span class="doctag">TODO:</span>???????????</span></span><br><span class="line">    mBackgroundPath.arcTo(backgroundRecf,<span class="number">90</span>,<span class="number">180</span>);</span><br><span class="line"></span><br><span class="line">    backgroundRecf.left = right - bottom;</span><br><span class="line">    backgroundRecf.right = right;</span><br><span class="line">    mBackgroundPath.arcTo(backgroundRecf,<span class="number">270</span>,<span class="number">180</span>);</span><br><span class="line">    mBackgroundPath.close();</span><br><span class="line">    ........</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onDraw</span><span class="params">(Canvas canvas)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>.onDraw(canvas);</span><br><span class="line">    drawBackground(canvas);</span><br><span class="line">    drawForeground(canvas);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">drawBackground</span><span class="params">(Canvas canvas)</span> </span>&#123;</span><br><span class="line">    mPaint.setColor(mCurrentColor);</span><br><span class="line">    mPaint.setStyle(Paint.Style.FILL);</span><br><span class="line">    canvas.drawPath(mBackgroundPath,mPaint);</span><br><span class="line">    mPaint.reset();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;我们使用<code>arcTo(RectF oval, float startAngle, float sweepAngle)</code>这儿函数来绘制田径场图案。这个函数，需要传入一个RectF对象，将要绘制的圆是这个对象所代表矩形的内切圆，我们只要计算出来这个矩形的上下左右四点的坐标就可以了。我们先计算绘制左侧半圆所需要的矩形，然后函数后两个参数为90,和180。注意的是，这个函数中，角度的正方向是顺时针的，<code>startAngle</code>为90,也就是我们数学坐标系中角度为270所代表的方向。<br>&emsp;由于Path会自动连接绘制个点之间的连线，所以，我们只需要再绘制出右侧半圆的曲线即可。<br>&emsp;我们只需要将绘制左侧圆曲线的矩形进行一定距离的平移，就可以绘制出右侧曲线。所以矩形的右边界就等于整个视图的<code>right</code>，由于矩形的长为<code>bottom</code>,所以矩形的左边界就为<code>right-bottom</code>。然后再次调用<code>arcTo</code>函数，这次的起始角度就变成270了。<br>&emsp;最后调用<code>Path</code>的<code>close</code>函数，让上边画的两段圆弧连接起来，就形成了上述的田径场图案。</p>
-<h4 id="绘制脸部图形"><a href="#绘制脸部图形" class="headerlink" title="绘制脸部图形"></a>绘制脸部图形</h4><p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160715-smileface.png" alt="脸部图形"></p>
-<p>&emsp;笑脸图案看似复杂，其实就是几个图形组合在一起。首先是一个大圆，然后是里边的两个椭圆型的眼睛，然后是嘴巴。我们只要在正确的位置将这些图形绘制出来即可。<br>&emsp;和绘制背景图形的顺序类似，我们首先在<code>onSizeChanged</code>函数中进行相关函数的计算。<br>&emsp;首先是大圆脸的绘制，我们还是使用<code>drawPath</code>函数，只不过这次<code>Path</code>对象只绘制一个圆；而双眼则是使用<code>drawOval</code>函数来花椭圆；最后使用<code>drawRect</code>来绘制矩形。</p>
-<h4 id="Switch动画"><a href="#Switch动画" class="headerlink" title="Switch动画"></a>Switch动画</h4><p>&emsp;我们仔细查看自定义Switch的动画效果，可以发现，主要涉及三部分的动画效果：</p>
-<ul>
-<li>背景颜色动画转变。</li>
-<li>脸部图形的平移和转动(可以看出相当于脸部水平转动了360度)。</li>
-<li>脸部表情动画，眨眼睛和嘴巴咧开。</li>
-</ul>
-<p>&emsp;由于动画涉及的操作比较多，所以我们选择使用<code>ValueAnimator</code>+<code>AnimatorUpdateListener</code>的动画实现方式，在<code>onAnimationUpdate</code>函数中记录下来当前的<code>animatedValue</code>，然后调用<code>invalidate</code>函数来让界面重绘，在绘制界面计算数据过程中，使用记录下来的数值，从而产生动画效果。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">startCloseAnimation</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    mValueAnimator = ValueAnimator.ofFloat(NORMAL_ANIM_MAX_FRACTION,<span class="number">0</span>);</span><br><span class="line">    mValueAnimator.setDuration(mOffAnimationDuration);</span><br><span class="line">    mValueAnimator.addUpdateListener(<span class="keyword">this</span>);</span><br><span class="line">    mValueAnimator.addListener(<span class="keyword">this</span>);</span><br><span class="line">    mValueAnimator.setInterpolator(mInterpolator);</span><br><span class="line">    mValueAnimator.start();</span><br><span class="line">    startColorAnimation();</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onAnimationUpdate</span><span class="params">(ValueAnimator animation)</span> </span>&#123;</span><br><span class="line">    mAnimationFraction = (<span class="keyword">float</span>)animation.getAnimatedValue();</span><br><span class="line">    invalidate(); <span class="comment">//产生动画的关键步骤</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;所以，最终动画问题又变成了绘制静态图像问题，我们根据不同的<code>mAnimationFraction</code>的值来绘制不同的图像。<br>&emsp;接下来我们就来描述一下几个比较关键的动画的逻辑。</p>
-<h4 id="脸部转动动画"><a href="#脸部转动动画" class="headerlink" title="脸部转动动画"></a>脸部转动动画</h4><p>&emsp;其实这个脸部动画还是比较难实现的，主要是转动的这个效果没有直接的API可以实现。我们的动画只是让用户产生脸部转动的假象。由于脸部图案就是一个大圆加上充当眼睛和嘴巴的椭圆和矩形，我们可以让眼睛和嘴巴向转动方向平移，让它们平移出大圆，然后在一定时间后从另外一个方向再平移进入大圆，最终回到原来位置。这样就实现了一种脸部转动的效果。<br>&emsp;如何让眼睛和嘴巴移动到大圆边缘就消失呢？而且是随着移动渐渐的一部分一部分的消失呢？我们这里使用了另外一种思路，使用<code>clipPath</code>函数，将画布进行裁剪，只留下大圆范围内的图案。这样的话，当眼睛和嘴巴移动出大圆时，就会逐渐消失。<br>&emsp;至于眼睛和嘴巴如何平移呢？大家首先想到的方法一定是根据<code>mAnimationFraction</code>来计算它们的位置，然后在相应位置上将它们绘制出来，但是这样不是最优的方法，我们可以在绘制这些图像时，对画布进行平移，这样的话，我们绘制眼睛和嘴巴的函数就不会涉及到<code>mAnimationFraction</code>，实现比较简单。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">drawFace</span><span class="params">(Canvas canvas,<span class="keyword">float</span> fraction)</span> </span>&#123;</span><br><span class="line">        mPaint.setAntiAlias(<span class="keyword">true</span>);</span><br><span class="line">        <span class="comment">//面部背景</span></span><br><span class="line">        mPaint.setColor(mFaceColor);</span><br><span class="line">        mPaint.setStyle(Paint.Style.FILL);</span><br><span class="line">        canvas.drawPath(mFacePath,mPaint);</span><br><span class="line">		<span class="comment">//先裁剪并平移画布，然后再绘制眼部五官</span></span><br><span class="line">        translateAndClipFace(canvas,fraction);</span><br><span class="line">        drawEye(canvas,fraction);</span><br><span class="line">        drawMouth(canvas,fraction);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">translateAndClipFace</span><span class="params">(Canvas canvas,<span class="keyword">float</span> fraction)</span> </span>&#123;</span><br><span class="line">        <span class="comment">//截掉超出face的部分。</span></span><br><span class="line">        canvas.clipPath(mFacePath);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">float</span> faceTransition ;</span><br><span class="line">        <span class="comment">//TODO：合理的转动区间，眼睛出现和消失的时间比为1：1,所以当fraction=0.25时，应该只显示侧脸,计算faceTransition。</span></span><br><span class="line">        <span class="keyword">if</span> (fraction &gt;=<span class="number">0.0f</span> &amp;&amp; fraction &lt;<span class="number">0.5f</span>) &#123;</span><br><span class="line">            faceTransition = fraction * mFaceRadius *<span class="number">4</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (fraction &lt;=NORMAL_ANIM_MAX_FRACTION)&#123;</span><br><span class="line">            faceTransition = - (NORMAL_ANIM_MAX_FRACTION - fraction) * mFaceRadius * <span class="number">4</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (fraction &lt;=(NORMAL_ANIM_MAX_FRACTION+FACE_ANIM_MAX_FRACTION)/<span class="number">2</span>) &#123;</span><br><span class="line">            faceTransition =  (fraction - NORMAL_ANIM_MAX_FRACTION) * mFaceRadius * <span class="number">2</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            faceTransition = (FACE_ANIM_MAX_FRACTION - fraction) * mFaceRadius * <span class="number">2</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        canvas.translate(faceTransition,<span class="number">0</span>);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
-<h4 id="眨眼睛和变笑脸动画"><a href="#眨眼睛和变笑脸动画" class="headerlink" title="眨眼睛和变笑脸动画"></a>眨眼睛和变笑脸动画</h4><p>&emsp;眨眼睛动画十分简单，我们只要在绘制眼睛之前对画布进行缩放即可，然后在绘制玩眼睛之后，在将画布转变回来。但是后来我发现，画布缩放的中心点不容易确认，所以，采取了使用<code>mAnimationValue</code>计算椭圆数据的方式来进行椭圆大小的缩放。<br>&emsp;变笑脸动画主要就是嘴巴的动画效果，在静止情况下，我们使用<code>drawRect</code>来绘制嘴部图形；但在动画过程中，我们使用<code>drawPath</code>和<code>quadTo</code>来共同绘制嘴巴形状。<br>&emsp;<code>Path</code>的<code>quadTo</code>是用来绘制贝塞尔曲线，具体使用方法请查看<a href="https://github.com/GcsSloop/AndroidNote/blob/master/CustomView/Advance/%5B6%5DPath_Bezier.md" target="_blank" rel="external">Path之贝塞尔曲线</a>。我们主要使用其二阶曲线版本，即两个数据点，一个控制点。我们计算出A,B这两个数据点，也就是静止状态下矩形的左上点和右上点，然后根据<code>mAnimationValue</code>来计算控制点c的坐标，然后完成绘制。</p>
-<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160715-quadTo.jpg" alt="贝塞尔曲线原理图"></p>
-<p>&emsp;嘴部图案的绘制如下所示。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">  <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">drawMouth</span><span class="params">(Canvas canvas,<span class="keyword">float</span> fraction)</span> </span>&#123;</span><br><span class="line">.......</span><br><span class="line">      <span class="comment">//嘴巴</span></span><br><span class="line">      <span class="keyword">if</span> (fraction &lt;=<span class="number">0.75</span>) &#123; <span class="comment">//</span></span><br><span class="line">          canvas.drawRect(mouthLeft, mouthTop, mouthLeft + mouthWidth, mouthTop + mouthHeight, mPaint);</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          Path path = <span class="keyword">new</span> Path();</span><br><span class="line">          path.moveTo(mouthLeft,mouthTop);</span><br><span class="line">          <span class="keyword">float</span> controlX = mouthLeft + mouthWidth/<span class="number">2</span>;</span><br><span class="line">          <span class="keyword">float</span> controlY = mouthTop + mouthHeight + mouthHeight * <span class="number">15</span> * (fraction - <span class="number">0.75f</span>);</span><br><span class="line">      path.quadTo(controlX,controlY,mouthLeft+mouthWidth,mouthTop);</span><br><span class="line">          path.close();</span><br><span class="line">          canvas.drawPath(path,mPaint);</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
-<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>&emsp;其实还有一些细节问题我没有在这篇文章上讲出，一方面是因为讲述起来太过复杂，还是大家自己查阅代码比较好，另一方面是，我觉得自己实现的方式也不是很好，就不在这里献丑了。<br>&emsp;项目还没有完全完成，比如自定义监听器和自定义属性的相关逻辑都没有添加，希望感兴趣的同学可以自行研究代码并完善它。项目地址摸我<a href="https://github.com/ztelur/FunSwitch" target="_blank" rel="external">我的github</a>。</p>
-
-        
-        
-        <p class="article-more-link">
-          
-       </p>
-    </div>
-    <footer class="article-footer clearfix">
-<div class="article-catetags">
-
-<div class="article-categories">
-  <span></span>
-  <a class="article-category-link" href="/categories/Android/">Android</a>
-</div>
-
-
-  <div class="article-tags">
-  
-  <span></span> <a href="/tags/View/">View</a><a href="/tags/Animation/">Animation</a>
-  </div>
-
-</div>
-
-
-
-
-<div class="comments-count">
-	
-	  	<span></span>
-		<a href="/2016/07/15/自定义Switch过程详解/#comments" class="ds-thread-count comments-count-link" data-thread-key="2016/07/15/自定义Switch过程详解/" data-count-type="comments">&nbsp;</a>
-	
-</div>
-
-</footer>
-
-
-    </article>
-
-
-
-
-
-
 
   <nav id="page-nav" class="clearfix">
     <a class="extend prev" rel="prev" href="/"><span></span>Prev</a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><a class="page-number" href="/page/4/">4</a><span class="space">&hellip;</span><a class="page-number" href="/page/6/">6</a><a class="extend next" rel="next" href="/page/3/">Next<span></span></a>
@@ -1132,7 +1121,7 @@
 		  
 		
 		  
-			<li><a href="/categories/分布式/" title="分布式">分布式<sup>1</sup></a></li>
+			<li><a href="/categories/分布式/" title="分布式">分布式<sup>2</sup></a></li>
 		  
 		
 		  
@@ -1221,19 +1210,11 @@
 		<ul class="clearfix">
 		
 			
-				<li><a href="/tags/Netty/" title="Netty">Netty<sup>3</sup></a></li>
-			
-		
-			
 				<li><a href="/tags/JUC/" title="JUC">JUC<sup>3</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/注解/" title="注解">注解<sup>3</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/算法/" title="算法">算法<sup>3</sup></a></li>
+				<li><a href="/tags/Netty/" title="Netty">Netty<sup>3</sup></a></li>
 			
 		
 			
@@ -1241,7 +1222,15 @@
 			
 		
 			
-				<li><a href="/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
+				<li><a href="/tags/算法/" title="算法">算法<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/注解/" title="注解">注解<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
 			
 		
 			
@@ -1253,7 +1242,7 @@
 			
 		
 			
-				<li><a href="/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
+				<li><a href="/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
 			
 		
 			
@@ -1261,19 +1250,11 @@
 			
 		
 			
-				<li><a href="/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
+				<li><a href="/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
 			
 		
 			
 				<li><a href="/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/docker/" title="docker">docker<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/kubernetes/" title="kubernetes">kubernetes<sup>1</sup></a></li>
 			
 		
 			
@@ -1285,10 +1266,6 @@
 			
 		
 			
-				<li><a href="/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
-			
-		
-			
 				<li><a href="/tags/Docker/" title="Docker">Docker<sup>1</sup></a></li>
 			
 		
@@ -1297,7 +1274,19 @@
 			
 		
 			
-				<li><a href="/tags/市场/" title="市场">市场<sup>1</sup></a></li>
+				<li><a href="/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Animation/" title="Animation">Animation<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/epoll/" title="epoll">epoll<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/工具/" title="工具">工具<sup>1</sup></a></li>
 			
 		
 		</ul>

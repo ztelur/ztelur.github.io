@@ -1,0 +1,692 @@
+
+ <!DOCTYPE HTML>
+<html lang="Chinese">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Raft算法 | Carpediem</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
+    
+    <meta name="author" content="remCarpediem">
+    
+
+    
+    <meta name="description" content="前段时间一直在学习mit的分布式课程Distributed Systems，仔细阅读了raft论文，但是中间又跑去搞docker了，所以一直没有整理raft相关的文章，今天就来总结一下。&amp;emsp;文章中没有多少详细的图片，但是大家可以边看文章边看Raft演示动画 之前介绍的Paxos算法一直都是分布式一致性协议的标准，但是Paxos难以理解，更难以理解。于是Stanford的教授提出了Raft">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Raft算法">
+<meta property="og:url" content="http://remcarpediem.com/2017/07/25/Raft算法/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="前段时间一直在学习mit的分布式课程Distributed Systems，仔细阅读了raft论文，但是中间又跑去搞docker了，所以一直没有整理raft相关的文章，今天就来总结一下。&amp;emsp;文章中没有多少详细的图片，但是大家可以边看文章边看Raft演示动画 之前介绍的Paxos算法一直都是分布式一致性协议的标准，但是Paxos难以理解，更难以理解。于是Stanford的教授提出了Raft">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2017725-raft-raft1.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2017725-raft-raft2.png">
+<meta property="og:updated_time" content="2017-07-25T09:17:41.751Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Raft算法">
+<meta name="twitter:description" content="前段时间一直在学习mit的分布式课程Distributed Systems，仔细阅读了raft论文，但是中间又跑去搞docker了，所以一直没有整理raft相关的文章，今天就来总结一下。&amp;emsp;文章中没有多少详细的图片，但是大家可以边看文章边看Raft演示动画 之前介绍的Paxos算法一直都是分布式一致性协议的标准，但是Paxos难以理解，更难以理解。于是Stanford的教授提出了Raft">
+<meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2017725-raft-raft1.png">
+
+    
+    <link rel="alternative" href="/atom.xml" title="Carpediem" type="application/atom+xml">
+    
+    
+    
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+  <body>
+    <header>
+      
+<div>
+		
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="Carpediem">Carpediem</a></h1>
+				<h2 class="blog-motto">blog of nobody</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					<ul>
+					 
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+						<li><a href="/about">About</a></li>
+					
+					<li>
+ 					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
+						<input type="hidden" name="q" value="site:remcarpediem.com">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+  
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2017/07/25/Raft算法/" title="Raft算法" itemprop="url">Raft算法</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2017-07-25T09:09:09.000Z" itemprop="datePublished"> Published 2017-07-25</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">Contents</strong>
+		
+			<ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#Raft-basis"><span class="toc-number">1.</span> <span class="toc-text">Raft basis</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Leader-election"><span class="toc-number">2.</span> <span class="toc-text">Leader election</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Log-replication"><span class="toc-number">3.</span> <span class="toc-text">Log replication</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Safety"><span class="toc-number">4.</span> <span class="toc-text">Safety</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Election限制"><span class="toc-number">5.</span> <span class="toc-text">Election限制</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#Committing-entries-from-previous-terms"><span class="toc-number">5.1.</span> <span class="toc-text">Committing entries from previous terms</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#Followers-and-candidate-crashs"><span class="toc-number">5.2.</span> <span class="toc-text">Followers and candidate crashs</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#后记"><span class="toc-number">6.</span> <span class="toc-text">后记</span></a></li></ol>
+		
+		</div>
+		
+		<p> 前段时间一直在学习mit的分布式课程<a href="http://nil.csail.mit.edu/6.824/2015/index.html" target="_blank" rel="external">Distributed Systems</a>，仔细阅读了raft论文，但是中间又跑去搞docker了，所以一直没有整理raft相关的文章，今天就来总结一下。<br>&emsp;文章中没有多少详细的图片，但是大家可以边看文章边看<a href="http://thesecretlivesofdata.com/raft/" target="_blank" rel="external">Raft演示动画</a><br> 之前介绍的<a href="http://remcarpediem.com/2017/04/16/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95Paxos/">Paxos</a>算法一直都是分布式一致性协议的标准，但是Paxos难以理解，更难以理解。于是Stanford的教授提出了Raft协议，它是一个为真实世界应用建立的协议，主要注重协议的落地性和可理解性。这里有Raft的<a href="http://nil.csail.mit.edu/6.824/2015/papers/raft-atc14.pdf" target="_blank" rel="external">论文</a>，大家有兴趣可以自行阅读一下。<br> Raft是为了managing a replicated log。Raft会首先选举一个leader,然后让这个leader来管理replicated log。Raft将consensus问题(也就是一致性问题)划分成三个相互独立的子问题：  </p>
+<ul>
+<li>leader election</li>
+<li>log replication</li>
+<li>safety</li>
+</ul>
+<h4 id="Raft-basis"><a href="#Raft-basis" class="headerlink" title="Raft basis"></a>Raft basis</h4><p> 任何时间每个server都处于下列三个状态之一：leader,follower,或在candidate之一。在正常状态下，整个集群只会有一个leader并且其他所有server都处于followers状态下。followers是被动的，它们只会对leader的request进行反应。第三个状态candidate是用来选举新的leader的。<br> Raft以Term来划分运行时间，你可以将其理解为任期。Term以连续的整数来命名，每个Term都以一个election开始。在一次选举中，一个或多个candidate试图成为leader。如果一个candidate赢得了election,那么它就成为leader。如果一次election中没有candidate获胜，那么就进行下一个Term,重新进行election。每个Term最多只有一leader，否则进入下一个Term,这样Term就可以作为一个logical clock。<br> Raft服务器通过RPC来交互，只需要两个RPC操作，RequestVote RPCs and AppendEntries RPCs。RequestVote用于选举而AppendEntries用于leader发送请求进行relicate log entries和心跳。</p>
+<h4 id="Leader-election"><a href="#Leader-election" class="headerlink" title="Leader election"></a>Leader election</h4><p>&emsp;Raft通过心跳机制来触发leader selection。当一个服务器启动时，默认位于followers状态，并且一直持续知道它一直接受到leader的RPC请求。leader会周期性发送心跳给所有的followers。如果follower一段时间内没有接受到心跳，那么就认为当前没有leader应该开始leader selection。<br>&emsp;开始election后，server将其Term进行加一，然后转变成candidate状态，并且给其他所有server发送RequestVote RPC请求来进行vote。这个过程一直持续到：server自己赢得election,其他的server赢得election,或者这个Term期间没有server获胜，进入下一个Term。<br>&emsp;candidate收到半数以上server的vote就赢得了election。每个server在一个Term中只会vote一次。server基于first-come-and-first-serve的规则来进行投票。一旦某个candidate赢得了election, 就变成了leader,并且开始周期性发送心跳。<br>&emsp;当等待投票时，candidate受到了其他candidate发送的AppendEntries PRC请求,如果candiate发现在包含在请求当中的Term数值大于或则等于自己的Term数值，那么该candiate主动退回到follower状态，否在拒绝该请求，继续保持candidate状态。<br>&emsp;当很多server变成candidate状态进行election时，选举失败的可能性就很高了。那么每个candiate会推迟随机时间之后进入下一个Term并进行新的election。以此来避免大量的选举失败的情况发生。</p>
+<h4 id="Log-replication"><a href="#Log-replication" class="headerlink" title="Log replication"></a>Log replication</h4><p>&emsp;一旦一个leader被选举成功，它就开始处理client请求。每个client请求都包含一个需要被replicated state machine处理的命令，leader将这些命令当作一个新的entry添加到log中。然后给follower发送AppendEntries RPCs请求来复制这个log entry。当一个entry被safely relicated(在下一小结中会讲解)，leader就会将entry交给state machine进行执行，并且将结果返回。<br>&emsp;当一个log entry可以被安全的交给state machine处理时，我们认为它是committed的。Raft保证所有committed的log entry一定是持久化的，并且一定被state machine执行。Log entry是committed一旦该entry在大多数follower上被replicated。一旦一个entry被committed,那么在它之前的所有log也是committed的。Leader会随时关注最大的committed的log的index,并在AppendEntries RPCs请求中携带该信息，这样follower就能知道哪些entry被committed，它们就会将其提交给自己的state machine来执行。<br>&emsp;当followers crash或则网络丢包时，leader会一直发送AppendEntries RPCs直到所有followers都存储了entry。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017725-raft-raft1.png" alt="log entry的排列"></p>
+<p>&emsp;每个Log entry都有其唯一标识，entry中包括了 leader Term，index和要执行的comand。index是指entry在Log中的位置。Raft通过Log Machine Property来维护Log的合理性：</p>
+<ul>
+<li>如果两个entries在不同的logs中(存储在不同的server上)拥有相同的index和term,那么他们包含相同的command。</li>
+<li>如果两个entries在不同的logs中拥有相同的index和term,那么他们之前的entries也都是一致或在内容相同的。<br>&emsp;第一条规定保证leader每个Term中的每个index最多只能创建一个entry。而第二条规定使得followers在处理AppendEntries RPCs请求时要进行一致性检测。leader在AppendEntries请求中带上了自己logs中排在新entry之前的那个entry的index和term,如果follower在自己的logs中找不到该entry,那么就拒绝添加new entry。这样就保证了第二条规定不会被违反。<br>&emsp;正常情况下，leader和followers的logs都是一致的，但是当一系列的leader crash，followers crash和election之后，followers的logs可能会被当前leader的logs多出一些entry,也可能会少一些entry。在Raft中，leader通过强迫followers的logs复制leader的logs来保持一致性。这就意味着follower logs中的冲突的entry会被重写。</li>
+</ul>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017725-raft-raft2.png" alt="leader和follower的logs冲突"></p>
+<p>&emsp;为了一致化logs,leader的logs需要和follower的logs进行对比，找出它们之间最后一条相同的entry。然后将follower logs中那条entry之后的所有entry删除，并发送leader logs中那条entry之后的entry给follower。这些行为都发生在AppendEntries RPCs的一致性检查过程中。<br>&emsp;leader会每个follower维护一个nextIndex来记录发送给这个follower的下一条log entry的index。nextIndex初始化为leader logs的最后一条entry之后的index。如果follower的logs和leader的logs不一致，那么AppendEntries RPCs的一致性检查就会失败。leader发现自己的请求被follower拒绝了，那么就减少该follower的nextIndex然后再次发送AppendEntries请求。最终nextIndex就会变成二者log中最后一个一致的entry的index。当上述情况发生之后，AppendEntries请求就会成功，就会删除follower中多的entry和添加缺少的entry。</p>
+<h4 id="Safety"><a href="#Safety" class="headerlink" title="Safety"></a>Safety</h4><p>&emsp;这一小节主要描述在leader election过程中的一些限定。这些限定保证任何一个Term的leader的logs都包含了之前Term中所有committed的entry。这也是所谓的Leader Completeness Property。</p>
+<h4 id="Election限制"><a href="#Election限制" class="headerlink" title="Election限制"></a>Election限制</h4><p>&emsp;Raft规定：在election过程中，new leader本身必须有之前Term中所有committed的log entry。也就是说每次election成功的leader必然包含之前所有的committed的log entry。这样保证了log的单向流动，一定是从leader到follower。<br>&emsp;Raft通过election vote过程来保证上述限制。一个candidate必须得到集群中多于半数的server的vote，而每个committed的log entry一定也会存在于多于半数的server的logs中。也就是说在RequestVote RPC中包含了candidate自己logs中最后一个committed的log信息，接受到该请求的server会将其和自己log中最后一个committed的log进行对比，如果自己的log晚于candiate的，那么就同意该candiate成为leader,否在拒绝。这样的话，没有包含所有committed log entry的candidate就一定不会得到超过半数的server的vote。Raft根据entry的term和index来确定每个entry的先后顺序。较大term的log entry比较新，如果log entry的term一致，那就是越大的index约新。</p>
+<h5 id="Committing-entries-from-previous-terms"><a href="#Committing-entries-from-previous-terms" class="headerlink" title="Committing entries from previous terms"></a>Committing entries from previous terms</h5><p>&emsp;如果旧的leader在committing an entry时crash了，那么新的leader是否需要重新commit这个entry呢？但是为了简化，Raft重来不会提交之前Term的log entry。没有被committed的log entry就会被重写。</p>
+<h5 id="Followers-and-candidate-crashs"><a href="#Followers-and-candidate-crashs" class="headerlink" title="Followers and candidate crashs"></a>Followers and candidate crashs</h5><p>&emsp;如果followers或在candidate在接受到RPC之前crash，leader会一直重试发送RPC。如果是在接受处理之后crash，没有发送回复，leader也是会重复发送RPC,但是因为RPC都是幂等的，所以不会造成额外的影响。</p>
+<h4 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h4><p>&emsp;Raft的应用十分广泛，比如etcd项目就是使用Raft来保证分布式一致性的，之后我也想去研究一下etcd中Raft的实现，毕竟之前都是理论。</p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/分布式/">分布式</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/Raft/">Raft</a>
+  </div>
+
+</div>
+
+
+
+	<div class="article-share" id="share">
+	
+	  <div data-url="http://remcarpediem.com/2017/07/25/Raft算法/" data-title="Raft算法 | Carpediem" data-tsina="null" class="share clearfix">
+	  </div>
+	
+	</div>
+
+
+</footer>
+
+   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+
+<div class="next">
+<a href="/2017/07/23/Kubernetes部署/"  title="Kubernetes部署">
+ <strong>下一篇：</strong><br/> 
+ <span>Kubernetes部署
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comments" class="comment">
+	<div class="ds-thread" data-thread-key="2017/07/25/Raft算法/" data-title="Raft算法" data-url="http://remcarpediem.com/2017/07/25/Raft算法/"></div>
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">Contents</strong>
+ 
+ <ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#Raft-basis"><span class="toc-number">1.</span> <span class="toc-text">Raft basis</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Leader-election"><span class="toc-number">2.</span> <span class="toc-text">Leader election</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Log-replication"><span class="toc-number">3.</span> <span class="toc-text">Log replication</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Safety"><span class="toc-number">4.</span> <span class="toc-text">Safety</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Election限制"><span class="toc-number">5.</span> <span class="toc-text">Election限制</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#Committing-entries-from-previous-terms"><span class="toc-number">5.1.</span> <span class="toc-text">Committing entries from previous terms</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#Followers-and-candidate-crashs"><span class="toc-number">5.2.</span> <span class="toc-text">Followers and candidate crashs</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#后记"><span class="toc-number">6.</span> <span class="toc-text">后记</span></a></li></ol>
+ 
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<aside class="clearfix">
+
+  
+
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">Categories</p>
+		<ul>
+		
+		  
+			<li><a href="/categories/Android/" title="Android">Android<sup>21</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/Android性能/" title="Android性能">Android性能<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/Java/" title="Java">Java<sup>4</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/Java/JavaScript/" title="JavaScript">JavaScript<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/NIO/" title="NIO">NIO<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/Android/NetWork/" title="NetWork">NetWork<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/Android/Network/" title="Network">Network<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/Python/" title="Python">Python<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/c/" title="c">c<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/python/" title="python">python<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/函数式编程/" title="函数式编程">函数式编程<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/分布式/" title="分布式">分布式<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/多线程/" title="多线程">多线程<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/容器/" title="容器">容器<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/并发/" title="并发">并发<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/思考/" title="思考">思考<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/c/数据结构/" title="数据结构">数据结构<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/源码/" title="源码">源码<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/Android/源码分析/" title="源码分析">源码分析<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/杂记/生活/" title="生活">生活<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/算法/" title="算法">算法<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/综合/" title="综合">综合<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/网络/" title="网络">网络<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/源码/视图/" title="视图">视图<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/计划/" title="计划">计划<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/设计/" title="设计">设计<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/读书笔记/" title="读书笔记">读书笔记<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/运维/" title="运维">运维<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/随笔/" title="随笔">随笔<sup>1</sup></a></li>
+		  
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">Tags</p>
+		<ul class="clearfix">
+		
+			
+				<li><a href="/tags/JUC/" title="JUC">JUC<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Netty/" title="Netty">Netty<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/第三方库/" title="第三方库">第三方库<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/算法/" title="算法">算法<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/注解/" title="注解">注解<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Span/" title="Span">Span<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/反射/" title="反射">反射<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/JSON/" title="JSON">JSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Docker/" title="Docker">Docker<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Jenkins/" title="Jenkins">Jenkins<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Animation/" title="Animation">Animation<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/epoll/" title="epoll">epoll<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/工具/" title="工具">工具<sup>1</sup></a></li>
+			
+		
+		</ul>
+</div>
+
+
+  
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	
+	<section class="info">
+		<p> Hello ,I&#39;m Homer in NJU. <br/>
+			This is my blog,believe it or not.</p>
+	</section>
+	 
+	<div class="social-font" class="clearfix">
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+	</div>
+			
+		
+
+		<p class="copyright">
+		Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/wuchong/jacman" target="_blank" title="Jacman">Jacman</a> © 2017 
+		
+		<a href="/about" target="_blank" title="remCarpediem">remCarpediem</a>
+		
+		
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.0.3.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+<script src="/js/jquery.qrcode-0.12.0.min.js"></script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+  
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else{
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  c.click(function(){
+    ta.css('display', 'block').addClass('fadeIn');
+  });
+  o.click(function(){
+    ta.css('display', 'none');
+  });
+  $(window).scroll(function(){
+    ta.css("top",Math.max(140,320-$(this).scrollTop()));
+  });
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina'),
+      description = $this.attr('description');
+  var html = [
+  '<div class="hoverqrcode clearfix"></div>',
+  '<a class="overlay" id="qrcode"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="微信"></a>',
+  '<a href="http://widget.renren.com/dialog/share?resourceUrl=' + encodedUrl + '&srcUrl=' + encodedUrl + '&title=' + title +'" class="article-share-renren" target="_blank" title="人人"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="微博"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+
+  $('.hoverqrcode').hide();
+
+  var myWidth = 0;
+  function updatehoverqrcode(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+    var qrsize = myWidth > 1024 ? 200:100;
+    var options = {render: 'image', size: qrsize, fill: '#2ca6cb', text: url, radius: 0.5, quiet: 1};
+    var p = $('.article-share-qrcode').position();
+    $('.hoverqrcode').empty().css('width', qrsize).css('height', qrsize)
+                          .css('left', p.left-qrsize/2+20).css('top', p.top-qrsize-10)
+                          .qrcode(options);
+  };
+  $(window).resize(function(){
+    $('.hoverqrcode').hide();
+  });
+  $('.article-share-qrcode').click(function(){
+    updatehoverqrcode();
+    $('.hoverqrcode').toggle();
+  });
+  $('.article-share-qrcode').hover(function(){}, function(){
+      $('.hoverqrcode').hide();
+  });
+});   
+</script>
+
+
+
+<script type="text/javascript">
+  var duoshuoQuery = {short_name:"CarpeDiem"};
+  (function() {
+    var ds = document.createElement('script');
+    ds.type = 'text/javascript';ds.async = true;
+    ds.src = '//static.duoshuo.com/embed.js';
+    ds.charset = 'UTF-8';
+    (document.getElementsByTagName('head')[0] 
+    || document.getElementsByTagName('body')[0]).appendChild(ds);
+  })();
+</script> 
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.article-content').each(function(i){
+    $(this).find('img').each(function(){
+      if ($(this).parent().hasClass('fancybox')) return;
+      var alt = this.alt;
+      if (alt) $(this).after('<span class="caption">' + alt + '</span>');
+      $(this).wrap('<a href="' + this.src + '" title="' + alt + '" class="fancybox"></a>');
+    });
+    $(this).find('.fancybox').each(function(){
+      $(this).attr('rel', 'article' + i);
+    });
+  });
+  if($.fancybox){
+    $('.fancybox').fancybox();
+  }
+}); 
+</script>
+
+
+
+<!-- Analytics Begin -->
+
+<script type="text/javascript">
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+ga('create', 'UA-88918565-1', 'ztelur.github.io/');
+ga('send', 'pageview');
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?8a8af29a4307eee9d7c7f8e9321aedae";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+<script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1260989317'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "s23.cnzz.com/z_stat.php%3Fid%3D1260989317' type='text/javascript'%3E%3C/script%3E"));</script>
+
+
+
+
+<!-- baidu search 推送-->
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+<!-- Analytics End -->
+
+<!-- Totop Begin -->
+
+	<div id="totop">
+	<a title="Back to Top"><img src="/img/scrollup.png"/></a>
+	</div>
+	<script src="/js/totop.js"></script>
+
+<!-- Totop End -->
+
+<!-- MathJax Begin -->
+<!-- mathjax config similar to math.stackexchange -->
+
+
+<!-- MathJax End -->
+
+<!-- Tiny_search Begin -->
+
+<!-- Tiny_search End -->
+
+  </body>
+</html>
