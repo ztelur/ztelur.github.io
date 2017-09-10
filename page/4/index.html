@@ -38,7 +38,7 @@
 				<h1 class="site-name"><a href="/" title="Carpediem">Carpediem</a></h1>
 				<h2 class="blog-motto">blog of nobody</h2>
 			</div>
-			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
 			</a></div>
 			<nav class="animated">
 				<ul>
@@ -54,7 +54,7 @@
  					
 					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
 						<label>Search</label>
-						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
+						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
 						<input type="hidden" name="q" value="site:remcarpediem.com">
 					</form>
 					
@@ -72,6 +72,140 @@
         <header class="article-info clearfix">
   <h1 itemprop="name">
     
+      <a href="/2016/04/07/Android-Scroll详解-二-：OverScroller实战/" title="Android Scroll详解(二)：OverScroller实战" itemprop="url">Android Scroll详解(二)：OverScroller实战</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2016-04-07T14:58:49.000Z" itemprop="datePublished"> 发表于 2016-04-07</time>
+    
+  </p>
+</header>
+    <div class="article-content">
+        
+        <p>作者： <a href="http://www.jianshu.com/users/481d9f540fb9/latest_articles" target="_blank" rel="external">ztelur</a><br>联系方式：<a href="https://segmentfault.com/u/remcarpediem" target="_blank" rel="external">segmentfault</a>，<a href="http://blog.csdn.net/u012422440" target="_blank" rel="external">csdn</a>，<a href="http://ztelur.github.io/" target="_blank" rel="external">github</a></p>
+<blockquote>
+<p>本文仅供个人学习，不用于任何形式商业目的，转载请注明原作者、文章来源，链接，版权归原文作者所有。</p>
+</blockquote>
+<p>&emsp;本文是android滚动相关的系列文章的第二篇，主要总结一下使用手势相关的代码逻辑。主要是单点拖动，多点拖动，fling和OveScroll的实现。每个手势都会有代码片段。<br>&emsp;对android滚动相关的知识还不太了解的同学可以先阅读一下文章：</p>
+<ul>
+<li><a href="http://ztelur.github.io/2016/03/16/Android-MotionEvent%E8%AF%A6%E8%A7%A3/" target="_blank" rel="external">《Android-MotionEvent详解》</a></li>
+<li><a href="http://ztelur.github.io/2016/03/27/Android-Scroll%E8%AF%A6%E8%A7%A3-%E4%B8%80-%EF%BC%9A%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/" target="_blank" rel="external">《Android Scroll详解(一)：基础知识》</a></li>
+</ul>
+<p>&emsp;为了节约你的时间，我特地将文章大致内容总结如下：</p>
+<ul>
+<li>手势Drag的实现和原理</li>
+<li>手势Fling的实现和原理</li>
+<li>OverScroll效果和EdgeEffect效果的实现和原理。</li>
+</ul>
+<p>&emsp;详细代码请查看<a href="https://github.com/ztelur/ScrollProject" target="_blank" rel="external">我的github</a></p>
+<h3 id="Drag"><a href="#Drag" class="headerlink" title="Drag"></a>Drag</h3><p>&emsp;Drag是最为基本的手势：用户可以使用手指在屏幕上滑动，以拖动屏幕相应内容移动。实现Drag手势其实很简单，步骤如下：</p>
+<ul>
+<li>在<code>ACTION_DOWN</code>事件发生时，调用<code>getX</code>和<code>getY</code>函数获得事件发生的x,y坐标值，并记录在<code>mLastX</code>和<code>mLastY</code>变量中。</li>
+<li>在<code>ACTION_MOVE</code>事件发生时，调用<code>getX</code>和<code>getY</code>函数获得事件发生的x,y坐标值,将其与<code>mLastX</code>和<code>mLastY</code>比较，如果二者差值大于一定限制（ScaledTouchSlop）,就执行<code>scrollBy</code>函数，进行滚动,最后更新<code>mLastX</code>和<code>mLastY</code>的值。</li>
+<li>在<code>ACTION_UP</code>和<code>ACTION_CANCEL</code>事件发生时，清空<code>mLastX</code>，<code>mLastY</code>。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">onTouchEvent</span><span class="params">(MotionEvent event)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> actionId = MotionEventCompat.getActionMasked(event);</span><br><span class="line">    <span class="keyword">switch</span> (actionId) &#123;</span><br><span class="line">        <span class="keyword">case</span> MotionEvent.ACTION_DOWN:</span><br><span class="line">            mLastX = event.getX();</span><br><span class="line">            mLastY = event.getY();</span><br><span class="line">            mIsBeingDragged = <span class="keyword">true</span>;</span><br><span class="line">            <span class="keyword">if</span> (getParent() != <span class="keyword">null</span>) &#123;</span><br><span class="line">                getParent().requestDisallowInterceptTouchEvent(<span class="keyword">true</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> MotionEvent.ACTION_MOVE:</span><br><span class="line">            <span class="keyword">float</span> curX = event.getX();</span><br><span class="line">            <span class="keyword">float</span> curY = event.getY();</span><br><span class="line">            <span class="keyword">int</span> deltaX = (<span class="keyword">int</span>) (mLastX - curX);</span><br><span class="line">            <span class="keyword">int</span> deltaY = (<span class="keyword">int</span>) (mLastY - curY);</span><br><span class="line">            <span class="keyword">if</span> (!mIsBeingDragged &amp;&amp; (Math.abs(deltaX)&gt; mTouchSlop ||</span><br><span class="line">                                                    Math.abs(deltaY)&gt; mTouchSlop)) &#123;</span><br><span class="line">                mIsBeingDragged = <span class="keyword">true</span>;</span><br><span class="line">                <span class="comment">// 让第一次滑动的距离和之后的距离不至于差距太大</span></span><br><span class="line">                <span class="comment">// 因为第一次必须&gt;TouchSlop,之后则是直接滑动</span></span><br><span class="line">                <span class="keyword">if</span> (deltaX &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                    deltaX -= mTouchSlop;</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    deltaX += mTouchSlop;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (deltaY &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                    deltaY -= mTouchSlop;</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    deltaY += mTouchSlop;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 当mIsBeingDragged为true时，就不用判断&gt; touchSlopg啦，不然会导致滚动是一段一段的</span></span><br><span class="line">            <span class="comment">// 不是很连续</span></span><br><span class="line">            <span class="keyword">if</span> (mIsBeingDragged) &#123;</span><br><span class="line">                    scrollBy(deltaX, deltaY);</span><br><span class="line">                    mLastX = curX;</span><br><span class="line">                    mLastY = curY;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> MotionEvent.ACTION_CANCEL:</span><br><span class="line">        <span class="keyword">case</span> MotionEvent.ACTION_UP:</span><br><span class="line">            mIsBeingDragged = <span class="keyword">false</span>;</span><br><span class="line">            mLastY = <span class="number">0</span>;</span><br><span class="line">            mLastX = <span class="number">0</span>;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> mIsBeingDragged;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="多触点Drag"><a href="#多触点Drag" class="headerlink" title="多触点Drag"></a>多触点Drag</h3><p>&emsp;上边的代码只适用于单点触控的手势，如果你是两个手指触摸屏幕，那么它只会根据你第一个手指滑动的情况来进行屏幕滚动。更为致命的是，当你先松开第一个手指时，由于我们少监听了<code>ACTION_POINTER_UP</code>事件，将会导致屏幕突然滚动一大段距离，因为第二个手指移动事件的x,y值会和第一个手指移动时留下的<code>mLastX</code>和<code>mLastY</code>比较，导致屏幕滚动。</p>
+<p>&emsp;如果我们要监听并处理多触点的事件，我们还需要对<code>ACTION_POINTER_DOWN</code>和<code>ACTION_POINTER_UP</code>事件进行监听，并且在<code>ACTION_MOVE</code>事件时，要记录所有触摸点事件发生的x,y值。</p>
+<ul>
+<li>当<code>ACTION_POINTER_DOWN</code>事件发生时，我们要记录第二触摸点事件发生的x,y值为<code>mSecondaryLastX</code>和<code>mSecondaryLastY</code>，和第二触摸点pointer的id为<code>mSecondaryPointerId</code></li>
+<li>当<code>ACTION_MOVE</code>事件发生时，我们除了根据第一触摸点pointer的x，y值进行滚动外，也要更新<code>mSecondayLastX</code>和<code>mSecondaryLastY</code></li>
+<li>当<code>ACTION_POINTER_UP</code>事件发生时，我们要先判断是哪个触摸点手指被抬起来啦，如果是第一触摸点，那么我们就将坐标值和pointer的id都更换为第二触摸点的数据；如果是第二触摸点，就只要重置一下数据即可。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> (actionId) &#123;</span><br><span class="line">    .....</span><br><span class="line">    <span class="keyword">case</span> MotionEvent.ACTION_POINTER_DOWN:</span><br><span class="line">        activePointerIndex = MotionEventCompat.getActionIndex(event);</span><br><span class="line">        mSecondaryPointerId = MotionEventCompat.findPointerIndex(event,activePointerIndex);</span><br><span class="line">        mSecondaryLastX = MotionEventCompat.getX(event,activePointerIndex);</span><br><span class="line">        mSecondaryLastY = MotionEventCompat.getY(event,activePointerIndex);</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> MotionEvent.ACTION_MOVE:</span><br><span class="line">        ......</span><br><span class="line">        <span class="comment">// handle secondary pointer move</span></span><br><span class="line">        <span class="keyword">if</span> (mSecondaryPointerId != INVALID_ID) &#123;</span><br><span class="line">            <span class="keyword">int</span> mSecondaryPointerIndex = MotionEventCompat.findPointerIndex(event, mSecondaryPointerId);</span><br><span class="line">            mSecondaryLastX = MotionEventCompat.getX(event, mSecondaryPointerIndex);</span><br><span class="line">            mSecondaryLastY = MotionEventCompat.getY(event, mSecondaryPointerIndex);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> MotionEvent.ACTION_POINTER_UP:</span><br><span class="line">        <span class="comment">//判断是否是activePointer up了</span></span><br><span class="line">        activePointerIndex = MotionEventCompat.getActionIndex(event);</span><br><span class="line">        <span class="keyword">int</span> curPointerId  = MotionEventCompat.getPointerId(event,activePointerIndex);</span><br><span class="line">        Log.e(TAG, <span class="string">"onTouchEvent: "</span>+activePointerIndex +<span class="string">" "</span>+curPointerId +<span class="string">" activeId"</span>+mActivePointerId+</span><br><span class="line">                                <span class="string">"secondaryId"</span>+mSecondaryPointerId);</span><br><span class="line">        <span class="keyword">if</span> (curPointerId == mActivePointerId) &#123; <span class="comment">// active pointer up</span></span><br><span class="line">            mActivePointerId = mSecondaryPointerId;</span><br><span class="line">            mLastX = mSecondaryLastX;</span><br><span class="line">            mLastY = mSecondaryLastY;</span><br><span class="line">            mSecondaryPointerId = INVALID_ID;</span><br><span class="line">            mSecondaryLastY = <span class="number">0</span>;</span><br><span class="line">            mSecondaryLastX = <span class="number">0</span>;</span><br><span class="line">            <span class="comment">//重复代码，为了让逻辑看起来更加清晰</span></span><br><span class="line">        &#125; <span class="keyword">else</span>&#123; <span class="comment">//如果是secondary pointer up</span></span><br><span class="line">            mSecondaryPointerId = INVALID_ID;</span><br><span class="line">            mSecondaryLastY = <span class="number">0</span>;</span><br><span class="line">            mSecondaryLastX = <span class="number">0</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> MotionEvent.ACTION_CANCEL:</span><br><span class="line">    <span class="keyword">case</span> MotionEvent.ACTION_UP:</span><br><span class="line">        mIsBeingDragged = <span class="keyword">false</span>;</span><br><span class="line">        mActivePointerId = INVALID_ID;</span><br><span class="line">        mLastY = <span class="number">0</span>;</span><br><span class="line">        mLastX = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">default</span>:</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="Fling"><a href="#Fling" class="headerlink" title="Fling"></a>Fling</h3><p>&emsp;当用户手指快速划过屏幕，然后快速立刻屏幕时，系统会判定用户执行了一个Fling手势。视图会快速滚动，并且在手指立刻屏幕之后也会滚动一段时间。Drag表示手指滑动多少距离，界面跟着显示多少距离，而fling是根据你的滑动方向与轻重，还会自动滑动一段距离。Filing手势在android交互设计中应用非常广泛：电子书的滑动翻页、ListView滑动删除item、滑动解锁等。所以如何检测用户的fling手势是非常重要的。<br>&emsp;在检测Fling时，你需要检测手指在屏幕上滑动的速度，这是你就需要<code>VelocityTracker</code>和<code>Scroller</code>这两个类啦。</p>
+<ul>
+<li>我们首先使用<code>VelocityTracker.obtain()</code>这个方法获得其实例</li>
+<li>然后每次处理触摸时间时，我们将触摸事件通过<code>addMovement</code>方法传递给它</li>
+<li>最后在处理<code>ACTION_UP</code>事件时，我们通过<code>computeCurrentVelocity</code>方法获得滑动速度;</li>
+<li>我们判断滑动速度是否大于一定数值(MinFlingSpeed),如果大于，那么我们调用<code>Scroller</code>的<code>fling</code>方法。然后调用<code>invalidate()</code>函数。</li>
+<li>我们需要重载<code>computeScroll</code>方法，在这个方法内，我们调用<code>Scroller</code>的<code>computeScrollOffset()</code>方法啦计算当前的偏移量，然后获得偏移量，并调用<code>scrollTo</code>函数,最后调用<code>postInvalidate()</code>函数。</li>
+<li>除了上述的操作外，我们需要在处理<code>ACTION_DOWN</code>事件时，对屏幕当前状态进行判断，如果屏幕现在正在滚动(用户刚进行了Fling手势)，我们需要停止屏幕滚动。</li>
+</ul>
+<p>&emsp;具体这一套流程是如何运转的，我会在下一篇文章中详细解释，大家也可以自己查阅代码或者google来搞懂其中的原理。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line">   <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">onTouchEvent</span><span class="params">(MotionEvent event)</span> </span>&#123;</span><br><span class="line">       .....</span><br><span class="line">       <span class="keyword">if</span> (mVelocityTracker == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="comment">//检查速度测量器，如果为null，获得一个</span></span><br><span class="line">           mVelocityTracker = VelocityTracker.obtain();</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">int</span> action = MotionEventCompat.getActionMasked(event);</span><br><span class="line">       <span class="keyword">int</span> index = -<span class="number">1</span>;</span><br><span class="line">       <span class="keyword">switch</span> (action) &#123;</span><br><span class="line">           <span class="keyword">case</span> MotionEvent.ACTION_DOWN:</span><br><span class="line">               ......</span><br><span class="line">                               <span class="keyword">if</span> (!mScroller.isFinished()) &#123; <span class="comment">//fling</span></span><br><span class="line">                   mScroller.abortAnimation();</span><br><span class="line">               &#125;</span><br><span class="line">               .....</span><br><span class="line">               <span class="keyword">break</span>;</span><br><span class="line">           <span class="keyword">case</span> MotionEvent.ACTION_MOVE:</span><br><span class="line">               ......</span><br><span class="line">               <span class="keyword">break</span>;</span><br><span class="line">           <span class="keyword">case</span> MotionEvent.ACTION_CANCEL:</span><br><span class="line">               endDrag();</span><br><span class="line">               <span class="keyword">break</span>;</span><br><span class="line">           <span class="keyword">case</span> MotionEvent.ACTION_UP:</span><br><span class="line">               <span class="keyword">if</span> (mIsBeingDragged) &#123;</span><br><span class="line">               <span class="comment">//当手指立刻屏幕时，获得速度，作为fling的初始速度     mVelocityTracker.computeCurrentVelocity(1000,mMaxFlingSpeed);</span></span><br><span class="line">                   <span class="keyword">int</span> initialVelocity = (<span class="keyword">int</span>)mVelocityTracker.getYVelocity(mActivePointerId);</span><br><span class="line">                   <span class="keyword">if</span> (Math.abs(initialVelocity) &gt; mMinFlingSpeed) &#123;</span><br><span class="line">                       <span class="comment">// 由于坐标轴正方向问题，要加负号。</span></span><br><span class="line">                       doFling(-initialVelocity);</span><br><span class="line">                   &#125;</span><br><span class="line">                   endDrag();</span><br><span class="line">               &#125;</span><br><span class="line">               <span class="keyword">break</span>;</span><br><span class="line">           <span class="keyword">default</span>:</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="comment">//每次onTouchEvent处理Event时，都将event交给时间</span></span><br><span class="line">       <span class="comment">//测量器</span></span><br><span class="line">       <span class="keyword">if</span> (mVelocityTracker != <span class="keyword">null</span>) &#123;</span><br><span class="line">           mVelocityTracker.addMovement(event);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">doFling</span><span class="params">(<span class="keyword">int</span> speed)</span> </span>&#123;</span><br><span class="line">       <span class="keyword">if</span> (mScroller == <span class="keyword">null</span>) &#123;</span><br><span class="line">           <span class="keyword">return</span>;</span><br><span class="line">       &#125;</span><br><span class="line">       mScroller.fling(<span class="number">0</span>,getScrollY(),<span class="number">0</span>,speed,<span class="number">0</span>,<span class="number">0</span>,-<span class="number">500</span>,<span class="number">10000</span>);</span><br><span class="line">       invalidate();</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="meta">@Override</span></span><br><span class="line">   <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">computeScroll</span><span class="params">()</span> </span>&#123;</span><br><span class="line">       <span class="keyword">if</span> (mScroller.computeScrollOffset()) &#123;</span><br><span class="line">           scrollTo(mScroller.getCurrX(),mScroller.getCurrY());</span><br><span class="line">           postInvalidate();</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="OverScroll"><a href="#OverScroll" class="headerlink" title="OverScroll"></a>OverScroll</h4><p>&emsp;在Android手机上，当我们滚动屏幕内容到达内容边界时，如果再滚动就会有一个发光效果。而且界面会进行滚动一小段距离之后再回复原位，这些效果是如何实现的呢？我们需要使用<code>Scroller</code>和<code>scrollTo</code>的升级版<code>OverScroller</code>和<code>overScrollBy</code>了，还有发光的<code>EdgeEffect</code>类。<br>&emsp;我们先来了解一下相关的API，理解了这些接口参数的含义，你就可以轻松使用这些接口来实现上述的效果啦。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">boolean</span> <span class="title">overScrollBy</span><span class="params">(<span class="keyword">int</span> deltaX, <span class="keyword">int</span> deltaY,</span><br><span class="line">            <span class="keyword">int</span> scrollX, <span class="keyword">int</span> scrollY,</span><br><span class="line">            <span class="keyword">int</span> scrollRangeX, <span class="keyword">int</span> scrollRangeY,</span><br><span class="line">            <span class="keyword">int</span> maxOverScrollX, <span class="keyword">int</span> maxOverScrollY,</span><br><span class="line">            <span class="keyword">boolean</span> isTouchEvent)</span></span></span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>int deltaX,int deltaY : 偏移量，也就是当前要滚动的x，y值。</li>
+<li>int scrollX,int scrollY : 当前的mScrollX和mScrollY的值。</li>
+<li>int scrollRangeX,int scrollRangeY: 标示可以滚动的最大的x,y值，也就是你视图真实的长和宽。也就是说，你的视图可视大小可能是100,100,但是视图中的内容的大小为200,200,所以，上述两个值就为200,200</li>
+<li>int maxOverScrollX,int maxOverScrollY：允许超过滚动范围的最大值，x方向的滚动范围就是0~maxOverScrollX,y方向的滚动范围就是0~maxOverScrollY。</li>
+<li>boolean isTouchEvent:是否在<code>onTouchEvent</code>中调用的这个函数。所以，当你在<code>computeScroll</code>中调用这个函数时，就可以传入false。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onOverScrolled</span><span class="params">(<span class="keyword">int</span> scrollX, <span class="keyword">int</span> scrollY, <span class="keyword">boolean</span> clampedX, <span class="keyword">boolean</span> clampedY)</span></span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>int scrollX,int scrollY:就是x，y方向的滚动距离，就相当于<code>mScrollX</code>和<code>mScrollY</code>。你既可以直接把二者赋值给相应的成员变量，也可以使用<code>scrollTo</code>函数。</li>
+<li>boolean clampedX,boolean clampY:表示是否到达超出滚动范围的最大值。如果为true，就需要调用<code>OverScroll</code>的<code>springBack</code>函数来让视图回复原来位置。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">springBack</span><span class="params">(<span class="keyword">int</span> startX, <span class="keyword">int</span> startY, <span class="keyword">int</span> minX, <span class="keyword">int</span> maxX, <span class="keyword">int</span> minY, <span class="keyword">int</span> maxY)</span></span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>int startX,int startY:标示当前的滚动值，也就是<code>mScrollX</code>和<code>mScrollY</code>的值。</li>
+<li>int minX,int maxX:标示x方向的合理滚动值</li>
+<li>int minY,int maxY:标示y方向的合理滚动值。</li>
+</ul>
+<p>&emsp;相信看完上述的API之后，大家会有很多的疑惑，所以这里我来举个例子。<br>&emsp;假设视图大小为100*100。当你一直下拉到视图上边缘，然后在下拉，这时，<code>mScrollY</code>已经达到或者超过正常的滚动范围的最小值了，也就是0，但是你的maxOverScrollY传入的是10,所以，<code>mScrollY</code>最小可以到达-10,最大可以为110。所以，你可以继续下拉。等到<code>mScrollY</code>到达或者超过-10时，clampedY就为true，标示视图已经达到可以OverScroll的边界，需要回滚到正常滚动范围，所以你调用springBack(0,0,0,100)。</p>
+<p>&emsp;然后我们再来看一下发光效果是如何实现的。<br>&emsp;使用<code>EdgeEffect</code>类。一般来说，当你只上下滚动时，你只需要两个<code>EdgeEffect</code>实例，分别代表上边界和下边界的发光效果。你需要在下面两个情景下改变<code>EdgeEffect</code>的状态，然后在<code>draw()</code>方法中绘制<code>EdgeEffect</code></p>
+<ul>
+<li>处理<code>ACTION_MOVE</code>时，如果发现y方向的滚动值超过了正常范围的最小值时，你需要调用上边界实例的<code>onPull</code>方法。如果是超过最大值，那么就是调用下边界的<code>onPull</code>方法。</li>
+<li>在<code>computeScroll</code>函数中，也就是说Fling手势执行过程中，如果发现y方向的滚动值超过正常范围时的最小值时，调用<code>onAbsorb</code>函数。</li>
+</ul>
+<p>&emsp;然后就是重载<code>draw</code>方法，让<code>EdgeEffect</code>实例在画布上绘制自己。你会发现，你必须对画布进行移动或者旋转来让<code>EdgeEffect</code>绘制出上边界或者下边界的发光的效果，因为<code>EdgeEffect</code>对象自己是没有上下左右的概念的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br></pre></td><td class="code"><pre><span class="line">   <span class="meta">@Override</span></span><br><span class="line">   <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">draw</span><span class="params">(Canvas canvas)</span> </span>&#123;</span><br><span class="line">       <span class="keyword">super</span>.draw(canvas);</span><br><span class="line">       <span class="keyword">if</span> (mEdgeEffectTop != <span class="keyword">null</span>) &#123;</span><br><span class="line">           <span class="keyword">final</span> <span class="keyword">int</span> scrollY = getScrollY();</span><br><span class="line">           <span class="keyword">if</span> (!mEdgeEffectTop.isFinished()) &#123;</span><br><span class="line">               <span class="keyword">final</span> <span class="keyword">int</span> count = canvas.save();</span><br><span class="line">               <span class="keyword">final</span> <span class="keyword">int</span> width = getWidth() - getPaddingLeft() - getPaddingRight();</span><br><span class="line">               canvas.translate(getPaddingLeft(),Math.min(<span class="number">0</span>,scrollY));</span><br><span class="line">               mEdgeEffectTop.setSize(width,getHeight());</span><br><span class="line">               <span class="keyword">if</span> (mEdgeEffectTop.draw(canvas)) &#123;</span><br><span class="line">                   postInvalidate();</span><br><span class="line">               &#125;</span><br><span class="line">               canvas.restoreToCount(count);</span><br><span class="line">           &#125;</span><br><span class="line"></span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">if</span> (mEdgeEffectBottom != <span class="keyword">null</span>) &#123;</span><br><span class="line">           <span class="keyword">final</span> <span class="keyword">int</span> scrollY = getScrollY();</span><br><span class="line">           <span class="keyword">if</span> (!mEdgeEffectBottom.isFinished()) &#123;</span><br><span class="line">               <span class="keyword">final</span> <span class="keyword">int</span> count = canvas.save();</span><br><span class="line">               <span class="keyword">final</span> <span class="keyword">int</span> width = getWidth() - getPaddingLeft() - getPaddingRight();</span><br><span class="line">               canvas.translate(-width+getPaddingLeft(),Math.max(getScrollRange(),scrollY)+getHeight());</span><br><span class="line">               canvas.rotate(<span class="number">180</span>,width,<span class="number">0</span>);</span><br><span class="line">               mEdgeEffectBottom.setSize(width,getHeight());</span><br><span class="line">               <span class="keyword">if</span> (mEdgeEffectBottom.draw(canvas)) &#123;</span><br><span class="line">                   postInvalidate();</span><br><span class="line">               &#125;</span><br><span class="line">               canvas.restoreToCount(count);</span><br><span class="line">           &#125;</span><br><span class="line"></span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br><span class="line">   </span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line">   <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">onTouchEvent</span><span class="params">(MotionEvent event)</span> </span>&#123;</span><br><span class="line">           ......</span><br><span class="line">           <span class="keyword">case</span> MotionEvent.ACTION_MOVE:</span><br><span class="line">               .....</span><br><span class="line">               <span class="keyword">if</span> (mIsBeingDragged) &#123;</span><br><span class="line">                   overScrollBy(<span class="number">0</span>,(<span class="keyword">int</span>)deltaY,<span class="number">0</span>,getScrollY(),<span class="number">0</span>,getScrollRange(),<span class="number">0</span>,mOverScrollDistance,<span class="keyword">true</span>);</span><br><span class="line">                   <span class="keyword">final</span> <span class="keyword">int</span> pulledToY = (<span class="keyword">int</span>)(getScrollY()+deltaY);</span><br><span class="line">                   mLastY = y;</span><br><span class="line">                   <span class="keyword">if</span> (pulledToY&lt;<span class="number">0</span>) &#123;</span><br><span class="line">                       mEdgeEffectTop.onPull(deltaY/getHeight(),event.getX(mActivePointerId)/getWidth());</span><br><span class="line">                       <span class="keyword">if</span> (!mEdgeEffectBottom.isFinished()) &#123;</span><br><span class="line">                           mEdgeEffectBottom.onRelease();</span><br><span class="line">                       &#125;</span><br><span class="line">                   &#125; <span class="keyword">else</span> <span class="keyword">if</span>(pulledToY&gt; getScrollRange()) &#123;</span><br><span class="line">                       mEdgeEffectBottom.onPull(deltaY/getHeight(),<span class="number">1.0f</span>-event.getX(mActivePointerId)/getWidth());</span><br><span class="line">                       <span class="keyword">if</span> (!mEdgeEffectTop.isFinished()) &#123;</span><br><span class="line">                           mEdgeEffectTop.onRelease();</span><br><span class="line">                       &#125;</span><br><span class="line">                   &#125;</span><br><span class="line">                   <span class="keyword">if</span> (mEdgeEffectTop != <span class="keyword">null</span> &amp;&amp; mEdgeEffectBottom != <span class="keyword">null</span> &amp;&amp;(!mEdgeEffectTop.isFinished()</span><br><span class="line">                                       || !mEdgeEffectBottom.isFinished())) &#123;</span><br><span class="line">                       postInvalidate();</span><br><span class="line">                   &#125;</span><br><span class="line">               &#125;</span><br><span class="line">               .....</span><br><span class="line">       &#125;</span><br><span class="line">       ....</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="meta">@Override</span></span><br><span class="line">   <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onOverScrolled</span><span class="params">(<span class="keyword">int</span> scrollX, <span class="keyword">int</span> scrollY, <span class="keyword">boolean</span> clampedX, <span class="keyword">boolean</span> clampedY)</span> </span>&#123;</span><br><span class="line">       <span class="keyword">if</span> (!mScroller.isFinished()) &#123;  </span><br><span class="line">           <span class="keyword">int</span> oldX = getScrollX();</span><br><span class="line">           <span class="keyword">int</span> oldY = getScrollY();</span><br><span class="line">           scrollTo(scrollX,scrollY);</span><br><span class="line">           onScrollChanged(scrollX,scrollY,oldX,oldY);</span><br><span class="line">           <span class="keyword">if</span> (clampedY) &#123;</span><br><span class="line">               Log.e(<span class="string">"TEST1"</span>,<span class="string">"springBack"</span>);</span><br><span class="line">               mScroller.springBack(getScrollX(),getScrollY(),<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>,getScrollRange());</span><br><span class="line">           &#125;</span><br><span class="line">       &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">           <span class="comment">// TouchEvent中的overScroll调用</span></span><br><span class="line">           <span class="keyword">super</span>.scrollTo(scrollX,scrollY);</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="meta">@Override</span></span><br><span class="line">   <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">computeScroll</span><span class="params">()</span> </span>&#123;</span><br><span class="line">       <span class="keyword">if</span> (mScroller.computeScrollOffset()) &#123;</span><br><span class="line">           <span class="keyword">int</span> oldX = getScrollX();</span><br><span class="line">           <span class="keyword">int</span> oldY = getScrollY();</span><br><span class="line">           <span class="keyword">int</span> x = mScroller.getCurrX();</span><br><span class="line">           <span class="keyword">int</span> y = mScroller.getCurrY();</span><br><span class="line"></span><br><span class="line">           <span class="keyword">int</span> range = getScrollRange();</span><br><span class="line">           <span class="keyword">if</span> (oldX != x || oldY != y) &#123;</span><br><span class="line">               overScrollBy(x-oldX,y-oldY,oldX,oldY,<span class="number">0</span>,range,<span class="number">0</span>,mOverFlingDistance,<span class="keyword">false</span>);</span><br><span class="line">           &#125;</span><br><span class="line">           <span class="keyword">final</span> <span class="keyword">int</span> overScrollMode = getOverScrollMode();</span><br><span class="line">           <span class="keyword">final</span> <span class="keyword">boolean</span> canOverScroll = overScrollMode == OVER_SCROLL_ALWAYS ||</span><br><span class="line">                   (overScrollMode == OVER_SCROLL_IF_CONTENT_SCROLLS &amp;&amp; range &gt; <span class="number">0</span>);</span><br><span class="line">           <span class="keyword">if</span> (canOverScroll) &#123;</span><br><span class="line">               <span class="keyword">if</span> (y&lt;<span class="number">0</span> &amp;&amp; oldY &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">                   mEdgeEffectTop.onAbsorb((<span class="keyword">int</span>)mScroller.getCurrVelocity());</span><br><span class="line">               &#125; <span class="keyword">else</span> <span class="keyword">if</span> (y&gt; range &amp;&amp; oldY &lt; range) &#123;</span><br><span class="line">                   mEdgeEffectBottom.onAbsorb((<span class="keyword">int</span>)mScroller.getCurrVelocity());</span><br><span class="line">               &#125;</span><br><span class="line">           &#125;</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;本篇文章是系列文章的第二篇，大家可能已经知道如何实现各类手势，但是对其中的机制和原理还不是很了解，之后的第三篇会讲解从本篇代码的视角讲解一下android视图绘制的原理和Scroller的机制，希望大家多多关注。</p>
+<h3 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h3><p><a href="http://stackoverflow.com/questions/22843671/android-swipe-vs-fling" target="_blank" rel="external">http://stackoverflow.com/questions/22843671/android-swipe-vs-fling</a></p>
+<p><a href="https://www.google.com/design/spec/patterns/gestures.html#gestures-drag-swipe-or-fling-details" target="_blank" rel="external">https://www.google.com/design/spec/patterns/gestures.html#gestures-drag-swipe-or-fling-details</a></p>
+<p><a href="http://www.jcodecraeer.com/a/anzhuokaifa/androidkaifa/2014/1212/2145.html" target="_blank" rel="external">http://www.jcodecraeer.com/a/anzhuokaifa/androidkaifa/2014/1212/2145.html</a></p>
+
+        
+        
+        <p class="article-more-link">
+          
+       </p>
+    </div>
+    <footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/Android/">Android</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/scroll/">scroll</a>
+  </div>
+
+</div>
+
+
+
+
+<div class="comments-count">
+	
+	  	<span></span>
+		<a href="/2016/04/07/Android-Scroll详解-二-：OverScroller实战/#comments" class="ds-thread-count comments-count-link" data-thread-key="2016/04/07/Android-Scroll详解-二-：OverScroller实战/" data-count-type="comments">&nbsp;</a>
+	
+</div>
+
+</footer>
+
+
+    </article>
+
+
+
+
+
+
+   
+    
+    <article class="post-expand post" itemprop="articleBody"> 
+        <header class="article-info clearfix">
+  <h1 itemprop="name">
+    
       <a href="/2016/04/05/《异类-不一样成功的启示录》读后感/" title="《异类-不一样成功的启示录》读后感" itemprop="url">《异类-不一样成功的启示录》读后感</a>
   </h1>
   <p class="article-author">By
@@ -79,7 +213,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2016-04-05T15:01:59.000Z" itemprop="datePublished"> Published 2016-04-05</time>
+    <time datetime="2016-04-05T15:01:59.000Z" itemprop="datePublished"> 发表于 2016-04-05</time>
     
   </p>
 </header>
@@ -158,7 +292,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2016-03-27T10:23:06.000Z" itemprop="datePublished"> Published 2016-03-27</time>
+    <time datetime="2016-03-27T10:23:06.000Z" itemprop="datePublished"> 发表于 2016-03-27</time>
     
   </p>
 </header>
@@ -256,7 +390,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2016-03-16T05:54:44.000Z" itemprop="datePublished"> Published 2016-03-16</time>
+    <time datetime="2016-03-16T05:54:44.000Z" itemprop="datePublished"> 发表于 2016-03-16</time>
     
   </p>
 </header>
@@ -358,7 +492,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2016-03-07T13:51:20.000Z" itemprop="datePublished"> Published 2016-03-07</time>
+    <time datetime="2016-03-07T13:51:20.000Z" itemprop="datePublished"> 发表于 2016-03-07</time>
     
   </p>
 </header>
@@ -474,7 +608,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2016-03-05T01:34:18.000Z" itemprop="datePublished"> Published 2016-03-05</time>
+    <time datetime="2016-03-05T01:34:18.000Z" itemprop="datePublished"> 发表于 2016-03-05</time>
     
   </p>
 </header>
@@ -649,7 +783,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2016-02-24T14:12:03.000Z" itemprop="datePublished"> Published 2016-02-24</time>
+    <time datetime="2016-02-24T14:12:03.000Z" itemprop="datePublished"> 发表于 2016-02-24</time>
     
   </p>
 </header>
@@ -752,7 +886,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2016-02-21T12:18:55.000Z" itemprop="datePublished"> Published 2016-02-21</time>
+    <time datetime="2016-02-21T12:18:55.000Z" itemprop="datePublished"> 发表于 2016-02-21</time>
     
   </p>
 </header>
@@ -857,7 +991,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2016-02-11T09:21:20.000Z" itemprop="datePublished"> Published 2016-02-11</time>
+    <time datetime="2016-02-11T09:21:20.000Z" itemprop="datePublished"> 发表于 2016-02-11</time>
     
   </p>
 </header>
@@ -929,7 +1063,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2016-02-04T09:09:01.000Z" itemprop="datePublished"> Published 2016-02-04</time>
+    <time datetime="2016-02-04T09:09:01.000Z" itemprop="datePublished"> 发表于 2016-02-04</time>
     
   </p>
 </header>
@@ -987,88 +1121,16 @@
 
 
 
-   
-    
-    <article class="post-expand post" itemprop="articleBody"> 
-        <header class="article-info clearfix">
-  <h1 itemprop="name">
-    
-      <a href="/2016/02/02/《Redis设计和实现》读书笔记1-简单动态字符串/" title="《Redis设计和实现》读书笔记1-简单动态字符串" itemprop="url">《Redis设计和实现》读书笔记1-简单动态字符串</a>
-  </h1>
-  <p class="article-author">By
-       
-		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
-		
-  <p class="article-time">
-    <time datetime="2016-02-02T14:38:59.000Z" itemprop="datePublished"> Published 2016-02-02</time>
-    
-  </p>
-</header>
-    <div class="article-content">
-        
-        <p>&emsp;临近过年，我离开了实习了4个多月的扇贝。临走前，导师赠送给我一本《Redis设计和实现》，于是心血来潮，想读一读这本书，然后仿照书中介绍的原理实现一个小型的数据库。这是redis系列的第一篇博文，希望我可以坚持下去，不要虎头蛇尾。</p>
-<h4 id="简单动态字符串"><a href="#简单动态字符串" class="headerlink" title="简单动态字符串"></a>简单动态字符串</h4><p>&emsp;我们都知道Redis是由纯c代码编写而成的，而c语言中的原生字符串有很多的缺陷，不利于大型工程的使用。于是Redis的作者便自己实现一套字符串数据结构，就是sds.h/sdshdr结构。</p>
-<h4 id="SDS的定义"><a href="#SDS的定义" class="headerlink" title="SDS的定义"></a>SDS的定义</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> sdshdr &#123;</span><br><span class="line">  <span class="comment">// 记录sdshdr中数组已经使用的数量</span></span><br><span class="line">  <span class="keyword">int</span> len;</span><br><span class="line">  <span class="comment">// 记录sdshdr中数组未使用的数量</span></span><br><span class="line">  <span class="keyword">int</span> <span class="built_in">free</span>;</span><br><span class="line">  <span class="keyword">char</span> buf[];</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-<p>&emsp;<code>sdshdr</code>的定义如代码所示，其中<code>buf</code>属性为一个char类型的数组，数组的前五个字节分别保存着’R’,’e’,’d’,’i’,’s’五个字符，最后一个字符则保存则空字符串’\0’。之所以在数组尾部保存空字符，是为了可以使用一些c语言的字符串函数库中的函数。</p>
-<h4 id="SDS与c字符串的区别"><a href="#SDS与c字符串的区别" class="headerlink" title="SDS与c字符串的区别"></a>SDS与c字符串的区别</h4><h5 id="常数时间内获得字符串长度"><a href="#常数时间内获得字符串长度" class="headerlink" title="常数时间内获得字符串长度"></a>常数时间内获得字符串长度</h5><p>&emsp;我们都知道，在c中，字符串就是一个末尾有一个’\0’的一维数组，它并不记录本身的长度。所以，每次想要获取其长度时，都需要遍历整个数组，时间复杂度就为O(n)；而SDS因为本身就有<code>len</code>这个字段，并且在SDS被修改时，会自动改变<code>len</code>字段，所以获得字符串长度的时间复杂度为O(1).</p>
-<h5 id="杜绝缓冲区溢出"><a href="#杜绝缓冲区溢出" class="headerlink" title="杜绝缓冲区溢出"></a>杜绝缓冲区溢出</h5><p>&emsp;因为c的字符串没有任何安全保证，当我们使用<code>strcat</code>函数来拼接字符串时，如果目标字符串没有被分配足够空间的话，就会造成缓冲区溢出。而在SDS中，当然是每次修改都会进行缓冲区溢出检测，所以不会出现类似问题。</p>
-<h5 id="减少修改字符串时带来的内存重新分配次数"><a href="#减少修改字符串时带来的内存重新分配次数" class="headerlink" title="减少修改字符串时带来的内存重新分配次数"></a>减少修改字符串时带来的内存重新分配次数</h5><p>&emsp;这一条应该是使用SDS最大的优势所在啦。因为c语言中的字符串都是无法修改的，所以每次拼接或者裁剪字符串都会导致新的字符串数据结构的生成，从而需要新的内存分配或者释放部分内存。由于内存分配很消耗时间，所以使用c语言的字符串会导致数据库性能低下。<br>&emsp;而SDS会通过空间预分配和惰性空间释放来减少内存分配或者释放的次数。<br>&emsp;内存预分配是指每次需要对SDS进行空间扩展时，程序不仅分配SDS所必须要的空间，还会额外分配一些空间，将其大小赋值给’free’属性。如果需要分配的大小为n，额外分配的空间为e，总共分配空间为t,那么(默认单位为字节)<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">e = n &lt; 1MB ? n:1MB</span><br><span class="line">t = n &lt; 1MB ? n + n + 1 ? n + 1MB + 1</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;这样的话，下次再进行字符串拼接时，额外的空间就会被使用上，从而避免额外的一次内存分配。<br>&emsp;而惰性内存回收则是指裁剪字符串时，释放出来的额外空间并不会立刻被回收，而是继续保存，只是修改<code>len</code>和’free’属性，等到字符串再次被修改时使用。</p>
-<h5 id="二进制安全"><a href="#二进制安全" class="headerlink" title="二进制安全"></a>二进制安全</h5><p>&emsp;由于c语言字符串以’\0’来判断字符串的结束，所以无法保存一些图片，音频，视频这些可能写入’\0’的二进制数据。</p>
-<h4 id="后续"><a href="#后续" class="headerlink" title="后续"></a>后续</h4><p>&emsp;书里的内容很简单，希望自己也可以实现一个简单的string类型吧，不过不清楚java中String对象的实现欧，以后可以了解一下。</p>
-
-        
-        
-        <p class="article-more-link">
-          
-       </p>
-    </div>
-    <footer class="article-footer clearfix">
-<div class="article-catetags">
-
-<div class="article-categories">
-  <span></span>
-  <a class="article-category-link" href="/categories/c/">c</a>►<a class="article-category-link" href="/categories/c/数据结构/">数据结构</a>
-</div>
-
-
-  <div class="article-tags">
-  
-  <span></span> <a href="/tags/string/">string</a>
-  </div>
-
-</div>
-
-
-
-
-<div class="comments-count">
-	
-	  	<span></span>
-		<a href="/2016/02/02/《Redis设计和实现》读书笔记1-简单动态字符串/#comments" class="ds-thread-count comments-count-link" data-thread-key="2016/02/02/《Redis设计和实现》读书笔记1-简单动态字符串/" data-count-type="comments">&nbsp;</a>
-	
-</div>
-
-</footer>
-
-
-    </article>
-
-
-
-
-
-
 
   <nav id="page-nav" class="clearfix">
     <a class="extend prev" rel="prev" href="/page/3/"><span></span>Prev</a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><span class="page-number current">4</span><a class="page-number" href="/page/5/">5</a><a class="page-number" href="/page/6/">6</a><a class="extend next" rel="next" href="/page/5/">Next<span></span></a>
   </nav>
 
 </div>
-      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
 
 <div id="asidepart">
-<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
 <aside class="clearfix">
 
   
@@ -1076,7 +1138,7 @@
 
   
 <div class="categorieslist">
-	<p class="asidetitle">Categories</p>
+	<p class="asidetitle">分类</p>
 		<ul>
 		
 		  
@@ -1128,6 +1190,10 @@
 		  
 		
 		  
+			<li><a href="/categories/后端/" title="后端">后端<sup>1</sup></a></li>
+		  
+		
+		  
 			<li><a href="/categories/多线程/" title="多线程">多线程<sup>1</sup></a></li>
 		  
 		
@@ -1148,11 +1214,11 @@
 		  
 		
 		  
-			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
+			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
 		  
 		
 		  
-			<li><a href="/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
+			<li><a href="/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
 		  
 		
 		  
@@ -1209,15 +1275,15 @@
 
   
 <div class="tagslist">
-	<p class="asidetitle">Tags</p>
+	<p class="asidetitle">标签</p>
 		<ul class="clearfix">
 		
 			
-				<li><a href="/tags/JUC/" title="JUC">JUC<sup>3</sup></a></li>
+				<li><a href="/tags/Netty/" title="Netty">Netty<sup>3</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/Netty/" title="Netty">Netty<sup>3</sup></a></li>
+				<li><a href="/tags/JUC/" title="JUC">JUC<sup>3</sup></a></li>
 			
 		
 			
@@ -1225,11 +1291,11 @@
 			
 		
 			
-				<li><a href="/tags/算法/" title="算法">算法<sup>3</sup></a></li>
+				<li><a href="/tags/注解/" title="注解">注解<sup>3</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/注解/" title="注解">注解<sup>3</sup></a></li>
+				<li><a href="/tags/算法/" title="算法">算法<sup>3</sup></a></li>
 			
 		
 			
@@ -1241,11 +1307,11 @@
 			
 		
 			
-				<li><a href="/tags/Span/" title="Span">Span<sup>2</sup></a></li>
+				<li><a href="/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
+				<li><a href="/tags/Span/" title="Span">Span<sup>2</sup></a></li>
 			
 		
 			
@@ -1253,7 +1319,7 @@
 			
 		
 			
-				<li><a href="/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
+				<li><a href="/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
 			
 		
 			
@@ -1281,15 +1347,15 @@
 			
 		
 			
-				<li><a href="/tags/Animation/" title="Animation">Animation<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/epoll/" title="epoll">epoll<sup>1</sup></a></li>
-			
-		
-			
 				<li><a href="/tags/工具/" title="工具">工具<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Http/" title="Http">Http<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/draw/" title="draw">draw<sup>1</sup></a></li>
 			
 		
 		</ul>
@@ -1300,7 +1366,7 @@
 
 
   <div class="rsspart">
-	<a href="/atom.xml" target="_blank" title="rss">RSS</a>
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
 </div>
 
 </aside>
@@ -1471,7 +1537,7 @@ var _hmt = _hmt || [];
 <!-- Totop Begin -->
 
 	<div id="totop">
-	<a title="Back to Top"><img src="/img/scrollup.png"/></a>
+	<a title="返回顶部"><img src="/img/scrollup.png"/></a>
 	</div>
 	<script src="/js/totop.js"></script>
 
