@@ -11,22 +11,22 @@
     
 
     
-    <meta name="description" content="&amp;emsp;我研究和阅读Spring Cloud Stream源码已经有一个多月了，但是由于自己的Spring基础知识不是很充足，但是相关的文章一直无从下手，于是先整理了当时阅读代码时的知识点记录，算是源码分析之前的基础知识储备吧，整理的有些杂乱，希望大家理解。&amp;emsp;本文涉及的Spring知识如下：
+    <meta name="description" content="&amp;emsp;我研究和阅读Spring Cloud Stream源码已经有一个多月了，但是由于自己的Spring基础知识不是很充足，所以导致很多地方都没有融会贯通，并且相关的文章一直无从下手。于是我先整理了当时阅读代码时的知识点记录，算是源码分析之前的基础知识储备吧，整理的有些杂乱，希望大家理解。&amp;emsp;本文涉及的Spring知识如下：
 
-Spring Boot的@Import用法和原理,与Configuration和Impor">
+Spring Boot的@Import用法和原理,与Co">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Spring Cloud Stream(一)：Spring基础知识">
 <meta property="og:url" content="http://remcarpediem.com/2017/10/10/Spring-Cloud-Stream-一-：Spring基础知识/index.html">
 <meta property="og:site_name" content="Carpediem">
-<meta property="og:description" content="&amp;emsp;我研究和阅读Spring Cloud Stream源码已经有一个多月了，但是由于自己的Spring基础知识不是很充足，但是相关的文章一直无从下手，于是先整理了当时阅读代码时的知识点记录，算是源码分析之前的基础知识储备吧，整理的有些杂乱，希望大家理解。&amp;emsp;本文涉及的Spring知识如下：
+<meta property="og:description" content="&amp;emsp;我研究和阅读Spring Cloud Stream源码已经有一个多月了，但是由于自己的Spring基础知识不是很充足，所以导致很多地方都没有融会贯通，并且相关的文章一直无从下手。于是我先整理了当时阅读代码时的知识点记录，算是源码分析之前的基础知识储备吧，整理的有些杂乱，希望大家理解。&amp;emsp;本文涉及的Spring知识如下：
 
-Spring Boot的@Import用法和原理,与Configuration和Impor">
-<meta property="og:updated_time" content="2017-10-10T13:52:48.000Z">
+Spring Boot的@Import用法和原理,与Co">
+<meta property="og:updated_time" content="2017-10-10T14:06:09.586Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Spring Cloud Stream(一)：Spring基础知识">
-<meta name="twitter:description" content="&amp;emsp;我研究和阅读Spring Cloud Stream源码已经有一个多月了，但是由于自己的Spring基础知识不是很充足，但是相关的文章一直无从下手，于是先整理了当时阅读代码时的知识点记录，算是源码分析之前的基础知识储备吧，整理的有些杂乱，希望大家理解。&amp;emsp;本文涉及的Spring知识如下：
+<meta name="twitter:description" content="&amp;emsp;我研究和阅读Spring Cloud Stream源码已经有一个多月了，但是由于自己的Spring基础知识不是很充足，所以导致很多地方都没有融会贯通，并且相关的文章一直无从下手。于是我先整理了当时阅读代码时的知识点记录，算是源码分析之前的基础知识储备吧，整理的有些杂乱，希望大家理解。&amp;emsp;本文涉及的Spring知识如下：
 
-Spring Boot的@Import用法和原理,与Configuration和Impor">
+Spring Boot的@Import用法和原理,与Co">
 
     
     <link rel="alternative" href="/atom.xml" title="Carpediem" type="application/atom+xml">
@@ -45,7 +45,7 @@ Spring Boot的@Import用法和原理,与Configuration和Impor">
 				<h1 class="site-name"><a href="/" title="Carpediem">Carpediem</a></h1>
 				<h2 class="blog-motto">blog of nobody</h2>
 			</div>
-			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
 			</a></div>
 			<nav class="animated">
 				<ul>
@@ -61,7 +61,7 @@ Spring Boot的@Import用法和原理,与Configuration和Impor">
  					
 					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
 						<label>Search</label>
-						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
 						<input type="hidden" name="q" value="site:remcarpediem.com">
 					</form>
 					
@@ -84,20 +84,20 @@ Spring Boot的@Import用法和原理,与Configuration和Impor">
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2017-10-10T13:51:45.000Z" itemprop="datePublished"> 发表于 2017-10-10</time>
+    <time datetime="2017-10-10T13:51:45.000Z" itemprop="datePublished"> Published 2017-10-10</time>
     
   </p>
 </header>
 	<div class="article-content">
 		
 		<div id="toc" class="toc-article">
-			<strong class="toc-title">文章目录</strong>
+			<strong class="toc-title">Contents</strong>
 		
 			<ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#BeanDefinitionRegistryPostProcessor"><span class="toc-number">1.</span> <span class="toc-text">BeanDefinitionRegistryPostProcessor</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#ImportBeanDefinitionRegistrar"><span class="toc-number">2.</span> <span class="toc-text">ImportBeanDefinitionRegistrar</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#InitializingBean，FactoryBean，MethodInterceptor"><span class="toc-number">3.</span> <span class="toc-text">InitializingBean，FactoryBean，MethodInterceptor</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#BeanPostProcessor，ApplicationContextAware，BeanFactoryAware，SmartInitializingSingleton"><span class="toc-number">4.</span> <span class="toc-text">BeanPostProcessor，ApplicationContextAware，BeanFactoryAware，SmartInitializingSingleton</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Aware系列接口"><span class="toc-number">5.</span> <span class="toc-text">Aware系列接口</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#SmartInitializingSingleton"><span class="toc-number">6.</span> <span class="toc-text">SmartInitializingSingleton</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#SmartLifecycle"><span class="toc-number">7.</span> <span class="toc-text">SmartLifecycle</span></a></li></ol>
 		
 		</div>
 		
-		<p>&emsp;我研究和阅读<code>Spring Cloud Stream</code>源码已经有一个多月了，但是由于自己的Spring基础知识不是很充足，但是相关的文章一直无从下手，于是先整理了当时阅读代码时的知识点记录，算是源码分析之前的基础知识储备吧，整理的有些杂乱，希望大家理解。<br>&emsp;本文涉及的Spring知识如下：</p>
+		<p>&emsp;我研究和阅读<code>Spring Cloud Stream</code>源码已经有一个多月了，但是由于自己的Spring基础知识不是很充足，所以导致很多地方都没有融会贯通，并且相关的文章一直无从下手。于是我先整理了当时阅读代码时的知识点记录，算是源码分析之前的基础知识储备吧，整理的有些杂乱，希望大家理解。<br>&emsp;本文涉及的Spring知识如下：</p>
 <ul>
 <li>Spring Boot的<code>@Import</code>用法和原理,与<code>Configuration</code>和<code>ImportBeanDefinitionRegistrar</code>相关</li>
 <li>Bean初始化各个周期的回调，比如<code>InitializingBean</code>,<code>BeanPostProcessor</code>,<code>SmartInitializingSingleton</code></li>
@@ -177,17 +177,17 @@ Spring Boot的@Import用法和原理,与Configuration和Impor">
 
 
 </div>  
-      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
 
   <div id="toc" class="toc-aside">
-  <strong class="toc-title">文章目录</strong>
+  <strong class="toc-title">Contents</strong>
  
  <ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#BeanDefinitionRegistryPostProcessor"><span class="toc-number">1.</span> <span class="toc-text">BeanDefinitionRegistryPostProcessor</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#ImportBeanDefinitionRegistrar"><span class="toc-number">2.</span> <span class="toc-text">ImportBeanDefinitionRegistrar</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#InitializingBean，FactoryBean，MethodInterceptor"><span class="toc-number">3.</span> <span class="toc-text">InitializingBean，FactoryBean，MethodInterceptor</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#BeanPostProcessor，ApplicationContextAware，BeanFactoryAware，SmartInitializingSingleton"><span class="toc-number">4.</span> <span class="toc-text">BeanPostProcessor，ApplicationContextAware，BeanFactoryAware，SmartInitializingSingleton</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Aware系列接口"><span class="toc-number">5.</span> <span class="toc-text">Aware系列接口</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#SmartInitializingSingleton"><span class="toc-number">6.</span> <span class="toc-text">SmartInitializingSingleton</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#SmartLifecycle"><span class="toc-number">7.</span> <span class="toc-text">SmartLifecycle</span></a></li></ol>
  
   </div>
 
 <div id="asidepart">
-<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
 <aside class="clearfix">
 
   
@@ -195,7 +195,7 @@ Spring Boot的@Import用法和原理,与Configuration和Impor">
 
   
 <div class="categorieslist">
-	<p class="asidetitle">分类</p>
+	<p class="asidetitle">Categories</p>
 		<ul>
 		
 		  
@@ -336,7 +336,7 @@ Spring Boot的@Import用法和原理,与Configuration和Impor">
 
   
 <div class="tagslist">
-	<p class="asidetitle">标签</p>
+	<p class="asidetitle">Tags</p>
 		<ul class="clearfix">
 		
 			
@@ -372,6 +372,10 @@ Spring Boot的@Import用法和原理,与Configuration和Impor">
 			
 		
 			
+				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
+			
+		
+			
 				<li><a href="/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
 			
 		
@@ -380,19 +384,7 @@ Spring Boot的@Import用法和原理,与Configuration和Impor">
 			
 		
 			
-				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
-			
-		
-			
 				<li><a href="/tags/Spring-Boot/" title="Spring Boot">Spring Boot<sup>2</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/反射/" title="反射">反射<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/JSON/" title="JSON">JSON<sup>1</sup></a></li>
 			
 		
 			
@@ -404,19 +396,27 @@ Spring Boot的@Import用法和原理,与Configuration和Impor">
 			
 		
 			
+				<li><a href="/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/docker/" title="docker">docker<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/kubernetes/" title="kubernetes">kubernetes<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/反射/" title="反射">反射<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/JSON/" title="JSON">JSON<sup>1</sup></a></li>
+			
+		
+			
 				<li><a href="/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/工具/" title="工具">工具<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/MotionEvent/" title="MotionEvent">MotionEvent<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/draw/" title="draw">draw<sup>1</sup></a></li>
 			
 		
 		</ul>
@@ -427,7 +427,7 @@ Spring Boot的@Import用法和原理,与Configuration和Impor">
 
 
   <div class="rsspart">
-	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
+	<a href="/atom.xml" target="_blank" title="rss">RSS</a>
 </div>
 
 </aside>
@@ -687,7 +687,7 @@ var _hmt = _hmt || [];
 <!-- Totop Begin -->
 
 	<div id="totop">
-	<a title="返回顶部"><img src="/img/scrollup.png"/></a>
+	<a title="Back to Top"><img src="/img/scrollup.png"/></a>
 	</div>
 	<script src="/js/totop.js"></script>
 
