@@ -38,7 +38,7 @@
 				<h1 class="site-name"><a href="/" title="Carpediem">Carpediem</a></h1>
 				<h2 class="blog-motto">blog of nobody</h2>
 			</div>
-			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
 			</a></div>
 			<nav class="animated">
 				<ul>
@@ -54,7 +54,7 @@
  					
 					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
 						<label>Search</label>
-						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
+						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
 						<input type="hidden" name="q" value="site:remcarpediem.com">
 					</form>
 					
@@ -72,6 +72,94 @@
         <header class="article-info clearfix">
   <h1 itemprop="name">
     
+      <a href="/2017/10/10/Spring-Cloud-Stream-一-：Spring基础知识/" title="Spring Cloud Stream(一)：Spring基础知识" itemprop="url">Spring Cloud Stream(一)：Spring基础知识</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2017-10-10T13:51:45.000Z" itemprop="datePublished"> 发表于 2017-10-10</time>
+    
+  </p>
+</header>
+    <div class="article-content">
+        
+        <p>&emsp;我研究和阅读<code>Spring Cloud Stream</code>源码已经有一个多月了，但是由于自己的Spring基础知识不是很充足，但是相关的文章一直无从下手，于是先整理了当时阅读代码时的知识点记录，算是源码分析之前的基础知识储备吧，整理的有些杂乱，希望大家理解。<br>&emsp;本文涉及的Spring知识如下：</p>
+<ul>
+<li>Spring Boot的<code>@Import</code>用法和原理,与<code>Configuration</code>和<code>ImportBeanDefinitionRegistrar</code>相关</li>
+<li>Bean初始化各个周期的回调，比如<code>InitializingBean</code>,<code>BeanPostProcessor</code>,<code>SmartInitializingSingleton</code></li>
+<li><code>FactoryBean</code>和<code>MethodInterceptor</code></li>
+<li><code>Aware</code>系列回调</li>
+<li><code>Lifecycle</code>和<code>SmartLifecycle</code>和<code>DefaultLifecycleProcessor</code></li>
+</ul>
+<h4 id="BeanDefinitionRegistryPostProcessor"><a href="#BeanDefinitionRegistryPostProcessor" class="headerlink" title="BeanDefinitionRegistryPostProcessor"></a>BeanDefinitionRegistryPostProcessor</h4><p> <code>BeanDefinitionRegistryPostProcessor</code>实现了<code>BeanFactoryPostProcessor</code>接口，是Spring框架的<code>BeanDefinitionRegistry</code>的后处理器，用来注册额外的<code>BeanDefinition</code>。<code>postProcessBeanDefinitionRegistry</code>方法会在所有的<code>BeanDefinition</code>已经被加载了，但是所有的<code>Bean</code>还没有被创建前调用。<code>BeanDefinitionRegistryPostProcessor</code>经常被用来注册<code>BeanFactoryPostProcessor</code>的<code>BeanDefinition</code>。</p>
+<h4 id="ImportBeanDefinitionRegistrar"><a href="#ImportBeanDefinitionRegistrar" class="headerlink" title="ImportBeanDefinitionRegistrar"></a>ImportBeanDefinitionRegistrar</h4><p> <code>@Import</code>注解用来支持在<code>Configuration</code>类中引入其他的配置类，包括<code>Configuration</code>类，<code>ImportSelector</code>和<code>ImportBeanDefinitionRegistrar</code>的实现类。<code>ImportBeanDefinitionRegistrar</code>在<code>ConfigurationClassPostProcessor</code>处理<code>Configuration</code>类期间被调用，用来生成该<code>Configuration</code>类所需要的<code>BeanDefinition</code>。而<code>ConfigurationClassPostProcessor</code>正实现了<code>BeanDefinitionRegistryPostProcessor</code>接口。下面我们就来看一下其<code>processConfigBeanDefinitions</code>方法到底是如何处理<code>Configuration</code>类的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">processConfigBeanDefinitions</span><span class="params">(BeanDefinitionRegistry registry)</span> </span>&#123;</span><br><span class="line">		List&lt;BeanDefinitionHolder&gt; configCandidates = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">		String[] candidateNames = registry.getBeanDefinitionNames();</span><br><span class="line">        <span class="comment">//第一步：先把所有Configuration的beanDefinition找到。</span></span><br><span class="line">		<span class="keyword">for</span> (String beanName : candidateNames) &#123;</span><br><span class="line">			BeanDefinition beanDef = registry.getBeanDefinition(beanName);</span><br><span class="line">			<span class="comment">//利用AnnotationMetadata是否有@Configuration这个注解。需要注意的是</span></span><br><span class="line">            <span class="comment">//Configuration是一个元注解，它是可以使用在其他注解上的，被这些注解注释的类也被认为是Configuration</span></span><br><span class="line">            <span class="keyword">if</span> (ConfigurationClassUtils.checkConfigurationClassCandidate(beanDef, <span class="keyword">this</span>.metadataReaderFactory)) &#123;</span><br><span class="line">				configCandidates.add(<span class="keyword">new</span> BeanDefinitionHolder(beanDef, beanName));</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">//第二步：通过Order注解的值来排序，定义了Configuration的先后顺序</span></span><br><span class="line">		configCandidates.sort((bd1, bd2) -&gt; &#123;</span><br><span class="line">			<span class="keyword">int</span> i1 = ConfigurationClassUtils.getOrder(bd1.getBeanDefinition());</span><br><span class="line">			<span class="keyword">int</span> i2 = ConfigurationClassUtils.getOrder(bd2.getBeanDefinition());</span><br><span class="line">			<span class="keyword">return</span> (i1 &lt; i2) ? -<span class="number">1</span> : (i1 &gt; i2) ? <span class="number">1</span> : <span class="number">0</span>;</span><br><span class="line">		&#125;);</span><br><span class="line">        <span class="comment">//..... 此处有省略</span></span><br><span class="line">		ConfigurationClassParser parser = <span class="keyword">new</span> ConfigurationClassParser(</span><br><span class="line">				<span class="keyword">this</span>.metadataReaderFactory, <span class="keyword">this</span>.problemReporter, <span class="keyword">this</span>.environment,</span><br><span class="line">				<span class="keyword">this</span>.resourceLoader, <span class="keyword">this</span>.componentScanBeanNameGenerator, registry);</span><br><span class="line"></span><br><span class="line">		Set&lt;BeanDefinitionHolder&gt; candidates = <span class="keyword">new</span> LinkedHashSet&lt;&gt;(configCandidates);</span><br><span class="line">		Set&lt;ConfigurationClass&gt; alreadyParsed = <span class="keyword">new</span> HashSet&lt;&gt;(configCandidates.size());</span><br><span class="line">		do &#123;</span><br><span class="line">            <span class="comment">//第三步：通过BeanDefinition来读取ConfigurationClass</span></span><br><span class="line">			parser.parse(candidates);</span><br><span class="line">			parser.validate();</span><br><span class="line"></span><br><span class="line">			Set&lt;ConfigurationClass&gt; configClasses = <span class="keyword">new</span> LinkedHashSet&lt;&gt;(parser.getConfigurationClasses());</span><br><span class="line">			configClasses.removeAll(alreadyParsed);</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> (<span class="keyword">this</span>.reader == <span class="keyword">null</span>) &#123;</span><br><span class="line">				<span class="keyword">this</span>.reader = <span class="keyword">new</span> ConfigurationClassBeanDefinitionReader(</span><br><span class="line">						registry, <span class="keyword">this</span>.sourceExtractor, <span class="keyword">this</span>.resourceLoader, <span class="keyword">this</span>.environment,</span><br><span class="line">						<span class="keyword">this</span>.importBeanNameGenerator, parser.getImportRegistry());</span><br><span class="line">			&#125;</span><br><span class="line">            <span class="comment">//第四步：重点，通过ConfigurationClass来获得BeanDefinition</span></span><br><span class="line">			<span class="keyword">this</span>.reader.loadBeanDefinitions(configClasses);</span><br><span class="line">			alreadyParsed.addAll(configClasses);</span><br><span class="line"></span><br><span class="line">			candidates.clear();</span><br><span class="line">            <span class="comment">//第五步：由于在loadBeanDefinitions过程中会向registry中添加BeanDefinition,所以这里需要把新的Definition</span></span><br><span class="line">            <span class="comment">//在重新检测一遍，先看是否是Configuration类，如果是的那么还要再进行一次处理。</span></span><br><span class="line">			<span class="keyword">if</span> (registry.getBeanDefinitionCount() &gt; candidateNames.length) &#123;</span><br><span class="line">                <span class="comment">//.....此处有省略，大致逻辑就是通过registry多出的BeanDefinition获得新的candidateNames</span></span><br><span class="line">				candidateNames = newCandidateNames;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">while</span> (!candidates.isEmpty());</span><br><span class="line">        <span class="comment">//.....此处有省略</span></span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+<p> 接着我们直接到<code>ConfigurationClassBeanDefinitionReader</code>类中查看<code>loadBeanDefinition</code>函数的实现。它会调用<code>loadBeanDefinitionsForConfigurationClass</code>函数。在该函数中会处理所有和<code>Configuration</code>相关的<code>BeanDefinition</code>,其中就会调用<code>loadBeanDefinitionsFromRegistrars</code>来通过<code>ImportBeanDefinitionRegistrar</code>加载<code>BeanDefinition</code>。<br> 看到这里，大家可能会有个疑问，多个<code>Configuration</code>和多个<code>ImportBeanDefinitionRegistrar</code>存在的情况下，它们之间的对应关系是如何确定的呢？<br> <code>ConfigurationClassParser</code>的parse方法会将Configuration类相关的配置信息全部解析出来。我们可以看其<code>doProcessConfigurationClass</code>方法的源码。通过<code>@Import</code>注解将<code>Configuration</code>类和相应的<code>ImportBeanDefinitionRegistrar</code>联系在一起。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">final</span> SourceClass <span class="title">doProcessConfigurationClass</span><span class="params">(ConfigurationClass configClass, SourceClass sourceClass)</span></span><br><span class="line">			<span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        <span class="comment">//首先处理内部成员类的情况</span></span><br><span class="line">		processMemberClasses(configClass, sourceClass);</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 处理 @PropertySource 注解</span></span><br><span class="line">		<span class="keyword">for</span> (AnnotationAttributes propertySource : AnnotationConfigUtils.attributesForRepeatable(</span><br><span class="line">				sourceClass.getMetadata(), PropertySources.class,</span><br><span class="line">				org.springframework.context.annotation.PropertySource.class)) &#123;</span><br><span class="line">			<span class="keyword">if</span> (<span class="keyword">this</span>.environment <span class="keyword">instanceof</span> ConfigurableEnvironment) &#123;</span><br><span class="line">				processPropertySource(propertySource);</span><br><span class="line">            &#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 处理 @ComponentScan 注解</span></span><br><span class="line">		Set&lt;AnnotationAttributes&gt; componentScans = AnnotationConfigUtils.attributesForRepeatable(</span><br><span class="line">				sourceClass.getMetadata(), ComponentScans.class, ComponentScan.class);</span><br><span class="line">		<span class="keyword">if</span> (!componentScans.isEmpty() &amp;&amp;</span><br><span class="line">				!<span class="keyword">this</span>.conditionEvaluator.shouldSkip(sourceClass.getMetadata(), ConfigurationPhase.REGISTER_BEAN)) &#123;</span><br><span class="line">			<span class="keyword">for</span> (AnnotationAttributes componentScan : componentScans) &#123;</span><br><span class="line">				<span class="comment">// The config class is annotated with @ComponentScan -&gt; perform the scan immediately</span></span><br><span class="line">				Set&lt;BeanDefinitionHolder&gt; scannedBeanDefinitions =</span><br><span class="line">						<span class="keyword">this</span>.componentScanParser.parse(componentScan, sourceClass.getMetadata().getClassName());</span><br><span class="line">				<span class="comment">// Check the set of scanned definitions for any further config classes and parse recursively if needed</span></span><br><span class="line">				<span class="keyword">for</span> (BeanDefinitionHolder holder : scannedBeanDefinitions) &#123;</span><br><span class="line">					<span class="keyword">if</span> (ConfigurationClassUtils.checkConfigurationClassCandidate(</span><br><span class="line">							holder.getBeanDefinition(), <span class="keyword">this</span>.metadataReaderFactory)) &#123;</span><br><span class="line">						parse(holder.getBeanDefinition().getBeanClassName(), holder.getBeanName());</span><br><span class="line">					&#125;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 处理 @Import 注解</span></span><br><span class="line">		processImports(configClass, sourceClass, getImports(sourceClass), <span class="keyword">true</span>);</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 处理 @ImportResource 注解</span></span><br><span class="line">		<span class="keyword">if</span> (sourceClass.getMetadata().isAnnotated(ImportResource.class.getName())) &#123;</span><br><span class="line">			AnnotationAttributes importResource =</span><br><span class="line">					AnnotationConfigUtils.attributesFor(sourceClass.getMetadata(), ImportResource.class);</span><br><span class="line">			String[] resources = importResource.getStringArray(<span class="string">"locations"</span>);</span><br><span class="line">			Class&lt;? extends BeanDefinitionReader&gt; readerClass = importResource.getClass(<span class="string">"reader"</span>);</span><br><span class="line">			<span class="keyword">for</span> (String resource : resources) &#123;</span><br><span class="line">				String resolvedResource = <span class="keyword">this</span>.environment.resolveRequiredPlaceholders(resource);</span><br><span class="line">				configClass.addImportedResource(resolvedResource, readerClass);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 处理configuration中的 @Bean 函数</span></span><br><span class="line">		Set&lt;MethodMetadata&gt; beanMethods = retrieveBeanMethodMetadata(sourceClass);</span><br><span class="line">		<span class="keyword">for</span> (MethodMetadata methodMetadata : beanMethods) &#123;</span><br><span class="line">			configClass.addBeanMethod(<span class="keyword">new</span> BeanMethod(methodMetadata, configClass));</span><br><span class="line">		&#125;</span><br><span class="line">        <span class="comment">//......有省略</span></span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="InitializingBean，FactoryBean，MethodInterceptor"><a href="#InitializingBean，FactoryBean，MethodInterceptor" class="headerlink" title="InitializingBean，FactoryBean，MethodInterceptor"></a>InitializingBean，FactoryBean，MethodInterceptor</h4><p> Spring Cloud Stream的<code>BindableProxyFactory</code>类实现了上述接口。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">BindableProxyFactory implements MethodInterceptor, FactoryBean&lt;Object&gt;, Bindable, InitializingBean</span><br></pre></td></tr></table></figure></p>
+<p> 其中，<code>InitializingBean</code>接口有一个<code>afterPropertiesSet</code>方法，该方法在<code>bean</code>所有的属性都被赋值后调用。bean的属性被初始化是在初始化的时候做的，与<code>BeanPostProcessor</code>结合来看，<code>afterPropertiesSet</code>方法在<code>postProcessBeforeInitialization</code>和<code>postProcessAfterInitialization</code>之间被调用。<br> Spring中有两个类型的Bean,普通Bean和工厂Bean。FactoryBean有三个接口，分别是:</p>
+<ul>
+<li>Object getObject():返回FactoryBean创建的对象实例。</li>
+<li>boolean isSingleton():表示FactoryBean返回的对象实例是否为单例。</li>
+<li>Class getObjectType():返回FactoryBean返回的对象类型。<br> 我们可以看一下<code>BindableProxyFactory</code>的相关实现，这里会和<code>MethodInterceptor</code>配合。<code>MethodInterceptor</code>是AOP相关的接口，用于在调用对象接口时进行切片注入或在直接实现接口。<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> Object <span class="title">getObject</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="comment">//使用AOP的ProxyFactory类，由于该类本身也是先了MethodInterceptor接口</span></span><br><span class="line">        <span class="comment">//所以这样配合使用，直接返回ProxyFactory类。</span></span><br><span class="line">		<span class="keyword">if</span> (<span class="keyword">this</span>.proxy == <span class="keyword">null</span>) &#123;</span><br><span class="line">			ProxyFactory factory = <span class="keyword">new</span> ProxyFactory(<span class="keyword">this</span>.type, <span class="keyword">this</span>);</span><br><span class="line">			<span class="keyword">this</span>.proxy = factory.getProxy();</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">this</span>.proxy;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="keyword">public</span> Class&lt;?&gt; getObjectType() &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">this</span>.type;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">isSingleton</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h4 id="BeanPostProcessor，ApplicationContextAware，BeanFactoryAware，SmartInitializingSingleton"><a href="#BeanPostProcessor，ApplicationContextAware，BeanFactoryAware，SmartInitializingSingleton" class="headerlink" title="BeanPostProcessor，ApplicationContextAware，BeanFactoryAware，SmartInitializingSingleton"></a>BeanPostProcessor，ApplicationContextAware，BeanFactoryAware，SmartInitializingSingleton</h4><p> Spring Cloud Stream的<code>StreamListenerAnnotationBeanPostProcessor</code>实现了如下接口<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">StreamListenerAnnotationBeanPostProcessor</span></span><br><span class="line">		<span class="keyword">implements</span> <span class="title">BeanPostProcessor</span>, <span class="title">ApplicationContextAware</span>, <span class="title">BeanFactoryAware</span>, <span class="title">SmartInitializingSingleton</span>,</span><br><span class="line">		<span class="title">InitializingBean</span></span></span><br></pre></td></tr></table></figure></p>
+<p> <code>BeanPostProcessor</code>是<code>bean</code>的后处理器，通过它我们可以在<code>Bean</code>初始化前后进行处理。它的<code>postProcessBeforeInitialization</code>方法在<code>Bean</code>初始化之前被调用，而<code>postProcessAfterInitialization</code>在<code>Bean</code>初始化后被调用。相关原理涉及到Spring创建Bean的流程，这个之后有时间再研究吧。</p>
+<h4 id="Aware系列接口"><a href="#Aware系列接口" class="headerlink" title="Aware系列接口"></a>Aware系列接口</h4><p> Spring中提供了一些<code>Aware</code>相关的接口，像是<code>BeanFactoryAware</code>,<code>ApplicationContextAware</code>等。当一个类实现了这些接口之后，<code>Aware</code>接口的Bean在初始化之后，可以取得相应的资源的实例。比如<code>StreamListenerAnnotationBeanPostProcessor</code>对象就实现了<code>ApplicationContextAware</code>和<code>BeanFactoryAware</code>接口来获取<code>ConfigurableApplicationContext</code>与<code>BeanFactory</code>实例。</p>
+<h4 id="SmartInitializingSingleton"><a href="#SmartInitializingSingleton" class="headerlink" title="SmartInitializingSingleton"></a>SmartInitializingSingleton</h4><p> 当所有的singleton的bean都初始化完成之后才会调用这个接口<br>的<code>afterSingletonsInstantiated</code>函数</p>
+<h4 id="SmartLifecycle"><a href="#SmartLifecycle" class="headerlink" title="SmartLifecycle"></a>SmartLifecycle</h4><p> 之前介绍的接口都是在Bean的生命周期内的某个阶段中被调用，如果我们希望在容器本身的生命周期事件上做一些事情该怎麽办呢？Spring容器提供了<code>Lifecycle</code>接口。当<code>ApplicationContext</code>接口启动或在关闭时，它会调用本容器内所有的Lifecycle接口。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Lifecycle</span> </span>&#123;</span><br><span class="line">    <span class="comment">//启动该组件</span></span><br><span class="line">	<span class="function"><span class="keyword">void</span> <span class="title">start</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="comment">//停止组件</span></span><br><span class="line">	<span class="function"><span class="keyword">void</span> <span class="title">stop</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="comment">//查看组件是否正在运行</span></span><br><span class="line">	<span class="function"><span class="keyword">boolean</span> <span class="title">isRunning</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p> 如果两个对象有依赖关系，希望某一个bean先初始化完成，完成一些工作之后，再初始化另一个bean。在这个场景下，可以使用<code>SmartLifecycle</code>接口，该接口的<code>getPhase</code>方法返回一个整型数字，表明执行顺序。如果其<code>getPhase()</code>方法返回<code>Integer.MIN_VALUE</code>,那么该对象最先启动，最后停止；如果返回<code>Integer.MAX_VALUE</code>,那么该对象最后启动，最先停止。在<code>Spring</code>容器里，有<code>DefaultLifecycleProcessor</code>这个类来处理所有的<code>Lifecycle</code>的bean。在<code>AbstractApplicationContext</code>的<code>finishRefresh</code>函数中会调用到该processer的<code>onRefresh函数</code>，从其调用其本身的<code>startBeans</code>函数。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">startBeans</span><span class="params">(<span class="keyword">boolean</span> autoStartupOnly)</span> </span>&#123;</span><br><span class="line">		Map&lt;String, Lifecycle&gt; lifecycleBeans = getLifecycleBeans();</span><br><span class="line">		Map&lt;Integer, LifecycleGroup&gt; phases = <span class="keyword">new</span> HashMap&lt;Integer, LifecycleGroup&gt;();</span><br><span class="line">        <span class="comment">//遍历所有的Lifecycle,按照phase分成不同的LifecycleGroup</span></span><br><span class="line">		<span class="keyword">for</span> (Map.Entry&lt;String, ? extends Lifecycle&gt; entry : lifecycleBeans.entrySet()) &#123;</span><br><span class="line">			Lifecycle bean = entry.getValue();</span><br><span class="line">			<span class="keyword">if</span> (!autoStartupOnly || (bean <span class="keyword">instanceof</span> SmartLifecycle &amp;&amp; ((SmartLifecycle) bean).isAutoStartup())) &#123;</span><br><span class="line">				<span class="keyword">int</span> phase = getPhase(bean);</span><br><span class="line">				LifecycleGroup group = phases.get(phase);</span><br><span class="line">				<span class="keyword">if</span> (group == <span class="keyword">null</span>) &#123;</span><br><span class="line">					group = <span class="keyword">new</span> LifecycleGroup(phase, <span class="keyword">this</span>.timeoutPerShutdownPhase, lifecycleBeans, autoStartupOnly);</span><br><span class="line">					phases.put(phase, group);</span><br><span class="line">				&#125;</span><br><span class="line">				group.add(entry.getKey(), bean);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> (!phases.isEmpty()) &#123;</span><br><span class="line">            <span class="comment">//按照phase排序，然后启动</span></span><br><span class="line">			List&lt;Integer&gt; keys = <span class="keyword">new</span> ArrayList&lt;Integer&gt;(phases.keySet());</span><br><span class="line">			Collections.sort(keys);</span><br><span class="line">			<span class="keyword">for</span> (Integer key : keys) &#123;</span><br><span class="line">				phases.get(key).start();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure></p>
+
+        
+        
+        <p class="article-more-link">
+          
+       </p>
+    </div>
+    <footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/后端-Spring/">后端 - Spring</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/Spring-Boot/">Spring Boot</a>
+  </div>
+
+</div>
+
+
+
+
+<div class="comments-count">
+	
+	  	<span></span>
+		<a href="/2017/10/10/Spring-Cloud-Stream-一-：Spring基础知识/#comments" class="ds-thread-count comments-count-link" data-thread-key="2017/10/10/Spring-Cloud-Stream-一-：Spring基础知识/" data-count-type="comments">&nbsp;</a>
+	
+</div>
+
+</footer>
+
+
+    </article>
+
+
+
+
+
+
+   
+    
+    <article class="post-expand post" itemprop="articleBody"> 
+        <header class="article-info clearfix">
+  <h1 itemprop="name">
+    
       <a href="/2017/09/10/Spring-Boot-一-Spring-Boot-starter自定义/" title="Spring Boot (一): Spring Boot starter自定义" itemprop="url">Spring Boot (一): Spring Boot starter自定义</a>
   </h1>
   <p class="article-author">By
@@ -79,7 +167,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2017-09-10T12:25:35.000Z" itemprop="datePublished"> Published 2017-09-10</time>
+    <time datetime="2017-09-10T12:25:35.000Z" itemprop="datePublished"> 发表于 2017-09-10</time>
     
   </p>
 </header>
@@ -166,7 +254,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2017-07-25T09:09:09.000Z" itemprop="datePublished"> Published 2017-07-25</time>
+    <time datetime="2017-07-25T09:09:09.000Z" itemprop="datePublished"> 发表于 2017-07-25</time>
     
   </p>
 </header>
@@ -250,7 +338,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2017-07-23T07:33:52.000Z" itemprop="datePublished"> Published 2017-07-23</time>
+    <time datetime="2017-07-23T07:33:52.000Z" itemprop="datePublished"> 发表于 2017-07-23</time>
     
   </p>
 </header>
@@ -328,7 +416,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2017-07-02T13:23:35.000Z" itemprop="datePublished"> Published 2017-07-02</time>
+    <time datetime="2017-07-02T13:23:35.000Z" itemprop="datePublished"> 发表于 2017-07-02</time>
     
   </p>
 </header>
@@ -426,7 +514,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2017-06-19T13:57:31.000Z" itemprop="datePublished"> Published 2017-06-19</time>
+    <time datetime="2017-06-19T13:57:31.000Z" itemprop="datePublished"> 发表于 2017-06-19</time>
     
   </p>
 </header>
@@ -508,7 +596,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2017-05-03T06:40:16.000Z" itemprop="datePublished"> Published 2017-05-03</time>
+    <time datetime="2017-05-03T06:40:16.000Z" itemprop="datePublished"> 发表于 2017-05-03</time>
     
   </p>
 </header>
@@ -627,7 +715,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2017-05-03T02:07:45.000Z" itemprop="datePublished"> Published 2017-05-03</time>
+    <time datetime="2017-05-03T02:07:45.000Z" itemprop="datePublished"> 发表于 2017-05-03</time>
     
   </p>
 </header>
@@ -702,7 +790,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2017-04-21T14:38:05.000Z" itemprop="datePublished"> Published 2017-04-21</time>
+    <time datetime="2017-04-21T14:38:05.000Z" itemprop="datePublished"> 发表于 2017-04-21</time>
     
   </p>
 </header>
@@ -772,7 +860,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2017-04-16T06:42:35.000Z" itemprop="datePublished"> Published 2017-04-16</time>
+    <time datetime="2017-04-16T06:42:35.000Z" itemprop="datePublished"> 发表于 2017-04-16</time>
     
   </p>
 </header>
@@ -854,101 +942,16 @@
 
 
 
-   
-    
-    <article class="post-expand post" itemprop="articleBody"> 
-        <header class="article-info clearfix">
-  <h1 itemprop="name">
-    
-      <a href="/2017/04/06/AbstractQueuedSynchronizer超详细原理解析/" title="AbstractQueuedSynchronizer超详细原理解析" itemprop="url">AbstractQueuedSynchronizer超详细原理解析</a>
-  </h1>
-  <p class="article-author">By
-       
-		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
-		
-  <p class="article-time">
-    <time datetime="2017-04-06T13:50:01.000Z" itemprop="datePublished"> Published 2017-04-06</time>
-    
-  </p>
-</header>
-    <div class="article-content">
-        
-        <p> 今天我们来研究学习一下<code>AbstractQueuedSynchronizer</code>类的相关原理,<code>java.util.concurrent</code>包中很多类都依赖于这个类所提供的队列式的同步器,比如说常用的<code>ReentranLock</code>,<code>Semaphore</code>和<code>CountDownLatch</code>等.<br> 为了方便理解,我们以一段使用<code>ReentranLock</code>的代码为例,讲解<code>ReentranLock</code>每个方法中有关<code>AQS</code>的使用.</p>
-<h3 id="ReentranLock示例"><a href="#ReentranLock示例" class="headerlink" title="ReentranLock示例"></a>ReentranLock示例</h3><p> 我们都知道<code>ReentranLock</code>的加锁行为和<code>Synchronized</code>类似,都是可重入的锁,但是二者的实现方式确实完全不同的,我们之后也会讲解<code>Synchronized</code>的原理.<strong><em>除此之外,Synchronized的阻塞无法被中断,而ReentrantLock则提供了可中断的阻塞</em></strong>下面的代码是<code>ReentranLock</code>的相关API,我们就以此为顺序,依次讲解.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ReentrantLock lock = <span class="keyword">new</span> ReentrantLock();</span><br><span class="line">lock.lock();</span><br><span class="line">lock.unlock();</span><br></pre></td></tr></table></figure></p>
-<h3 id="公平锁和非公平锁"><a href="#公平锁和非公平锁" class="headerlink" title="公平锁和非公平锁"></a>公平锁和非公平锁</h3><p> ReentranLock分为公平锁和非公平锁.二者的区别就在获取锁是否和排队顺序相关.我们都知道,如果当前锁被另一个线程持有,那么当前申请锁的线程会被挂起等待,然后加入一个等待队列里.理论上,先调用<code>lock</code>函数被挂起等待的线程应该排在等待队列的前端,后调用的就排在后边.如果此时,锁被释放,需要通知等待线程再次尝试获取锁,公平锁会让最先进入队列的线程获得锁,而非公平锁则会唤醒所有线程,让它们再次尝试获取锁,所以可能会导致后来的线程先获得了锁,则就是非公平.</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">ReentrantLock</span><span class="params">(<span class="keyword">boolean</span> fair)</span> </span>&#123;</span><br><span class="line">    sync = fair ? <span class="keyword">new</span> FairSync() : <span class="keyword">new</span> NonfairSync();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p> 我们会发现<code>FairSync</code>和<code>NonfairSync</code>都继承了<code>Sync</code>类,而<code>Sync</code>的父类就是<code>AbstractQueuedSynchronizer</code>.但是<code>AQS</code>的构造函数是空的,并没有任何操作.<br> 之后的源码分析,如果没有特别说明,就是指公平锁.</p>
-<h3 id="lock操作"><a href="#lock操作" class="headerlink" title="lock操作"></a>lock操作</h3><p> <code>ReentranLock</code>的<code>lock</code>函数如下所示,直接调用了<code>sync</code>的<code>lock</code>函数.也就是调用了<code>FairSync</code>的<code>lock</code>函数.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">//ReentranLock</span><br><span class="line">public void lock() &#123;</span><br><span class="line">    sync.lock();</span><br><span class="line">&#125;</span><br><span class="line">//FairSync</span><br><span class="line">final void lock() &#123;</span><br><span class="line">    acquire(1);//调用了AQS的acquire函数,这是关键函数之一</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p> 好,我们接下来就正式开始<code>AQS</code>相关的源码分析了,<code>acquire</code>函数你可以将其理解为获取一个同一时间只能有一个函数获取的量,这个量就是锁概念的抽象化.我们先分析代码,你慢慢就会明白其中的含义.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">acquire</span><span class="params">(<span class="keyword">int</span> arg)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!tryAcquire(arg) &amp;&amp; <span class="comment">//tryAcquire先尝试获取"锁",//如果成功,直接返回,失败继续执行后续代码</span></span><br><span class="line">        <span class="comment">//addWaiter是给当前线程创建一个节点,并将其加入等待队列</span></span><br><span class="line">        <span class="comment">//acquireQueued是当线程已经加入等待队列之后的行为.</span></span><br><span class="line">        acquireQueued(addWaiter(Node.EXCLUSIVE), arg))</span><br><span class="line">        selfInterrupt();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p> <code>tryAcquire</code>,<code>addWaiter</code>和<code>acquireQueued</code>都是十分重要的函数,我们接下来依次学习一下这些函数,理解它们的作用.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">//AQS类中的变量.</span><br><span class="line">private volatile int state;</span><br><span class="line">//这是FairSync的实现,AQS中未实现,子类按照自己的需要实现该类</span><br><span class="line">protected final boolean tryAcquire(int acquires) &#123;</span><br><span class="line">    final Thread current = Thread.currentThread();</span><br><span class="line">    //获取AQS中的state变量,代表抽象概念的锁.</span><br><span class="line">    int c = getState();</span><br><span class="line">    if (c == 0) &#123; //值为0,那么当前独占性变量还未被线程占有</span><br><span class="line">        if (!hasQueuedPredecessors() &amp;&amp; //如果当前阻塞队列上没有先来的线程在等待,UnfairSync这里的实现就不一致</span><br><span class="line">            compareAndSetState(0, acquires)) &#123;</span><br><span class="line">            //成功cas,那么代表当前线程获得该变量的所有权,也就是说成功获得锁</span><br><span class="line">            setExclusiveOwnerThread(current);</span><br><span class="line">            return true;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    else if (current == getExclusiveOwnerThread()) &#123;</span><br><span class="line">        //如果该线程已经获取了独占性变量的所有权,那么根据重入性</span><br><span class="line">        //原理,将state值进行加1,表示多次lock</span><br><span class="line">        //由于已经获得锁,该段代码只会被一个线程同时执行,所以不需要</span><br><span class="line">        //进行任何并行处理</span><br><span class="line">        int nextc = c + acquires;</span><br><span class="line">        if (nextc &lt; 0)</span><br><span class="line">            throw new Error(&quot;Maximum lock count exceeded&quot;);</span><br><span class="line">        setState(nextc);</span><br><span class="line">        return true;</span><br><span class="line">    &#125;</span><br><span class="line">    //上述情况都不符合,说明获取锁失败</span><br><span class="line">    return false;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p> 由上述代码我们可以发现,<code>tryAcquire</code>就是尝试获取那个线程独占的变量<code>state</code>.state的值表示其状态:如果是0,那么当前还没有线程独占此变量;否在就是已经有线程独占了这个变量,也就是代表已经有线程获得了锁.但是这个时候要再进行一次判断,看是否是当前线程自己获得的这个锁,如果是,那么就增加state的值.</p>
-<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201746-aqs-AQS1.png" alt="ReentranLock获得锁"></p>
-<p> 这里有几点需要说明一下,首先是<code>compareAndSetState</code>函数,这是使用CAS操作来设置<code>state</code>的值,而且state值设置了<code>volatile</code>修饰符,通过这两点来确保修改state的值不会出现多线程问题.然后是公平锁和非公平锁的区别问题,在<code>UnfairSync</code>的<code>nonfairTryAcquire</code>函数中不会在相同的位置上调用<code>hasQueuedPredecessors</code>来判断当前是否已经有线程在排队等待获得锁.<br> 如果<code>tryAcquire</code>返回<code>true</code>,那么就是获取锁成功,如果返回false,那么就是未获得锁.需要加入阻塞等待队列.我们下面就来看一下<code>addWaiter</code>的相关操作</p>
-<h3 id="等待锁的阻塞队列"><a href="#等待锁的阻塞队列" class="headerlink" title="等待锁的阻塞队列"></a>等待锁的阻塞队列</h3><p> 将保存当前线程信息的节点加入到等待队列的相关函数中涉及到了无锁队列的相关算法,由于在<code>AQS</code>中只是将节点添加到队尾,使用到的无锁算法也相对简单.真正的无锁队列的算法我们等到分析<code>ConcurrentSkippedListMap</code>时在进行讲解.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">private Node addWaiter(Node mode) &#123;</span><br><span class="line">    Node node = new Node(Thread.currentThread(), mode);</span><br><span class="line">    //先使用快速如列法来尝试一下,如果失败,则进行更加完备的如列算法.</span><br><span class="line">    Node pred = tail;//列尾指针</span><br><span class="line">    if (pred != null) &#123;</span><br><span class="line">        node.prev = pred; //步骤1:该节点的前趋指针指向tail</span><br><span class="line">        if (compareAndSetTail(pred, node))&#123; //步骤二:cas将尾指针指向该节点</span><br><span class="line">            pred.next = node;//步骤三:如果成果,让旧列尾节点的next指针指向该节点.</span><br><span class="line">            return node;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    //cas失败,或在pred == null时调用enq</span><br><span class="line">    enq(node);</span><br><span class="line">    return node;</span><br><span class="line">&#125;</span><br><span class="line">private Node enq(final Node node) &#123;</span><br><span class="line">    for (;;) &#123; //cas无锁算法的标准for循环,不停的尝试</span><br><span class="line">        Node t = tail;</span><br><span class="line">        if (t == null) &#123; //初始化</span><br><span class="line">            if (compareAndSetHead(new Node())) //需要注意的是head是一个哨兵的作用,并不代表某个要获取锁的线程节点</span><br><span class="line">                tail = head;</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            //和addWaiter中一致,不过有了外侧的无限循环,不停的尝试,自旋锁</span><br><span class="line">            node.prev = t;</span><br><span class="line">            if (compareAndSetTail(t, node)) &#123;</span><br><span class="line">                t.next = node;</span><br><span class="line">                return t;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p> 通过调用<code>addWaiter</code>函数,<code>AQS</code>将当前线程加入到了等待队列,但是还没有阻塞当前线程的执行,接下来我们就来分析一下<code>acquireQueued</code>函数.</p>
-<h3 id="等待队列节点的操作"><a href="#等待队列节点的操作" class="headerlink" title="等待队列节点的操作"></a>等待队列节点的操作</h3><p> 由于进入阻塞状态的操作会降低执行效率,所以,<code>AQS</code>会尽力避免试图获取独占性变量的线程进入阻塞状态.所以,当线程加入等待队列之后,<code>acquireQueued</code>会执行一个for循环,每次都判断当前节点是否应该获得这个变量(在队首了),如果不应该获取或在再次尝试获取失败,那么就调用<code>shouldParkAfterFailedAcquire</code>判断是否应该进入阻塞状态,如果当前节点之前的节点已经进入阻塞状态了,那么就可以判定当前节点不可能获取到锁,为了防止CPU不停的执行for循环,消耗CPU资源,调用<code>parkAndCheckInterrupt</code>函数来进入阻塞状态.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">acquireQueued</span><span class="params">(<span class="keyword">final</span> Node node, <span class="keyword">int</span> arg)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">boolean</span> failed = <span class="keyword">true</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">boolean</span> interrupted = <span class="keyword">false</span>;</span><br><span class="line">        <span class="keyword">for</span> (;;) &#123; <span class="comment">//一直执行,知道获取锁,返回.</span></span><br><span class="line">            <span class="keyword">final</span> Node p = node.predecessor(); </span><br><span class="line">            <span class="comment">//node的前驱是head,就说明,node是将要获取锁的下一个节点.</span></span><br><span class="line">            <span class="keyword">if</span> (p == head &amp;&amp; tryAcquire(arg)) &#123; <span class="comment">//所以再次尝试获取独占性变量</span></span><br><span class="line">                setHead(node); <span class="comment">//如果成果,那么就将自己设置为head</span></span><br><span class="line">                p.next = <span class="keyword">null</span>; <span class="comment">// help GC</span></span><br><span class="line">                failed = <span class="keyword">false</span>;</span><br><span class="line">                <span class="keyword">return</span> interrupted;<span class="comment">//此时,还没有进入阻塞状态,所以直接返回false,表示不需要中断</span></span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//判断是否要进入阻塞状态.如果`shouldParkAfterFailedAcquire`返回true,表示需要进入阻塞</span></span><br><span class="line">            <span class="comment">//调用parkAndCheckInterrupt,否在表示还可以再次尝试获取锁,继续进行for循环</span></span><br><span class="line">            <span class="keyword">if</span> (shouldParkAfterFailedAcquire(p, node) &amp;&amp;</span><br><span class="line">                parkAndCheckInterrupt())</span><br><span class="line">                <span class="comment">//调用parkAndCheckInterrupt进行阻塞,然后返回是否为中断状态</span></span><br><span class="line">                interrupted = <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (failed)</span><br><span class="line">            cancelAcquire(node);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">shouldParkAfterFailedAcquire</span><span class="params">(Node pred, Node node)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> ws = pred.waitStatus;</span><br><span class="line">    <span class="keyword">if</span> (ws == Node.SIGNAL) <span class="comment">//前一个节点在等待独占性变量释放的通知,所以,当前节点可以阻塞</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    <span class="keyword">if</span> (ws &gt; <span class="number">0</span>) &#123; <span class="comment">//前一个节点处于取消获取独占性变量的状态,所以,可以跳过去</span></span><br><span class="line">        <span class="comment">//返回false</span></span><br><span class="line">        do &#123;</span><br><span class="line">            node.prev = pred = pred.prev;</span><br><span class="line">        &#125; <span class="keyword">while</span> (pred.waitStatus &gt; <span class="number">0</span>);</span><br><span class="line">        pred.next = node;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">//将上一个节点的状态设置为signal,返回false,</span></span><br><span class="line">        compareAndSetWaitStatus(pred, ws, Node.SIGNAL);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">parkAndCheckInterrupt</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    LockSupport.park(<span class="keyword">this</span>); <span class="comment">//将AQS对象自己传入</span></span><br><span class="line">    <span class="keyword">return</span> Thread.interrupted();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<h3 id="阻塞和中断"><a href="#阻塞和中断" class="headerlink" title="阻塞和中断"></a>阻塞和中断</h3><p> 由上述分析,我们知道了<code>AQS</code>通过调用<code>LockSupport</code>的<code>park</code>方法来执行阻塞当前进程的操作.其实,这里的阻塞就是线程不再执行的含义.通过调用这个函数,线程进入阻塞状态,上述的<code>lock</code>操作也就阻塞了.等待中断或在独占性变量被释放.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">park</span><span class="params">(Object blocker)</span> </span>&#123;</span><br><span class="line">    Thread t = Thread.currentThread();</span><br><span class="line">    setBlocker(t, blocker);<span class="comment">//设置阻塞对象,用来记录线程被谁阻塞的,用于线程监控和分析工具来定位</span></span><br><span class="line">    UNSAFE.park(<span class="keyword">false</span>, <span class="number">0L</span>);<span class="comment">//让当前线程不再被线程调度,就是当前线程不再执行.</span></span><br><span class="line">    setBlocker(t, <span class="keyword">null</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p> 关于中断的相关知识,我们以后再说,就继续沿着<code>AQS</code>的主线,看一下释放独占性变量的相关操作吧.</p>
-<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201746-aqs-AQS2.png" alt="ReentrantLock未获得阻塞,加入队列"></p>
-<h3 id="unlock操作"><a href="#unlock操作" class="headerlink" title="unlock操作"></a>unlock操作</h3><p> 与<code>lock</code>操作类似,<code>unlock</code>操作调用了<code>AQS</code>的<code>relase</code>方法,参数和调用<code>acquire</code>时一样,都是1.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">public final boolean release(int arg) &#123;</span><br><span class="line">    if (tryRelease(arg)) &#123; //释放独占性变量,起始就是将status的值减1,因为acquire时是加1</span><br><span class="line">        Node h = head;</span><br><span class="line">        if (h != null &amp;&amp; h.waitStatus != 0)</span><br><span class="line">            unparkSuccessor(h);//唤醒head的后继节点</span><br><span class="line">        return true;</span><br><span class="line">    &#125;</span><br><span class="line">    return false;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p> 由上述代码可知,release就是先调用<code>tryRelease</code>来释放独占性变量,如果成果,那么就看一下是否有等待锁的阻塞线程,如果有,就调用<code>unparkSuccessor</code>来唤醒他们.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">protected final boolean tryRelease(int releases) &#123;</span><br><span class="line">    //由于只有一个线程可以获得独占先变量,所以,所有操作不需要考虑多线程</span><br><span class="line">    int c = getState() - releases; </span><br><span class="line">    if (Thread.currentThread() != getExclusiveOwnerThread())</span><br><span class="line">        throw new IllegalMonitorStateException();</span><br><span class="line">    boolean free = false;</span><br><span class="line">    if (c == 0) &#123; //如果等于0,那么说明锁应该被释放了,否在表示当前线程有多次lock操作.</span><br><span class="line">        free = true;</span><br><span class="line">        setExclusiveOwnerThread(null);</span><br><span class="line">    &#125;</span><br><span class="line">    setState(c);</span><br><span class="line">    return free;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p> 我们可以看到<code>tryRelease</code>中的逻辑也体现了可重入锁的概念,只有等到<code>state</code>的值为1时,才代表锁真正被释放了.所以独占性变量<code>state</code>的值就代表锁的有无.当<code>state=0</code>时,表示锁未被占有,否在表示当前锁已经被占有.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">unparkSuccessor</span><span class="params">(Node node)</span> </span>&#123;</span><br><span class="line">    .....</span><br><span class="line">     <span class="comment">//一般来说,需要唤醒的线程就是head的下一个节点,但是如果它获取锁的操作被取消,或在节点为null时</span></span><br><span class="line">     <span class="comment">//就直接继续往后遍历,找到第一个未取消的后继节点.</span></span><br><span class="line">    Node s = node.next;</span><br><span class="line">    <span class="keyword">if</span> (s == <span class="keyword">null</span> || s.waitStatus &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        s = <span class="keyword">null</span>;</span><br><span class="line">        <span class="keyword">for</span> (Node t = tail; t != <span class="keyword">null</span> &amp;&amp; t != node; t = t.prev)</span><br><span class="line">            <span class="keyword">if</span> (t.waitStatus &lt;= <span class="number">0</span>)</span><br><span class="line">                s = t;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (s != <span class="keyword">null</span>)</span><br><span class="line">        LockSupport.unpark(s.thread);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p> 调用了<code>unpark</code>方法后,进行<code>lock</code>操作被阻塞的线程就恢复到运行状态,就会再次执行<code>acquireQueued</code>中的无限for循环中的操作,再次尝试获取锁.</p>
-<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201746-aqs-AQS3.png" alt="ReentrantLock释放锁并通知阻塞线程恢复执行"></p>
-<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p> 有关<code>AQS</code>和<code>ReentrantLock</code>的分析就差不多结束了,不得不说,我第一次看到AQS的实现时真是震惊,以前都认为<code>Synchronized</code>和<code>ReentrantLock</code>的实现原理是一致的,都是依靠java虚拟机的功能实现的,没有想到还有<code>AQS</code>这样一个背后大Boss在提供帮助啊.学习了这个类的原理,我们对JUC的很多类的分析就简单了很多,此外,<code>AQS</code>涉及的<code>CAS</code>操作和无锁队列的算法也为我们学习其他无锁算法提供了基础.<strong><em>知识的海洋是无限的啊!</em></strong></p>
-
-        
-        
-        <p class="article-more-link">
-          
-       </p>
-    </div>
-    <footer class="article-footer clearfix">
-<div class="article-catetags">
-
-<div class="article-categories">
-  <span></span>
-  <a class="article-category-link" href="/categories/并发/">并发</a>
-</div>
-
-
-  <div class="article-tags">
-  
-  <span></span> <a href="/tags/JUC/">JUC</a>
-  </div>
-
-</div>
-
-
-
-
-<div class="comments-count">
-	
-	  	<span></span>
-		<a href="/2017/04/06/AbstractQueuedSynchronizer超详细原理解析/#comments" class="ds-thread-count comments-count-link" data-thread-key="2017/04/06/AbstractQueuedSynchronizer超详细原理解析/" data-count-type="comments">&nbsp;</a>
-	
-</div>
-
-</footer>
-
-
-    </article>
-
-
-
-
-
-
 
   <nav id="page-nav" class="clearfix">
     <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/6/">6</a><a class="extend next" rel="next" href="/page/2/">Next<span></span></a>
   </nav>
 
 </div>
-      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
 
 <div id="asidepart">
-<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
 <aside class="clearfix">
 
   
@@ -956,7 +959,7 @@
 
   
 <div class="categorieslist">
-	<p class="asidetitle">Categories</p>
+	<p class="asidetitle">分类</p>
 		<ul>
 		
 		  
@@ -1009,6 +1012,10 @@
 		
 		  
 			<li><a href="/categories/后端/" title="后端">后端<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/后端-Spring/" title="后端 - Spring">后端 - Spring<sup>1</sup></a></li>
 		  
 		
 		  
@@ -1093,7 +1100,7 @@
 
   
 <div class="tagslist">
-	<p class="asidetitle">Tags</p>
+	<p class="asidetitle">标签</p>
 		<ul class="clearfix">
 		
 			
@@ -1117,19 +1124,15 @@
 			
 		
 			
+				<li><a href="/tags/Span/" title="Span">Span<sup>2</sup></a></li>
+			
+		
+			
 				<li><a href="/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
-			
-		
-			
 				<li><a href="/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/Span/" title="Span">Span<sup>2</sup></a></li>
 			
 		
 			
@@ -1141,7 +1144,11 @@
 			
 		
 			
-				<li><a href="/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
+				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Spring-Boot/" title="Spring Boot">Spring Boot<sup>2</sup></a></li>
 			
 		
 			
@@ -1169,7 +1176,7 @@
 			
 		
 			
-				<li><a href="/tags/市场/" title="市场">市场<sup>1</sup></a></li>
+				<li><a href="/tags/MotionEvent/" title="MotionEvent">MotionEvent<sup>1</sup></a></li>
 			
 		
 			
@@ -1184,7 +1191,7 @@
 
 
   <div class="rsspart">
-	<a href="/atom.xml" target="_blank" title="rss">RSS</a>
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
 </div>
 
 </aside>
@@ -1355,7 +1362,7 @@ var _hmt = _hmt || [];
 <!-- Totop Begin -->
 
 	<div id="totop">
-	<a title="Back to Top"><img src="/img/scrollup.png"/></a>
+	<a title="返回顶部"><img src="/img/scrollup.png"/></a>
 	</div>
 	<script src="/js/totop.js"></script>
 

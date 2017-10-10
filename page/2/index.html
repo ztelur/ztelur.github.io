@@ -38,7 +38,7 @@
 				<h1 class="site-name"><a href="/" title="Carpediem">Carpediem</a></h1>
 				<h2 class="blog-motto">blog of nobody</h2>
 			</div>
-			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
 			</a></div>
 			<nav class="animated">
 				<ul>
@@ -54,7 +54,7 @@
  					
 					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
 						<label>Search</label>
-						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
+						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
 						<input type="hidden" name="q" value="site:remcarpediem.com">
 					</form>
 					
@@ -72,6 +72,91 @@
         <header class="article-info clearfix">
   <h1 itemprop="name">
     
+      <a href="/2017/04/06/AbstractQueuedSynchronizer超详细原理解析/" title="AbstractQueuedSynchronizer超详细原理解析" itemprop="url">AbstractQueuedSynchronizer超详细原理解析</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2017-04-06T13:50:01.000Z" itemprop="datePublished"> 发表于 2017-04-06</time>
+    
+  </p>
+</header>
+    <div class="article-content">
+        
+        <p> 今天我们来研究学习一下<code>AbstractQueuedSynchronizer</code>类的相关原理,<code>java.util.concurrent</code>包中很多类都依赖于这个类所提供的队列式的同步器,比如说常用的<code>ReentranLock</code>,<code>Semaphore</code>和<code>CountDownLatch</code>等.<br> 为了方便理解,我们以一段使用<code>ReentranLock</code>的代码为例,讲解<code>ReentranLock</code>每个方法中有关<code>AQS</code>的使用.</p>
+<h3 id="ReentranLock示例"><a href="#ReentranLock示例" class="headerlink" title="ReentranLock示例"></a>ReentranLock示例</h3><p> 我们都知道<code>ReentranLock</code>的加锁行为和<code>Synchronized</code>类似,都是可重入的锁,但是二者的实现方式确实完全不同的,我们之后也会讲解<code>Synchronized</code>的原理.<strong><em>除此之外,Synchronized的阻塞无法被中断,而ReentrantLock则提供了可中断的阻塞</em></strong>下面的代码是<code>ReentranLock</code>的相关API,我们就以此为顺序,依次讲解.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ReentrantLock lock = <span class="keyword">new</span> ReentrantLock();</span><br><span class="line">lock.lock();</span><br><span class="line">lock.unlock();</span><br></pre></td></tr></table></figure></p>
+<h3 id="公平锁和非公平锁"><a href="#公平锁和非公平锁" class="headerlink" title="公平锁和非公平锁"></a>公平锁和非公平锁</h3><p> ReentranLock分为公平锁和非公平锁.二者的区别就在获取锁是否和排队顺序相关.我们都知道,如果当前锁被另一个线程持有,那么当前申请锁的线程会被挂起等待,然后加入一个等待队列里.理论上,先调用<code>lock</code>函数被挂起等待的线程应该排在等待队列的前端,后调用的就排在后边.如果此时,锁被释放,需要通知等待线程再次尝试获取锁,公平锁会让最先进入队列的线程获得锁,而非公平锁则会唤醒所有线程,让它们再次尝试获取锁,所以可能会导致后来的线程先获得了锁,则就是非公平.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">ReentrantLock</span><span class="params">(<span class="keyword">boolean</span> fair)</span> </span>&#123;</span><br><span class="line">    sync = fair ? <span class="keyword">new</span> FairSync() : <span class="keyword">new</span> NonfairSync();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p> 我们会发现<code>FairSync</code>和<code>NonfairSync</code>都继承了<code>Sync</code>类,而<code>Sync</code>的父类就是<code>AbstractQueuedSynchronizer</code>.但是<code>AQS</code>的构造函数是空的,并没有任何操作.<br> 之后的源码分析,如果没有特别说明,就是指公平锁.</p>
+<h3 id="lock操作"><a href="#lock操作" class="headerlink" title="lock操作"></a>lock操作</h3><p> <code>ReentranLock</code>的<code>lock</code>函数如下所示,直接调用了<code>sync</code>的<code>lock</code>函数.也就是调用了<code>FairSync</code>的<code>lock</code>函数.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">//ReentranLock</span><br><span class="line">public void lock() &#123;</span><br><span class="line">    sync.lock();</span><br><span class="line">&#125;</span><br><span class="line">//FairSync</span><br><span class="line">final void lock() &#123;</span><br><span class="line">    acquire(1);//调用了AQS的acquire函数,这是关键函数之一</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p> 好,我们接下来就正式开始<code>AQS</code>相关的源码分析了,<code>acquire</code>函数你可以将其理解为获取一个同一时间只能有一个函数获取的量,这个量就是锁概念的抽象化.我们先分析代码,你慢慢就会明白其中的含义.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">acquire</span><span class="params">(<span class="keyword">int</span> arg)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!tryAcquire(arg) &amp;&amp; <span class="comment">//tryAcquire先尝试获取"锁",//如果成功,直接返回,失败继续执行后续代码</span></span><br><span class="line">        <span class="comment">//addWaiter是给当前线程创建一个节点,并将其加入等待队列</span></span><br><span class="line">        <span class="comment">//acquireQueued是当线程已经加入等待队列之后的行为.</span></span><br><span class="line">        acquireQueued(addWaiter(Node.EXCLUSIVE), arg))</span><br><span class="line">        selfInterrupt();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p> <code>tryAcquire</code>,<code>addWaiter</code>和<code>acquireQueued</code>都是十分重要的函数,我们接下来依次学习一下这些函数,理解它们的作用.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">//AQS类中的变量.</span><br><span class="line">private volatile int state;</span><br><span class="line">//这是FairSync的实现,AQS中未实现,子类按照自己的需要实现该类</span><br><span class="line">protected final boolean tryAcquire(int acquires) &#123;</span><br><span class="line">    final Thread current = Thread.currentThread();</span><br><span class="line">    //获取AQS中的state变量,代表抽象概念的锁.</span><br><span class="line">    int c = getState();</span><br><span class="line">    if (c == 0) &#123; //值为0,那么当前独占性变量还未被线程占有</span><br><span class="line">        if (!hasQueuedPredecessors() &amp;&amp; //如果当前阻塞队列上没有先来的线程在等待,UnfairSync这里的实现就不一致</span><br><span class="line">            compareAndSetState(0, acquires)) &#123;</span><br><span class="line">            //成功cas,那么代表当前线程获得该变量的所有权,也就是说成功获得锁</span><br><span class="line">            setExclusiveOwnerThread(current);</span><br><span class="line">            return true;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    else if (current == getExclusiveOwnerThread()) &#123;</span><br><span class="line">        //如果该线程已经获取了独占性变量的所有权,那么根据重入性</span><br><span class="line">        //原理,将state值进行加1,表示多次lock</span><br><span class="line">        //由于已经获得锁,该段代码只会被一个线程同时执行,所以不需要</span><br><span class="line">        //进行任何并行处理</span><br><span class="line">        int nextc = c + acquires;</span><br><span class="line">        if (nextc &lt; 0)</span><br><span class="line">            throw new Error(&quot;Maximum lock count exceeded&quot;);</span><br><span class="line">        setState(nextc);</span><br><span class="line">        return true;</span><br><span class="line">    &#125;</span><br><span class="line">    //上述情况都不符合,说明获取锁失败</span><br><span class="line">    return false;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p> 由上述代码我们可以发现,<code>tryAcquire</code>就是尝试获取那个线程独占的变量<code>state</code>.state的值表示其状态:如果是0,那么当前还没有线程独占此变量;否在就是已经有线程独占了这个变量,也就是代表已经有线程获得了锁.但是这个时候要再进行一次判断,看是否是当前线程自己获得的这个锁,如果是,那么就增加state的值.</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201746-aqs-AQS1.png" alt="ReentranLock获得锁"></p>
+<p> 这里有几点需要说明一下,首先是<code>compareAndSetState</code>函数,这是使用CAS操作来设置<code>state</code>的值,而且state值设置了<code>volatile</code>修饰符,通过这两点来确保修改state的值不会出现多线程问题.然后是公平锁和非公平锁的区别问题,在<code>UnfairSync</code>的<code>nonfairTryAcquire</code>函数中不会在相同的位置上调用<code>hasQueuedPredecessors</code>来判断当前是否已经有线程在排队等待获得锁.<br> 如果<code>tryAcquire</code>返回<code>true</code>,那么就是获取锁成功,如果返回false,那么就是未获得锁.需要加入阻塞等待队列.我们下面就来看一下<code>addWaiter</code>的相关操作</p>
+<h3 id="等待锁的阻塞队列"><a href="#等待锁的阻塞队列" class="headerlink" title="等待锁的阻塞队列"></a>等待锁的阻塞队列</h3><p> 将保存当前线程信息的节点加入到等待队列的相关函数中涉及到了无锁队列的相关算法,由于在<code>AQS</code>中只是将节点添加到队尾,使用到的无锁算法也相对简单.真正的无锁队列的算法我们等到分析<code>ConcurrentSkippedListMap</code>时在进行讲解.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">private Node addWaiter(Node mode) &#123;</span><br><span class="line">    Node node = new Node(Thread.currentThread(), mode);</span><br><span class="line">    //先使用快速如列法来尝试一下,如果失败,则进行更加完备的如列算法.</span><br><span class="line">    Node pred = tail;//列尾指针</span><br><span class="line">    if (pred != null) &#123;</span><br><span class="line">        node.prev = pred; //步骤1:该节点的前趋指针指向tail</span><br><span class="line">        if (compareAndSetTail(pred, node))&#123; //步骤二:cas将尾指针指向该节点</span><br><span class="line">            pred.next = node;//步骤三:如果成果,让旧列尾节点的next指针指向该节点.</span><br><span class="line">            return node;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    //cas失败,或在pred == null时调用enq</span><br><span class="line">    enq(node);</span><br><span class="line">    return node;</span><br><span class="line">&#125;</span><br><span class="line">private Node enq(final Node node) &#123;</span><br><span class="line">    for (;;) &#123; //cas无锁算法的标准for循环,不停的尝试</span><br><span class="line">        Node t = tail;</span><br><span class="line">        if (t == null) &#123; //初始化</span><br><span class="line">            if (compareAndSetHead(new Node())) //需要注意的是head是一个哨兵的作用,并不代表某个要获取锁的线程节点</span><br><span class="line">                tail = head;</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            //和addWaiter中一致,不过有了外侧的无限循环,不停的尝试,自旋锁</span><br><span class="line">            node.prev = t;</span><br><span class="line">            if (compareAndSetTail(t, node)) &#123;</span><br><span class="line">                t.next = node;</span><br><span class="line">                return t;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p> 通过调用<code>addWaiter</code>函数,<code>AQS</code>将当前线程加入到了等待队列,但是还没有阻塞当前线程的执行,接下来我们就来分析一下<code>acquireQueued</code>函数.</p>
+<h3 id="等待队列节点的操作"><a href="#等待队列节点的操作" class="headerlink" title="等待队列节点的操作"></a>等待队列节点的操作</h3><p> 由于进入阻塞状态的操作会降低执行效率,所以,<code>AQS</code>会尽力避免试图获取独占性变量的线程进入阻塞状态.所以,当线程加入等待队列之后,<code>acquireQueued</code>会执行一个for循环,每次都判断当前节点是否应该获得这个变量(在队首了),如果不应该获取或在再次尝试获取失败,那么就调用<code>shouldParkAfterFailedAcquire</code>判断是否应该进入阻塞状态,如果当前节点之前的节点已经进入阻塞状态了,那么就可以判定当前节点不可能获取到锁,为了防止CPU不停的执行for循环,消耗CPU资源,调用<code>parkAndCheckInterrupt</code>函数来进入阻塞状态.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">acquireQueued</span><span class="params">(<span class="keyword">final</span> Node node, <span class="keyword">int</span> arg)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">boolean</span> failed = <span class="keyword">true</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">boolean</span> interrupted = <span class="keyword">false</span>;</span><br><span class="line">        <span class="keyword">for</span> (;;) &#123; <span class="comment">//一直执行,知道获取锁,返回.</span></span><br><span class="line">            <span class="keyword">final</span> Node p = node.predecessor(); </span><br><span class="line">            <span class="comment">//node的前驱是head,就说明,node是将要获取锁的下一个节点.</span></span><br><span class="line">            <span class="keyword">if</span> (p == head &amp;&amp; tryAcquire(arg)) &#123; <span class="comment">//所以再次尝试获取独占性变量</span></span><br><span class="line">                setHead(node); <span class="comment">//如果成果,那么就将自己设置为head</span></span><br><span class="line">                p.next = <span class="keyword">null</span>; <span class="comment">// help GC</span></span><br><span class="line">                failed = <span class="keyword">false</span>;</span><br><span class="line">                <span class="keyword">return</span> interrupted;<span class="comment">//此时,还没有进入阻塞状态,所以直接返回false,表示不需要中断</span></span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//判断是否要进入阻塞状态.如果`shouldParkAfterFailedAcquire`返回true,表示需要进入阻塞</span></span><br><span class="line">            <span class="comment">//调用parkAndCheckInterrupt,否在表示还可以再次尝试获取锁,继续进行for循环</span></span><br><span class="line">            <span class="keyword">if</span> (shouldParkAfterFailedAcquire(p, node) &amp;&amp;</span><br><span class="line">                parkAndCheckInterrupt())</span><br><span class="line">                <span class="comment">//调用parkAndCheckInterrupt进行阻塞,然后返回是否为中断状态</span></span><br><span class="line">                interrupted = <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (failed)</span><br><span class="line">            cancelAcquire(node);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">shouldParkAfterFailedAcquire</span><span class="params">(Node pred, Node node)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> ws = pred.waitStatus;</span><br><span class="line">    <span class="keyword">if</span> (ws == Node.SIGNAL) <span class="comment">//前一个节点在等待独占性变量释放的通知,所以,当前节点可以阻塞</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    <span class="keyword">if</span> (ws &gt; <span class="number">0</span>) &#123; <span class="comment">//前一个节点处于取消获取独占性变量的状态,所以,可以跳过去</span></span><br><span class="line">        <span class="comment">//返回false</span></span><br><span class="line">        do &#123;</span><br><span class="line">            node.prev = pred = pred.prev;</span><br><span class="line">        &#125; <span class="keyword">while</span> (pred.waitStatus &gt; <span class="number">0</span>);</span><br><span class="line">        pred.next = node;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">//将上一个节点的状态设置为signal,返回false,</span></span><br><span class="line">        compareAndSetWaitStatus(pred, ws, Node.SIGNAL);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">parkAndCheckInterrupt</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    LockSupport.park(<span class="keyword">this</span>); <span class="comment">//将AQS对象自己传入</span></span><br><span class="line">    <span class="keyword">return</span> Thread.interrupted();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="阻塞和中断"><a href="#阻塞和中断" class="headerlink" title="阻塞和中断"></a>阻塞和中断</h3><p> 由上述分析,我们知道了<code>AQS</code>通过调用<code>LockSupport</code>的<code>park</code>方法来执行阻塞当前进程的操作.其实,这里的阻塞就是线程不再执行的含义.通过调用这个函数,线程进入阻塞状态,上述的<code>lock</code>操作也就阻塞了.等待中断或在独占性变量被释放.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">park</span><span class="params">(Object blocker)</span> </span>&#123;</span><br><span class="line">    Thread t = Thread.currentThread();</span><br><span class="line">    setBlocker(t, blocker);<span class="comment">//设置阻塞对象,用来记录线程被谁阻塞的,用于线程监控和分析工具来定位</span></span><br><span class="line">    UNSAFE.park(<span class="keyword">false</span>, <span class="number">0L</span>);<span class="comment">//让当前线程不再被线程调度,就是当前线程不再执行.</span></span><br><span class="line">    setBlocker(t, <span class="keyword">null</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p> 关于中断的相关知识,我们以后再说,就继续沿着<code>AQS</code>的主线,看一下释放独占性变量的相关操作吧.</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201746-aqs-AQS2.png" alt="ReentrantLock未获得阻塞,加入队列"></p>
+<h3 id="unlock操作"><a href="#unlock操作" class="headerlink" title="unlock操作"></a>unlock操作</h3><p> 与<code>lock</code>操作类似,<code>unlock</code>操作调用了<code>AQS</code>的<code>relase</code>方法,参数和调用<code>acquire</code>时一样,都是1.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">public final boolean release(int arg) &#123;</span><br><span class="line">    if (tryRelease(arg)) &#123; //释放独占性变量,起始就是将status的值减1,因为acquire时是加1</span><br><span class="line">        Node h = head;</span><br><span class="line">        if (h != null &amp;&amp; h.waitStatus != 0)</span><br><span class="line">            unparkSuccessor(h);//唤醒head的后继节点</span><br><span class="line">        return true;</span><br><span class="line">    &#125;</span><br><span class="line">    return false;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p> 由上述代码可知,release就是先调用<code>tryRelease</code>来释放独占性变量,如果成果,那么就看一下是否有等待锁的阻塞线程,如果有,就调用<code>unparkSuccessor</code>来唤醒他们.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">protected final boolean tryRelease(int releases) &#123;</span><br><span class="line">    //由于只有一个线程可以获得独占先变量,所以,所有操作不需要考虑多线程</span><br><span class="line">    int c = getState() - releases; </span><br><span class="line">    if (Thread.currentThread() != getExclusiveOwnerThread())</span><br><span class="line">        throw new IllegalMonitorStateException();</span><br><span class="line">    boolean free = false;</span><br><span class="line">    if (c == 0) &#123; //如果等于0,那么说明锁应该被释放了,否在表示当前线程有多次lock操作.</span><br><span class="line">        free = true;</span><br><span class="line">        setExclusiveOwnerThread(null);</span><br><span class="line">    &#125;</span><br><span class="line">    setState(c);</span><br><span class="line">    return free;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p> 我们可以看到<code>tryRelease</code>中的逻辑也体现了可重入锁的概念,只有等到<code>state</code>的值为1时,才代表锁真正被释放了.所以独占性变量<code>state</code>的值就代表锁的有无.当<code>state=0</code>时,表示锁未被占有,否在表示当前锁已经被占有.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">unparkSuccessor</span><span class="params">(Node node)</span> </span>&#123;</span><br><span class="line">    .....</span><br><span class="line">     <span class="comment">//一般来说,需要唤醒的线程就是head的下一个节点,但是如果它获取锁的操作被取消,或在节点为null时</span></span><br><span class="line">     <span class="comment">//就直接继续往后遍历,找到第一个未取消的后继节点.</span></span><br><span class="line">    Node s = node.next;</span><br><span class="line">    <span class="keyword">if</span> (s == <span class="keyword">null</span> || s.waitStatus &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        s = <span class="keyword">null</span>;</span><br><span class="line">        <span class="keyword">for</span> (Node t = tail; t != <span class="keyword">null</span> &amp;&amp; t != node; t = t.prev)</span><br><span class="line">            <span class="keyword">if</span> (t.waitStatus &lt;= <span class="number">0</span>)</span><br><span class="line">                s = t;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (s != <span class="keyword">null</span>)</span><br><span class="line">        LockSupport.unpark(s.thread);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p> 调用了<code>unpark</code>方法后,进行<code>lock</code>操作被阻塞的线程就恢复到运行状态,就会再次执行<code>acquireQueued</code>中的无限for循环中的操作,再次尝试获取锁.</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201746-aqs-AQS3.png" alt="ReentrantLock释放锁并通知阻塞线程恢复执行"></p>
+<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p> 有关<code>AQS</code>和<code>ReentrantLock</code>的分析就差不多结束了,不得不说,我第一次看到AQS的实现时真是震惊,以前都认为<code>Synchronized</code>和<code>ReentrantLock</code>的实现原理是一致的,都是依靠java虚拟机的功能实现的,没有想到还有<code>AQS</code>这样一个背后大Boss在提供帮助啊.学习了这个类的原理,我们对JUC的很多类的分析就简单了很多,此外,<code>AQS</code>涉及的<code>CAS</code>操作和无锁队列的算法也为我们学习其他无锁算法提供了基础.<strong><em>知识的海洋是无限的啊!</em></strong></p>
+
+        
+        
+        <p class="article-more-link">
+          
+       </p>
+    </div>
+    <footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/并发/">并发</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/JUC/">JUC</a>
+  </div>
+
+</div>
+
+
+
+
+<div class="comments-count">
+	
+	  	<span></span>
+		<a href="/2017/04/06/AbstractQueuedSynchronizer超详细原理解析/#comments" class="ds-thread-count comments-count-link" data-thread-key="2017/04/06/AbstractQueuedSynchronizer超详细原理解析/" data-count-type="comments">&nbsp;</a>
+	
+</div>
+
+</footer>
+
+
+    </article>
+
+
+
+
+
+
+   
+    
+    <article class="post-expand post" itemprop="articleBody"> 
+        <header class="article-info clearfix">
+  <h1 itemprop="name">
+    
       <a href="/2017/04/02/Netty源码-三-I-O模型和Java-NIO底层原理/" title="Netty源码(三):I/O模型和Java NIO底层原理" itemprop="url">Netty源码(三):I/O模型和Java NIO底层原理</a>
   </h1>
   <p class="article-author">By
@@ -79,7 +164,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2017-04-02T15:11:13.000Z" itemprop="datePublished"> Published 2017-04-02</time>
+    <time datetime="2017-04-02T15:11:13.000Z" itemprop="datePublished"> 发表于 2017-04-02</time>
     
   </p>
 </header>
@@ -182,7 +267,7 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2017-03-27T13:38:03.000Z" itemprop="datePublished"> Published 2017-03-27</time>
+    <time datetime="2017-03-27T13:38:03.000Z" itemprop="datePublished"> 发表于 2017-03-27</time>
     
   </p>
 </header>
@@ -269,7 +354,7 @@ ServerBootstrap b = new ServerBootstrap();
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2017-03-22T15:09:21.000Z" itemprop="datePublished"> Published 2017-03-22</time>
+    <time datetime="2017-03-22T15:09:21.000Z" itemprop="datePublished"> 发表于 2017-03-22</time>
     
   </p>
 </header>
@@ -370,7 +455,7 @@ ServerBootstrap b = new ServerBootstrap();
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2017-03-12T09:09:22.000Z" itemprop="datePublished"> Published 2017-03-12</time>
+    <time datetime="2017-03-12T09:09:22.000Z" itemprop="datePublished"> 发表于 2017-03-12</time>
     
   </p>
 </header>
@@ -447,7 +532,7 @@ ServerBootstrap b = new ServerBootstrap();
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2017-02-09T13:58:10.000Z" itemprop="datePublished"> Published 2017-02-09</time>
+    <time datetime="2017-02-09T13:58:10.000Z" itemprop="datePublished"> 发表于 2017-02-09</time>
     
   </p>
 </header>
@@ -540,7 +625,7 @@ ServerBootstrap b = new ServerBootstrap();
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2016-12-31T08:18:03.000Z" itemprop="datePublished"> Published 2016-12-31</time>
+    <time datetime="2016-12-31T08:18:03.000Z" itemprop="datePublished"> 发表于 2016-12-31</time>
     
   </p>
 </header>
@@ -630,7 +715,7 @@ ServerBootstrap b = new ServerBootstrap();
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2016-10-30T08:37:22.000Z" itemprop="datePublished"> Published 2016-10-30</time>
+    <time datetime="2016-10-30T08:37:22.000Z" itemprop="datePublished"> 发表于 2016-10-30</time>
     
   </p>
 </header>
@@ -727,7 +812,7 @@ ServerBootstrap b = new ServerBootstrap();
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2016-10-01T08:10:32.000Z" itemprop="datePublished"> Published 2016-10-01</time>
+    <time datetime="2016-10-01T08:10:32.000Z" itemprop="datePublished"> 发表于 2016-10-01</time>
     
   </p>
 </header>
@@ -863,7 +948,7 @@ ServerBootstrap b = new ServerBootstrap();
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2016-08-26T07:09:18.000Z" itemprop="datePublished"> Published 2016-08-26</time>
+    <time datetime="2016-08-26T07:09:18.000Z" itemprop="datePublished"> 发表于 2016-08-26</time>
     
   </p>
 </header>
@@ -942,95 +1027,16 @@ ServerBootstrap b = new ServerBootstrap();
 
 
 
-   
-    
-    <article class="post-expand post" itemprop="articleBody"> 
-        <header class="article-info clearfix">
-  <h1 itemprop="name">
-    
-      <a href="/2016/08/08/Android-Span-进阶/" title="Android  Span 进阶" itemprop="url">Android  Span 进阶</a>
-  </h1>
-  <p class="article-author">By
-       
-		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
-		
-  <p class="article-time">
-    <time datetime="2016-08-08T13:25:54.000Z" itemprop="datePublished"> Published 2016-08-08</time>
-    
-  </p>
-</header>
-    <div class="article-content">
-        
-        <p>&emsp;在上篇文章<a href="http://blog.csdn.net/u012422440/article/details/52133037" target="_blank" rel="external">《Android Span 架构介绍》</a>，我们讲述了Android Span的基本概念和用法，这篇文章我们就来扩展一下我们对Android Span的了解，这一定会使你感到惊奇的，惊叹Android Span竟然还能完成这些的效果，让你在Android自定义View和动画方面有更加深刻的理解，可能会帮助你你想出更加简洁的实现方式。<br>&emsp;本篇文章主要讲述一下两个方面的内容:</p>
-<ul>
-<li>自定义Android Span</li>
-<li>使用Android Span实现动画</li>
-</ul>
-<p>&emsp;先贴一下本篇文章实现的自定义Span和动画的效果图<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-FireWorkSpan.gif" alt="demo"></p>
-<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-MutiableForegroundSpan.gif" alt="demo"></p>
-<h4 id="自定义Span"><a href="#自定义Span" class="headerlink" title="自定义Span"></a>自定义Span</h4><p>&emsp;我们都知道，自定义View有两种方式，一种是继承特定的视图类,比如你希望修改<code>TextView</code>的行为，所以继承了<code>TextView</code>;另一种就是直接继承<code>View</code>或者<code>ViewGroup</code>,这样可以实现全新的视图和行为。如同自定义View一样，你有两种自定义Span的方法，一种直接继承特定类型的Span类，比如<code>ForegroundColorSpan</code>等，这样你可以在这些类的基础上进行修改；另一种就是继承<code>ReplaceSpan</code>这样的抽象类或者实现<code>LetterLineBackgroundSpan</code>这样的接口，你只要实现它给出的接口，就可以实现新的效果。<br>&emsp;我们先来讲解第一种方式。直接继承现有的<code>Span</code>。文章开头时展示的<code>ActionBar</code>动画就是通过继承<code>ForegroundSpan</code>来实现的。<br>&emsp;我们主要重载了<code>updateDrawsState</code>和<code>getForegroundColor</code>,这样就可以通过改变<code>setAlpha</code>函数来改变颜色，让字体从透明(alpha为0)到某个特定颜色。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">public class MutableForegroundColorSpan extends ForegroundColorSpan &#123;</span><br><span class="line">    private int mAlpha = 255;</span><br><span class="line">    private int mForegroundColor;</span><br><span class="line">    public MutableForegroundColorSpan(int alpha,int color) &#123;</span><br><span class="line">        super(color);</span><br><span class="line">        mAlpha = alpha;</span><br><span class="line">        mForegroundColor = color;</span><br><span class="line">    &#125;</span><br><span class="line">    @Override</span><br><span class="line">    public void updateDrawState(TextPaint ds) &#123;</span><br><span class="line">        ds.setColor(getForegroundColor());</span><br><span class="line">    &#125;</span><br><span class="line">    public void setAlpha(int alpha) &#123;</span><br><span class="line">        mAlpha = alpha;</span><br><span class="line">    &#125;</span><br><span class="line">    public void setForegroundColor(int foregroundColor) &#123;</span><br><span class="line">        mForegroundColor = foregroundColor;</span><br><span class="line">    &#125;</span><br><span class="line">    public float getAlpha() &#123;</span><br><span class="line">        return mAlpha;</span><br><span class="line">    &#125;</span><br><span class="line">    @Override</span><br><span class="line">    public int getForegroundColor() &#123;</span><br><span class="line">        return Color.argb(mAlpha,Color.red(mForegroundColor),Color.green(mForegroundColor),Color.blue(mForegroundColor));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;第二种方法是继承<code>Span</code>架构中的抽象类或者是实现特定接口。需要注意的是，在上一篇文章中说的<code>CharacterStyle</code>,<code>ParagraphStyle</code>.<code>UpdateAppearance</code>和<code>UpdateLayout</code>都是没有函数的，所以，我们无法直接继承或者实现它们。除了第一篇文章中所介绍的那些<code>Span</code>可以使用第一种方法进行继承。我们一般都继承或者实现<code>MetricAffectingSpan</code>,<code>ReplacementSpan</code>或者<code>LineBackgroundSpan</code>。<br>&emsp;比如我们想给每个字都添加一个不同颜色的背景，我们就可以继承<code>ReplacementSpan</code></p>
-<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-BuddleSpan.png" alt="demo"></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">public class BubbleSpan extends ReplacementSpan &#123;</span><br><span class="line">    private Paint mPaint;</span><br><span class="line">    static Random random = new Random();</span><br><span class="line">    private int mWidth = -1;</span><br><span class="line">    private RectF mRectF = new RectF();</span><br><span class="line"></span><br><span class="line">    private int[] mColors = new int[20];</span><br><span class="line"></span><br><span class="line">    public BubbleSpan() &#123;</span><br><span class="line">        initPaint();</span><br><span class="line">        initColors();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private void initPaint() &#123;</span><br><span class="line">        mPaint = new Paint();</span><br><span class="line">        mPaint.setColor(Color.rgb(random.nextInt(255), random.nextInt(255), random.nextInt(255)));</span><br><span class="line">        mPaint.setAntiAlias(true);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private void initColors() &#123;</span><br><span class="line">        for(int index = 0 ; index &lt; mColors.length ; index++) &#123;</span><br><span class="line">            mColors[index] = Color.rgb(random.nextInt(255), random.nextInt(255), random.nextInt(255));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public int getSize(Paint paint, CharSequence text, int start, int end, Paint.FontMetricsInt fm) &#123;</span><br><span class="line">        //return text with relative to the Paint</span><br><span class="line">		mWidth = (int) paint.measureText(text, start, end);</span><br><span class="line">        return mWidth;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint paint) &#123;</span><br><span class="line">        float charx = x;</span><br><span class="line">        for(int i = start ; i&lt;end; i++) &#123;</span><br><span class="line">            String charAt = extractText(text, i, i + 1);</span><br><span class="line">            float charWidth = paint.measureText(charAt);</span><br><span class="line">            mRectF.set(charx, top, charx += charWidth, bottom);</span><br><span class="line">            mPaint.setColor(mColors[i % mColors.length]);</span><br><span class="line">            //根据每个字的位置绘制背景</span><br><span class="line">            canvas.drawOval(mRectF, mPaint);</span><br><span class="line">        &#125;</span><br><span class="line">        //绘制字体，如果不掉用这个函数，就不会显示字体啦。</span><br><span class="line">        canvas.drawText(text, start, end, x, y, paint);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private String extractText(CharSequence text, int start, int end) &#123;</span><br><span class="line">        return text.subSequence(start, end).toString();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>&emsp;我们可以看到，我们要实现两个函数:<code>getSize</code>和<code>draw</code>。<code>getSize</code>是获得字体的长度的，所以一般都是直接使用<code>paint.measureText</code>,然后<code>draw</code>中进行绘制，你可以在这里把每个字的背景绘制出来，而且你必须也要把字体给绘制出来。如果你只想绘制背景，不想涉及字体的绘制，那么就可以直接实现<code>LineBackgroundSpan</code>接口。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">public class RectSpan extends ReplacementSpan &#123;</span><br><span class="line">    private final Paint mPaint;</span><br><span class="line">    private int mWidth;</span><br><span class="line"></span><br><span class="line">    public RectSpan() &#123;</span><br><span class="line">        mPaint = new Paint();</span><br><span class="line">        mPaint.setStyle(Paint.Style.STROKE);</span><br><span class="line">        mPaint.setColor(Color.BLUE);</span><br><span class="line">        mPaint.setAntiAlias(true);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public int getSize(Paint paint, CharSequence text, int start, int end, Paint.FontMetricsInt fm) &#123;</span><br><span class="line">        //return text with relative to the Paint</span><br><span class="line">        mWidth = (int) paint.measureText(text, start, end);</span><br><span class="line">        return mWidth;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint paint) &#123;</span><br><span class="line">        //只绘制了外围矩形，没有绘制文字。</span><br><span class="line">        canvas.drawRect(x, top, x + mWidth, bottom, mPaint);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-RectSpan.png" alt="demo"></p>
-<h4 id="通过Span实现动画"><a href="#通过Span实现动画" class="headerlink" title="通过Span实现动画"></a>通过Span实现动画</h4><p>&emsp;在上一节中，我们已经实现了<code>MutableForegroundColorSpan</code>类，那么如何使用它来实现动画呢？这里我们就要使用到<code>ObjectAnimator</code>和<code>Property&lt;T1,T2&gt;</code>。我们首先定义<code>MutableForegroundColorSpan</code>使用的<code>property</code>。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">private static final Property&lt;MutableForegroundColorSpan, Integer&gt; MUTABLE_FOREGROUND_COLOR_SPAN_PROPERTY =</span><br><span class="line">        new Property&lt;MutableForegroundColorSpan, Integer&gt;(Integer.class, &quot;MUTABLE_FOREGROUND_COLOR_SPAN_FC_PROPERTY&quot;) &#123;</span><br><span class="line"></span><br><span class="line">        @Override</span><br><span class="line">                public void set(MutableForegroundColorSpan alphaForegroundColorSpanGroup, Integer value) &#123;</span><br><span class="line">                        alphaForegroundColorSpanGroup.setForegroundColor(value);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">        @Override</span><br><span class="line">                public Integer get(MutableForegroundColorSpan span) &#123;</span><br><span class="line">                        return span.getForegroundColor();</span><br><span class="line">                &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;然后我们就可以使用<code>ObjectAnimator</code>对<code>MutableForegroundColorSpan</code>实现属性动画了。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">MutableForegroundColorSpan span = new MutableForegroundColorSpan(255, Color.BLUE);</span><br><span class="line">final SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span, 0,4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">ObjectAnimator objectAnimator = ObjectAnimator.ofInt(span, MUTABLE_FOREGROUND_COLOR_SPAN_PROPERTY, Color.BLACK, Color.RED);</span><br><span class="line">objectAnimator.setEvaluator(new ArgbEvaluator());</span><br><span class="line">objectAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() &#123;</span><br><span class="line">        @Override</span><br><span class="line">        public void onAnimationUpdate(ValueAnimator animation) &#123;</span><br><span class="line">        //refresh</span><br><span class="line">                mTvTextView.setText(spannableString);</span><br><span class="line">        &#125;       </span><br><span class="line">&#125;);</span><br><span class="line">objectAnimator.setInterpolator(mSmoothInterpolator);</span><br><span class="line">objectAnimator.setDuration(600);</span><br><span class="line">objectAnimator.start();</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;这里还只是单独一个<code>Span</code>实例的动画效果，你可以对多个Span实例进行属性动画，从而实现更加复杂的动画效果。就比如文章开始时的文字逐渐显示的动画效果。<br>&emsp;我们可以给每个字都设置一个<code>MutableForegroundColorSpan</code>实例,并将这些实例都添加到一个对象中，然后在属性动画过程中，乱序设置每个实例的<code>alpha</code>的值，从而达到文字逐渐显现的动画。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line">public class FireWorkGroup &#123;</span><br><span class="line">    private final float mProgress;</span><br><span class="line">    private final ArrayList&lt;MutableForegroundColorSpan&gt; mSpans;</span><br><span class="line">    private final ArrayList&lt;Integer&gt; mSpanIndexes;</span><br><span class="line"></span><br><span class="line">    public FireWorkGroup() &#123;</span><br><span class="line">        mProgress = 0;</span><br><span class="line">        mSpans  = new ArrayList&lt;&gt;();</span><br><span class="line">        mSpanIndexes = new ArrayList&lt;&gt;();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void addSpan(MutableForegroundColorSpan span) &#123;</span><br><span class="line">        span.setAlpha(0);</span><br><span class="line">        mSpanIndexes.add(mSpans.size());</span><br><span class="line">        mSpans.add(span);</span><br><span class="line">    &#125;</span><br><span class="line">    public void init() &#123;</span><br><span class="line">        Collections.shuffle(mSpans);</span><br><span class="line">    &#125;</span><br><span class="line">    public void setProgress(float progress) &#123;</span><br><span class="line">        int size = mSpans.size();</span><br><span class="line">        float total  = 1.0f * size * progress;</span><br><span class="line">        for (int index = 0 ; index &lt; size ; index++) &#123;</span><br><span class="line">            MutableForegroundColorSpan span = mSpans.get(index);</span><br><span class="line">            if (total &gt; 1.0f) &#123;</span><br><span class="line">                span.setAlpha(255);</span><br><span class="line">                total -= 1.0f;</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                span.setAlpha((int)(total * 255));</span><br><span class="line">                total = 0.0f;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    public float getProgress() &#123;</span><br><span class="line">        return mProgress;</span><br><span class="line">    &#125;</span><br><span class="line">    public static final Property&lt;FireWorkGroup, Float&gt; FIREWORKS_GROUP_PROGRESS_PROPERTY =</span><br><span class="line">            new Property&lt;FireWorkGroup, Float&gt;(Float.class, &quot;FIREWORKS_GROUP_PROGRESS_PROPERTY&quot;) &#123;</span><br><span class="line"></span><br><span class="line">                @Override</span><br><span class="line">                public void set(FireWorkGroup spanGroup, Float value) &#123;</span><br><span class="line">                    spanGroup.setProgress(value);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                @Override</span><br><span class="line">                public Float get(FireWorkGroup spanGroup) &#123;</span><br><span class="line">                    return spanGroup.getProgress();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<h4 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h4><p>&emsp;上述的这些动画都是我在第一篇文章提到的那篇博文中实现过的效果，我在学习过程中又发现了一个实现了很多<code>TextView</code>相关动画的开源项目<a href="https://github.com/hanks-zyh/HTextView" target="_blank" rel="external">HTextView</a>。所以接下来的任务就是想使用<code>Span</code>机制去实现这个项目中的一些动画效果。希望大家继续支持我的文章，并积极指出文中的错误。<br>&emsp;!!!源码都在<a href="https://github.com/ztelur/AndroidSpan" target="_blank" rel="external">我的github</a>里。</p>
-
-        
-        
-        <p class="article-more-link">
-          
-       </p>
-    </div>
-    <footer class="article-footer clearfix">
-<div class="article-catetags">
-
-<div class="article-categories">
-  <span></span>
-  <a class="article-category-link" href="/categories/Android/">Android</a>
-</div>
-
-
-  <div class="article-tags">
-  
-  <span></span> <a href="/tags/Span/">Span</a>
-  </div>
-
-</div>
-
-
-
-
-<div class="comments-count">
-	
-	  	<span></span>
-		<a href="/2016/08/08/Android-Span-进阶/#comments" class="ds-thread-count comments-count-link" data-thread-key="2016/08/08/Android-Span-进阶/" data-count-type="comments">&nbsp;</a>
-	
-</div>
-
-</footer>
-
-
-    </article>
-
-
-
-
-
-
 
   <nav id="page-nav" class="clearfix">
     <a class="extend prev" rel="prev" href="/"><span></span>Prev</a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><a class="page-number" href="/page/4/">4</a><span class="space">&hellip;</span><a class="page-number" href="/page/6/">6</a><a class="extend next" rel="next" href="/page/3/">Next<span></span></a>
   </nav>
 
 </div>
-      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
 
 <div id="asidepart">
-<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
 <aside class="clearfix">
 
   
@@ -1038,7 +1044,7 @@ ServerBootstrap b = new ServerBootstrap();
 
   
 <div class="categorieslist">
-	<p class="asidetitle">Categories</p>
+	<p class="asidetitle">分类</p>
 		<ul>
 		
 		  
@@ -1091,6 +1097,10 @@ ServerBootstrap b = new ServerBootstrap();
 		
 		  
 			<li><a href="/categories/后端/" title="后端">后端<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/后端-Spring/" title="后端 - Spring">后端 - Spring<sup>1</sup></a></li>
 		  
 		
 		  
@@ -1175,7 +1185,7 @@ ServerBootstrap b = new ServerBootstrap();
 
   
 <div class="tagslist">
-	<p class="asidetitle">Tags</p>
+	<p class="asidetitle">标签</p>
 		<ul class="clearfix">
 		
 			
@@ -1199,19 +1209,15 @@ ServerBootstrap b = new ServerBootstrap();
 			
 		
 			
+				<li><a href="/tags/Span/" title="Span">Span<sup>2</sup></a></li>
+			
+		
+			
 				<li><a href="/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
 			
 		
 			
-				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
-			
-		
-			
 				<li><a href="/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/Span/" title="Span">Span<sup>2</sup></a></li>
 			
 		
 			
@@ -1223,7 +1229,11 @@ ServerBootstrap b = new ServerBootstrap();
 			
 		
 			
-				<li><a href="/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
+				<li><a href="/tags/View/" title="View">View<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/Spring-Boot/" title="Spring Boot">Spring Boot<sup>2</sup></a></li>
 			
 		
 			
@@ -1251,7 +1261,7 @@ ServerBootstrap b = new ServerBootstrap();
 			
 		
 			
-				<li><a href="/tags/市场/" title="市场">市场<sup>1</sup></a></li>
+				<li><a href="/tags/MotionEvent/" title="MotionEvent">MotionEvent<sup>1</sup></a></li>
 			
 		
 			
@@ -1266,7 +1276,7 @@ ServerBootstrap b = new ServerBootstrap();
 
 
   <div class="rsspart">
-	<a href="/atom.xml" target="_blank" title="rss">RSS</a>
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
 </div>
 
 </aside>
@@ -1437,7 +1447,7 @@ var _hmt = _hmt || [];
 <!-- Totop Begin -->
 
 	<div id="totop">
-	<a title="Back to Top"><img src="/img/scrollup.png"/></a>
+	<a title="返回顶部"><img src="/img/scrollup.png"/></a>
 	</div>
 	<script src="/js/totop.js"></script>
 
