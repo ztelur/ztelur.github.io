@@ -15,7 +15,7 @@
 阻塞队列 相信大多数同学都是在学习线程池相关知识时了解到阻塞队列的概念的。知道各种类型的阻塞队列对线程池初始化时的影响。在java">
 <meta property="og:type" content="article">
 <meta property="og:title" content="BlockingQueue与Condition原理解析">
-<meta property="og:url" content="http://remcarpediem.com/2017/05/03/BlockingQueue与Condition原理解析/index.html">
+<meta property="og:url" content="http://ztelur.github.io/2017/05/03/BlockingQueue与Condition原理解析/index.html">
 <meta property="og:site_name" content="Carpediem">
 <meta property="og:description" content="我在前段时间写了一篇关于AQS的文章，在文章里边我说几乎所有在JUC包中的所有多线程相关的类都和AQS相关，今天我就在这里总结一下另一个依赖于AQS来实现的同步工具类：BlockingQueue。我们主要以ArrayBlockingQueue为主来分析相关的源码。
 阻塞队列 相信大多数同学都是在学习线程池相关知识时了解到阻塞队列的概念的。知道各种类型的阻塞队列对线程池初始化时的影响。在java">
@@ -46,7 +46,7 @@
 				<h1 class="site-name"><a href="/" title="Carpediem">Carpediem</a></h1>
 				<h2 class="blog-motto">blog of nobody</h2>
 			</div>
-			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
 			</a></div>
 			<nav class="animated">
 				<ul>
@@ -62,8 +62,8 @@
  					
 					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
 						<label>Search</label>
-						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
-						<input type="hidden" name="q" value="site:remcarpediem.com">
+						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:ztelur.github.io">
 					</form>
 					
 					</li>
@@ -85,20 +85,20 @@
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2017-05-03T02:07:45.000Z" itemprop="datePublished"> Published 2017-05-03</time>
+    <time datetime="2017-05-03T02:07:45.000Z" itemprop="datePublished"> 发表于 2017-05-03</time>
     
   </p>
 </header>
 	<div class="article-content">
 		
 		<div id="toc" class="toc-article">
-			<strong class="toc-title">Contents</strong>
+			<strong class="toc-title">文章目录</strong>
 		
 			<ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#阻塞队列"><span class="toc-number">1.</span> <span class="toc-text">阻塞队列</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#put和take函数"><span class="toc-number">2.</span> <span class="toc-text">put和take函数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Condition-await和Object-wait"><span class="toc-number">3.</span> <span class="toc-text">Condition.await和Object.wait</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#后记"><span class="toc-number">4.</span> <span class="toc-text">后记</span></a></li></ol>
 		
 		</div>
 		
-		<p> 我在前段时间写了一篇关于AQS的<a href="http://remcarpediem.com/2017/04/06/AbstractQueuedSynchronizer%E8%B6%85%E8%AF%A6%E7%BB%86%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90/">文章</a>，在文章里边我说几乎所有在<code>JUC</code>包中的所有多线程相关的类都和<code>AQS</code>相关，今天我就在这里总结一下另一个依赖于<code>AQS</code>来实现的同步工具类：<code>BlockingQueue</code>。我们主要以<code>ArrayBlockingQueue</code>为主来分析相关的源码。</p>
+		<p> 我在前段时间写了一篇关于AQS的<a href="http://remcarpediem.com/2017/04/06/AbstractQueuedSynchronizer%E8%B6%85%E8%AF%A6%E7%BB%86%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90/" target="_blank" rel="external">文章</a>，在文章里边我说几乎所有在<code>JUC</code>包中的所有多线程相关的类都和<code>AQS</code>相关，今天我就在这里总结一下另一个依赖于<code>AQS</code>来实现的同步工具类：<code>BlockingQueue</code>。我们主要以<code>ArrayBlockingQueue</code>为主来分析相关的源码。</p>
 <h3 id="阻塞队列"><a href="#阻塞队列" class="headerlink" title="阻塞队列"></a>阻塞队列</h3><p> 相信大多数同学都是在学习线程池相关知识时了解到阻塞队列的概念的。知道各种类型的阻塞队列对线程池初始化时的影响。在java doc中这样定义阻塞队列。当从阻塞队列获取元素但是队列为空时，当前线程会阻塞直到另一个线程向阻塞队列中添加一个元素；类似的，当向一个阻塞队列加入元素时，如果队列已经满了，当前线程也会阻塞知道另外一个线程从队列中读取一个元素。阻塞队列一般都是FIFO,用来实现生产者和消费者模式。阻塞队列的方法通过四种不同的方式来处理操作无法被立即完成的情况，这四种情况分别为抛出异常，返回特殊值(null或在是false),阻塞当前线程直到执行结束，最后一种是只阻塞固定时间，然后还未执行成功就放弃操作。这些方法都总结在下边这种表中了。</p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017416-condition-BlockingQueue.png" alt="BlockingQueue"></p>
 <p> 我们就只分析<code>put</code>和<code>take</code>方法。</p>
@@ -133,8 +133,30 @@
 
 	<div class="article-share" id="share">
 	
-	  <div data-url="http://remcarpediem.com/2017/05/03/BlockingQueue与Condition原理解析/" data-title="BlockingQueue与Condition原理解析 | Carpediem" data-tsina="null" class="share clearfix">
-	  </div>
+	<div class="share-jiathis">
+	  
+<div class="jiathis_style_24x24">
+	<a class="jiathis_button_tsina"></a>
+	<a class="jiathis_button_weixin"></a>
+	<a class="jiathis_button_renren"></a>
+	<a class="jiathis_button_qzone"></a>
+	<a class="jiathis_button_googleplus"></a>
+	<a class="jiathis_button_douban"></a>
+	<a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	<a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+    var jiathis_config={
+    data_track_clickback:true,
+    sm:"copy,renren,cqq",
+    pic:"",
+    summary:"",
+    
+  </script> 
+<script type="text/javascript" src="//v3.jiathis.com/code/jia.js?uid=
+2157940" charset="utf-8"></script>      
+
+	 </div>
 	
 	</div>
 
@@ -167,23 +189,23 @@
 
 	
 <section id="comments" class="comment">
-	<div class="ds-thread" data-thread-key="2017/05/03/BlockingQueue与Condition原理解析/" data-title="BlockingQueue与Condition原理解析" data-url="http://remcarpediem.com/2017/05/03/BlockingQueue与Condition原理解析/"></div>
+	<div class="ds-thread" data-thread-key="2017/05/03/BlockingQueue与Condition原理解析/" data-title="BlockingQueue与Condition原理解析" data-url="http://ztelur.github.io/2017/05/03/BlockingQueue与Condition原理解析/"></div>
 </section>
 
 
 
 </div>  
-      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
 
   <div id="toc" class="toc-aside">
-  <strong class="toc-title">Contents</strong>
+  <strong class="toc-title">文章目录</strong>
  
  <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#阻塞队列"><span class="toc-number">1.</span> <span class="toc-text">阻塞队列</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#put和take函数"><span class="toc-number">2.</span> <span class="toc-text">put和take函数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Condition-await和Object-wait"><span class="toc-number">3.</span> <span class="toc-text">Condition.await和Object.wait</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#后记"><span class="toc-number">4.</span> <span class="toc-text">后记</span></a></li></ol>
  
   </div>
 
 <div id="asidepart">
-<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
 <aside class="clearfix">
 
   
@@ -191,7 +213,7 @@
 
   
 <div class="categorieslist">
-	<p class="asidetitle">Categories</p>
+	<p class="asidetitle">分类</p>
 		<ul>
 		
 		  
@@ -332,7 +354,7 @@
 
   
 <div class="tagslist">
-	<p class="asidetitle">Tags</p>
+	<p class="asidetitle">标签</p>
 		<ul class="clearfix">
 		
 			
@@ -396,19 +418,19 @@
 			
 		
 			
-				<li><a href="/tags/docker/" title="docker">docker<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/kubernetes/" title="kubernetes">kubernetes<sup>1</sup></a></li>
-			
-		
-			
 				<li><a href="/tags/反射/" title="反射">反射<sup>1</sup></a></li>
 			
 		
 			
 				<li><a href="/tags/JSON/" title="JSON">JSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/docker/" title="docker">docker<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/kubernetes/" title="kubernetes">kubernetes<sup>1</sup></a></li>
 			
 		
 			
@@ -423,7 +445,7 @@
 
 
   <div class="rsspart">
-	<a href="/atom.xml" target="_blank" title="rss">RSS</a>
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
 </div>
 
 </aside>
@@ -453,7 +475,7 @@
 		
 
 		<p class="copyright">
-		Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/wuchong/jacman" target="_blank" title="Jacman">Jacman</a> © 2017 
+		Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/wuchong/jacman" target="_blank" title="Jacman">Jacman</a> © 2018 
 		
 		<a href="/about" target="_blank" title="remCarpediem">remCarpediem</a>
 		
@@ -539,55 +561,6 @@ $(document).ready(function(){
 });
 </script>
 
-
-<script type="text/javascript">
-$(document).ready(function(){ 
-  var $this = $('.share'),
-      url = $this.attr('data-url'),
-      encodedUrl = encodeURIComponent(url),
-      title = $this.attr('data-title'),
-      tsina = $this.attr('data-tsina'),
-      description = $this.attr('description');
-  var html = [
-  '<div class="hoverqrcode clearfix"></div>',
-  '<a class="overlay" id="qrcode"></a>',
-  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
-  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
-  '<a href="#qrcode" class="article-share-qrcode" title="微信"></a>',
-  '<a href="http://widget.renren.com/dialog/share?resourceUrl=' + encodedUrl + '&srcUrl=' + encodedUrl + '&title=' + title +'" class="article-share-renren" target="_blank" title="人人"></a>',
-  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="微博"></a>',
-  '<span title="Share to"></span>'
-  ].join('');
-  $this.append(html);
-
-  $('.hoverqrcode').hide();
-
-  var myWidth = 0;
-  function updatehoverqrcode(){
-    if( typeof( window.innerWidth ) == 'number' ) {
-      myWidth = window.innerWidth;
-    } else if( document.documentElement && document.documentElement.clientWidth) {
-      myWidth = document.documentElement.clientWidth;
-    };
-    var qrsize = myWidth > 1024 ? 200:100;
-    var options = {render: 'image', size: qrsize, fill: '#2ca6cb', text: url, radius: 0.5, quiet: 1};
-    var p = $('.article-share-qrcode').position();
-    $('.hoverqrcode').empty().css('width', qrsize).css('height', qrsize)
-                          .css('left', p.left-qrsize/2+20).css('top', p.top-qrsize-10)
-                          .qrcode(options);
-  };
-  $(window).resize(function(){
-    $('.hoverqrcode').hide();
-  });
-  $('.article-share-qrcode').click(function(){
-    updatehoverqrcode();
-    $('.hoverqrcode').toggle();
-  });
-  $('.article-share-qrcode').hover(function(){}, function(){
-      $('.hoverqrcode').hide();
-  });
-});   
-</script>
 
 
 
@@ -683,7 +656,7 @@ var _hmt = _hmt || [];
 <!-- Totop Begin -->
 
 	<div id="totop">
-	<a title="Back to Top"><img src="/img/scrollup.png"/></a>
+	<a title="返回顶部"><img src="/img/scrollup.png"/></a>
 	</div>
 	<script src="/js/totop.js"></script>
 

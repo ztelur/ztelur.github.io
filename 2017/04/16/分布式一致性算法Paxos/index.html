@@ -15,7 +15,7 @@
 Paxos简介 Paxos是Lamport于1990年提出的一种基于消息传递而具有高度容错特性的分布式一致性算法.这个算法是分布式中最为重要的算法,Google Chubby的作者Mike Burrows说过这个世界上只有">
 <meta property="og:type" content="article">
 <meta property="og:title" content="分布式一致性算法Paxos">
-<meta property="og:url" content="http://remcarpediem.com/2017/04/16/分布式一致性算法Paxos/index.html">
+<meta property="og:url" content="http://ztelur.github.io/2017/04/16/分布式一致性算法Paxos/index.html">
 <meta property="og:site_name" content="Carpediem">
 <meta property="og:description" content="最近在学习zookeeper原理的时候了解到了paxos算法,看了几篇文章之后还是感觉有些迷糊,后来看了知行学社的paxos视频才对这个算法有了一定的了解,这里就做一下总结.
 Paxos简介 Paxos是Lamport于1990年提出的一种基于消息传递而具有高度容错特性的分布式一致性算法.这个算法是分布式中最为重要的算法,Google Chubby的作者Mike Burrows说过这个世界上只有">
@@ -47,7 +47,7 @@ Paxos简介 Paxos是Lamport于1990年提出的一种基于消息传递而具�
 				<h1 class="site-name"><a href="/" title="Carpediem">Carpediem</a></h1>
 				<h2 class="blog-motto">blog of nobody</h2>
 			</div>
-			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
 			</a></div>
 			<nav class="animated">
 				<ul>
@@ -63,8 +63,8 @@ Paxos简介 Paxos是Lamport于1990年提出的一种基于消息传递而具�
  					
 					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
 						<label>Search</label>
-						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
-						<input type="hidden" name="q" value="site:remcarpediem.com">
+						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:ztelur.github.io">
 					</form>
 					
 					</li>
@@ -86,14 +86,14 @@ Paxos简介 Paxos是Lamport于1990年提出的一种基于消息传递而具�
 		<a href="/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
 		
   <p class="article-time">
-    <time datetime="2017-04-16T06:42:35.000Z" itemprop="datePublished"> Published 2017-04-16</time>
+    <time datetime="2017-04-16T06:42:35.000Z" itemprop="datePublished"> 发表于 2017-04-16</time>
     
   </p>
 </header>
 	<div class="article-content">
 		
 		<div id="toc" class="toc-article">
-			<strong class="toc-title">Contents</strong>
+			<strong class="toc-title">文章目录</strong>
 		
 			<ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Paxos简介"><span class="toc-number">1.</span> <span class="toc-text">Paxos简介</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Paxos的使用场景和假设"><span class="toc-number">2.</span> <span class="toc-text">Paxos的使用场景和假设</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#图解Paxos主要流程"><span class="toc-number">3.</span> <span class="toc-text">图解Paxos主要流程</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#阶段一"><span class="toc-number">3.1.</span> <span class="toc-text">阶段一</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#阶段二"><span class="toc-number">3.2.</span> <span class="toc-text">阶段二</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#后记"><span class="toc-number">4.</span> <span class="toc-text">后记</span></a></li></ol>
 		
@@ -154,8 +154,30 @@ Paxos简介 Paxos是Lamport于1990年提出的一种基于消息传递而具�
 
 	<div class="article-share" id="share">
 	
-	  <div data-url="http://remcarpediem.com/2017/04/16/分布式一致性算法Paxos/" data-title="分布式一致性算法Paxos | Carpediem" data-tsina="null" class="share clearfix">
-	  </div>
+	<div class="share-jiathis">
+	  
+<div class="jiathis_style_24x24">
+	<a class="jiathis_button_tsina"></a>
+	<a class="jiathis_button_weixin"></a>
+	<a class="jiathis_button_renren"></a>
+	<a class="jiathis_button_qzone"></a>
+	<a class="jiathis_button_googleplus"></a>
+	<a class="jiathis_button_douban"></a>
+	<a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	<a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+    var jiathis_config={
+    data_track_clickback:true,
+    sm:"copy,renren,cqq",
+    pic:"",
+    summary:"",
+    
+  </script> 
+<script type="text/javascript" src="//v3.jiathis.com/code/jia.js?uid=
+2157940" charset="utf-8"></script>      
+
+	 </div>
 	
 	</div>
 
@@ -188,23 +210,23 @@ Paxos简介 Paxos是Lamport于1990年提出的一种基于消息传递而具�
 
 	
 <section id="comments" class="comment">
-	<div class="ds-thread" data-thread-key="2017/04/16/分布式一致性算法Paxos/" data-title="分布式一致性算法Paxos" data-url="http://remcarpediem.com/2017/04/16/分布式一致性算法Paxos/"></div>
+	<div class="ds-thread" data-thread-key="2017/04/16/分布式一致性算法Paxos/" data-title="分布式一致性算法Paxos" data-url="http://ztelur.github.io/2017/04/16/分布式一致性算法Paxos/"></div>
 </section>
 
 
 
 </div>  
-      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
 
   <div id="toc" class="toc-aside">
-  <strong class="toc-title">Contents</strong>
+  <strong class="toc-title">文章目录</strong>
  
  <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Paxos简介"><span class="toc-number">1.</span> <span class="toc-text">Paxos简介</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Paxos的使用场景和假设"><span class="toc-number">2.</span> <span class="toc-text">Paxos的使用场景和假设</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#图解Paxos主要流程"><span class="toc-number">3.</span> <span class="toc-text">图解Paxos主要流程</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#阶段一"><span class="toc-number">3.1.</span> <span class="toc-text">阶段一</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#阶段二"><span class="toc-number">3.2.</span> <span class="toc-text">阶段二</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#后记"><span class="toc-number">4.</span> <span class="toc-text">后记</span></a></li></ol>
  
   </div>
 
 <div id="asidepart">
-<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
 <aside class="clearfix">
 
   
@@ -212,7 +234,7 @@ Paxos简介 Paxos是Lamport于1990年提出的一种基于消息传递而具�
 
   
 <div class="categorieslist">
-	<p class="asidetitle">Categories</p>
+	<p class="asidetitle">分类</p>
 		<ul>
 		
 		  
@@ -353,7 +375,7 @@ Paxos简介 Paxos是Lamport于1990年提出的一种基于消息传递而具�
 
   
 <div class="tagslist">
-	<p class="asidetitle">Tags</p>
+	<p class="asidetitle">标签</p>
 		<ul class="clearfix">
 		
 			
@@ -417,19 +439,19 @@ Paxos简介 Paxos是Lamport于1990年提出的一种基于消息传递而具�
 			
 		
 			
-				<li><a href="/tags/docker/" title="docker">docker<sup>1</sup></a></li>
-			
-		
-			
-				<li><a href="/tags/kubernetes/" title="kubernetes">kubernetes<sup>1</sup></a></li>
-			
-		
-			
 				<li><a href="/tags/反射/" title="反射">反射<sup>1</sup></a></li>
 			
 		
 			
 				<li><a href="/tags/JSON/" title="JSON">JSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/docker/" title="docker">docker<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/kubernetes/" title="kubernetes">kubernetes<sup>1</sup></a></li>
 			
 		
 			
@@ -444,7 +466,7 @@ Paxos简介 Paxos是Lamport于1990年提出的一种基于消息传递而具�
 
 
   <div class="rsspart">
-	<a href="/atom.xml" target="_blank" title="rss">RSS</a>
+	<a href="/atom.xml" target="_blank" title="rss">RSS 订阅</a>
 </div>
 
 </aside>
@@ -474,7 +496,7 @@ Paxos简介 Paxos是Lamport于1990年提出的一种基于消息传递而具�
 		
 
 		<p class="copyright">
-		Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/wuchong/jacman" target="_blank" title="Jacman">Jacman</a> © 2017 
+		Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/wuchong/jacman" target="_blank" title="Jacman">Jacman</a> © 2018 
 		
 		<a href="/about" target="_blank" title="remCarpediem">remCarpediem</a>
 		
@@ -560,55 +582,6 @@ $(document).ready(function(){
 });
 </script>
 
-
-<script type="text/javascript">
-$(document).ready(function(){ 
-  var $this = $('.share'),
-      url = $this.attr('data-url'),
-      encodedUrl = encodeURIComponent(url),
-      title = $this.attr('data-title'),
-      tsina = $this.attr('data-tsina'),
-      description = $this.attr('description');
-  var html = [
-  '<div class="hoverqrcode clearfix"></div>',
-  '<a class="overlay" id="qrcode"></a>',
-  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
-  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
-  '<a href="#qrcode" class="article-share-qrcode" title="微信"></a>',
-  '<a href="http://widget.renren.com/dialog/share?resourceUrl=' + encodedUrl + '&srcUrl=' + encodedUrl + '&title=' + title +'" class="article-share-renren" target="_blank" title="人人"></a>',
-  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="微博"></a>',
-  '<span title="Share to"></span>'
-  ].join('');
-  $this.append(html);
-
-  $('.hoverqrcode').hide();
-
-  var myWidth = 0;
-  function updatehoverqrcode(){
-    if( typeof( window.innerWidth ) == 'number' ) {
-      myWidth = window.innerWidth;
-    } else if( document.documentElement && document.documentElement.clientWidth) {
-      myWidth = document.documentElement.clientWidth;
-    };
-    var qrsize = myWidth > 1024 ? 200:100;
-    var options = {render: 'image', size: qrsize, fill: '#2ca6cb', text: url, radius: 0.5, quiet: 1};
-    var p = $('.article-share-qrcode').position();
-    $('.hoverqrcode').empty().css('width', qrsize).css('height', qrsize)
-                          .css('left', p.left-qrsize/2+20).css('top', p.top-qrsize-10)
-                          .qrcode(options);
-  };
-  $(window).resize(function(){
-    $('.hoverqrcode').hide();
-  });
-  $('.article-share-qrcode').click(function(){
-    updatehoverqrcode();
-    $('.hoverqrcode').toggle();
-  });
-  $('.article-share-qrcode').hover(function(){}, function(){
-      $('.hoverqrcode').hide();
-  });
-});   
-</script>
 
 
 
@@ -704,7 +677,7 @@ var _hmt = _hmt || [];
 <!-- Totop Begin -->
 
 	<div id="totop">
-	<a title="Back to Top"><img src="/img/scrollup.png"/></a>
+	<a title="返回顶部"><img src="/img/scrollup.png"/></a>
 	</div>
 	<script src="/js/totop.js"></script>
 
