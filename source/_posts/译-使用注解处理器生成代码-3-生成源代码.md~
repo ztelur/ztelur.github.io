@@ -1,0 +1,375 @@
+title: '[译]使用注解处理器生成代码-3 生成源代码'
+date: 2016-03-07 21:51:20
+tags: 
+	- 注解
+categories:
+	- Android
+---
+ 本博文原文地址[摸我](https://deors.wordpress.com/2011/10/31/annotation-generators/)
+ 本篇博文是关于使用注解处理器生成java代码系列的第三篇也是最后一篇文章。在第一篇（在[这里](http://www.jianshu.com/p/ed2a755fc053)）中，我们介绍了注解和其一般用法。在第二篇（在[这里](http://www.jianshu.com/p/d294bf008bec)）中，我们介绍了注解处理器，如何构造并且使用它。 在本篇博文中，我们将想你展示如何使用注解处理器来生成源代码。
+#### 简介
+ 生成源代码很简单。生成正确的源代码却很难。优雅高效的去生成正确的代码是很麻烦的任务。
+ 幸运的是，Model-Driver Engineering(1)为我们提供了基于已经证明有效的过程和工具的成熟的方法理论。
+#### MDE 的 Model 和 Meta-model 
+ 在讨论如何使用注解处理器生成源代码之前，有几个相关的概念我们要实现讲明，那就是**models** 和 **meta-model**
+ MDE的理论基础之一为抽象的构造(construction of abstractions)。我们将软件系统在不同的层次和细节上使用不同的方法进行建模。当软件在一个抽象层次上被建模完成之后，我们就开始对下一个抽象层次进行建模，知道建立一个完备的，可部署的产品。
+ 在这种理论环境下，一个model 就是我们用来在某一抽象层级上表示软件系统的抽象。
+ meta-model就是我们用来写model的规则，你可以理解为model的纲要或者语法。
+#### 使用注解处理器生成源代码
+ 由上述描述可见，注解是定义model和meta-model的好方法，注解类型(Annotation Type)充当meta-model的角色，标注在一段代码上的注解来提供model。
+ 我们可以使用这个model来生成配置文件或者从现有代码中生成新代码。比如，通过注解bean来生成远程代理或者数据访问对象。
+ 这个方法的核心就是使用注解处理器。注解处理器可以读取在源代码中发现的注解，并且对注解做任何想做的事情-比如，打开文件，写文件，等等。
+#### Filter
+ 我们在第二篇博文中曾经说过，每个处理器都可以通过处理环境(processing environment)对象获得一些有用的工具，Filter就是其中之一。
+ **javax.annotation.processing.Filer**接口定义了一些关于创建源文件，类文件和一般资源的方法。通过使用`Filter`我们可以使用正确的文件目录，并且确保不会丢失文件系统中的生成的文件或者资源。
+ 下面这个例子可以显示如何在注解处理器中生成代码。生成的类名就是被注解的类名加上BeanInfo的后缀：
+```java 
+
+if (e.getKind() == ElementKind.CLASS) {     
+  TypeElement classElement = (TypeElement) e;
+  PackageElement packageElement =         
+        (PackageElement) classElement.getEnclosingElement();  
+  JavaFileObject jfo =  processingEnv.getFiler().
+        createSourceFile(classElement.getQualifiedName() 
+        + "BeanInfo");     
+
+  BufferedWriter bw = new BufferedWriter(jfo.openWriter());       
+  bw.append("package ");      
+  bw.append(packageElement.getQualifiedName());     
+  bw.append(";");     
+  bw.newLine();     
+  bw.newLine();     
+  // rest of generated class contents
+```
+####不要这样生成代码
+ 上边这个例子十分简单，有趣但是很混乱。
+ 我们把从注解中读取信息的逻辑和写生成的源文件的逻辑混一起拉。
+ 按照上述那种方式很难写出简洁的代码，如果当我们遇到一些更加复杂的逻辑时，就更难啦。
+ 我们需要一个更加优雅的实现方式：- 将不同逻辑分离- 使用模版来让代码生成更加简单
+ 让我们看看使用Apache的Velocity构造代码生成器的例子吧。
+#### Velocity简介
+ [Velocity](http://velocity.apache.org/) 是通过混合模版和java类的数据来生成各类文本文件的模版引擎。 `Velocity`可以在`MVC`框架中渲染视图或者在`xml`传输数据时替代`XSLT`
+ `Velocity`有它自己的语言叫做Velocity Template Language（VTL）。在VTL中，我们可以定义变量，控制流，迭代和获取java对象中的数据。
+ 下面就是`Velocity`模版的一个片段:
+``` 
+**#foreach($field in $fields)**     
+/**      
+* Returns the ${field.simpleName} property descriptor.      
+*      
+* @return the property descriptor      
+*/     
+public PropertyDescriptor 
+${field.simpleName}PropertyDescriptor() {         
+  PropertyDescriptor theDescriptor = null;         
+  return theDescriptor;     
+} 
+#end 
+#foreach($method in $methods)     
+/**      
+* Returns the 
+*
+*${method.simpleName}**() method descriptor.      
+*      
+* @return the method descriptor      
+*/     
+public MethodDescriptor
+${method.simpleName}MethodDescriptor() {         
+  MethodDescriptor descriptor = null;
+```
+ 正如你所看到的，VTL十分简单并且易于理解。`#foreach($field in $fields)`代表对对象集合的迭代；`${method.simpleName}`则是打印数据信息。
+#### Velocity代码生成器
+ 既然我们决定使用`Veloctiy`来增强我们的代码生成器，那么我们就要重新进行设计：
+- 设计用来生成代码的模版
+- 注解处理器会从`round environment `中读取被注解元素，并且将其保存到对象中，比如保存成员变量，方法，或者类，包的表.
+- 注解处理器需要初始化`Velocity`相关上下文- 注解处理器需要加载`Velocity`模版- 注解处理器会创建源文件(使用`Filer`)并且传递一个`Writer`给`Velocity`模版
+- `Veloctiy`引擎生成源代码
+ 使用这个方案，我们会发现处理器和生成器相关的代码是清晰，良好组织并且易于理解和维护。
+ 让我们一步一步的来实现这个方案吧。
+####步骤一:实现一个模版
+ 为了简单，我们并不会展示`BeanInfo`生成器的全部代码，而是只展示我们注解处理器需要使用的一部分成员变量和方法。
+ 我们先创建一个名为beaninfovm的文件，并且放置在Maven的`src/main/resource`下。文件内容如下:
+``` java
+package ${packageName};
+import java.beans.MethodDescriptor;
+import java.beans.ParameterDescriptor;
+import java.beans.PropertyDescriptor;
+import java.lang.reflect.Method;
+public class ${className}BeanInfo 
+        extends java.beans.SimpleBeanInfo 
+{ 
+  /** * Gets the bean class object. 
+  * 
+  * @return the bean class 
+  */ 
+  public static Class getBeanClass() { 
+    return ${packageName}.${className}.class; 
+  } 
+  /** 
+  * Gets the bean class name. 
+  * 
+  * @return the bean class name 
+  */ 
+  public static String getBeanClassName() { 
+    return "${packageName}.${className}"; 
+  } 
+  /** 
+  * Finds the right method by comparing name & number of parameters in the class 
+  * method list. 
+  * 
+  * @param classObject the class object 
+  * @param methodName the method name 
+  * @param parameterCount the number of parameters 
+  * 
+  * @return the method if found, <code>null</code> otherwise       
+  */ 
+  public static Method findMethod(Class classObject, String methodName, int parameterCount) { 
+    try { 
+      // since this method attempts to find a method by getting all     
+      // methods from the class, this method should only be called if 
+      // getMethod cannot find the method 
+      Method[] methods = classObject.getMethods(); 
+      for (Method method : methods) { 
+        if (method.getParameterTypes().length ==
+            parameterCount &&method.getName().
+                equals(methodName)) { 
+          return method; 
+        } 
+      } 
+    } catch (Throwable t) { 
+      return null; 
+    } 
+    return null; 
+    }
+#foreach($field in $fields) 
+/** 
+  * Returns the ${field.simpleName} property descriptor. 
+  * 
+  * @return the property descriptor 
+  */ 
+public PropertyDescriptor 
+${field.simpleName}PropertyDescriptor() { 
+   PropertyDescriptor theDescriptor = null; 
+   return theDescriptor; 
+}
+#end#foreach($method in $methods) 
+/** 
+  * Returns the ${method.simpleName}() method descriptor. 
+  * 
+  * @return the method descriptor 
+  */ 
+public MethodDescriptor ${method.simpleName}MethodDescriptor() { 
+   MethodDescriptor descriptor = null; 
+   Method method = null; 
+   try { 
+    // finds the method using getMethod with parameter types 
+    // TODO parameterize parameter types 
+      Class[] parameterTypes =  
+        {java.beans.PropertyChangeListener.class}; 
+     method=getBeanClass().
+         getMethod("${method.simpleName}", parameterTypes); 
+  } catch (Throwable t) { 
+    // alternative: use findMethod 
+    // TODO parameterize number of parameters 
+    method = findMethod(getBeanClass(), "${method.simpleName}", 1); 
+ } 
+  try { 
+    // creates the method descriptor with parameter descriptors     
+    // TODO parameterize parameter descriptors     
+    ParameterDescriptor parameterDescriptor1 = new   
+        ParameterDescriptor();     
+    parameterDescriptor1.setName("listener"); 
+    parameterDescriptor1.setDisplayName("listener"); 
+    ParameterDescriptor[] parameterDescriptors = 
+      {parameterDescriptor1}; 
+    descriptor = new MethodDescriptor(method,   
+        parameterDescriptors); 
+   } catch (Throwable t) { 
+      // alternative: create a plain method descriptor 
+      descriptor = new MethodDescriptor(method); 
+   } 
+  // TODO parameterize descriptor properties   
+   descriptor.setDisplayName("${method.simpleName}    
+        (java.beans.PropertyChangeListener)"); 
+   descriptor.setShortDescription("Adds a property change 
+        listener."); 
+   descriptor.setExpert(false); 
+   descriptor.setHidden(false); 
+   descriptor.setValue("preferred", false); 
+   return descriptor; 
+ }
+#end
+}
+```
+ 为了使用上述的模版，我们需要向`Velocity`传递下边这些信息:
+
+- `packageName`:生成类的全限定包名
+- `className`:生成类名
+- `field`:生成类中的成员变量集合；每个成员变量我们需要以下信息:
+   - `simpleName`:成员变量名 - `type`:成员变量的类型(在本例中并未使用)
+   - `description`:自我解释型信息(在本例中并未使用) 
+   - ...
+- `method`:生成类中函数的集合；每个函数我们需要一下信息：       
+
+  - `simpleName`:函数名 
+  - `arguments`:函数的参数(在本例中并未使用) 
+  - `returnType`: 函数返回值类型(在本例中并未使用) 
+  - `description`:自我解释性信息(在本例中并未使用) 
+  - ...
+
+ 所有的这些信息都会从源文件中的注解中获得，并保存到`JavaBean`中，再传递给`Velocity`。
+#### 步骤二:注解处理器读取信息
+ 让我们来实现一个注解处理器，并且注解它支持处理`BeanInfo`注解类型，相关原理请查看第二篇博文。
+```java
+@SupportedAnnotationTypes("example.annotations.beaninfo.BeanInfo")
+@SupportedSourceVersion(SourceVersion.RELEASE_6)
+public class BeanInfoProcessor extends AbstractProcessor {
+
+```
+ 注解处理器需要从注解和源文件中提取。你可以使用`JavaBean`来保存你需要的信息。但是在这个例子中，我们将使用`javax.lang.model.element`,因为我们不计划传递给`Velocity`过多信息:
+``` java
+  String packageName = null; 
+  Map<String, VariableElement> fields = new HashMap<String,     
+    VariableElement>(); 
+  Map<String, ExecutableElement> methods = new 
+    HashMap<String, ExecutableElement>(); 
+  for (Element e : roundEnv.
+      getElementsAnnotatedWith(BeanInfo.class)) { 
+    if (e.getKind() == ElementKind.CLASS) { 
+      TypeElement classElement = (TypeElement) e; 
+      PackageElement packageElement = (PackageElement) 
+        classElement.getEnclosingElement();   
+      processingEnv.getMessager().printMessage( 
+            Diagnostic.Kind.NOTE, "annotated class: " + 
+            classElement.getQualifiedName(), e); 
+      fqClassName = classElement.getQualifiedName().
+                toString(); 
+      className =  classElement.getSimpleName().toString(); 
+      packageName = packageElement.getQualifiedName().
+                toString(); 
+   } else if (e.getKind() == ElementKind.FIELD) { 
+      VariableElement varElement = (VariableElement) e;   
+      processingEnv.getMessager().printMessage( 
+        Diagnostic.Kind.NOTE, "annotated field: " + 
+        varElement.getSimpleName(), e); 
+      fields.put(varElement.getSimpleName().toString(),       
+        varElement); 
+    } else if (e.getKind() == ElementKind.METHOD) { 
+      ExecutableElement exeElement = (ExecutableElement) e;     
+      processingEnv.getMessager().printMessage( 
+        Diagnostic.Kind.NOTE, "annotated method: " + 
+        exeElement.getSimpleName(), e); 
+      methods.put(exeElement.getSimpleName().toString(),   
+        exeElement); 
+} 
+```
+#### 步骤三:初始化`Velocity`并且加载模版
+ 下边的代码片段展示了如何初始化`Velocity`并且加载模版
+``` java
+  if (fqClassName != null) { 
+    Properties props = new Properties(); 
+    URL url = this.getClass().getClassLoader().
+          getResource("velocity.properties"); 
+    props.load(url.openStream()); 
+    VelocityEngine ve = new VelocityEngine(props); 
+    ve.init(); 
+    VelocityContext vc = new VelocityContext(); 
+    vc.put("classNameassName); 
+    vc.put("packageNameckageName); 
+    vc.put("fieldselds); 
+    vc.put("methodsthods); 
+    Template vt = ve.getTemplate("beaninfo.vm");
+```
+ `Velocity`的配置文件，应该命名为`Velocity.properties`,并放置在`src/main/resources`文件夹下。配置文件的内容如下：
+``` java
+runtime.log.logsystem.class = org.apache.velocity.runtime.log.SystemLogChute
+resource.loader = classpath
+classpath.resource.loader.class = org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader
+```
+ 这些属性配置了`Velocity`的日志和寻找模版的类路径。
+
+#### 步骤四：创建新的文件并且生成代码
+ 最后，我们建立新的代码文件并以这个文件为目标运行模版。下边的代码片段展示了如何如何去做上述操作:
+``` java
+JavaFileObject jfo = processingEnv.getFiler().createSourceFile
+    ( fqClassName + "BeanInfo"); 
+processingEnv.getMessager().printMessage( 
+    Diagnostic.Kind.NOTE, "creating source file: " + jfo.toUri()); 
+Writer writer = jfo.openWriter(); 
+processingEnv.getMessager().printMessage(   
+    Diagnostic.Kind.NOTE, "applying velocity template: " + 
+    vt.getName());
+vt.merge(vc, writer); 
+writer.close();
+```
+#### 步骤五：打包并运行
+ 最终，注册注解处理器（可以回想一下在第二篇博文中的服务配置相关内容），打包处理器并且在命令行，eclipse和Maven构建项目时使用它。
+ 假设下边就是需要处理的类：
+```java
+package example.velocity.client;
+import example.annotations.beaninfo.BeanInfo;
+@BeanInfo 
+public class Article { 
+  @BeanInfo 
+  private String id; 
+  @BeanInfo 
+  private int department; 
+  @BeanInfo 
+  private String status; 
+  public Article() { super(); } 
+  public String getId() { return id; } 
+  public void setId(String id) { this.id = id; } 
+  public int getDepartment() { 
+    return department; 
+  } 
+  public void setDepartment(int department) { 
+    this.department = department; 
+  } 
+  public String getStatus() { return status; } 
+  public void setStatus(String status) { 
+    this.status = status; 
+  } 
+  @BeanInfo 
+  public void activate() { setStatus("active"); } 
+  @BeanInfo public void deactivate() { 
+    setStatus("inactive"); 
+  }
+}
+```
+ 当我们使用命令行执行编译任务时，我们在终端上看到被注解标注的元素被找到并且BeanInfo类被生成。
+``` bash
+Article.java:6: Note: annotated class: 
+example.annotations.velocity.client.Article
+public class Article { 
+  ^
+Article.java:9: Note: annotated field: id 
+  private String id; 
+    ^
+Article.java:12: Note: annotated field: department 
+  private int department; 
+    ^
+Article.java:15: Note: annotated field: status 
+  private String status; 
+    ^
+Article.java:53: Note: annotated method: activate 
+  public void activate() { 
+    ^
+Article.java:59: Note: annotated method: deactivate 
+  public void deactivate() { 
+    ^ 
+Note: creating source file: file:/c:/projects/example.annotations.velocity.client/src/main/java/example/annotations/velocity/client/ArticleBeanInfo.java
+Note: applying velocity template: beaninfo.vm
+Note: example\annotations\velocity\client\ArticleBeanInfo.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+```
+ 检查相应的文件夹我们会发现`BeanInfo`类文件被创建。任务完成！
+#### 总结
+ 在这个系列文章中，我们学习了如何使用Java6中的注解处理器框架生成源代码：
+- 我们学习了注解和注解类型的概念和他们的基本用法
+- 我们学习了注解处理器的概念，还有如何编写，以及从不同工具运行它。
+- 我们大致讨论了一下`Model-Drive Engineer`和代码生成。
+- 我们展示了如何使用注解处理器生成代码
+- 我们学习了如何使用`Velocity`来创建优雅的，强大的，可维护的基于注解处理器的代码生成器。
+ 现在是时候实现你自己的项目去啦。
+-
+(1) 如何你想详细了解`MDE`,请查看[这篇文件](http://en.wikipedia.org/wiki/Model-driven_engineering)
+(2) `Filter`的API文档可以在[这里](http://download.oracle.com/javase/6/docs/api/javax/annotation/processing/Filer.html)进行查看

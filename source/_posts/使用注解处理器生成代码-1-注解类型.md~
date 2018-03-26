@@ -1,0 +1,111 @@
+title: 使用注解处理器生成代码-1 注解类型
+date: 2016-02-21 20:18:55
+tags: 
+	- 注解
+categories:
+	- Android
+---
+&emsp;我希望以此篇博文作为基于注解处理器生成代码系列博文的开篇，给大家展示注解处理器有多么强大，并在最后使用这项技术来在编译时刻生成android代码
+&emsp;在这个系列博文中，我们会：
+- 介绍Java语言中的注解
+- 理解注解的基本用法和作用域
+- 了解`Annotation Processor`基础知识和作用
+- 学习如何在命令行，`Eclipse`,`Maven`中运行`Annotation Processors`
+- 学习如何使用`Annotation Processors`来生成代码
+- 学习如何`Apache Velocity`模版来生成代码
+
+#### 简介
+&emsp;注解首先在第三版`Java Language Specification`中被提出，并在`java 5`中被实现。
+&emsp;使用注解我们可以给源代码添加元数据信息，比如构造或者部署信息，配置属性，编译特性或者代码质量检查。
+&emsp;不像`Javadocs`，注解是强类型的，每个注解都对应一个预先定义好的注解类型。除此之外，程序可以在运行时获得注解信息，`Javadocs`不行。
+#### 注解语法
+&emsp;注解通常出现在被注解代码片段之前，单独成行，并且和代码片段有相同的缩进。
+&emsp;注解可以应用到包，类型（类，接口，枚举，注解类型），变量（对象，局部变量-包括定义在循环结构中的变量），构造函数，方法，和参数。
+&emsp;注解的最简单形式是不带任何元素，比如：
+```java
+@Override()
+    public void theMethod() {…}
+```
+&emsp;在这种情况下，括号可以被省略。
+```java
+@Override
+    public void theMethod() {…}
+```
+&emsp;注解可以包括通过冒号分离的键值对数据，类型可以是基础类型，字符串，枚举，和数组：
+```java
+@Author(name = "Albert",
+            created = "17/09/2010",
+            revision = 3,
+            reviewers = {"George", "Fred"})
+    public class SimpleAnnotationsTest {…}
+```
+&emsp;当注解只有一个元素并且其名字是value，那么它就可以被省略：
+```java
+@WorkProduct("WP00000182")
+    @Complexity(ComplexityLevel.VERY_SIMPLE)
+    public class SimpleAnnotationsTest {…}
+```
+&emsp;注解可以定义它的元素的默认值，有默认值的元素可以在注解声明使用时被省略。
+&emsp;比如，假设注解`Author`定义了`revision`（默认为1）和`reviewers`(默认为空的字符串数组)，下边的两个注释声明是相同的：
+```java
+@Author(name = "Albert",
+            created = "17/09/2010",
+            revision = 1,
+            reviewers = {})
+    public class SimpleAnnotationsTest() {…}
+    @Author(name = "Albert",        // defaults are revision 1
+            created = "17/09/2010") // and no reviewers
+    public class SimpleAnnotationsTest() {…}
+```
+#### 注解的典型使用
+&emsp;有三类注解类型在`Java Language Specification`中被定义，它们提供给java的编译器使用：
+- **@Deprecated**:表明被标记的元素不应该再被使用。当你使用被标记元素时，编译器会给出警告。也可以使用在`Javadoc`中，解释标记元素不能在使用的原因。
+- **@Override**：表面被标记元素为重载了超类中的元素
+- **@SuppressWarnings**：让编译器忽略标记元素会产生的一些特定警告
+
+&emsp;自从注解被引入，很多库和框架都在其最新版本中添加了注解。通过在代码中使用注解，这些库或者框架可以减少或者去除配置文件的使用。
+&emsp；最有代表性的几个库或框架如下：
+- Java Enterprise Edition and its main components –  Enterprise JavaBeans, Java Persistence API or Web Services API’s.
+- Spring Framework – used thoroughly for configuration, dependency injection and inversion of control in the core framework and in other Spring projects.
+- Seam, Weld, Guice.
+- Apache Struts 2.
+
+#### 注解类型
+&emsp;注解类型(`Annotation Type`)是定义自定义注解的特殊接口（`interface`）。
+&emsp;一个注解类型使用`@interface`来定义：
+```java
+public @interface Author {
+        String name();
+        String created();
+        int revision() default 1;
+        String[] reviewers() default {};
+    }
+    public @interface Complexity {
+        ComplexityLevel value() default ComplexityLevel.MEDIUM;
+    }
+    public enum ComplexityLevel {
+        VERY_SIMPLE, SIMPLE, MEDIUM, COMPLEX, VERY_COMPLEX;
+    }
+```
+&emsp;注解类型和常规的接口有一些不同的地方：
+- 只有基础类型，字符串，枚举，类常量和上述类型的数组允许在注解定义中使用，一般的类和对象不允许使用，双重数组也不允许。
+- 注解元素的定义语法和类方法的语法相似，但是注意，注解元素的定义不包括修饰符和参数。
+- 默认值是使用`default`关键字定义的，其后的值必须是字面量，数组初始器和枚举值。
+
+&emsp;枚举类型可以在注解内部进行定义：
+```java
+public @interface Complexity {
+        public enum Level {
+            VERY_SIMPLE, SIMPLE, MEDIUM, COMPLEX, VERY_COMPLEX;
+        }
+    …
+```
+#### 用来定义注解的注解
+&emsp;JDK中预先定义了一些用来修改自定义注解行为的注解：
+- **@Retention**：表明被标记的注解信息会保存多长时间，一些可能的值如下：`CLASS` (默认选项，注解信息保存到class文件中，但是无法在运行时获得), `SOURCE` (当class文件被创建时被编译器抛弃) and `RUNTIME` (在程序运行时可以获得).
+- **@Target**:表明注解可以标记元素的类型，可能的值为枚举类型`ElementType`的值：`ANNOTATION_TYPE`, `CONSTRUCTOR`, `FIELD`, `LOCAL_VARIABLE`, `METHOD`, `PACKAGE`, `PARAMETER` and `TYPE`.
+&emsp;下一篇博文为《注解处理器》，稍后会给出。
+
+ —
+(1) ”The Java Language Specification, Third Edition” is available for free download [here](http://java.sun.com/docs/books/jls/).
+&emsp;Update: new link to relevant JLS section in his new home at Oracle site [here](http://docs.oracle.com/javase/specs/jls/se5.0/html/interfaces.html#9.7).
