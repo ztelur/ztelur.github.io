@@ -1,0 +1,672 @@
+
+ <!DOCTYPE HTML>
+<html lang="Chinese">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>SICP 习题2.6之丘奇数 | Carpediem</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
+    
+    <meta name="author" content="remCarpediem">
+    
+
+    
+    <meta name="description" content="&amp;emsp;最近一直在阅读《SICP》，然后下午做其中的习题2.6，对其题意很不理解，于是搜索了相关资料，不禁如题设所说感到如雷灌顶，特此记录下来，以供大家阅读和交流
+####题目&amp;emsp;如果觉得将序对表示最为过程还不足以令人如雷灌顶，那么请考虑，在一个可以对程序做各类操作的语言中，我们完全可以没有数（至少在只考虑非整数的情况下），可以将0和加一操作实现为：123(define zero (l">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SICP 习题2.6之丘奇数">
+<meta property="og:url" content="http://ztelur.github.io/blog/2016/05/01/SICP-习题2-6之丘奇数/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="&amp;emsp;最近一直在阅读《SICP》，然后下午做其中的习题2.6，对其题意很不理解，于是搜索了相关资料，不禁如题设所说感到如雷灌顶，特此记录下来，以供大家阅读和交流
+####题目&amp;emsp;如果觉得将序对表示最为过程还不足以令人如雷灌顶，那么请考虑，在一个可以对程序做各类操作的语言中，我们完全可以没有数（至少在只考虑非整数的情况下），可以将0和加一操作实现为：123(define zero (l">
+<meta property="og:updated_time" content="2016-05-01T19:35:44.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SICP 习题2.6之丘奇数">
+<meta name="twitter:description" content="&amp;emsp;最近一直在阅读《SICP》，然后下午做其中的习题2.6，对其题意很不理解，于是搜索了相关资料，不禁如题设所说感到如雷灌顶，特此记录下来，以供大家阅读和交流
+####题目&amp;emsp;如果觉得将序对表示最为过程还不足以令人如雷灌顶，那么请考虑，在一个可以对程序做各类操作的语言中，我们完全可以没有数（至少在只考虑非整数的情况下），可以将0和加一操作实现为：123(define zero (l">
+
+    
+    <link rel="alternative" href="/atom.xml" title="Carpediem" type="application/atom+xml">
+    
+    
+    
+    <link rel="stylesheet" href="/blog/css/style.css">
+</head>
+
+  <body>
+    <header>
+      
+<div>
+		
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/blog/" title="Carpediem">Carpediem</a></h1>
+				<h2 class="blog-motto">blog of nobody</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					<ul>
+					 
+						<li><a href="/blog/">Home</a></li>
+					
+						<li><a href="/blog/archives">Archives</a></li>
+					
+						<li><a href="/blog/about">About</a></li>
+					
+					<li>
+ 					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
+						<input type="hidden" name="q" value="site:ztelur.github.io/blog">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+  
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/blog/2016/05/01/SICP-习题2-6之丘奇数/" title="SICP 习题2.6之丘奇数" itemprop="url">SICP 习题2.6之丘奇数</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/blog/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2016-05-01T11:34:38.000Z" itemprop="datePublished"> Published 2016-05-01</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">Contents</strong>
+		
+			<ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#丘奇数"><span class="toc-number">1.</span> <span class="toc-text">丘奇数</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#替换法求two"><span class="toc-number">2.</span> <span class="toc-text">替换法求two</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#加法定义"><span class="toc-number">3.</span> <span class="toc-text">加法定义</span></a></li></ol>
+		
+		</div>
+		
+		<p>&emsp;最近一直在阅读《SICP》，然后下午做其中的习题2.6，对其题意很不理解，于是搜索了相关资料，不禁如题设所说感到如雷灌顶，特此记录下来，以供大家阅读和交流</p>
+<p>####题目<br>&emsp;如果觉得将序对表示最为过程还不足以令人如雷灌顶，那么请考虑，在一个可以对程序做各类操作的语言中，我们完全可以没有数（至少在只考虑非整数的情况下），可以将0和加一操作实现为：<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">(<span class="name">define</span> zero (<span class="name">lambda</span> (<span class="name">f</span>) (<span class="name">lambda</span> (<span class="name">x</span>) x)))</span><br><span class="line">(<span class="name">define</span> (<span class="name">add-1</span> n)</span><br><span class="line">	(<span class="name">lambda</span> (<span class="name">f</span>) (<span class="name">lambda</span> (<span class="name">x</span>) (<span class="name">f</span> ((<span class="name">n</span> f) x)))))</span><br></pre></td></tr></table></figure></p>
+<p>这一表现形式称为Church计数，名字来源于其发明人数理学家Church，请直接定义one和two（不使用zero和add-1）（提示：利用代换法去求值）。请给出加法过程+的一个直接定义（不要反复应用add-1）</p>
+<h4 id="丘奇数"><a href="#丘奇数" class="headerlink" title="丘奇数"></a>丘奇数</h4><p>&emsp;说实话，我一直没有看懂题目中关于zero和add-1的定义，于是我搜索了相关资料。下边就结合资料谈一下它的概念。<br>&emsp;首先要明确的是丘奇数中的zero，one等并不等同于数值上的0,1,2。你可以理解为它是零这个概念的一种表现形式。换句话说，它就是零的函数式表现形式。我们先来看一下丘奇数中zero，one和two的表现形式<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">(<span class="name">define</span> zero</span><br><span class="line">  (<span class="name">lambda</span> (<span class="name">f</span>) (<span class="name">lambda</span> (<span class="name">x</span>) x)))</span><br><span class="line">(<span class="name">define</span> one</span><br><span class="line">  (<span class="name">lambda</span> (<span class="name">f</span>) (<span class="name">lambda</span> (<span class="name">x</span>) (<span class="name">f</span> x))))</span><br><span class="line">(<span class="name">define</span> two</span><br><span class="line">  (<span class="name">lambda</span> (<span class="name">f</span>) (<span class="name">lambda</span> (<span class="name">x</span>) (<span class="name">f</span> (<span class="name">f</span> x)))))</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;我们会发现zero，one和two都是一个函数，它接收(f)作为参数，其结果是一个接收(x)作为参数的函数。大家可能需要注意的是，(f)在这里显然也是一个函数，在LISP中函数是可以作为输入参数的。然后我们会发现zero，one和two的区别好像就是(f)函数被使用的次数。zero中(f)没有被使用，one中(f)使用了一次，two中(f)使用了两次，对就是这个次数来表示0,1,2的概念。<br>&emsp;我们可以实验一下检验一下<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">(<span class="name">define</span> (<span class="name">inc</span> n)</span><br><span class="line">   (<span class="name">+</span> n <span class="number">1</span>))</span><br><span class="line">&gt; ((<span class="name">zero</span> inc) <span class="number">0</span>)</span><br><span class="line"><span class="number">0</span></span><br><span class="line">&gt; ((<span class="name">zero</span> inc) <span class="number">1</span>)</span><br><span class="line"><span class="number">1</span></span><br><span class="line">&gt; ((<span class="name">one</span> inc) <span class="number">1</span>)</span><br><span class="line"><span class="number">2</span></span><br><span class="line">&gt; (((<span class="name">add-1</span> one) inc) <span class="number">1</span>)</span><br><span class="line"><span class="number">3</span></span><br></pre></td></tr></table></figure></p>
+<p>&emsp;我们定义一个过程inc就是数值意义上的加一，然后使用zero,one和add-1发现确实如同我们所想的，zero表示inc过程不会被使用，返回原数值；one表示inc被使用一次，返回加一的数值。</p>
+<h4 id="替换法求two"><a href="#替换法求two" class="headerlink" title="替换法求two"></a>替换法求two</h4><p>&emsp;我们来使用替换法通过add-1和zero来求解one吧。<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">(<span class="name">add-1</span> zero)</span><br><span class="line"><span class="comment">;展开add-1定义</span></span><br><span class="line">(<span class="name">lambda</span> (<span class="name">f</span>) (<span class="name">lambda</span> (<span class="name">x</span>) (<span class="name">f</span> ((<span class="name">zero</span> f) x))))</span><br><span class="line"></span><br><span class="line"><span class="comment">; 替换zero</span></span><br><span class="line">(<span class="name">lambda</span> (<span class="name">f</span>) (<span class="name">lambda</span> (<span class="name">x</span>) (<span class="name">f</span> ((<span class="name">lambda</span> (<span class="name">x</span>) x) x))))</span><br><span class="line"></span><br><span class="line"><span class="comment">; 简化因为((lambda (x) x) x)就等于x</span></span><br><span class="line">(<span class="name">lambda</span> (<span class="name">f</span>) (<span class="name">lambda</span> (<span class="name">x</span>) (<span class="name">f</span> x)))</span><br></pre></td></tr></table></figure></p>
+<h4 id="加法定义"><a href="#加法定义" class="headerlink" title="加法定义"></a>加法定义</h4><p>&emsp;首先我们要明白丘奇数加法的含义，我们先记其加法为add-church,那么如下代码所示，最后一个过程得出的值应该是多少呢？<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&gt; ((one inc) 1)</span><br><span class="line">2</span><br><span class="line">&gt; ((two inc) 1)</span><br><span class="line">3</span><br><span class="line">&gt; (((add-church one two) inc) 1)</span><br><span class="line">?</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;根据猜测，应该是4吧。因为one表示inc对1这个数值使用一次，two标示使用两次，那么将二者加起来，那么就应该是three的含义啦，就是表示inc对1这个数值使用3次，那么就是4啦。<br>&emsp;add-church的实现如下<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">(<span class="name">define</span> (<span class="name">add-church</span> m n)</span><br><span class="line">   (<span class="name">lambda</span> (<span class="name">f</span>) (<span class="name">lambda</span> (<span class="name">x</span>) ((<span class="name">m</span> f) ((<span class="name">n</span> f) x)))))</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;如果你将其与add-1进行对比，你会发现add-1中的f变成了(m f),如果吧add-1中的f记住(one f)，你可能就会更加理解。那么你就会想add-m是如何标示的呢？</p>
+<blockquote>
+<p>参考资料<br><a href="https://pfmiles.wordpress.com/2009/11/12/%E9%80%90%E6%AD%A5%E7%90%86%E8%A7%A3%E4%B8%98%E5%A5%87%E6%95%B0%E4%B8%80/" target="_blank" rel="external">https://pfmiles.wordpress.com/2009/11/12/%E9%80%90%E6%AD%A5%E7%90%86%E8%A7%A3%E4%B8%98%E5%A5%87%E6%95%B0%E4%B8%80/</a><br><a href="http://www.billthelizard.com/2010/10/sicp-26-church-numerals.html" target="_blank" rel="external">http://www.billthelizard.com/2010/10/sicp-26-church-numerals.html</a></p>
+</blockquote>
+  
+	</div>
+		<footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/blog/categories/函数式编程/">函数式编程</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/blog/tags/SICP/">SICP</a>
+  </div>
+
+</div>
+
+
+
+	<div class="article-share" id="share">
+	
+	<div class="share-jiathis">
+	  
+<div class="jiathis_style_24x24">
+	<a class="jiathis_button_tsina"></a>
+	<a class="jiathis_button_weixin"></a>
+	<a class="jiathis_button_renren"></a>
+	<a class="jiathis_button_qzone"></a>
+	<a class="jiathis_button_googleplus"></a>
+	<a class="jiathis_button_douban"></a>
+	<a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	<a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+    var jiathis_config={
+    data_track_clickback:true,
+    sm:"copy,renren,cqq",
+    pic:"",
+    summary:"",
+    
+  </script> 
+<script type="text/javascript" src="//v3.jiathis.com/code/jia.js?uid=
+2157940" charset="utf-8"></script>      
+
+	 </div>
+	
+	</div>
+
+
+</footer>
+
+   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/blog/2016/05/09/Property-Animation框架详解-一/" title="Property Animation框架详解(一)">
+  <strong>上一篇：</strong><br/>
+  <span>
+  Property Animation框架详解(一)</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/blog/2016/04/21/Android-Scroll详解-三-：Android-绘制过程详解/"  title="Android Scroll详解(三)：Android 绘制过程详解">
+ <strong>下一篇：</strong><br/> 
+ <span>Android Scroll详解(三)：Android 绘制过程详解
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comments" class="comment">
+	<div class="ds-thread" data-thread-key="2016/05/01/SICP-习题2-6之丘奇数/" data-title="SICP 习题2.6之丘奇数" data-url="http://ztelur.github.io/blog/blog/2016/05/01/SICP-习题2-6之丘奇数/"></div>
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">Contents</strong>
+ 
+ <ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#丘奇数"><span class="toc-number">1.</span> <span class="toc-text">丘奇数</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#替换法求two"><span class="toc-number">2.</span> <span class="toc-text">替换法求two</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#加法定义"><span class="toc-number">3.</span> <span class="toc-text">加法定义</span></a></li></ol>
+ 
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<aside class="clearfix">
+
+  
+
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">Categories</p>
+		<ul>
+		
+		  
+			<li><a href="/blog/categories/Android/" title="Android">Android<sup>21</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android性能/" title="Android性能">Android性能<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/" title="Java">Java<sup>4</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/JavaScript/" title="JavaScript">JavaScript<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/NIO/" title="NIO">NIO<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/NetWork/" title="NetWork">NetWork<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/Network/" title="Network">Network<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Python/" title="Python">Python<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/c/" title="c">c<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/python/" title="python">python<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/函数式编程/" title="函数式编程">函数式编程<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/分布式/" title="分布式">分布式<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/后端/" title="后端">后端<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/后端-Spring/" title="后端 - Spring">后端 - Spring<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/多线程/" title="多线程">多线程<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/容器/" title="容器">容器<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/并发/" title="并发">并发<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/思考/" title="思考">思考<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/c/数据结构/" title="数据结构">数据结构<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/源码/" title="源码">源码<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/源码分析/" title="源码分析">源码分析<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/杂记/生活/" title="生活">生活<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/算法/" title="算法">算法<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/综合/" title="综合">综合<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/网络/" title="网络">网络<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/源码/视图/" title="视图">视图<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/计划/" title="计划">计划<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/设计/" title="设计">设计<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/读书笔记/" title="读书笔记">读书笔记<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/运维/" title="运维">运维<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/随笔/" title="随笔">随笔<sup>1</sup></a></li>
+		  
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">Tags</p>
+		<ul class="clearfix">
+		
+			
+				<li><a href="/blog/tags/JUC/" title="JUC">JUC<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/注解/" title="注解">注解<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/算法/" title="算法">算法<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Netty/" title="Netty">Netty<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/第三方库/" title="第三方库">第三方库<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/View/" title="View">View<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Span/" title="Span">Span<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Spring-Boot/" title="Spring Boot">Spring Boot<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Jenkins/" title="Jenkins">Jenkins<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/工具/" title="工具">工具<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/反射/" title="反射">反射<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/JSON/" title="JSON">JSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/docker/" title="docker">docker<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/kubernetes/" title="kubernetes">kubernetes<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
+			
+		
+		</ul>
+</div>
+
+
+  
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	
+	<section class="info">
+		<p> Hello ,I&#39;m Homer in NJU. <br/>
+			This is my blog,believe it or not.</p>
+	</section>
+	 
+	<div class="social-font" class="clearfix">
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+	</div>
+			
+		
+
+		<p class="copyright">
+		Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/wuchong/jacman" target="_blank" title="Jacman">Jacman</a> © 2018 
+		
+		<a href="/blog/about" target="_blank" title="remCarpediem">remCarpediem</a>
+		
+		
+		</p>
+</div>
+</footer>
+    <script src="/blog/js/jquery-2.0.3.min.js"></script>
+<script src="/blog/js/jquery.imagesloaded.min.js"></script>
+<script src="/blog/js/gallery.js"></script>
+<script src="/blog/js/jquery.qrcode-0.12.0.min.js"></script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+  
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else{
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  c.click(function(){
+    ta.css('display', 'block').addClass('fadeIn');
+  });
+  o.click(function(){
+    ta.css('display', 'none');
+  });
+  $(window).scroll(function(){
+    ta.css("top",Math.max(140,320-$(this).scrollTop()));
+  });
+});
+</script>
+
+
+
+
+<script type="text/javascript">
+  var duoshuoQuery = {short_name:"CarpeDiem"};
+  (function() {
+    var ds = document.createElement('script');
+    ds.type = 'text/javascript';ds.async = true;
+    ds.src = '//static.duoshuo.com/embed.js';
+    ds.charset = 'UTF-8';
+    (document.getElementsByTagName('head')[0] 
+    || document.getElementsByTagName('body')[0]).appendChild(ds);
+  })();
+</script> 
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/blog/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/blog/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.article-content').each(function(i){
+    $(this).find('img').each(function(){
+      if ($(this).parent().hasClass('fancybox')) return;
+      var alt = this.alt;
+      if (alt) $(this).after('<span class="caption">' + alt + '</span>');
+      $(this).wrap('<a href="' + this.src + '" title="' + alt + '" class="fancybox"></a>');
+    });
+    $(this).find('.fancybox').each(function(){
+      $(this).attr('rel', 'article' + i);
+    });
+  });
+  if($.fancybox){
+    $('.fancybox').fancybox();
+  }
+}); 
+</script>
+
+
+
+<!-- Analytics Begin -->
+
+<script type="text/javascript">
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+ga('create', 'UA-88918565-1', 'ztelur.github.io/');
+ga('send', 'pageview');
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?8a8af29a4307eee9d7c7f8e9321aedae";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+<script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1260989317'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "s23.cnzz.com/z_stat.php%3Fid%3D1260989317' type='text/javascript'%3E%3C/script%3E"));</script>
+
+
+
+
+<!-- baidu search 推送-->
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+<!-- Analytics End -->
+
+<!-- Totop Begin -->
+
+	<div id="totop">
+	<a title="Back to Top"><img src="/blog/img/scrollup.png"/></a>
+	</div>
+	<script src="/blog/js/totop.js"></script>
+
+<!-- Totop End -->
+
+<!-- MathJax Begin -->
+<!-- mathjax config similar to math.stackexchange -->
+
+
+<!-- MathJax End -->
+
+<!-- Tiny_search Begin -->
+
+<!-- Tiny_search End -->
+
+  </body>
+</html>

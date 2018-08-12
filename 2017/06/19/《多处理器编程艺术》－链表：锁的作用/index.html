@@ -1,0 +1,700 @@
+
+ <!DOCTYPE HTML>
+<html lang="Chinese">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>《多处理器编程艺术》－链表：锁的作用 | Carpediem</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
+    
+    <meta name="author" content="remCarpediem">
+    
+
+    
+    <meta name="description" content="最近在阅读《多处理器编程艺术》一书，掌握了很多Java多线程的底层知识，现在就做一下书中链表-锁的作用一章的总结。&amp;emsp;为了节约你的时间，本文主要内容如下：
+
+带锁的链表队列
+细粒度同步
+乐观同步
+惰性同步
+非阻塞同步
+
+粗粒度同步&amp;emsp;所谓粗粒度同步其实很简单，就是在List的add,remove,contains函数的开始就直接使用Lock加锁，然后在函数结尾释放。&amp;emsp;a">
+<meta property="og:type" content="article">
+<meta property="og:title" content="《多处理器编程艺术》－链表：锁的作用">
+<meta property="og:url" content="http://ztelur.github.io/blog/2017/06/19/《多处理器编程艺术》－链表：锁的作用/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="最近在阅读《多处理器编程艺术》一书，掌握了很多Java多线程的底层知识，现在就做一下书中链表-锁的作用一章的总结。&amp;emsp;为了节约你的时间，本文主要内容如下：
+
+带锁的链表队列
+细粒度同步
+乐观同步
+惰性同步
+非阻塞同步
+
+粗粒度同步&amp;emsp;所谓粗粒度同步其实很简单，就是在List的add,remove,contains函数的开始就直接使用Lock加锁，然后在函数结尾释放。&amp;emsp;a">
+<meta property="og:updated_time" content="2017-06-19T14:00:03.193Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="《多处理器编程艺术》－链表：锁的作用">
+<meta name="twitter:description" content="最近在阅读《多处理器编程艺术》一书，掌握了很多Java多线程的底层知识，现在就做一下书中链表-锁的作用一章的总结。&amp;emsp;为了节约你的时间，本文主要内容如下：
+
+带锁的链表队列
+细粒度同步
+乐观同步
+惰性同步
+非阻塞同步
+
+粗粒度同步&amp;emsp;所谓粗粒度同步其实很简单，就是在List的add,remove,contains函数的开始就直接使用Lock加锁，然后在函数结尾释放。&amp;emsp;a">
+
+    
+    <link rel="alternative" href="/atom.xml" title="Carpediem" type="application/atom+xml">
+    
+    
+    
+    <link rel="stylesheet" href="/blog/css/style.css">
+</head>
+
+  <body>
+    <header>
+      
+<div>
+		
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/blog/" title="Carpediem">Carpediem</a></h1>
+				<h2 class="blog-motto">blog of nobody</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					<ul>
+					 
+						<li><a href="/blog/">Home</a></li>
+					
+						<li><a href="/blog/archives">Archives</a></li>
+					
+						<li><a href="/blog/about">About</a></li>
+					
+					<li>
+ 					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
+						<input type="hidden" name="q" value="site:ztelur.github.io/blog">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+  
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/blog/2017/06/19/《多处理器编程艺术》－链表：锁的作用/" title="《多处理器编程艺术》－链表：锁的作用" itemprop="url">《多处理器编程艺术》－链表：锁的作用</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/blog/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2017-06-19T13:57:31.000Z" itemprop="datePublished"> Published 2017-06-19</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">Contents</strong>
+		
+			<ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#粗粒度同步"><span class="toc-number">1.</span> <span class="toc-text">粗粒度同步</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#细粒度同步"><span class="toc-number">2.</span> <span class="toc-text">细粒度同步</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#乐观同步"><span class="toc-number">3.</span> <span class="toc-text">乐观同步</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#惰性同步"><span class="toc-number">4.</span> <span class="toc-text">惰性同步</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#非阻塞同步"><span class="toc-number">5.</span> <span class="toc-text">非阻塞同步</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#后记"><span class="toc-number">6.</span> <span class="toc-text">后记</span></a></li></ol>
+		
+		</div>
+		
+		<p> 最近在阅读《多处理器编程艺术》一书，掌握了很多Java多线程的底层知识，现在就做一下书中链表-锁的作用一章的总结。<br>&emsp;为了节约你的时间，本文主要内容如下：</p>
+<ul>
+<li>带锁的链表队列</li>
+<li>细粒度同步</li>
+<li>乐观同步</li>
+<li>惰性同步</li>
+<li>非阻塞同步</li>
+</ul>
+<h3 id="粗粒度同步"><a href="#粗粒度同步" class="headerlink" title="粗粒度同步"></a>粗粒度同步</h3><p>&emsp;所谓粗粒度同步其实很简单，就是在List的<code>add</code>,<code>remove</code>,<code>contains</code>函数的开始就直接使用Lock加锁，然后在函数结尾释放。<br>&emsp;<code>add</code>函数的代码如下所示，函数的主体就是链表的遍历添加逻辑，只不过在开始和结束进行了锁的获取和释放。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> Node head;</span><br><span class="line"><span class="keyword">private</span> Lock lock = <span class="keyword">new</span> ReentrantLock();</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">add</span><span class="params">(T item)</span> </span>&#123;</span><br><span class="line">    Node pred, curr;</span><br><span class="line">    <span class="keyword">int</span> key = item.hashCode();</span><br><span class="line">    lock.lock();</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        pred = head;</span><br><span class="line">        curr = pred.next;</span><br><span class="line">        <span class="keyword">while</span>(curr.key &lt; key) &#123;</span><br><span class="line">            pred = curr;</span><br><span class="line">            curr = pred.next;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (key == curr.key) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            Node node = <span class="keyword">new</span> Node(item);</span><br><span class="line">            node.next = curr;</span><br><span class="line">            pred.next = node;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        lock.unlock();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;大家看到这里就会想到，这不就是类似于<code>Hashtable</code>的实现方式吗？把可能出现多线程问题的函数都用一个重入锁锁住。但是这个方法的缺点很明显，如果竞争激烈的话，对链表的操作效率会很低，因为<code>add</code>,<code>remove</code>,<code>contains</code>三个函数都需要获取锁，也都需要等待锁的释放。至于如何优化，我们可以一步一步往下看</p>
+<h3 id="细粒度同步"><a href="#细粒度同步" class="headerlink" title="细粒度同步"></a>细粒度同步</h3><p>&emsp;<strong><em>我们可以通过锁定单个节点而不是整个链表来提高并发</em></strong>。给每个节点增加一个Lock变量以及相关的lock()和unlock()函数,当线程遍历链表的时候，若它是第一个访问节点的线程，则锁住被访问的节点，在随后的某个时刻释放锁。这种细粒度的锁机制允许并发线程以流水线的方式遍历链表。<br>&emsp;使用这种方式来遍历链表，必须同时获取两个相邻节点的锁，通过“交叉手”的方式来获取锁：除了初始的head哨兵节点外，只有在已经获取pred的锁时，才能获取curr的锁。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//每个Node对象中都有一个Lock对象，可以进行lock()和unlock()操作</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">add</span><span class="params">(T item)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> key = item.hashCode();</span><br><span class="line">        head.lock();</span><br><span class="line">        Node pred = head;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Node curr = pred.next;</span><br><span class="line">            curr.lock();</span><br><span class="line"></span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                <span class="keyword">while</span> (curr.key &lt; key) &#123;</span><br><span class="line">                    pred.unlock();</span><br><span class="line">                    pred = curr;</span><br><span class="line">                    curr = pred.next;</span><br><span class="line">                    curr.lock();</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (curr.key == key) &#123;</span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">                &#125;</span><br><span class="line">                Node newNode = <span class="keyword">new</span> Node(item);</span><br><span class="line">                newNode.next = curr;</span><br><span class="line">                pred.next = newNode;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">            &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                curr.unlock();</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            pred.unlock();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="乐观同步"><a href="#乐观同步" class="headerlink" title="乐观同步"></a>乐观同步</h3><p>&emsp;虽然细粒度锁是对单一粒度锁的一种改进，但它仍然出现很长的获取锁和释放锁的序列。而且，访问链表中不同部分的线程仍然可能相互阻塞。例如，一个正在删除链表中第二个元素的线程将会阻塞所有试图查找后继节点的线程。<br>&emsp;减少同步代价的一种方式就是乐观：<strong><em>不需要获取锁就可以查找，对找到的节点进行加锁，然后确认锁住的节点是正确的；如果一个同步冲突导致节点被错误的锁定，则释放这些锁重新开始</em></strong>。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">add</span><span class="params">(T item)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> key = item.hashCode();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>) &#123; <span class="comment">//如果不成功，就进行重试</span></span><br><span class="line">        Node pred = head;</span><br><span class="line">        Node curr = pred.next;</span><br><span class="line">        <span class="keyword">while</span> (curr.key &lt; key) &#123;</span><br><span class="line">            pred = curr;</span><br><span class="line">            curr = pred.next;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//找到目标相关的pred和curr之后再将二者锁住</span></span><br><span class="line">        pred.lock();</span><br><span class="line">        curr.lock();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">//锁住二者之后再进行判断，是否存在并发冲突</span></span><br><span class="line">            <span class="keyword">if</span> (validate(pred, curr)) &#123;</span><br><span class="line">                <span class="comment">//如果不存在，那么就直接进行正常操作</span></span><br><span class="line">                <span class="keyword">if</span> (curr.key == key) &#123;</span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    Node node = <span class="keyword">new</span> Node(item);</span><br><span class="line">                    node.next = curr;</span><br><span class="line">                    pred.next = node;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            pred.unlock();</span><br><span class="line">            curr.unlock();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">validate</span><span class="params">(Node pred, Node curr)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//从队列头开始查找pred和curr,判断是否存在并发冲突</span></span><br><span class="line">    Node node = head;</span><br><span class="line">    <span class="keyword">while</span> (node.key &lt;= pred.key) &#123;</span><br><span class="line">        <span class="keyword">if</span> (node == pred) &#123;</span><br><span class="line">            <span class="keyword">return</span> pred.next == curr;</span><br><span class="line">        &#125;</span><br><span class="line">        node = node.next;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;由于不再使用能保护并发修改的锁，所以每个方法调用都可能遍历那些已经被删除的节点，所以在进行添加，删除获取判断是否存在的之前必须再次进行验证。</p>
+<h3 id="惰性同步"><a href="#惰性同步" class="headerlink" title="惰性同步"></a>惰性同步</h3><p>&emsp;当不用锁遍历两次链表的代价比使用锁遍历一次链表的代价小很多时，乐观同步的实现效果非常好。但是这种算法的缺点之一就是contains()方法在遍历时需要锁，这一点并不令人满意，其原因在于对contains()的调用要比其他方法的调用频繁得多。<br>&emsp;<strong><em>使用惰性同步的方法，使得contains()调用是无等待的，同时add()和remove()方法即使在被阻塞的情况下也只需要遍历一次链表</em></strong>。<br>&emsp;<strong><em>对每个节点增加一个布尔类型的marked域，用于说明该节点是否在节点集合中。现在，遍历不再需要锁定目标结点，也没有必须通过重新遍历整个链表来验证结点是否可达。所有未被标记的节点必然是可达的</em></strong>。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//add方法和乐观同步的方法一致，只有检验方法做了修改。</span></span><br><span class="line"><span class="comment">//只需要检测节点的marked变量就可以，并且查看pred的next是否还是指向curr，需要注意的是marked变量一定是voliate的。</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">boolean</span> <span class="title">validate</span><span class="params">(Node pred, Node curr)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> !pred.marked &amp;&amp; !curr.marked &amp;&amp; pred.next == curr;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;惰性同步的优点之一就是能够将类似于设置一个flag这样的逻辑操作与类似于删除结点的链接这种对结构的物理改变分开。通常情况下，延迟操作可以是批量处理方式进行，且在某个方便的时候再懒惰地进行处理，从而降低了对结构进行物理修改的整体破裂性。惰性同步的主要缺点是add()和remove()调用是阻塞的：如果一个线程延迟，那么其他线程也将延迟。</p>
+<h3 id="非阻塞同步"><a href="#非阻塞同步" class="headerlink" title="非阻塞同步"></a>非阻塞同步</h3><p>&emsp;使用惰性同步的思维是非常有益处的。我们可以进一步将add(),remove()和contains()这三个方法都变成非阻塞的。前两个方法是无锁的，最后一个方法是无等待的。我们无法直接使用compareAndSet()来改变next域来实现，因为这样会出现问题。但是我们可以将结点的next域和marked域看作是单个的原子单位：当marked域为true时，对next域的任何修改都将失败。<br>&emsp;我们可以使用AtomicMarkableReference<t>对象将指向类型T的对象引用next和布尔值marked封装在一起。这些域可以一起或单个地原子更新。可以让每个结点的next域为一个AtomicMarkableReference<node>。线程可以通过设置结点next域中的标记位来逻辑地删除curr,和其他正在执行add()和remove()的线程共享物理删除:当每个线程遍历链表时，通过物理删除所有被标记的节点来清理链表。</node></t></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Window <span class="title">find</span><span class="params">(Node head, <span class="keyword">int</span> key)</span> </span>&#123;</span><br><span class="line">        Node pred = <span class="keyword">null</span>, curr = <span class="keyword">null</span>, succ = <span class="keyword">null</span>;</span><br><span class="line">        <span class="keyword">boolean</span>[] marked = &#123;<span class="keyword">false</span>&#125;;</span><br><span class="line">        <span class="keyword">boolean</span> snip;</span><br><span class="line"></span><br><span class="line">        retry: <span class="keyword">while</span>(<span class="keyword">true</span>) &#123;</span><br><span class="line">            pred = head;</span><br><span class="line">            curr = curr.next.get(marked);</span><br><span class="line">            <span class="keyword">while</span>(<span class="keyword">true</span>) &#123;</span><br><span class="line">                succ = curr.next.get(marked); <span class="comment">//获取succ,并且查看是被被标记</span></span><br><span class="line">                <span class="keyword">while</span> (marked[<span class="number">0</span>]) &#123;<span class="comment">//如果被标记了，说明curr被逻辑删除了，需要继续物理删除</span></span><br><span class="line">                    snip = pred.next.compareAndSet(curr, succ, <span class="keyword">false</span>, <span class="keyword">false</span>);<span class="comment">//</span></span><br><span class="line">                    <span class="keyword">if</span> (!snip) <span class="keyword">continue</span> retry;</span><br><span class="line">                    curr = succ;</span><br><span class="line">                    succ = curr.next.get(marked);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="comment">//当不需要删除后，才继续遍历</span></span><br><span class="line">                <span class="keyword">if</span> (curr.key &gt;= key) &#123;</span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">new</span> Window(pred, curr);</span><br><span class="line">                &#125;</span><br><span class="line">                pred = curr;</span><br><span class="line">                curr = succ;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">add</span><span class="params">(T item)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> key = item.hashCode();</span><br><span class="line">        <span class="keyword">while</span>(<span class="keyword">true</span>) &#123;</span><br><span class="line">            Window window = find(head, key);</span><br><span class="line">            Node pred = window.pred, curr = window.curr;</span><br><span class="line">            <span class="keyword">if</span> (curr.key == key) &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                Node node = <span class="keyword">new</span> Node(item);</span><br><span class="line">                node.next = <span class="keyword">new</span> AtomicMarkableReference&lt;&gt;(curr, <span class="keyword">false</span>);</span><br><span class="line">                <span class="keyword">if</span> (pred.next.compareAndSet(curr, node, <span class="keyword">false</span>, <span class="keyword">false</span>)) &#123;</span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">remove</span><span class="params">(T item)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> key = item.hashCode();</span><br><span class="line">        <span class="keyword">boolean</span> sinp;</span><br><span class="line">        <span class="keyword">while</span>(<span class="keyword">true</span>) &#123;</span><br><span class="line">            Window window = find(head, key);</span><br><span class="line">            Node pred = window.pred, curr = window.curr;</span><br><span class="line">            <span class="keyword">if</span> (curr.key != key) &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                Node succ = curr.next.getReference();</span><br><span class="line">                <span class="comment">//要进行删除了，那么就直接将curr.next设置为false,然后在进行真正的物理删除。</span></span><br><span class="line">                sinp = curr.next.compareAndSet(curr, succ, <span class="keyword">false</span>, <span class="keyword">true</span>);</span><br><span class="line">                <span class="keyword">if</span> (!sinp) &#123;</span><br><span class="line">                    <span class="keyword">continue</span>;</span><br><span class="line">                &#125;</span><br><span class="line">                pred.next.compareAndSet(curr, succ, <span class="keyword">false</span>, <span class="keyword">false</span>);</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Node</span> </span>&#123;</span><br><span class="line">          AtomicMarkableReference&lt;Node&gt; next;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;文中的代码在我的github的这个<a href="https://github.com/ztelur/MultiprocessorProgramming/tree/master/src/com/company/nine" target="_blank" rel="external">repo</a>中都可以找到。</p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/blog/categories/多线程/">多线程</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/blog/tags/锁/">锁</a>
+  </div>
+
+</div>
+
+
+
+	<div class="article-share" id="share">
+	
+	<div class="share-jiathis">
+	  
+<div class="jiathis_style_24x24">
+	<a class="jiathis_button_tsina"></a>
+	<a class="jiathis_button_weixin"></a>
+	<a class="jiathis_button_renren"></a>
+	<a class="jiathis_button_qzone"></a>
+	<a class="jiathis_button_googleplus"></a>
+	<a class="jiathis_button_douban"></a>
+	<a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	<a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+    var jiathis_config={
+    data_track_clickback:true,
+    sm:"copy,renren,cqq",
+    pic:"",
+    summary:"",
+    
+  </script> 
+<script type="text/javascript" src="//v3.jiathis.com/code/jia.js?uid=
+2157940" charset="utf-8"></script>      
+
+	 </div>
+	
+	</div>
+
+
+</footer>
+
+   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/blog/2017/07/02/Docker系列之Jenkins自动化部署/" title="Docker系列之Jenkins自动化部署">
+  <strong>上一篇：</strong><br/>
+  <span>
+  Docker系列之Jenkins自动化部署</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/blog/2017/05/03/2017年，计划目录/"  title="2017年，计划目录">
+ <strong>下一篇：</strong><br/> 
+ <span>2017年，计划目录
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comments" class="comment">
+	<div class="ds-thread" data-thread-key="2017/06/19/《多处理器编程艺术》－链表：锁的作用/" data-title="《多处理器编程艺术》－链表：锁的作用" data-url="http://ztelur.github.io/blog/blog/2017/06/19/《多处理器编程艺术》－链表：锁的作用/"></div>
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">Contents</strong>
+ 
+ <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#粗粒度同步"><span class="toc-number">1.</span> <span class="toc-text">粗粒度同步</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#细粒度同步"><span class="toc-number">2.</span> <span class="toc-text">细粒度同步</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#乐观同步"><span class="toc-number">3.</span> <span class="toc-text">乐观同步</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#惰性同步"><span class="toc-number">4.</span> <span class="toc-text">惰性同步</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#非阻塞同步"><span class="toc-number">5.</span> <span class="toc-text">非阻塞同步</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#后记"><span class="toc-number">6.</span> <span class="toc-text">后记</span></a></li></ol>
+ 
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<aside class="clearfix">
+
+  
+
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">Categories</p>
+		<ul>
+		
+		  
+			<li><a href="/blog/categories/Android/" title="Android">Android<sup>21</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android性能/" title="Android性能">Android性能<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/" title="Java">Java<sup>4</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/JavaScript/" title="JavaScript">JavaScript<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/NIO/" title="NIO">NIO<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/NetWork/" title="NetWork">NetWork<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/Network/" title="Network">Network<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Python/" title="Python">Python<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/c/" title="c">c<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/python/" title="python">python<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/函数式编程/" title="函数式编程">函数式编程<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/分布式/" title="分布式">分布式<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/后端/" title="后端">后端<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/后端-Spring/" title="后端 - Spring">后端 - Spring<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/多线程/" title="多线程">多线程<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/容器/" title="容器">容器<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/并发/" title="并发">并发<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/思考/" title="思考">思考<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/c/数据结构/" title="数据结构">数据结构<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/源码/" title="源码">源码<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/源码分析/" title="源码分析">源码分析<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/杂记/生活/" title="生活">生活<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/算法/" title="算法">算法<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/综合/" title="综合">综合<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/网络/" title="网络">网络<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/源码/视图/" title="视图">视图<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/计划/" title="计划">计划<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/设计/" title="设计">设计<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/读书笔记/" title="读书笔记">读书笔记<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/运维/" title="运维">运维<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/随笔/" title="随笔">随笔<sup>1</sup></a></li>
+		  
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">Tags</p>
+		<ul class="clearfix">
+		
+			
+				<li><a href="/blog/tags/JUC/" title="JUC">JUC<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/注解/" title="注解">注解<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/算法/" title="算法">算法<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Netty/" title="Netty">Netty<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/第三方库/" title="第三方库">第三方库<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/View/" title="View">View<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Span/" title="Span">Span<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Spring-Boot/" title="Spring Boot">Spring Boot<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Jenkins/" title="Jenkins">Jenkins<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/工具/" title="工具">工具<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/反射/" title="反射">反射<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/JSON/" title="JSON">JSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/docker/" title="docker">docker<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/kubernetes/" title="kubernetes">kubernetes<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
+			
+		
+		</ul>
+</div>
+
+
+  
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	
+	<section class="info">
+		<p> Hello ,I&#39;m Homer in NJU. <br/>
+			This is my blog,believe it or not.</p>
+	</section>
+	 
+	<div class="social-font" class="clearfix">
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+	</div>
+			
+		
+
+		<p class="copyright">
+		Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/wuchong/jacman" target="_blank" title="Jacman">Jacman</a> © 2018 
+		
+		<a href="/blog/about" target="_blank" title="remCarpediem">remCarpediem</a>
+		
+		
+		</p>
+</div>
+</footer>
+    <script src="/blog/js/jquery-2.0.3.min.js"></script>
+<script src="/blog/js/jquery.imagesloaded.min.js"></script>
+<script src="/blog/js/gallery.js"></script>
+<script src="/blog/js/jquery.qrcode-0.12.0.min.js"></script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+  
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else{
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  c.click(function(){
+    ta.css('display', 'block').addClass('fadeIn');
+  });
+  o.click(function(){
+    ta.css('display', 'none');
+  });
+  $(window).scroll(function(){
+    ta.css("top",Math.max(140,320-$(this).scrollTop()));
+  });
+});
+</script>
+
+
+
+
+<script type="text/javascript">
+  var duoshuoQuery = {short_name:"CarpeDiem"};
+  (function() {
+    var ds = document.createElement('script');
+    ds.type = 'text/javascript';ds.async = true;
+    ds.src = '//static.duoshuo.com/embed.js';
+    ds.charset = 'UTF-8';
+    (document.getElementsByTagName('head')[0] 
+    || document.getElementsByTagName('body')[0]).appendChild(ds);
+  })();
+</script> 
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/blog/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/blog/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.article-content').each(function(i){
+    $(this).find('img').each(function(){
+      if ($(this).parent().hasClass('fancybox')) return;
+      var alt = this.alt;
+      if (alt) $(this).after('<span class="caption">' + alt + '</span>');
+      $(this).wrap('<a href="' + this.src + '" title="' + alt + '" class="fancybox"></a>');
+    });
+    $(this).find('.fancybox').each(function(){
+      $(this).attr('rel', 'article' + i);
+    });
+  });
+  if($.fancybox){
+    $('.fancybox').fancybox();
+  }
+}); 
+</script>
+
+
+
+<!-- Analytics Begin -->
+
+<script type="text/javascript">
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+ga('create', 'UA-88918565-1', 'ztelur.github.io/');
+ga('send', 'pageview');
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?8a8af29a4307eee9d7c7f8e9321aedae";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+<script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1260989317'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "s23.cnzz.com/z_stat.php%3Fid%3D1260989317' type='text/javascript'%3E%3C/script%3E"));</script>
+
+
+
+
+<!-- baidu search 推送-->
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+<!-- Analytics End -->
+
+<!-- Totop Begin -->
+
+	<div id="totop">
+	<a title="Back to Top"><img src="/blog/img/scrollup.png"/></a>
+	</div>
+	<script src="/blog/js/totop.js"></script>
+
+<!-- Totop End -->
+
+<!-- MathJax Begin -->
+<!-- mathjax config similar to math.stackexchange -->
+
+
+<!-- MathJax End -->
+
+<!-- Tiny_search Begin -->
+
+<!-- Tiny_search End -->
+
+  </body>
+</html>

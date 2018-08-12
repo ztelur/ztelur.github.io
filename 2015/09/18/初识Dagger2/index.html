@@ -1,0 +1,729 @@
+
+ <!DOCTYPE HTML>
+<html lang="Chinese">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>初识Dagger2 | Carpediem</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
+    
+    <meta name="author" content="remCarpediem">
+    
+
+    
+    <meta name="description" content="&amp;emsp;要使用Dagger2，首先要了解的就是控制反转和依赖注入这两个概念。
+
+一、控制反转
+&amp;emsp;在wiki词条中，控制反转如下定义：In software engineering, inversion of control (IoC) describes a design in which custom-written portions of a computer program">
+<meta property="og:type" content="article">
+<meta property="og:title" content="初识Dagger2">
+<meta property="og:url" content="http://ztelur.github.io/blog/2015/09/18/初识Dagger2/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="&amp;emsp;要使用Dagger2，首先要了解的就是控制反转和依赖注入这两个概念。
+
+一、控制反转
+&amp;emsp;在wiki词条中，控制反转如下定义：In software engineering, inversion of control (IoC) describes a design in which custom-written portions of a computer program">
+<meta property="og:image" content="http://7xjsjy.com1.z0.glb.clouddn.com/dagger1inject.png">
+<meta property="og:image" content="http://7xjsjy.com1.z0.glb.clouddn.com/dagger1inject2.png">
+<meta property="og:image" content="http://7xjsjy.com1.z0.glb.clouddn.com/dagger1inject3.png">
+<meta property="og:image" content="http://7xjsjy.com1.z0.glb.clouddn.com/dagger1module.png">
+<meta property="og:image" content="http://7xjsjy.com1.z0.glb.clouddn.com/dagger1component.png">
+<meta property="og:updated_time" content="2015-09-18T17:42:58.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="初识Dagger2">
+<meta name="twitter:description" content="&amp;emsp;要使用Dagger2，首先要了解的就是控制反转和依赖注入这两个概念。
+
+一、控制反转
+&amp;emsp;在wiki词条中，控制反转如下定义：In software engineering, inversion of control (IoC) describes a design in which custom-written portions of a computer program">
+<meta name="twitter:image" content="http://7xjsjy.com1.z0.glb.clouddn.com/dagger1inject.png">
+
+    
+    <link rel="alternative" href="/atom.xml" title="Carpediem" type="application/atom+xml">
+    
+    
+    
+    <link rel="stylesheet" href="/blog/css/style.css">
+</head>
+
+  <body>
+    <header>
+      
+<div>
+		
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/blog/" title="Carpediem">Carpediem</a></h1>
+				<h2 class="blog-motto">blog of nobody</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					<ul>
+					 
+						<li><a href="/blog/">Home</a></li>
+					
+						<li><a href="/blog/archives">Archives</a></li>
+					
+						<li><a href="/blog/about">About</a></li>
+					
+					<li>
+ 					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
+						<input type="hidden" name="q" value="site:ztelur.github.io/blog">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+  
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/blog/2015/09/18/初识Dagger2/" title="初识Dagger2" itemprop="url">初识Dagger2</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/blog/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2015-09-18T09:34:05.000Z" itemprop="datePublished"> Published 2015-09-18</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">Contents</strong>
+		
+			<ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#一、控制反转"><span class="toc-number">1.</span> <span class="toc-text">一、控制反转</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#二、依赖注入"><span class="toc-number">2.</span> <span class="toc-text">二、依赖注入</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#三、Dagger2"><span class="toc-number">3.</span> <span class="toc-text">三、Dagger2</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#四、Dagger2使用"><span class="toc-number">4.</span> <span class="toc-text">四、Dagger2使用</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#五、Dagger2常见问题"><span class="toc-number">5.</span> <span class="toc-text">五、Dagger2常见问题</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#六、后续"><span class="toc-number">6.</span> <span class="toc-text">六、后续</span></a></li></ol>
+		
+		</div>
+		
+		<blockquote>
+<p>&emsp;要使用Dagger2，首先要了解的就是控制反转和依赖注入这两个概念。</p>
+</blockquote>
+<h4 id="一、控制反转"><a href="#一、控制反转" class="headerlink" title="一、控制反转"></a>一、控制反转</h4><blockquote>
+<p>&emsp;在wiki词条中，控制反转如下定义：In <a href="https://en.wikipedia.org/wiki/Software_engineering" target="_blank" rel="external">software engineering</a>, <strong>inversion of control</strong> (<strong>IoC</strong>) describes a design in which custom-written portions of a <a href="https://en.wikipedia.org/wiki/Computer_program" target="_blank" rel="external">computer program</a> receive the <a href="https://en.wikipedia.org/wiki/Control_flow" target="_blank" rel="external">flow of control</a> from a generic, <a href="https://en.wikipedia.org/wiki/Reusable_library" target="_blank" rel="external">reusable library</a>. A <a href="https://en.wikipedia.org/wiki/Software_architecture" target="_blank" rel="external">software architecture</a> with this design inverts control as compared to traditional <a href="https://en.wikipedia.org/wiki/Procedural_programming" target="_blank" rel="external">procedural programming</a>: in traditional programming, the custom code that expresses the purpose of the program <a href="https://en.wikipedia.org/wiki/Function_call#Main_concepts" target="_blank" rel="external">calls into</a> reusable libraries to take care of generic tasks, but with inversion of control, it is the reusable code that calls into the custom, or task-specific, code.</p>
+<p>&emsp;其中主要的含义就是客户端代码(custom-writen)可以控制一般性的可复用库的控制流(flow of control),比如组件对象的创建的控制权。<br>&emsp;控制反转和传统编程的对比：</p>
+<ul>
+<li>IoC模式：调用类只依赖于接口，而不依赖于具体的实现类，减少了耦合。控制权交给了容器，在运行时才由容器决定将具体的实现动态的“注入”到调用类的对象中。</li>
+<li>传统编程：决定使用哪个具体的实现类的控制权在调用类本身，在编译阶段就确定了。</li>
+</ul>
+<p>&emsp;所以，所谓的“控制反转”概念就是对组件对象控制权的转移，从程序代码本身转移到了外部容器。而依赖注入则是控制反转实现的一种方式。</p>
+</blockquote>
+<h4 id="二、依赖注入"><a href="#二、依赖注入" class="headerlink" title="二、依赖注入"></a>二、依赖注入</h4><blockquote>
+<p>&emsp;先说依赖，依赖就是你两个代码模块的耦合(a dependency is a coupling between two modules of your code),一般来说，当对象A中还有类型为B的成员变量时，我们就可以说A依赖于B，二者就相互耦合，至于是何种耦合，那就要依情况而定。</p>
+<p>&emsp;如果要避免这种依赖，我们可以设计一个interface IB，让B实现IB,然A依赖于IB，这就是所谓的依赖倒置原则。</p>
+<p>&emsp;但是对于对象的创建，我们是无法规避所谓的依赖的，当你在一个对象中创建了另外一个类型的对象（new），就会产生依赖。所以在设计模式中，会有一系列的创建型模式来减少这类的依赖。</p>
+<p>&emsp;从我现在对工厂模式和依赖注入的理解，二者在减少依赖这个方面的贡献应该是相同的，但是依赖注入可以减少你自己手写的代码。而依赖于反射的依赖注入在效率上会有所下降。 </p>
+<p>&emsp; A dependency is an <a href="https://en.wikipedia.org/wiki/Object_(computer_science" target="_blank" rel="external">object</a>) that can be used (a <a href="https://en.wikipedia.org/wiki/Service_(systems_architecture" target="_blank" rel="external">service</a>)). An injection is the passing of a dependency to a dependent object (a <a href="https://en.wikipedia.org/wiki/Client_(computing" target="_blank" rel="external">client</a>)) that would use it. The service is made part of the client’s <a href="https://en.wikipedia.org/wiki/State_(computer_science" target="_blank" rel="external">state</a>).<a href="https://en.wikipedia.org/wiki/Dependency_injection#cite_note-JamesShore-1" target="_blank" rel="external">[1]</a><br> Passing the service to the client, rather than allowing a client to build or find the service, is the fundamental requirement of the pattern.<br>&emsp;依赖注入的基本原则是：应用组件不应该负责查找资源或者其他依赖的协作对象。配置对象的工作应该由IoC容器负责，“查找资源”的逻辑应该从应用组件的代码中抽取出来（比如new出来应用组件对象），交给IoC容器负责，这样可以让程序准从依赖导致原则。</p>
+</blockquote>
+<h4 id="三、Dagger2"><a href="#三、Dagger2" class="headerlink" title="三、Dagger2"></a>三、Dagger2</h4><blockquote>
+<p>&emsp;Dagger2 是google从Dagger1中fork的一个分支。从一开始，Dagger2所秉承的观念就是使用代码自动生成和手写代码（类似于javabean的写一些有固定前缀的函数或者类，接口）来实现依赖注入。所以，Dagger2就有以下几点比较特殊的地方</p>
+<ul>
+<li>完全未使用反射，图的验证，配置和预处理都是在编译阶段完成。</li>
+<li>由于是通过生成代码来实现依赖注入，所以更容易调试和回溯异常路径，可以提供完整的调用函数栈。</li>
+<li>更高的性能，根据google的数据，性能提高了13%。</li>
+<li>不太灵活和动态，因为没有使用反射。</li>
+</ul>
+</blockquote>
+<h4 id="四、Dagger2使用"><a href="#四、Dagger2使用" class="headerlink" title="四、Dagger2使用"></a>四、Dagger2使用</h4><blockquote>
+<p>&emsp;具体的说明文档请查阅<a href="Dagger2项目官网">http://google.github.io/dagger/</a>,这个demo在我的github上[<a href="https://github.com/ztelur/DaggerProject" target="_blank" rel="external">https://github.com/ztelur/DaggerProject</a>]</p>
+<p>&emsp;这里只展示android上一个demo，解释各个注释的含义和一些常见的问题</p>
+<p>&emsp; 1 @Inject<br>  按照标注的元素的不同，这个注释的作用不同</p>
+<ul>
+<li>标注元素为<strong>构造函数</strong>，当程序需要这个类型的对象时，就会<br>调用这个构造函数，从而生成相应的对象，如果构造函数有参数，Dagger2会在调用构造函数之前先去获得这些对象，所以你要保证它的参数也提供了可以被Dagger2调用的构造函数<br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/dagger1inject.png" alt="标注在构造函数上"></li>
+<li>标注元素为<strong>成员变量</strong>,这就标示，这个成员变量需要Dagger2来进行注入，也就是说Dagger2来初始化它，通常你需要调用Component.void injectSomeType(SomeType someType)这个方法来让Dagger进行自动化注入。<br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/dagger1inject2.png" alt="标注在成员变量上"><br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/dagger1inject3.png" alt="inject函数"></li>
+</ul>
+<p>&emsp;2.@Module<br> module是拥有可以提供依赖的函数的类，我们定义一个类，标注为module,然后Dagger2就知道哪里可以找到构建一个对象所需要的依赖啦。而且module被设计为可以被分割和组合的模式，有益于模块的划分。</p>
+<p>&emsp;3.@Provide:<br> 在标注为module的类中的函数可以标注为provide,标示可以提供相应的依赖，函数的前缀必须为provides.<br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/dagger1module.png" alt="module和provide"><br>&emsp;4.@Component<br>  这是Dagger2依赖注入的核心模块，类似于一个注入器的角色。它是@Inject和@Module的桥梁。我们必须创建一个interface,标注为Component,然后列出所有它需要的Module。component中还可以提供一些方法来获得一些对象。component可以有scope，比如Application的生命周期，activity的生命周期，这一块我还没有搞清楚…..</p>
+<p>&emsp;5.@Singleton<br>  这是标示一个单例的注释，可以和provide共同标注一个函数，标示这个函数返回的对象都是单例的，也可以和component一起标注一个component，标示这个component的scope是全局的。<br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/dagger1component.png" alt="component"><br>&emsp;6.Lazy injections<br>这个不是一个标注，而是一个可以推迟初始化的容器，比如你依赖一个对象B(<code>@Inject B mB</code>)，但是你希望当你第一次使用它的时候在初始化，所以你就可以用Lazy<b>(<code>@Inject Lazy&lt;B&gt; mB</code>)</b></p>
+</blockquote>
+<h4 id="五、Dagger2常见问题"><a href="#五、Dagger2常见问题" class="headerlink" title="五、Dagger2常见问题"></a>五、Dagger2常见问题</h4><ol>
+<li><strong>如何在gradle上配置Dagger2</strong>:可以参考<a href="">http://stackoverflow.com/questions/22976251/how-to-configure-dagger-gradle</a></li>
+<li><p><strong>程序包javax.annotation包不存在,找不到Generated</strong>:需要在Gradle中添加<code>provided &#39;javax.annotation:jsr250-api:1.0&#39;</code>依赖</p>
+</li>
+<li><p><strong>对于private的成员变量的注入问题</strong>:Dagger2是不支持private的成员变量的直接注入的。解决方法有两个：一个是换成protected,或者使用构造函数inject.但是这两种方法都没有良好的解决android平台中Activity,Application等类的注入问题.<br><a href="">http://stackoverflow.com/questions/16598123/android-dagger-dependency-injection-fails-on-private-fields</a></p>
+</li>
+<li><strong>对于第三方对象的注入问题</strong><br><a href="">https://github.com/google/dagger/issues/128#issuecomment-86702574</a></li>
+<li><strong>自定义scope问题</strong>:这个问题我一直没有搞懂，希望了解的同学帮助一下.<br><a href="">http://stackoverflow.com/questions/29923376/dagger2-custom-scopes-how-do-custom-scopes-activityscope-actually-work</a><br><a href="">http://stackoverflow.com/questions/28411352/what-determines-the-lifecycle-of-a-component-object-graph-in-dagger-2</a><br><a href="">http://stackoverflow.com/questions/29923376/dagger2-custom-scopes-how-do-custom-scopes-activityscope-actually-work</a></li>
+</ol>
+<h4 id="六、后续"><a href="#六、后续" class="headerlink" title="六、后续"></a>六、后续</h4><blockquote>
+<p>&emsp;这篇只是介绍关于Dagger2的背景知识和基本使用，之后我想研究一下Dagger2的源代码，和使用Dagger2对apk大小的影响。希望可以把这个系列做好吧。</p>
+</blockquote>
+<p>#####Reference：</p>
+<ul>
+<li>IoC<br><a href="">https://en.wikipedia.org/wiki/Inversion_of_control</a><br><a href="">http://zhangjunhd.blog.51cto.com/113473/126530</a><br><a href="">http://www.importnew.com/13619.html</a></li>
+<li>DI<br><a href="">https://en.wikipedia.org/wiki/Dependency_injection</a><br><a href="">https://en.wikipedia.org/wiki/Dependency_inversion_principle</a><br><a href="">http://antonioleiva.com/dependency-injection-android-dagger-part-1/</a></li>
+<li>Dagger<br><a href="">http://a.codekk.com/detail/Android/%E6%89%94%E7%89%A9%E7%BA%BF/Dagger%20%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90</a><br><a href="">http://fernandocejas.com/2015/04/11/tasting-dagger-2-on-android/</a></li>
+</ul>
+  
+	</div>
+		<footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/blog/categories/Android/">Android</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/blog/tags/第三方库/">第三方库</a><a href="/blog/tags/依赖注入/">依赖注入</a>
+  </div>
+
+</div>
+
+
+
+	<div class="article-share" id="share">
+	
+	<div class="share-jiathis">
+	  
+<div class="jiathis_style_24x24">
+	<a class="jiathis_button_tsina"></a>
+	<a class="jiathis_button_weixin"></a>
+	<a class="jiathis_button_renren"></a>
+	<a class="jiathis_button_qzone"></a>
+	<a class="jiathis_button_googleplus"></a>
+	<a class="jiathis_button_douban"></a>
+	<a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	<a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+    var jiathis_config={
+    data_track_clickback:true,
+    sm:"copy,renren,cqq",
+    pic:"",
+    summary:"",
+    
+  </script> 
+<script type="text/javascript" src="//v3.jiathis.com/code/jia.js?uid=
+2157940" charset="utf-8"></script>      
+
+	 </div>
+	
+	</div>
+
+
+</footer>
+
+   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/blog/2015/09/27/Android-Async-Http-源码解析/" title="Android-Async-Http 源码解析">
+  <strong>上一篇：</strong><br/>
+  <span>
+  Android-Async-Http 源码解析</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/blog/2015/06/24/体验编程之美-饮料供应问题/"  title="体验编程之美　饮料供应问题">
+ <strong>下一篇：</strong><br/> 
+ <span>体验编程之美　饮料供应问题
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comments" class="comment">
+	<div class="ds-thread" data-thread-key="2015/09/18/初识Dagger2/" data-title="初识Dagger2" data-url="http://ztelur.github.io/blog/blog/2015/09/18/初识Dagger2/"></div>
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">Contents</strong>
+ 
+ <ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#一、控制反转"><span class="toc-number">1.</span> <span class="toc-text">一、控制反转</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#二、依赖注入"><span class="toc-number">2.</span> <span class="toc-text">二、依赖注入</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#三、Dagger2"><span class="toc-number">3.</span> <span class="toc-text">三、Dagger2</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#四、Dagger2使用"><span class="toc-number">4.</span> <span class="toc-text">四、Dagger2使用</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#五、Dagger2常见问题"><span class="toc-number">5.</span> <span class="toc-text">五、Dagger2常见问题</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#六、后续"><span class="toc-number">6.</span> <span class="toc-text">六、后续</span></a></li></ol>
+ 
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<aside class="clearfix">
+
+  
+
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">Categories</p>
+		<ul>
+		
+		  
+			<li><a href="/blog/categories/Android/" title="Android">Android<sup>21</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android性能/" title="Android性能">Android性能<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/" title="Java">Java<sup>4</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/JavaScript/" title="JavaScript">JavaScript<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/NIO/" title="NIO">NIO<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/NetWork/" title="NetWork">NetWork<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/Network/" title="Network">Network<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Python/" title="Python">Python<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/c/" title="c">c<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/python/" title="python">python<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/函数式编程/" title="函数式编程">函数式编程<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/分布式/" title="分布式">分布式<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/后端/" title="后端">后端<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/后端-Spring/" title="后端 - Spring">后端 - Spring<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/多线程/" title="多线程">多线程<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/容器/" title="容器">容器<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/并发/" title="并发">并发<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/思考/" title="思考">思考<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/c/数据结构/" title="数据结构">数据结构<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/源码/" title="源码">源码<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/源码分析/" title="源码分析">源码分析<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/杂记/生活/" title="生活">生活<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/算法/" title="算法">算法<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/综合/" title="综合">综合<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/网络/" title="网络">网络<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/源码/视图/" title="视图">视图<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/计划/" title="计划">计划<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/设计/" title="设计">设计<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/读书笔记/" title="读书笔记">读书笔记<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/运维/" title="运维">运维<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/随笔/" title="随笔">随笔<sup>1</sup></a></li>
+		  
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">Tags</p>
+		<ul class="clearfix">
+		
+			
+				<li><a href="/blog/tags/JUC/" title="JUC">JUC<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/注解/" title="注解">注解<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/算法/" title="算法">算法<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Netty/" title="Netty">Netty<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/第三方库/" title="第三方库">第三方库<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/View/" title="View">View<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Span/" title="Span">Span<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Spring-Boot/" title="Spring Boot">Spring Boot<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Jenkins/" title="Jenkins">Jenkins<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/工具/" title="工具">工具<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/反射/" title="反射">反射<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/JSON/" title="JSON">JSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/docker/" title="docker">docker<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/kubernetes/" title="kubernetes">kubernetes<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
+			
+		
+		</ul>
+</div>
+
+
+  
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	
+	<section class="info">
+		<p> Hello ,I&#39;m Homer in NJU. <br/>
+			This is my blog,believe it or not.</p>
+	</section>
+	 
+	<div class="social-font" class="clearfix">
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+	</div>
+			
+		
+
+		<p class="copyright">
+		Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/wuchong/jacman" target="_blank" title="Jacman">Jacman</a> © 2018 
+		
+		<a href="/blog/about" target="_blank" title="remCarpediem">remCarpediem</a>
+		
+		
+		</p>
+</div>
+</footer>
+    <script src="/blog/js/jquery-2.0.3.min.js"></script>
+<script src="/blog/js/jquery.imagesloaded.min.js"></script>
+<script src="/blog/js/gallery.js"></script>
+<script src="/blog/js/jquery.qrcode-0.12.0.min.js"></script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+  
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else{
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  c.click(function(){
+    ta.css('display', 'block').addClass('fadeIn');
+  });
+  o.click(function(){
+    ta.css('display', 'none');
+  });
+  $(window).scroll(function(){
+    ta.css("top",Math.max(140,320-$(this).scrollTop()));
+  });
+});
+</script>
+
+
+
+
+<script type="text/javascript">
+  var duoshuoQuery = {short_name:"CarpeDiem"};
+  (function() {
+    var ds = document.createElement('script');
+    ds.type = 'text/javascript';ds.async = true;
+    ds.src = '//static.duoshuo.com/embed.js';
+    ds.charset = 'UTF-8';
+    (document.getElementsByTagName('head')[0] 
+    || document.getElementsByTagName('body')[0]).appendChild(ds);
+  })();
+</script> 
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/blog/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/blog/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.article-content').each(function(i){
+    $(this).find('img').each(function(){
+      if ($(this).parent().hasClass('fancybox')) return;
+      var alt = this.alt;
+      if (alt) $(this).after('<span class="caption">' + alt + '</span>');
+      $(this).wrap('<a href="' + this.src + '" title="' + alt + '" class="fancybox"></a>');
+    });
+    $(this).find('.fancybox').each(function(){
+      $(this).attr('rel', 'article' + i);
+    });
+  });
+  if($.fancybox){
+    $('.fancybox').fancybox();
+  }
+}); 
+</script>
+
+
+
+<!-- Analytics Begin -->
+
+<script type="text/javascript">
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+ga('create', 'UA-88918565-1', 'ztelur.github.io/');
+ga('send', 'pageview');
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?8a8af29a4307eee9d7c7f8e9321aedae";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+<script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1260989317'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "s23.cnzz.com/z_stat.php%3Fid%3D1260989317' type='text/javascript'%3E%3C/script%3E"));</script>
+
+
+
+
+<!-- baidu search 推送-->
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+<!-- Analytics End -->
+
+<!-- Totop Begin -->
+
+	<div id="totop">
+	<a title="Back to Top"><img src="/blog/img/scrollup.png"/></a>
+	</div>
+	<script src="/blog/js/totop.js"></script>
+
+<!-- Totop End -->
+
+<!-- MathJax Begin -->
+<!-- mathjax config similar to math.stackexchange -->
+
+
+<!-- MathJax End -->
+
+<!-- Tiny_search Begin -->
+
+<!-- Tiny_search End -->
+
+  </body>
+</html>

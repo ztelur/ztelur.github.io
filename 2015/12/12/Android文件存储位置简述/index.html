@@ -1,0 +1,688 @@
+
+ <!DOCTYPE HTML>
+<html lang="Chinese">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Android文件存储位置简述 | Carpediem</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
+    
+    <meta name="author" content="remCarpediem">
+    
+
+    
+    <meta name="description" content="&amp;emsp;最近一段时间,工作和学习方面都比较忙,所以,博客方面有一段时间没有投入时间啦,今天学习了一下android文件存储方面的知识,主要是Internal Storage和External Storage的相关特性.主要知识来自android的官方文档和其他人的博客.
+Internal Storage&amp;emsp;一般来说,你可以直接存储文件在机器的internal storage中,存储在这">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Android文件存储位置简述">
+<meta property="og:url" content="http://ztelur.github.io/blog/2015/12/12/Android文件存储位置简述/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="&amp;emsp;最近一段时间,工作和学习方面都比较忙,所以,博客方面有一段时间没有投入时间啦,今天学习了一下android文件存储方面的知识,主要是Internal Storage和External Storage的相关特性.主要知识来自android的官方文档和其他人的博客.
+Internal Storage&amp;emsp;一般来说,你可以直接存储文件在机器的internal storage中,存储在这">
+<meta property="og:updated_time" content="2015-12-12T17:13:20.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Android文件存储位置简述">
+<meta name="twitter:description" content="&amp;emsp;最近一段时间,工作和学习方面都比较忙,所以,博客方面有一段时间没有投入时间啦,今天学习了一下android文件存储方面的知识,主要是Internal Storage和External Storage的相关特性.主要知识来自android的官方文档和其他人的博客.
+Internal Storage&amp;emsp;一般来说,你可以直接存储文件在机器的internal storage中,存储在这">
+
+    
+    <link rel="alternative" href="/atom.xml" title="Carpediem" type="application/atom+xml">
+    
+    
+    
+    <link rel="stylesheet" href="/blog/css/style.css">
+</head>
+
+  <body>
+    <header>
+      
+<div>
+		
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/blog/" title="Carpediem">Carpediem</a></h1>
+				<h2 class="blog-motto">blog of nobody</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					<ul>
+					 
+						<li><a href="/blog/">Home</a></li>
+					
+						<li><a href="/blog/archives">Archives</a></li>
+					
+						<li><a href="/blog/about">About</a></li>
+					
+					<li>
+ 					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
+						<input type="hidden" name="q" value="site:ztelur.github.io/blog">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+  
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/blog/2015/12/12/Android文件存储位置简述/" title="Android文件存储位置简述" itemprop="url">Android文件存储位置简述</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/blog/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2015-12-12T09:11:54.000Z" itemprop="datePublished"> Published 2015-12-12</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">Contents</strong>
+		
+			<ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#Internal-Storage"><span class="toc-number">1.</span> <span class="toc-text">Internal Storage</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#External-Storage"><span class="toc-number">2.</span> <span class="toc-text">External Storage</span></a></li></ol>
+		
+		</div>
+		
+		<p>&emsp;最近一段时间,工作和学习方面都比较忙,所以,博客方面有一段时间没有投入时间啦,今天学习了一下android文件存储方面的知识,主要是<code>Internal Storage</code>和<code>External Storage</code>的相关特性.主要知识来自android的官方文档和其他人的博客.</p>
+<h4 id="Internal-Storage"><a href="#Internal-Storage" class="headerlink" title="Internal Storage"></a>Internal Storage</h4><p>&emsp;一般来说,你可以直接存储文件在机器的internal storage中,存储在这个位置的文件是私有的,其他应用无法获得.但是当用户卸载你的应用时,文件就被删除啦.</p>
+<blockquote>
+<p>通过<code>openFileOutput()</code>传入文件的名字和操作模式,就可以获得<code>FileOutputStream</code>,然后就可以<code>write()</code>,然后<code>close</code>啦.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">String FILENAME = <span class="string">"hello_file"</span>;</span><br><span class="line">String string = <span class="string">"hello world!"</span>;</span><br><span class="line"></span><br><span class="line">FileOutputStream fos = openFileOutput(FILENAME, Context.MODE_PRIVATE);</span><br><span class="line">fos.write(string.getBytes());</span><br><span class="line">fos.close();</span><br></pre></td></tr></table></figure></p>
+<p><code>MODE_PRIVATE</code>模式会创建或者替换同名文件,并让文件变为私有的,其他的一些模式还有<code>MODE_APPEND</code>(追加模式),<code>MODE_WORLD_READABLE</code>(全局可读)和<code>MODE_WORLD_WRITEABLE</code>(全局可写).<br>通过<code>OpenFileInput()</code>函数可以进行文件的读取.</p>
+</blockquote>
+<p>&emsp;Android的内部存储路径为/data/data/packagename/,加入你的应用名为com.example.test,那么这个路径就为/data/data/com.example.test,这个路径下一般会有files,cache和你自己生成的文件夹.那么如下的操作返回的路径如下</p>
+<ul>
+<li>Context.getFileDir(),获得/data/data/com.example.test/files这个文件夹的File对象</li>
+<li>Context.openFileInput()和Context.openFileOutput,读取的是files文件夹下的文件</li>
+<li>Context.fileList(),返回的是files下的所有文件名</li>
+<li>Context.deleteFile(),删除files下指定名称的文件</li>
+<li>Context.getCacheDir(),该方法返回的是/data/data/com.example.test/cache的File对象.当Android的内部存储容量过低时,android会自动清除缓存文件.</li>
+<li>getDir(String name,int mode),返回的是/data/data/com.example.test/下指定名称的文件夹的File对象</li>
+</ul>
+<h4 id="External-Storage"><a href="#External-Storage" class="headerlink" title="External Storage"></a>External Storage</h4><p>&emsp;所有android设备都会提供外部存储,你可以用来保存文件,但是存储在外部存储的文件是完全公开的,并且可以被用户修改,外部存储可能无法获得,并且存储的文件的安全性很低,会被修改或者删除.<br>&emsp;获得    外部存储的访问权必须需要申请<code>READ_EXTERNAL_STORAGE</code>或者<code>WRITE_EXTERNAL_STORAGE</code>权限,如果申请了写权限,那么相应的读权限也获得啦.如果是Android 6.0,那么权限的申请可能就更加麻烦 :<a href="http://jijiaxin89.com/2015/08/30/Android-s-Runtime-Permission/" target="_blank" rel="external">6.0新的权限管理系统</a><br>&emsp;在使用外部存储设备之前,必须先检查外部存储设备的挂载情况,然后再进行文件操作<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Checks if external storage is available for read and write */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">isExternalStorageWritable</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String state = Environment.getExternalStorageState();</span><br><span class="line">    <span class="keyword">if</span> (Environment.MEDIA_MOUNTED.equals(state)) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* Checks if external storage is available to at least read */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">isExternalStorageReadable</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String state = Environment.getExternalStorageState();</span><br><span class="line">    <span class="keyword">if</span> (Environment.MEDIA_MOUNTED.equals(state) ||</span><br><span class="line">        Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;如果你想存储一些可以和其他应用共享的文件时,一般存储在共享的文件夹中,比如<code>Music/</code>,’Pictures/‘,’Ringtones/‘通过<code>Environment.getExternalStoragePublicDirectory</code>,传递给其文件夹的类型,比如<code>DIRECTORY_MUSIC</code>,<code>DIRECTORY_PICTURES</code>,就可以获得响应文件夹的File对象.<br>&emsp;当你不想其他应用读取你的文件时,你可能需要使用私有文件夹.通过<code>getExternalFilesDir()</code>,并传递给其子文件夹的type,就可以打开响应的文件夹,在4.4之后,读取私有文件夹下的文件,是不需要外部存储设备权限的.<br>&emsp;外部存储设备的路径一般都以/mnt/sdcard开始,如下的一些函数获得路径如下:</p>
+<ul>
+<li>getExternalCacheDir() 获得/mnt/sdcard/Android/data/com.example.test/cache 文件夹的File对象</li>
+<li>getExternalFilesDir(type)获得/mnt/sdcard/Android/data/com.example.test/files文件夹下响应子文件夹的File对象</li>
+<li>Environment.getExternalStorageDiretory() 获得的是/mnt/sdcard文件夹的File对象</li>
+<li>Environment.getDataDirectory() 获得是的/data文件夹的File对象,需要注意的是,/data/data/Android/就是内部存储文件夹啦.</li>
+<li>Environment.getDownloadCacheDirectory() 获得的是/cache文件夹的File对象.</li>
+</ul>
+<p>参考文章:</p>
+<ul>
+<li><a href="http://blog.csdn.net/ljh347917444/article/details/16984199" target="_blank" rel="external">android 系统文件路径.sdcard路径.外部路径</a> </li>
+<li><a href="http://developer.android.com/intl/zh-cn/guide/topics/data/data-storage.html#filesInternal" target="_blank" rel="external">Android Doc</a></li>
+</ul>
+  
+	</div>
+		<footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/blog/categories/Android/">Android</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/blog/tags/文件系统/">文件系统</a>
+  </div>
+
+</div>
+
+
+
+	<div class="article-share" id="share">
+	
+	<div class="share-jiathis">
+	  
+<div class="jiathis_style_24x24">
+	<a class="jiathis_button_tsina"></a>
+	<a class="jiathis_button_weixin"></a>
+	<a class="jiathis_button_renren"></a>
+	<a class="jiathis_button_qzone"></a>
+	<a class="jiathis_button_googleplus"></a>
+	<a class="jiathis_button_douban"></a>
+	<a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	<a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+    var jiathis_config={
+    data_track_clickback:true,
+    sm:"copy,renren,cqq",
+    pic:"",
+    summary:"",
+    
+  </script> 
+<script type="text/javascript" src="//v3.jiathis.com/code/jia.js?uid=
+2157940" charset="utf-8"></script>      
+
+	 </div>
+	
+	</div>
+
+
+</footer>
+
+   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/blog/2016/01/01/Material-Design-标注图/" title="Material Design 标注图">
+  <strong>上一篇：</strong><br/>
+  <span>
+  Material Design 标注图</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/blog/2015/11/18/OkHttp解析系列-重定向和出错重试/"  title="OkHttp解析系列-重定向和出错重试">
+ <strong>下一篇：</strong><br/> 
+ <span>OkHttp解析系列-重定向和出错重试
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comments" class="comment">
+	<div class="ds-thread" data-thread-key="2015/12/12/Android文件存储位置简述/" data-title="Android文件存储位置简述" data-url="http://ztelur.github.io/blog/blog/2015/12/12/Android文件存储位置简述/"></div>
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">Contents</strong>
+ 
+ <ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#Internal-Storage"><span class="toc-number">1.</span> <span class="toc-text">Internal Storage</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#External-Storage"><span class="toc-number">2.</span> <span class="toc-text">External Storage</span></a></li></ol>
+ 
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<aside class="clearfix">
+
+  
+
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">Categories</p>
+		<ul>
+		
+		  
+			<li><a href="/blog/categories/Android/" title="Android">Android<sup>21</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android性能/" title="Android性能">Android性能<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/" title="Java">Java<sup>4</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/JavaScript/" title="JavaScript">JavaScript<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/NIO/" title="NIO">NIO<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/NetWork/" title="NetWork">NetWork<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/Network/" title="Network">Network<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Python/" title="Python">Python<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/c/" title="c">c<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/python/" title="python">python<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/函数式编程/" title="函数式编程">函数式编程<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/分布式/" title="分布式">分布式<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/后端/" title="后端">后端<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/后端-Spring/" title="后端 - Spring">后端 - Spring<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/多线程/" title="多线程">多线程<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/容器/" title="容器">容器<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/并发/" title="并发">并发<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/思考/" title="思考">思考<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/c/数据结构/" title="数据结构">数据结构<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/源码/" title="源码">源码<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/源码分析/" title="源码分析">源码分析<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/杂记/生活/" title="生活">生活<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/算法/" title="算法">算法<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/综合/" title="综合">综合<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/网络/" title="网络">网络<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/源码/视图/" title="视图">视图<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/计划/" title="计划">计划<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/设计/" title="设计">设计<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/读书笔记/" title="读书笔记">读书笔记<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/运维/" title="运维">运维<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/随笔/" title="随笔">随笔<sup>1</sup></a></li>
+		  
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">Tags</p>
+		<ul class="clearfix">
+		
+			
+				<li><a href="/blog/tags/JUC/" title="JUC">JUC<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/注解/" title="注解">注解<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/算法/" title="算法">算法<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Netty/" title="Netty">Netty<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/第三方库/" title="第三方库">第三方库<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/View/" title="View">View<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Span/" title="Span">Span<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Spring-Boot/" title="Spring Boot">Spring Boot<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Jenkins/" title="Jenkins">Jenkins<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/工具/" title="工具">工具<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/反射/" title="反射">反射<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/JSON/" title="JSON">JSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/docker/" title="docker">docker<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/kubernetes/" title="kubernetes">kubernetes<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
+			
+		
+		</ul>
+</div>
+
+
+  
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	
+	<section class="info">
+		<p> Hello ,I&#39;m Homer in NJU. <br/>
+			This is my blog,believe it or not.</p>
+	</section>
+	 
+	<div class="social-font" class="clearfix">
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+	</div>
+			
+		
+
+		<p class="copyright">
+		Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/wuchong/jacman" target="_blank" title="Jacman">Jacman</a> © 2018 
+		
+		<a href="/blog/about" target="_blank" title="remCarpediem">remCarpediem</a>
+		
+		
+		</p>
+</div>
+</footer>
+    <script src="/blog/js/jquery-2.0.3.min.js"></script>
+<script src="/blog/js/jquery.imagesloaded.min.js"></script>
+<script src="/blog/js/gallery.js"></script>
+<script src="/blog/js/jquery.qrcode-0.12.0.min.js"></script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+  
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else{
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  c.click(function(){
+    ta.css('display', 'block').addClass('fadeIn');
+  });
+  o.click(function(){
+    ta.css('display', 'none');
+  });
+  $(window).scroll(function(){
+    ta.css("top",Math.max(140,320-$(this).scrollTop()));
+  });
+});
+</script>
+
+
+
+
+<script type="text/javascript">
+  var duoshuoQuery = {short_name:"CarpeDiem"};
+  (function() {
+    var ds = document.createElement('script');
+    ds.type = 'text/javascript';ds.async = true;
+    ds.src = '//static.duoshuo.com/embed.js';
+    ds.charset = 'UTF-8';
+    (document.getElementsByTagName('head')[0] 
+    || document.getElementsByTagName('body')[0]).appendChild(ds);
+  })();
+</script> 
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/blog/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/blog/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.article-content').each(function(i){
+    $(this).find('img').each(function(){
+      if ($(this).parent().hasClass('fancybox')) return;
+      var alt = this.alt;
+      if (alt) $(this).after('<span class="caption">' + alt + '</span>');
+      $(this).wrap('<a href="' + this.src + '" title="' + alt + '" class="fancybox"></a>');
+    });
+    $(this).find('.fancybox').each(function(){
+      $(this).attr('rel', 'article' + i);
+    });
+  });
+  if($.fancybox){
+    $('.fancybox').fancybox();
+  }
+}); 
+</script>
+
+
+
+<!-- Analytics Begin -->
+
+<script type="text/javascript">
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+ga('create', 'UA-88918565-1', 'ztelur.github.io/');
+ga('send', 'pageview');
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?8a8af29a4307eee9d7c7f8e9321aedae";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+<script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1260989317'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "s23.cnzz.com/z_stat.php%3Fid%3D1260989317' type='text/javascript'%3E%3C/script%3E"));</script>
+
+
+
+
+<!-- baidu search 推送-->
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+<!-- Analytics End -->
+
+<!-- Totop Begin -->
+
+	<div id="totop">
+	<a title="Back to Top"><img src="/blog/img/scrollup.png"/></a>
+	</div>
+	<script src="/blog/js/totop.js"></script>
+
+<!-- Totop End -->
+
+<!-- MathJax Begin -->
+<!-- mathjax config similar to math.stackexchange -->
+
+
+<!-- MathJax End -->
+
+<!-- Tiny_search Begin -->
+
+<!-- Tiny_search End -->
+
+  </body>
+</html>

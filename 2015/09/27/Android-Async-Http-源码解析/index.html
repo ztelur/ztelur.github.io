@@ -1,0 +1,698 @@
+
+ <!DOCTYPE HTML>
+<html lang="Chinese">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Android-Async-Http 源码解析 | Carpediem</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
+    
+    <meta name="author" content="remCarpediem">
+    
+
+    
+    <meta name="description" content="&amp;emsp;前几天去参加一个面试，被问到了一些android 网络方面的知识，发现自己在这个方面还有些不足，需要自我补充一下相关的知识，于是最近找了些开源的网络模块的第三方库来阅读，主要是想深入了解一下http协议和相关的代码框架组织问题。这篇博客就总结一下自己阅读android-async-http的一些体会和学习吧。
+简介&amp;emsp;介绍android async http 的相关事项，主要是">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Android-Async-Http 源码解析">
+<meta property="og:url" content="http://ztelur.github.io/blog/2015/09/27/Android-Async-Http-源码解析/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="&amp;emsp;前几天去参加一个面试，被问到了一些android 网络方面的知识，发现自己在这个方面还有些不足，需要自我补充一下相关的知识，于是最近找了些开源的网络模块的第三方库来阅读，主要是想深入了解一下http协议和相关的代码框架组织问题。这篇博客就总结一下自己阅读android-async-http的一些体会和学习吧。
+简介&amp;emsp;介绍android async http 的相关事项，主要是">
+<meta property="og:image" content="http://7xjsjy.com1.z0.glb.clouddn.com/async_http_绘图1.jpg">
+<meta property="og:updated_time" content="2015-09-27T14:51:32.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Android-Async-Http 源码解析">
+<meta name="twitter:description" content="&amp;emsp;前几天去参加一个面试，被问到了一些android 网络方面的知识，发现自己在这个方面还有些不足，需要自我补充一下相关的知识，于是最近找了些开源的网络模块的第三方库来阅读，主要是想深入了解一下http协议和相关的代码框架组织问题。这篇博客就总结一下自己阅读android-async-http的一些体会和学习吧。
+简介&amp;emsp;介绍android async http 的相关事项，主要是">
+<meta name="twitter:image" content="http://7xjsjy.com1.z0.glb.clouddn.com/async_http_绘图1.jpg">
+
+    
+    <link rel="alternative" href="/atom.xml" title="Carpediem" type="application/atom+xml">
+    
+    
+    
+    <link rel="stylesheet" href="/blog/css/style.css">
+</head>
+
+  <body>
+    <header>
+      
+<div>
+		
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/blog/" title="Carpediem">Carpediem</a></h1>
+				<h2 class="blog-motto">blog of nobody</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					<ul>
+					 
+						<li><a href="/blog/">Home</a></li>
+					
+						<li><a href="/blog/archives">Archives</a></li>
+					
+						<li><a href="/blog/about">About</a></li>
+					
+					<li>
+ 					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
+						<input type="hidden" name="q" value="site:ztelur.github.io/blog">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+  
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/blog/2015/09/27/Android-Async-Http-源码解析/" title="Android-Async-Http 源码解析" itemprop="url">Android-Async-Http 源码解析</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/blog/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2015-09-27T06:37:49.000Z" itemprop="datePublished"> Published 2015-09-27</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">Contents</strong>
+		
+			<ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#简介"><span class="toc-number">1.</span> <span class="toc-text">简介</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#基本使用"><span class="toc-number">2.</span> <span class="toc-text">基本使用</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#源码解析"><span class="toc-number">3.</span> <span class="toc-text">源码解析</span></a><ol class="toc-child"><li class="toc-item toc-level-6"><a class="toc-link" href="#AsyncHttpClient"><span class="toc-number">3.0.1.</span> <span class="toc-text">AsyncHttpClient</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#AsyncHttpRequest"><span class="toc-number">3.0.2.</span> <span class="toc-text">AsyncHttpRequest</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#RequestHandler"><span class="toc-number">3.0.3.</span> <span class="toc-text">RequestHandler</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#AsyncHttpResponseHandler"><span class="toc-number">3.0.4.</span> <span class="toc-text">AsyncHttpResponseHandler</span></a></li></ol></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#总结"><span class="toc-number">4.</span> <span class="toc-text">总结</span></a></li></ol>
+		
+		</div>
+		
+		<p>&emsp;前几天去参加一个面试，被问到了一些android 网络方面的知识，发现自己在这个方面还有些不足，需要自我补充一下相关的知识，于是最近找了些开源的网络模块的第三方库来阅读，主要是想深入了解一下http协议和相关的代码框架组织问题。这篇博客就总结一下自己阅读android-async-http的一些体会和学习吧。</p>
+<h4 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h4><p>&emsp;介绍android async http 的相关事项，主要是翻译github上的话吧<br>&emsp;这段是官网翻译，大家请随意跳过,详细介绍请转到[<a href="http://loopj.com/android-async-http/" target="_blank" rel="external">http://loopj.com/android-async-http/</a>]<br>&emsp;android-async-http是建立在Apache HttpClient之上的基于回调的异步android http client，它使用Handler机制，请求在UI线程之外发生，但是回调逻辑在UI线程中进行执行</p>
+<blockquote>
+<p><strong>特点</strong>(部分)：</p>
+<ul>
+<li>执行异步request，在匿名回调中处理response</li>
+<li>Http 请求 发生在UI线程之外</li>
+<li>使用ThreadPool来负载多线程消耗</li>
+<li>GET/POST params 生成器</li>
+<li>支持文件断点续传</li>
+<li>支持自动重试</li>
+<li>支持流式Json数据上传</li>
+<li>可以处理重定向和请求循环</li>
+<li>自动的gzip压缩</li>
+<li>支持cookie</li>
+<li>可以通过BaseJsonResponseHandler和Jackson Json , Gson 和其他Json第三方库进行集成</li>
+</ul>
+</blockquote>
+<h4 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">AsyncHttpClient client = new AsyncHttpClient();</span><br><span class="line"></span><br><span class="line">client.get(&quot;https://www.google.com&quot;, new       AsyncHttpResponseHandler() &#123;   </span><br><span class="line">    </span><br><span class="line">    @Override</span><br><span class="line">    public void onStart() &#123;</span><br><span class="line">        // 请求开始发生的回调    </span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    @Override</span><br><span class="line">    public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) &#123;</span><br><span class="line">        // 成功获得response的回调</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    @Override</span><br><span class="line">    public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable</span><br><span class="line">error)</span><br><span class="line">&#123;</span><br><span class="line">        // 失败的回调 :(</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    @Override</span><br><span class="line">    public void onRetry(int retryNo) &#123;</span><br><span class="line">        // 请求被重试时的回调</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    @Override</span><br><span class="line">    public void onProgress(long bytesWritten, long totalSize) &#123;</span><br><span class="line">        // 请求发生过程中的回调</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    @Override</span><br><span class="line">    public void onFinish() &#123;</span><br><span class="line">        // 完成请求时的对调，未知成功还是失败</span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<h4 id="源码解析"><a href="#源码解析" class="headerlink" title="源码解析"></a>源码解析</h4><p><img src="http://7xjsjy.com1.z0.glb.clouddn.com/async_http_绘图1.jpg" alt="主要类类图"><br>&emsp;上图就是android-async-http的主要类的类图，我们下面就来一个一个类解析一下</p>
+<h6 id="AsyncHttpClient"><a href="#AsyncHttpClient" class="headerlink" title="AsyncHttpClient"></a>AsyncHttpClient</h6><p>&emsp;先看AsyncHttpClient,它是这个http库的核心类之一，封装了发生http请求的所有逻辑，可以说它是这个库的中心类。它的构造函数如下:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br></pre></td><td class="code"><pre><span class="line">  public AsyncHttpClient(SchemeRegistry schemeRegistry) &#123;</span><br><span class="line">    // http param</span><br><span class="line">    BasicHttpParams httpParams = new BasicHttpParams();</span><br><span class="line"></span><br><span class="line">    // connect params builder ?????</span><br><span class="line">    ConnManagerParams.setTimeout(httpParams, connectTimeout);</span><br><span class="line">    ConnManagerParams.setMaxConnectionsPerRoute(httpParams, new ConnPerRouteBean(maxConnections));</span><br><span class="line">    ConnManagerParams.setMaxTotalConnections(httpParams, DEFAULT_MAX_CONNECTIONS);</span><br><span class="line"></span><br><span class="line">    // httpConnectionParams</span><br><span class="line">    HttpConnectionParams.setSoTimeout(httpParams, responseTimeout);</span><br><span class="line">    HttpConnectionParams.setConnectionTimeout(httpParams, connectTimeout);</span><br><span class="line">    HttpConnectionParams.setTcpNoDelay(httpParams, true);</span><br><span class="line">    HttpConnectionParams.setSocketBufferSize(httpParams, DEFAULT_SOCKET_BUFFER_SIZE);</span><br><span class="line"></span><br><span class="line">    HttpProtocolParams.setVersion(httpParams, HttpVersion.HTTP_1_1);</span><br><span class="line"></span><br><span class="line">    ClientConnectionManager cm = createConnectionManager(schemeRegistry, httpParams);</span><br><span class="line">    Utils.asserts(cm != null, &quot;Custom implementation of #createConnectionManager(SchemeRegistry, BasicHttpParams) returned null&quot;);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    //thread poll</span><br><span class="line">    threadPool = getDefaultThreadPool();</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * weakHashMap context:这是不会出现内存泄露</span><br><span class="line">     * synchronizedMap 是建立一个线程安全的map加一个同步锁啊。</span><br><span class="line">     */</span><br><span class="line">    requestMap = Collections.synchronizedMap(new WeakHashMap&lt;Context, List&lt;RequestHandle&gt;&gt;());</span><br><span class="line"></span><br><span class="line">    clientHeaderMap = new HashMap&lt;String, String&gt;();</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    httpContext = new SyncBasicHttpContext(new BasicHttpContext());</span><br><span class="line">    // 默认的apache的httpclient</span><br><span class="line">    httpClient = new DefaultHttpClient(cm, httpParams);</span><br><span class="line"></span><br><span class="line">    // 请求拦截器啊</span><br><span class="line">    httpClient.addRequestInterceptor(new HttpRequestInterceptor() &#123;</span><br><span class="line">        @Override</span><br><span class="line">        public void process(HttpRequest request, HttpContext context) &#123;</span><br><span class="line">            // 预处理,声明浏览器支持的编码类型啊</span><br><span class="line">            if (!request.containsHeader(HEADER_ACCEPT_ENCODING)) &#123; //加上GZIP的头部</span><br><span class="line">                request.addHeader(HEADER_ACCEPT_ENCODING, ENCODING_GZIP);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            // 对于默认的clientHeader进行遍历，比较，添加</span><br><span class="line">            for (String header : clientHeaderMap.keySet()) &#123;</span><br><span class="line">                if (request.containsHeader(header)) &#123;  //如果包含</span><br><span class="line">                    Header overwritten = request.getFirstHeader(header);</span><br><span class="line">                    log.d(LOG_TAG,</span><br><span class="line">                            String.format(&quot;Headers were overwritten! (%s | %s) overwrites (%s | %s)&quot;,</span><br><span class="line">                                    header, clientHeaderMap.get(header),</span><br><span class="line">                                    overwritten.getName(), overwritten.getValue())</span><br><span class="line">                    );</span><br><span class="line"></span><br><span class="line">                    //remove the overwritten header</span><br><span class="line">                    request.removeHeader(overwritten);</span><br><span class="line">                &#125;</span><br><span class="line">                request.addHeader(header, clientHeaderMap.get(header)); //写入clientHeaderMap中的值</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    // response拦截器,对gzip进行解压缩啊</span><br><span class="line">    httpClient.addResponseInterceptor(new HttpResponseInterceptor() &#123;</span><br><span class="line"></span><br><span class="line">        @Override</span><br><span class="line">        public void process(HttpResponse response, HttpContext context) &#123;</span><br><span class="line">            final HttpEntity entity = response.getEntity(); //</span><br><span class="line">            if (entity == null) &#123;</span><br><span class="line">                return;</span><br><span class="line">            &#125;</span><br><span class="line">            final Header encoding = entity.getContentEncoding();</span><br><span class="line">            if (encoding != null) &#123;</span><br><span class="line">                for (HeaderElement element : encoding.getElements()) &#123; //遍历头部信息</span><br><span class="line">                    if (element.getName().equalsIgnoreCase(ENCODING_GZIP)) &#123;</span><br><span class="line">                        response.setEntity(new InflatingEntity(entity)); //InflatingEntity 这是解压gzip的</span><br><span class="line">                        break;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    // 另外一个模块的请求拦截器 ???? 身份认证的</span><br><span class="line">    httpClient.addRequestInterceptor(new HttpRequestInterceptor() &#123;</span><br><span class="line">        @Override</span><br><span class="line">        public void process(final HttpRequest request, final HttpContext context) throws HttpException, IOException &#123;</span><br><span class="line">            AuthState authState = (AuthState) context.getAttribute(ClientContext.TARGET_AUTH_STATE);</span><br><span class="line">            CredentialsProvider credsProvider = (CredentialsProvider) context.getAttribute(</span><br><span class="line">                    ClientContext.CREDS_PROVIDER);</span><br><span class="line">            HttpHost targetHost = (HttpHost) context.getAttribute(ExecutionContext.HTTP_TARGET_HOST);</span><br><span class="line"></span><br><span class="line">            if (authState.getAuthScheme() == null) &#123;</span><br><span class="line">                AuthScope authScope = new AuthScope(targetHost.getHostName(), targetHost.getPort());</span><br><span class="line">                Credentials creds = credsProvider.getCredentials(authScope);</span><br><span class="line">                if (creds != null) &#123;</span><br><span class="line">                    authState.setAuthScheme(new BasicScheme());</span><br><span class="line">                    authState.setCredentials(creds);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, 0);</span><br><span class="line"></span><br><span class="line">    // 重试Handler，用于重新发送请求</span><br><span class="line">    httpClient.setHttpRequestRetryHandler(new RetryHandler(DEFAULT_MAX_RETRIES, DEFAULT_RETRY_SLEEP_TIME_MILLIS));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;在构造函数中，AsyncHttpClient主要是初始化了threadPool作为发生请求的线程池，httpContext作为发生请求的网络context，还有最为重要的httpClient,它的类型是Apache的DefaultHttpClient，然后设置了设计gzip压缩和身份认证的请求拦截器和回应拦截器，具体逻辑代码中都有注释。<br>&emsp;AsyncHttp中还有一个我认为是整个库精髓所在的函数，如果你理解了这个函数，那么整个库的代码框架和思想其实你就已经知道了。它就是sendRequest(),AsyncHttp的关于网络请求的方法，比如get,post,head，最终都是调用了这个函数。在这个函数中，其他几个比较主要的类都有出现。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line">    *</span><br><span class="line">    * 这是这里的重点啊，创建一个request放在队列中，等待一个thread去执行</span><br><span class="line">    * Puts a new request in queue as a new thread in pool to be executed</span><br><span class="line">    *</span><br><span class="line">    * @param client          HttpClient to be used for request, can differ in single requests</span><br><span class="line">    * @param contentType     MIME body type, for POST and PUT requests, may be null</span><br><span class="line">    * @param context         Context of Android application, to hold the reference of request</span><br><span class="line">    * @param httpContext     HttpContext in which the request will be executed</span><br><span class="line">    * @param responseHandler ResponseHandler or its subclass to put the response into</span><br><span class="line">    * @param uriRequest      instance of HttpUriRequest, which means it must be of HttpDelete,</span><br><span class="line">    *                        HttpPost, HttpGet, HttpPut, etc.</span><br><span class="line">    * @return RequestHandle of future request process</span><br><span class="line">    */</span><br><span class="line">   protected RequestHandle sendRequest(DefaultHttpClient client, HttpContext httpContext, HttpUriRequest uriRequest, String contentType, ResponseHandlerInterface responseHandler, Context context) &#123;</span><br><span class="line">       if (uriRequest == null) &#123;</span><br><span class="line">           throw new IllegalArgumentException(&quot;HttpUriRequest must not be null&quot;);</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       if (responseHandler == null) &#123;</span><br><span class="line">           throw new IllegalArgumentException(&quot;ResponseHandler must not be null&quot;);</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       if (responseHandler.getUseSynchronousMode() &amp;&amp; !responseHandler.getUsePoolThread()) &#123;</span><br><span class="line">           throw new IllegalArgumentException(&quot;Synchronous ResponseHandler used in AsyncHttpClient. You should create your response handler in a looper thread or use SyncHttpClient instead.&quot;);</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       if (contentType != null) &#123;</span><br><span class="line">           if (uriRequest instanceof HttpEntityEnclosingRequestBase &amp;&amp; ((HttpEntityEnclosingRequestBase) uriRequest).getEntity() != null &amp;&amp; uriRequest.containsHeader(HEADER_CONTENT_TYPE)) &#123;</span><br><span class="line">               log.w(LOG_TAG, &quot;Passed contentType will be ignored because HttpEntity sets content type&quot;);</span><br><span class="line">           &#125; else &#123;</span><br><span class="line">               uriRequest.setHeader(HEADER_CONTENT_TYPE, contentType);</span><br><span class="line">           &#125;</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       responseHandler.setRequestHeaders(uriRequest.getAllHeaders());</span><br><span class="line">       responseHandler.setRequestURI(uriRequest.getURI());</span><br><span class="line"></span><br><span class="line">       // runnable</span><br><span class="line">       AsyncHttpRequest request = newAsyncHttpRequest(client, httpContext, uriRequest, contentType, responseHandler, context);</span><br><span class="line"></span><br><span class="line">       threadPool.submit(request);</span><br><span class="line"></span><br><span class="line">       // Handler 持有Request的弱引用，可以对其执行操作</span><br><span class="line">       RequestHandle requestHandle = new RequestHandle(request);</span><br><span class="line"></span><br><span class="line">       if (context != null) &#123;  //如果此时context为不为空</span><br><span class="line">           List&lt;RequestHandle&gt; requestList;</span><br><span class="line">           // Add request to request map</span><br><span class="line">           synchronized (requestMap) &#123;  // 需要添加到context作为键的List中去</span><br><span class="line">               requestList = requestMap.get(context);</span><br><span class="line">               if (requestList == null) &#123;</span><br><span class="line">                   requestList = Collections.synchronizedList(new LinkedList&lt;RequestHandle&gt;());</span><br><span class="line">                   requestMap.put(context, requestList);</span><br><span class="line">               &#125;</span><br><span class="line">           &#125;</span><br><span class="line"></span><br><span class="line">           requestList.add(requestHandle);</span><br><span class="line"></span><br><span class="line">           // 每次发送请求的时候进行一轮runnable删除</span><br><span class="line">           Iterator&lt;RequestHandle&gt; iterator = requestList.iterator();</span><br><span class="line">           while (iterator.hasNext()) &#123;</span><br><span class="line">               if (iterator.next().shouldBeGarbageCollected()) &#123;</span><br><span class="line">                   iterator.remove();</span><br><span class="line">               &#125;</span><br><span class="line">           &#125;</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       return requestHandle; //返回句柄啊</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;我们可以看到在函数中</p>
+<ul>
+<li>使用传入的参数和对象本身的成员变量来构造了一个AsynHttpRequest(本身继承Runnable,之后详细介绍),将其放入threadPool中</li>
+<li>然后生成RequestHandler对象来持有这个请求(用户可以通过RequestHandler对请求进行各类操作，比如取消),需要注意的是这个Handler并不是android的Handler，而是供用户操纵Request的句柄类</li>
+<li>然后更新requestMap,这是一个android Context作为主键的map，主要是记录各个Context的网络请求，需要注意的是这里使用的是<a href="http://mikewang.blog.51cto.com/3826268/880775/" target="_blank" rel="external">WeakHashMap</a>,防止内存泄露</li>
+<li>添加Handler到requestList中，然后遍历requestList删除需要垃圾回收的对象</li>
+<li>最后返回requestHandler。</li>
+</ul>
+<h6 id="AsyncHttpRequest"><a href="#AsyncHttpRequest" class="headerlink" title="AsyncHttpRequest"></a>AsyncHttpRequest</h6><p>&emsp;这个类是Runnable的子类,主要是用来进行发送请求和重试这套逻辑，而且ResponseHandlerInterface中的大多数回调函数都是在此对象中回调的。我们主要看一下它的<code>run()</code>,<code>makeRequest()</code>和 <code>makemakeRequestWithRetries()</code>方法<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line">@Override</span><br><span class="line">    public void run() &#123;</span><br><span class="line">        if (isCancelled()) &#123;  //如果run的时候是取消状态，那么就关闭了</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // Carry out pre-processing for this request only once.</span><br><span class="line">        if (!isRequestPreProcessed) &#123;  //必须进行一次预处理</span><br><span class="line">            isRequestPreProcessed = true;</span><br><span class="line">            onPreProcessRequest(this);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        if (isCancelled()) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        responseHandler.sendStartMessage();  // 回调handler，已经开始</span><br><span class="line"></span><br><span class="line">        if (isCancelled()) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // 进行带重试的请求</span><br><span class="line">        try &#123;</span><br><span class="line">            makeRequestWithRetries();</span><br><span class="line">        &#125; catch (IOException e) &#123;</span><br><span class="line">            if (!isCancelled()) &#123;</span><br><span class="line">                responseHandler.sendFailureMessage(0, null, null, e);</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                AsyncHttpClient.log.e(&quot;AsyncHttpRequest&quot;, &quot;makeRequestWithRetries returned error&quot;, e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        if (isCancelled()) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        responseHandler.sendFinishMessage();</span><br><span class="line"></span><br><span class="line">        if (isCancelled()) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // Carry out post-processing for this request.</span><br><span class="line">        onPostProcessRequest(this);</span><br><span class="line"></span><br><span class="line">        isFinished = true;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;可以看出，在run中，根据发送网络请求的不同阶段调用了一系列的回调函数，其中比较重要的是<code>responseHandler.sendFinishMessage()</code>,在这里会回调函数进行解析response；在各个阶段开始前都有调用<code>isCancelled()</code>进行判断是否request被取消了。<br>&emsp;接下来是<code>makeRequest()</code>,在其中就调用了<code>HttpClient.execute(request,context)</code>进行正式的发送请求。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">private void makeRequest() throws IOException &#123;</span><br><span class="line">        if (isCancelled()) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // Fixes #115</span><br><span class="line">        if (request.getURI().getScheme() == null) &#123;</span><br><span class="line">            // subclass of IOException so processed in the caller</span><br><span class="line">            throw new MalformedURLException(&quot;No valid URI scheme was provided&quot;);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        if (responseHandler instanceof RangeFileAsyncHttpResponseHandler) &#123;</span><br><span class="line">            ((RangeFileAsyncHttpResponseHandler) responseHandler).updateRequestHeaders(request);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        HttpResponse response = client.execute(request, context);</span><br><span class="line"></span><br><span class="line">        if (isCancelled()) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // Carry out pre-processing for this response.</span><br><span class="line">        responseHandler.onPreProcessResponse(responseHandler, response);</span><br><span class="line"></span><br><span class="line">        if (isCancelled()) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // The response is ready, handle it.</span><br><span class="line">        responseHandler.sendResponseMessage(response);</span><br><span class="line"></span><br><span class="line">        if (isCancelled()) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // Carry out post-processing for this response.</span><br><span class="line">        responseHandler.onPostProcessResponse(responseHandler, response);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<h6 id="RequestHandler"><a href="#RequestHandler" class="headerlink" title="RequestHandler"></a>RequestHandler</h6><p>&emsp;持有AsyncHttpRequest一个弱引用的句柄类，主要的功能是可以让客户端取消AsyncHttpRequest请求</p>
+<h6 id="AsyncHttpResponseHandler"><a href="#AsyncHttpResponseHandler" class="headerlink" title="AsyncHttpResponseHandler"></a>AsyncHttpResponseHandler</h6><p>&emsp;实现ResponseHandlerInterface的一个类，也是我们经常会用到的一个类，在android-async-http中有很多类都实现了ResponseHandlerInterface或者继承了这个类,比如BianryHttpResponseHandler,FileAsyncHttpResponseHandler,每个类都对应不同的网络请求的返回数据资源，有些可能是专门用于文件下载的，有些是解析json的，大家可以自己去了解各个类的作用。<br>&emsp;android-sync-http发送网络请求可以同步也可以异步，而且异步会在相应的thread中进行回调，其中涉及的逻辑就在这些类中。这个类也可以控制发送请求所使用的线程。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line">     * Creates a new AsyncHttpResponseHandler with a user-supplied looper. If</span><br><span class="line">     * the passed looper is null, the looper attached to the current thread will</span><br><span class="line">     * be used.</span><br><span class="line">     *</span><br><span class="line">	 * 如果调用了这个，那么就不是异步，而且是在当前线程中调用了</span><br><span class="line">     * @param looper The looper to work with</span><br><span class="line">     */</span><br><span class="line">    public AsyncHttpResponseHandler(Looper looper) &#123;</span><br><span class="line">        this.looper = looper == null ? Looper.myLooper() : looper;</span><br><span class="line"></span><br><span class="line">        // Use asynchronous mode by default.</span><br><span class="line">        setUseSynchronousMode(false);</span><br><span class="line"></span><br><span class="line">        // Do not use the pool&apos;s thread to fire callbacks by default.</span><br><span class="line">        setUsePoolThread(false);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<p>&amp;emsp；大家可以发现构造函数传入了一个Looper,相信对android Handler机制比较了解的同学立即就知道这个库的异步调用是如何在当前线程中进行回调的了吧。这个类实现的回调函数中大多数都是进行<code>sendMessage(obtainMessage(FAILURE_MESSAGE, new Object[]{statusCode, headers, responseBody, throwable}));</code>这样的调用。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">protected void sendMessage(Message msg) &#123;   // 如果是同步就自己处理，否则交由handler处理</span><br><span class="line">       if (getUseSynchronousMode() || handler == null) &#123;</span><br><span class="line">           handleMessage(msg);</span><br><span class="line">       &#125; else if (!Thread.currentThread().isInterrupted()) &#123; // do not send messages if request has been cancelled</span><br><span class="line">           Utils.asserts(handler != null, &quot;handler should not be null!&quot;);</span><br><span class="line">           handler.sendMessage(msg);</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;这就是发生message的函数，发现如果同步模式，那么就调用自己的handleMessage处理，否则交由构造函数中的Looper生成的handler进行处理,其实最终处理的还是这个对象的handlerMessage方法，但是是在另外一个Looper所在的线程中执行的。<br>&amp;emsp；其实这个类中还有两个涉及http response解析的方法也是很重要的，就是<code>sendResponseMesssage(HttpResponse response)</code>和<code>getResponseData(HttpEntity entity)</code>，可是我对http协议不太了解，也害怕说错了，这里就只附上源码吧，上边有我的注释<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line">// 获得网络请求返回进行处理</span><br><span class="line">    @Override</span><br><span class="line">    public void sendResponseMessage(HttpResponse response) throws IOException &#123;</span><br><span class="line">        // do not process if request has been cancelled</span><br><span class="line">        if (!Thread.currentThread().isInterrupted()) &#123;  //thread isInterrupted means that request is cancelled</span><br><span class="line">            StatusLine status = response.getStatusLine(); // 状态行</span><br><span class="line">            byte[] responseBody; // 回复体</span><br><span class="line">            responseBody = getResponseData(response.getEntity());</span><br><span class="line">            // additional cancellation check as getResponseData() can take non-zero time to process</span><br><span class="line">            if (!Thread.currentThread().isInterrupted()) &#123;</span><br><span class="line">                if (status.getStatusCode() &gt;= 300) &#123;</span><br><span class="line">                    sendFailureMessage(status.getStatusCode(), response.getAllHeaders(), responseBody, new HttpResponseException(status.getStatusCode(), status.getReasonPhrase()));</span><br><span class="line">                &#125; else &#123;</span><br><span class="line">                    sendSuccessMessage(status.getStatusCode(), response.getAllHeaders(), responseBody);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * Returns byte array of response HttpEntity contents</span><br><span class="line">	 * 解析http的response</span><br><span class="line">     *</span><br><span class="line">     * @param entity can be null</span><br><span class="line">     * @return response entity body or null</span><br><span class="line">     * @throws java.io.IOException if reading entity or creating byte array failed</span><br><span class="line">     */</span><br><span class="line">    byte[] getResponseData(HttpEntity entity) throws IOException &#123;</span><br><span class="line">        byte[] responseBody = null;</span><br><span class="line">        if (entity != null) &#123;</span><br><span class="line">            InputStream instream = entity.getContent(); // 获得输入流</span><br><span class="line">            if (instream != null) &#123;</span><br><span class="line">                long contentLength = entity.getContentLength(); // 获得size</span><br><span class="line">                if (contentLength &gt; Integer.MAX_VALUE) &#123;</span><br><span class="line">                    throw new IllegalArgumentException(&quot;HTTP entity too large to be buffered in memory&quot;);</span><br><span class="line">                &#125;</span><br><span class="line">                int buffersize = (contentLength &lt;= 0) ? BUFFER_SIZE : (int) contentLength; // contentLength有可能为负数吗</span><br><span class="line">                try &#123;</span><br><span class="line">                    ByteArrayBuffer buffer = new ByteArrayBuffer(buffersize); // byte array的buffer类</span><br><span class="line">                    try &#123;</span><br><span class="line">                        byte[] tmp = new byte[BUFFER_SIZE];</span><br><span class="line">                        long count = 0;</span><br><span class="line">                        int l;</span><br><span class="line">                        // do not send messages if request has been cancelled</span><br><span class="line">                        while ((l = instream.read(tmp)) != -1 &amp;&amp; !Thread.currentThread().isInterrupted()) &#123;</span><br><span class="line">                            count += l;</span><br><span class="line">                            buffer.append(tmp, 0, l);</span><br><span class="line">                            sendProgressMessage(count, (contentLength &lt;= 0 ? 1 : contentLength));</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125; finally &#123;</span><br><span class="line">                        AsyncHttpClient.silentCloseInputStream(instream);</span><br><span class="line">                        AsyncHttpClient.endEntityViaReflection(entity);</span><br><span class="line">                    &#125;</span><br><span class="line">                    responseBody = buffer.toByteArray();</span><br><span class="line">                &#125; catch (OutOfMemoryError e) &#123;</span><br><span class="line">                    System.gc();</span><br><span class="line">                    throw new IOException(&quot;File too large to fit into available memory&quot;);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        return responseBody;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>&emsp;android-async-http 算是源代码量最小的一个网络库了，当然它还有些却缺点，比如没有缓存机制，我看github中已经有人给它加上了缓存，大家也可以自己尝试一下，并且更好的是，这个库可以与其他的第三方库进行集成，大家可以打造属于自己的网络请求+处理数据的框架。</p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/blog/categories/Android/">Android</a>►<a class="article-category-link" href="/blog/categories/Android/Network/">Network</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/blog/tags/第三方库/">第三方库</a><a href="/blog/tags/Http/">Http</a>
+  </div>
+
+</div>
+
+
+
+	<div class="article-share" id="share">
+	
+	<div class="share-jiathis">
+	  
+<div class="jiathis_style_24x24">
+	<a class="jiathis_button_tsina"></a>
+	<a class="jiathis_button_weixin"></a>
+	<a class="jiathis_button_renren"></a>
+	<a class="jiathis_button_qzone"></a>
+	<a class="jiathis_button_googleplus"></a>
+	<a class="jiathis_button_douban"></a>
+	<a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	<a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+    var jiathis_config={
+    data_track_clickback:true,
+    sm:"copy,renren,cqq",
+    pic:"",
+    summary:"",
+    
+  </script> 
+<script type="text/javascript" src="//v3.jiathis.com/code/jia.js?uid=
+2157940" charset="utf-8"></script>      
+
+	 </div>
+	
+	</div>
+
+
+</footer>
+
+   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/blog/2015/10/02/Gson源码分析/" title="Gson源码分析">
+  <strong>上一篇：</strong><br/>
+  <span>
+  Gson源码分析</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/blog/2015/09/18/初识Dagger2/"  title="初识Dagger2">
+ <strong>下一篇：</strong><br/> 
+ <span>初识Dagger2
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comments" class="comment">
+	<div class="ds-thread" data-thread-key="2015/09/27/Android-Async-Http-源码解析/" data-title="Android-Async-Http 源码解析" data-url="http://ztelur.github.io/blog/blog/2015/09/27/Android-Async-Http-源码解析/"></div>
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">Contents</strong>
+ 
+ <ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#简介"><span class="toc-number">1.</span> <span class="toc-text">简介</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#基本使用"><span class="toc-number">2.</span> <span class="toc-text">基本使用</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#源码解析"><span class="toc-number">3.</span> <span class="toc-text">源码解析</span></a><ol class="toc-child"><li class="toc-item toc-level-6"><a class="toc-link" href="#AsyncHttpClient"><span class="toc-number">3.0.1.</span> <span class="toc-text">AsyncHttpClient</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#AsyncHttpRequest"><span class="toc-number">3.0.2.</span> <span class="toc-text">AsyncHttpRequest</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#RequestHandler"><span class="toc-number">3.0.3.</span> <span class="toc-text">RequestHandler</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#AsyncHttpResponseHandler"><span class="toc-number">3.0.4.</span> <span class="toc-text">AsyncHttpResponseHandler</span></a></li></ol></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#总结"><span class="toc-number">4.</span> <span class="toc-text">总结</span></a></li></ol>
+ 
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<aside class="clearfix">
+
+  
+
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">Categories</p>
+		<ul>
+		
+		  
+			<li><a href="/blog/categories/Android/" title="Android">Android<sup>21</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android性能/" title="Android性能">Android性能<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/" title="Java">Java<sup>4</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/JavaScript/" title="JavaScript">JavaScript<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/NIO/" title="NIO">NIO<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/NetWork/" title="NetWork">NetWork<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/Network/" title="Network">Network<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Python/" title="Python">Python<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/c/" title="c">c<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/python/" title="python">python<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/函数式编程/" title="函数式编程">函数式编程<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/分布式/" title="分布式">分布式<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/后端/" title="后端">后端<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/后端-Spring/" title="后端 - Spring">后端 - Spring<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/多线程/" title="多线程">多线程<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/容器/" title="容器">容器<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/并发/" title="并发">并发<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/思考/" title="思考">思考<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/c/数据结构/" title="数据结构">数据结构<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/源码/" title="源码">源码<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/源码分析/" title="源码分析">源码分析<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/杂记/生活/" title="生活">生活<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/算法/" title="算法">算法<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/综合/" title="综合">综合<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/网络/" title="网络">网络<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/源码/视图/" title="视图">视图<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/计划/" title="计划">计划<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/设计/" title="设计">设计<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/读书笔记/" title="读书笔记">读书笔记<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/运维/" title="运维">运维<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/随笔/" title="随笔">随笔<sup>1</sup></a></li>
+		  
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">Tags</p>
+		<ul class="clearfix">
+		
+			
+				<li><a href="/blog/tags/JUC/" title="JUC">JUC<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/注解/" title="注解">注解<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/算法/" title="算法">算法<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Netty/" title="Netty">Netty<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/第三方库/" title="第三方库">第三方库<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/View/" title="View">View<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Span/" title="Span">Span<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Spring-Boot/" title="Spring Boot">Spring Boot<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Jenkins/" title="Jenkins">Jenkins<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/工具/" title="工具">工具<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/反射/" title="反射">反射<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/JSON/" title="JSON">JSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/docker/" title="docker">docker<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/kubernetes/" title="kubernetes">kubernetes<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
+			
+		
+		</ul>
+</div>
+
+
+  
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	
+	<section class="info">
+		<p> Hello ,I&#39;m Homer in NJU. <br/>
+			This is my blog,believe it or not.</p>
+	</section>
+	 
+	<div class="social-font" class="clearfix">
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+	</div>
+			
+		
+
+		<p class="copyright">
+		Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/wuchong/jacman" target="_blank" title="Jacman">Jacman</a> © 2018 
+		
+		<a href="/blog/about" target="_blank" title="remCarpediem">remCarpediem</a>
+		
+		
+		</p>
+</div>
+</footer>
+    <script src="/blog/js/jquery-2.0.3.min.js"></script>
+<script src="/blog/js/jquery.imagesloaded.min.js"></script>
+<script src="/blog/js/gallery.js"></script>
+<script src="/blog/js/jquery.qrcode-0.12.0.min.js"></script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+  
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else{
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  c.click(function(){
+    ta.css('display', 'block').addClass('fadeIn');
+  });
+  o.click(function(){
+    ta.css('display', 'none');
+  });
+  $(window).scroll(function(){
+    ta.css("top",Math.max(140,320-$(this).scrollTop()));
+  });
+});
+</script>
+
+
+
+
+<script type="text/javascript">
+  var duoshuoQuery = {short_name:"CarpeDiem"};
+  (function() {
+    var ds = document.createElement('script');
+    ds.type = 'text/javascript';ds.async = true;
+    ds.src = '//static.duoshuo.com/embed.js';
+    ds.charset = 'UTF-8';
+    (document.getElementsByTagName('head')[0] 
+    || document.getElementsByTagName('body')[0]).appendChild(ds);
+  })();
+</script> 
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/blog/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/blog/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.article-content').each(function(i){
+    $(this).find('img').each(function(){
+      if ($(this).parent().hasClass('fancybox')) return;
+      var alt = this.alt;
+      if (alt) $(this).after('<span class="caption">' + alt + '</span>');
+      $(this).wrap('<a href="' + this.src + '" title="' + alt + '" class="fancybox"></a>');
+    });
+    $(this).find('.fancybox').each(function(){
+      $(this).attr('rel', 'article' + i);
+    });
+  });
+  if($.fancybox){
+    $('.fancybox').fancybox();
+  }
+}); 
+</script>
+
+
+
+<!-- Analytics Begin -->
+
+<script type="text/javascript">
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+ga('create', 'UA-88918565-1', 'ztelur.github.io/');
+ga('send', 'pageview');
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?8a8af29a4307eee9d7c7f8e9321aedae";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+<script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1260989317'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "s23.cnzz.com/z_stat.php%3Fid%3D1260989317' type='text/javascript'%3E%3C/script%3E"));</script>
+
+
+
+
+<!-- baidu search 推送-->
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+<!-- Analytics End -->
+
+<!-- Totop Begin -->
+
+	<div id="totop">
+	<a title="Back to Top"><img src="/blog/img/scrollup.png"/></a>
+	</div>
+	<script src="/blog/js/totop.js"></script>
+
+<!-- Totop End -->
+
+<!-- MathJax Begin -->
+<!-- mathjax config similar to math.stackexchange -->
+
+
+<!-- MathJax End -->
+
+<!-- Tiny_search Begin -->
+
+<!-- Tiny_search End -->
+
+  </body>
+</html>

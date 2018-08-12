@@ -1,0 +1,686 @@
+
+ <!DOCTYPE HTML>
+<html lang="Chinese">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Netty源码(二):Netty的Channel和Pipeline | Carpediem</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
+    
+    <meta name="author" content="remCarpediem">
+    
+
+    
+    <meta name="description" content="本文主要讲述Netty框架中Channel相关的知识，Netty通过Channel和Pipeline等一些组件提供了所谓的Universal Communication API．与Channel相关的知识点比较多，本篇文章就主要讲解一下Channel和Pipeline的事件处理流原理．Channel,EventLoop和ChannelFuture的相关知识下篇文章中再进行讲述．
+官方文档上的Ch">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Netty源码(二):Netty的Channel和Pipeline">
+<meta property="og:url" content="http://ztelur.github.io/blog/2017/03/27/Netty源码-二-Netty的Channel和Pipeline/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="本文主要讲述Netty框架中Channel相关的知识，Netty通过Channel和Pipeline等一些组件提供了所谓的Universal Communication API．与Channel相关的知识点比较多，本篇文章就主要讲解一下Channel和Pipeline的事件处理流原理．Channel,EventLoop和ChannelFuture的相关知识下篇文章中再进行讲述．
+官方文档上的Ch">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2017327-netty-stream.png">
+<meta property="og:updated_time" content="2017-03-27T13:41:12.003Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Netty源码(二):Netty的Channel和Pipeline">
+<meta name="twitter:description" content="本文主要讲述Netty框架中Channel相关的知识，Netty通过Channel和Pipeline等一些组件提供了所谓的Universal Communication API．与Channel相关的知识点比较多，本篇文章就主要讲解一下Channel和Pipeline的事件处理流原理．Channel,EventLoop和ChannelFuture的相关知识下篇文章中再进行讲述．
+官方文档上的Ch">
+<meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2017327-netty-stream.png">
+
+    
+    <link rel="alternative" href="/atom.xml" title="Carpediem" type="application/atom+xml">
+    
+    
+    
+    <link rel="stylesheet" href="/blog/css/style.css">
+</head>
+
+  <body>
+    <header>
+      
+<div>
+		
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/blog/" title="Carpediem">Carpediem</a></h1>
+				<h2 class="blog-motto">blog of nobody</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					<ul>
+					 
+						<li><a href="/blog/">Home</a></li>
+					
+						<li><a href="/blog/archives">Archives</a></li>
+					
+						<li><a href="/blog/about">About</a></li>
+					
+					<li>
+ 					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
+						<input type="hidden" name="q" value="site:ztelur.github.io/blog">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+  
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/blog/2017/03/27/Netty源码-二-Netty的Channel和Pipeline/" title="Netty源码(二):Netty的Channel和Pipeline" itemprop="url">Netty源码(二):Netty的Channel和Pipeline</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/blog/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2017-03-27T13:38:03.000Z" itemprop="datePublished"> Published 2017-03-27</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">Contents</strong>
+		
+			<ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#官方文档上的Channel"><span class="toc-number">1.</span> <span class="toc-text">官方文档上的Channel</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#我眼中的Channel"><span class="toc-number">1.1.</span> <span class="toc-text">我眼中的Channel</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ChannelHandler和ChannelPipeline"><span class="toc-number">2.</span> <span class="toc-text">ChannelHandler和ChannelPipeline</span></a></li></ol>
+		
+		</div>
+		
+		<p> 本文主要讲述Netty框架中Channel相关的知识，Netty通过Channel和Pipeline等一些组件提供了所谓的<code>Universal Communication API</code>．与<code>Channel</code>相关的知识点比较多，本篇文章就主要讲解一下<code>Channel</code>和<code>Pipeline</code>的事件处理流原理．<code>Channel</code>,<code>EventLoop</code>和<code>ChannelFuture</code>的相关知识下篇文章中再进行讲述．</p>
+<h3 id="官方文档上的Channel"><a href="#官方文档上的Channel" class="headerlink" title="官方文档上的Channel"></a>官方文档上的Channel</h3><p> 官方文档上给出的解释是Channel是与网络Socket相关的或具有一定I/O能力的组件．一个<code>Channel</code>可以给用户提供:</p>
+<ul>
+<li>当前<code>Channel</code>的状态(比如，是否保存Open状态，是否处于连接状态)</li>
+<li><code>Channel</code>的配置参数，比如说buffer的大小</li>
+<li><code>Channel</code>支持的相关I/O操作，比如说<code>read</code>,<code>write</code>,<code>connect</code>和<code>bind</code></li>
+<li>提供一个<code>ChannelPipeline</code>来处理所有与该<code>Channel</code>相关的I/O事件和请求</li>
+</ul>
+<p> <code>Channel</code>上进行的所有I/O操作都是异步的，也就是说，所有涉及I/O操作的调用都会立刻返回，并不保证操作完成，而是会返回一个<code>ChannelFuture</code>对象来通知你操作是否完成．<br> Channel是有层级的，这样的话，你就可以很方便的利用其他已有的Channel来构建自己需要的<code>channel</code>,比如说基于<code>SocketChannel</code>来实现关于<code>SSH</code>的<code>Channel</code></p>
+<p> 此外，当你完成某些操作之后调用<code>close()</code>或在<code>close(ChannelPromise)</code>是非常重要的，这样能确保你正确的释放了所有资源．</p>
+<h4 id="我眼中的Channel"><a href="#我眼中的Channel" class="headerlink" title="我眼中的Channel"></a>我眼中的Channel</h4><p> 首先，我们应该都知道Netty支持很多I/O通信协议:</p>
+<ul>
+<li>基于TCP的NIO: <code>NioServerSocketChannel</code>,<code>NioSocketChannel</code></li>
+<li>基于UDP的NIO:<code>NioDatagramChannel</code></li>
+<li>基于TCP的OIO:<code>OioSocketChannel</code>和<code>OioServerSocketChannel</code></li>
+<li>基于UDP的OIO:<code>OioDatagramChannel</code><br>如果把关于Channel的类图列出来的话，你会发现支持各种协议的<code>Channel</code>,不信你就看一下这个类图．</li>
+</ul>
+<p> 这样想一下，<strong><em><code>Channel</code>不就是<code>Netty</code>框架用来封装不同协议逻辑的组件吗?</em></strong>，有了<code>Channel</code>的存在，所有于通信协议相关的逻辑都隐藏在不同的<code>Channel</code>实现里，然后在对外提供相对统一的API.<br> 说道这里，你可能还不知道，即使是<code>OIOChannel</code>,它提供的I/O操作也是异步的．也就是说<strong><em>在Netty框架中，不论是OIO还是NIO模型，读写都会阻塞</em></strong>．这样也体现了<code>Universal Communication API</code>的思想，这就使得我们切换Channel非常方便．我们只要初始化不同的Channel即可．<br><code>ServerBootstrap b = new ServerBootstrap(); 
+            b.group(bossGroup, workerGroup)
+             .channel(NioServerSocketChannel.class)
+ServerBootstrap b = new ServerBootstrap(); 
+            b.group(bossGroup, workerGroup)
+             .channel(OioServerSocketChannel.class)</code><br> 有关<code>Channel</code>协议相关的底层知识，我们会在下一篇文章时进行介绍．</p>
+<h3 id="ChannelHandler和ChannelPipeline"><a href="#ChannelHandler和ChannelPipeline" class="headerlink" title="ChannelHandler和ChannelPipeline"></a>ChannelHandler和ChannelPipeline</h3><p> 只有<code>Channel</code>的支持，还不足以实现<code>Universal Communication API</code>,还需要上述两个类来提供<code>ChannelHandler</code>的编程模式，基于<code>ChannelHandler</code>来开发业务逻辑，而不需要考虑网络通讯方面的事情．<br> Netty源码中一张图形象的描述了这个机制<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017327-netty-stream.png" alt="示意图"></p>
+<p>&emsp;Netty中的<code>ChannelPipeline</code>包含两条线路：Upstream和<code>Downstream</code>．Upstream对应上行，接受信息，被动的状态改变，都属于Upstream．Downstream则对应下行，发送消息，主动状态的改变．Upstream对应InBound Handler,Downstream对应Outbound Handler.从Netty内部IO线程接读到IO数据，依次经过N个Handler到达最内部的逻辑处理单元，这种称之为Inbound Handler；从Channel发出IO请求，依次经过M个Handler到达Netty内部IO线程，这种称之为Outbound Handler<br>&emsp;需要注意的是，这个Handler链中消息或在事件不会自动的向下或在向上流动或转发，而是需要由上一个Handler显示的调用<code>ChannelPipeline.sendUp(down)stream</code>来交给下一个Handler来处理．也就是说，每个Handler接受到一个<code>ChannelEvent</code>,处理结束后，如果需要继续处理，那么它需要向下一个或在上一个Handler发起一个事件．</p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/blog/categories/NIO/">NIO</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/blog/tags/Netty/">Netty</a>
+  </div>
+
+</div>
+
+
+
+	<div class="article-share" id="share">
+	
+	<div class="share-jiathis">
+	  
+<div class="jiathis_style_24x24">
+	<a class="jiathis_button_tsina"></a>
+	<a class="jiathis_button_weixin"></a>
+	<a class="jiathis_button_renren"></a>
+	<a class="jiathis_button_qzone"></a>
+	<a class="jiathis_button_googleplus"></a>
+	<a class="jiathis_button_douban"></a>
+	<a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	<a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+    var jiathis_config={
+    data_track_clickback:true,
+    sm:"copy,renren,cqq",
+    pic:"",
+    summary:"",
+    
+  </script> 
+<script type="text/javascript" src="//v3.jiathis.com/code/jia.js?uid=
+2157940" charset="utf-8"></script>      
+
+	 </div>
+	
+	</div>
+
+
+</footer>
+
+   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/blog/2017/04/02/Netty源码-三-I-O模型和Java-NIO底层原理/" title="Netty源码(三):I/O模型和Java NIO底层原理">
+  <strong>上一篇：</strong><br/>
+  <span>
+  Netty源码(三):I/O模型和Java NIO底层原理</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/blog/2017/03/22/Netty源码-一-Netty中的Buffer/"  title="Netty源码(一):Netty中的Buffer">
+ <strong>下一篇：</strong><br/> 
+ <span>Netty源码(一):Netty中的Buffer
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comments" class="comment">
+	<div class="ds-thread" data-thread-key="2017/03/27/Netty源码-二-Netty的Channel和Pipeline/" data-title="Netty源码(二):Netty的Channel和Pipeline" data-url="http://ztelur.github.io/blog/blog/2017/03/27/Netty源码-二-Netty的Channel和Pipeline/"></div>
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">Contents</strong>
+ 
+ <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#官方文档上的Channel"><span class="toc-number">1.</span> <span class="toc-text">官方文档上的Channel</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#我眼中的Channel"><span class="toc-number">1.1.</span> <span class="toc-text">我眼中的Channel</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ChannelHandler和ChannelPipeline"><span class="toc-number">2.</span> <span class="toc-text">ChannelHandler和ChannelPipeline</span></a></li></ol>
+ 
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<aside class="clearfix">
+
+  
+
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">Categories</p>
+		<ul>
+		
+		  
+			<li><a href="/blog/categories/Android/" title="Android">Android<sup>21</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android性能/" title="Android性能">Android性能<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/" title="Java">Java<sup>4</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/JavaScript/" title="JavaScript">JavaScript<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/NIO/" title="NIO">NIO<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/NetWork/" title="NetWork">NetWork<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/Network/" title="Network">Network<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Python/" title="Python">Python<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/c/" title="c">c<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/python/" title="python">python<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/函数式编程/" title="函数式编程">函数式编程<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/分布式/" title="分布式">分布式<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/后端/" title="后端">后端<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/后端-Spring/" title="后端 - Spring">后端 - Spring<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/多线程/" title="多线程">多线程<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/容器/" title="容器">容器<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/并发/" title="并发">并发<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/思考/" title="思考">思考<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/c/数据结构/" title="数据结构">数据结构<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/源码/" title="源码">源码<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/源码分析/" title="源码分析">源码分析<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/杂记/生活/" title="生活">生活<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/算法/" title="算法">算法<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/综合/" title="综合">综合<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/网络/" title="网络">网络<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/源码/视图/" title="视图">视图<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/计划/" title="计划">计划<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/设计/" title="设计">设计<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/读书笔记/" title="读书笔记">读书笔记<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/运维/" title="运维">运维<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/随笔/" title="随笔">随笔<sup>1</sup></a></li>
+		  
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">Tags</p>
+		<ul class="clearfix">
+		
+			
+				<li><a href="/blog/tags/JUC/" title="JUC">JUC<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/注解/" title="注解">注解<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/算法/" title="算法">算法<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Netty/" title="Netty">Netty<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/第三方库/" title="第三方库">第三方库<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/View/" title="View">View<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Span/" title="Span">Span<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Spring-Boot/" title="Spring Boot">Spring Boot<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Jenkins/" title="Jenkins">Jenkins<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/工具/" title="工具">工具<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/反射/" title="反射">反射<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/JSON/" title="JSON">JSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/docker/" title="docker">docker<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/kubernetes/" title="kubernetes">kubernetes<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
+			
+		
+		</ul>
+</div>
+
+
+  
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	
+	<section class="info">
+		<p> Hello ,I&#39;m Homer in NJU. <br/>
+			This is my blog,believe it or not.</p>
+	</section>
+	 
+	<div class="social-font" class="clearfix">
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+	</div>
+			
+		
+
+		<p class="copyright">
+		Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/wuchong/jacman" target="_blank" title="Jacman">Jacman</a> © 2018 
+		
+		<a href="/blog/about" target="_blank" title="remCarpediem">remCarpediem</a>
+		
+		
+		</p>
+</div>
+</footer>
+    <script src="/blog/js/jquery-2.0.3.min.js"></script>
+<script src="/blog/js/jquery.imagesloaded.min.js"></script>
+<script src="/blog/js/gallery.js"></script>
+<script src="/blog/js/jquery.qrcode-0.12.0.min.js"></script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+  
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else{
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  c.click(function(){
+    ta.css('display', 'block').addClass('fadeIn');
+  });
+  o.click(function(){
+    ta.css('display', 'none');
+  });
+  $(window).scroll(function(){
+    ta.css("top",Math.max(140,320-$(this).scrollTop()));
+  });
+});
+</script>
+
+
+
+
+<script type="text/javascript">
+  var duoshuoQuery = {short_name:"CarpeDiem"};
+  (function() {
+    var ds = document.createElement('script');
+    ds.type = 'text/javascript';ds.async = true;
+    ds.src = '//static.duoshuo.com/embed.js';
+    ds.charset = 'UTF-8';
+    (document.getElementsByTagName('head')[0] 
+    || document.getElementsByTagName('body')[0]).appendChild(ds);
+  })();
+</script> 
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/blog/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/blog/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.article-content').each(function(i){
+    $(this).find('img').each(function(){
+      if ($(this).parent().hasClass('fancybox')) return;
+      var alt = this.alt;
+      if (alt) $(this).after('<span class="caption">' + alt + '</span>');
+      $(this).wrap('<a href="' + this.src + '" title="' + alt + '" class="fancybox"></a>');
+    });
+    $(this).find('.fancybox').each(function(){
+      $(this).attr('rel', 'article' + i);
+    });
+  });
+  if($.fancybox){
+    $('.fancybox').fancybox();
+  }
+}); 
+</script>
+
+
+
+<!-- Analytics Begin -->
+
+<script type="text/javascript">
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+ga('create', 'UA-88918565-1', 'ztelur.github.io/');
+ga('send', 'pageview');
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?8a8af29a4307eee9d7c7f8e9321aedae";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+<script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1260989317'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "s23.cnzz.com/z_stat.php%3Fid%3D1260989317' type='text/javascript'%3E%3C/script%3E"));</script>
+
+
+
+
+<!-- baidu search 推送-->
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+<!-- Analytics End -->
+
+<!-- Totop Begin -->
+
+	<div id="totop">
+	<a title="Back to Top"><img src="/blog/img/scrollup.png"/></a>
+	</div>
+	<script src="/blog/js/totop.js"></script>
+
+<!-- Totop End -->
+
+<!-- MathJax Begin -->
+<!-- mathjax config similar to math.stackexchange -->
+
+
+<!-- MathJax End -->
+
+<!-- Tiny_search Begin -->
+
+<!-- Tiny_search End -->
+
+  </body>
+</html>

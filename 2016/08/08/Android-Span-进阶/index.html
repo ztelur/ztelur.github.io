@@ -1,0 +1,678 @@
+
+ <!DOCTYPE HTML>
+<html lang="Chinese">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Android  Span 进阶 | Carpediem</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
+    
+    <meta name="author" content="remCarpediem">
+    
+
+    
+    <meta name="description" content="&amp;emsp;在上篇文章《Android Span 架构介绍》，我们讲述了Android Span的基本概念和用法，这篇文章我们就来扩展一下我们对Android Span的了解，这一定会使你感到惊奇的，惊叹Android Span竟然还能完成这些的效果，让你在Android自定义View和动画方面有更加深刻的理解，可能会帮助你你想出更加简洁的实现方式。&amp;emsp;本篇文章主要讲述一下两个方面的内容:">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Android  Span 进阶">
+<meta property="og:url" content="http://ztelur.github.io/blog/2016/08/08/Android-Span-进阶/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="&amp;emsp;在上篇文章《Android Span 架构介绍》，我们讲述了Android Span的基本概念和用法，这篇文章我们就来扩展一下我们对Android Span的了解，这一定会使你感到惊奇的，惊叹Android Span竟然还能完成这些的效果，让你在Android自定义View和动画方面有更加深刻的理解，可能会帮助你你想出更加简洁的实现方式。&amp;emsp;本篇文章主要讲述一下两个方面的内容:">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-FireWorkSpan.gif">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-MutiableForegroundSpan.gif">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-BuddleSpan.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-RectSpan.png">
+<meta property="og:updated_time" content="2016-08-08T13:40:52.293Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Android  Span 进阶">
+<meta name="twitter:description" content="&amp;emsp;在上篇文章《Android Span 架构介绍》，我们讲述了Android Span的基本概念和用法，这篇文章我们就来扩展一下我们对Android Span的了解，这一定会使你感到惊奇的，惊叹Android Span竟然还能完成这些的效果，让你在Android自定义View和动画方面有更加深刻的理解，可能会帮助你你想出更加简洁的实现方式。&amp;emsp;本篇文章主要讲述一下两个方面的内容:">
+<meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-FireWorkSpan.gif">
+
+    
+    <link rel="alternative" href="/atom.xml" title="Carpediem" type="application/atom+xml">
+    
+    
+    
+    <link rel="stylesheet" href="/blog/css/style.css">
+</head>
+
+  <body>
+    <header>
+      
+<div>
+		
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/blog/" title="Carpediem">Carpediem</a></h1>
+				<h2 class="blog-motto">blog of nobody</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					<ul>
+					 
+						<li><a href="/blog/">Home</a></li>
+					
+						<li><a href="/blog/archives">Archives</a></li>
+					
+						<li><a href="/blog/about">About</a></li>
+					
+					<li>
+ 					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
+						<input type="hidden" name="q" value="site:ztelur.github.io/blog">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+  
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/blog/2016/08/08/Android-Span-进阶/" title="Android  Span 进阶" itemprop="url">Android  Span 进阶</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/blog/about" title="remCarpediem" target="_blank" itemprop="author">remCarpediem</a>
+		
+  <p class="article-time">
+    <time datetime="2016-08-08T13:25:54.000Z" itemprop="datePublished"> Published 2016-08-08</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">Contents</strong>
+		
+			<ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#自定义Span"><span class="toc-number">1.</span> <span class="toc-text">自定义Span</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#通过Span实现动画"><span class="toc-number">2.</span> <span class="toc-text">通过Span实现动画</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#后记"><span class="toc-number">3.</span> <span class="toc-text">后记</span></a></li></ol>
+		
+		</div>
+		
+		<p>&emsp;在上篇文章<a href="http://blog.csdn.net/u012422440/article/details/52133037" target="_blank" rel="external">《Android Span 架构介绍》</a>，我们讲述了Android Span的基本概念和用法，这篇文章我们就来扩展一下我们对Android Span的了解，这一定会使你感到惊奇的，惊叹Android Span竟然还能完成这些的效果，让你在Android自定义View和动画方面有更加深刻的理解，可能会帮助你你想出更加简洁的实现方式。<br>&emsp;本篇文章主要讲述一下两个方面的内容:</p>
+<ul>
+<li>自定义Android Span</li>
+<li>使用Android Span实现动画</li>
+</ul>
+<p>&emsp;先贴一下本篇文章实现的自定义Span和动画的效果图<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-FireWorkSpan.gif" alt="demo"></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-MutiableForegroundSpan.gif" alt="demo"></p>
+<h4 id="自定义Span"><a href="#自定义Span" class="headerlink" title="自定义Span"></a>自定义Span</h4><p>&emsp;我们都知道，自定义View有两种方式，一种是继承特定的视图类,比如你希望修改<code>TextView</code>的行为，所以继承了<code>TextView</code>;另一种就是直接继承<code>View</code>或者<code>ViewGroup</code>,这样可以实现全新的视图和行为。如同自定义View一样，你有两种自定义Span的方法，一种直接继承特定类型的Span类，比如<code>ForegroundColorSpan</code>等，这样你可以在这些类的基础上进行修改；另一种就是继承<code>ReplaceSpan</code>这样的抽象类或者实现<code>LetterLineBackgroundSpan</code>这样的接口，你只要实现它给出的接口，就可以实现新的效果。<br>&emsp;我们先来讲解第一种方式。直接继承现有的<code>Span</code>。文章开头时展示的<code>ActionBar</code>动画就是通过继承<code>ForegroundSpan</code>来实现的。<br>&emsp;我们主要重载了<code>updateDrawsState</code>和<code>getForegroundColor</code>,这样就可以通过改变<code>setAlpha</code>函数来改变颜色，让字体从透明(alpha为0)到某个特定颜色。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">public class MutableForegroundColorSpan extends ForegroundColorSpan &#123;</span><br><span class="line">    private int mAlpha = 255;</span><br><span class="line">    private int mForegroundColor;</span><br><span class="line">    public MutableForegroundColorSpan(int alpha,int color) &#123;</span><br><span class="line">        super(color);</span><br><span class="line">        mAlpha = alpha;</span><br><span class="line">        mForegroundColor = color;</span><br><span class="line">    &#125;</span><br><span class="line">    @Override</span><br><span class="line">    public void updateDrawState(TextPaint ds) &#123;</span><br><span class="line">        ds.setColor(getForegroundColor());</span><br><span class="line">    &#125;</span><br><span class="line">    public void setAlpha(int alpha) &#123;</span><br><span class="line">        mAlpha = alpha;</span><br><span class="line">    &#125;</span><br><span class="line">    public void setForegroundColor(int foregroundColor) &#123;</span><br><span class="line">        mForegroundColor = foregroundColor;</span><br><span class="line">    &#125;</span><br><span class="line">    public float getAlpha() &#123;</span><br><span class="line">        return mAlpha;</span><br><span class="line">    &#125;</span><br><span class="line">    @Override</span><br><span class="line">    public int getForegroundColor() &#123;</span><br><span class="line">        return Color.argb(mAlpha,Color.red(mForegroundColor),Color.green(mForegroundColor),Color.blue(mForegroundColor));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;第二种方法是继承<code>Span</code>架构中的抽象类或者是实现特定接口。需要注意的是，在上一篇文章中说的<code>CharacterStyle</code>,<code>ParagraphStyle</code>.<code>UpdateAppearance</code>和<code>UpdateLayout</code>都是没有函数的，所以，我们无法直接继承或者实现它们。除了第一篇文章中所介绍的那些<code>Span</code>可以使用第一种方法进行继承。我们一般都继承或者实现<code>MetricAffectingSpan</code>,<code>ReplacementSpan</code>或者<code>LineBackgroundSpan</code>。<br>&emsp;比如我们想给每个字都添加一个不同颜色的背景，我们就可以继承<code>ReplacementSpan</code></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-BuddleSpan.png" alt="demo"></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">public class BubbleSpan extends ReplacementSpan &#123;</span><br><span class="line">    private Paint mPaint;</span><br><span class="line">    static Random random = new Random();</span><br><span class="line">    private int mWidth = -1;</span><br><span class="line">    private RectF mRectF = new RectF();</span><br><span class="line"></span><br><span class="line">    private int[] mColors = new int[20];</span><br><span class="line"></span><br><span class="line">    public BubbleSpan() &#123;</span><br><span class="line">        initPaint();</span><br><span class="line">        initColors();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private void initPaint() &#123;</span><br><span class="line">        mPaint = new Paint();</span><br><span class="line">        mPaint.setColor(Color.rgb(random.nextInt(255), random.nextInt(255), random.nextInt(255)));</span><br><span class="line">        mPaint.setAntiAlias(true);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private void initColors() &#123;</span><br><span class="line">        for(int index = 0 ; index &lt; mColors.length ; index++) &#123;</span><br><span class="line">            mColors[index] = Color.rgb(random.nextInt(255), random.nextInt(255), random.nextInt(255));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public int getSize(Paint paint, CharSequence text, int start, int end, Paint.FontMetricsInt fm) &#123;</span><br><span class="line">        //return text with relative to the Paint</span><br><span class="line">		mWidth = (int) paint.measureText(text, start, end);</span><br><span class="line">        return mWidth;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint paint) &#123;</span><br><span class="line">        float charx = x;</span><br><span class="line">        for(int i = start ; i&lt;end; i++) &#123;</span><br><span class="line">            String charAt = extractText(text, i, i + 1);</span><br><span class="line">            float charWidth = paint.measureText(charAt);</span><br><span class="line">            mRectF.set(charx, top, charx += charWidth, bottom);</span><br><span class="line">            mPaint.setColor(mColors[i % mColors.length]);</span><br><span class="line">            //根据每个字的位置绘制背景</span><br><span class="line">            canvas.drawOval(mRectF, mPaint);</span><br><span class="line">        &#125;</span><br><span class="line">        //绘制字体，如果不掉用这个函数，就不会显示字体啦。</span><br><span class="line">        canvas.drawText(text, start, end, x, y, paint);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private String extractText(CharSequence text, int start, int end) &#123;</span><br><span class="line">        return text.subSequence(start, end).toString();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;我们可以看到，我们要实现两个函数:<code>getSize</code>和<code>draw</code>。<code>getSize</code>是获得字体的长度的，所以一般都是直接使用<code>paint.measureText</code>,然后<code>draw</code>中进行绘制，你可以在这里把每个字的背景绘制出来，而且你必须也要把字体给绘制出来。如果你只想绘制背景，不想涉及字体的绘制，那么就可以直接实现<code>LineBackgroundSpan</code>接口。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">public class RectSpan extends ReplacementSpan &#123;</span><br><span class="line">    private final Paint mPaint;</span><br><span class="line">    private int mWidth;</span><br><span class="line"></span><br><span class="line">    public RectSpan() &#123;</span><br><span class="line">        mPaint = new Paint();</span><br><span class="line">        mPaint.setStyle(Paint.Style.STROKE);</span><br><span class="line">        mPaint.setColor(Color.BLUE);</span><br><span class="line">        mPaint.setAntiAlias(true);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public int getSize(Paint paint, CharSequence text, int start, int end, Paint.FontMetricsInt fm) &#123;</span><br><span class="line">        //return text with relative to the Paint</span><br><span class="line">        mWidth = (int) paint.measureText(text, start, end);</span><br><span class="line">        return mWidth;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint paint) &#123;</span><br><span class="line">        //只绘制了外围矩形，没有绘制文字。</span><br><span class="line">        canvas.drawRect(x, top, x + mWidth, bottom, mPaint);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-RectSpan.png" alt="demo"></p>
+<h4 id="通过Span实现动画"><a href="#通过Span实现动画" class="headerlink" title="通过Span实现动画"></a>通过Span实现动画</h4><p>&emsp;在上一节中，我们已经实现了<code>MutableForegroundColorSpan</code>类，那么如何使用它来实现动画呢？这里我们就要使用到<code>ObjectAnimator</code>和<code>Property&lt;T1,T2&gt;</code>。我们首先定义<code>MutableForegroundColorSpan</code>使用的<code>property</code>。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">private static final Property&lt;MutableForegroundColorSpan, Integer&gt; MUTABLE_FOREGROUND_COLOR_SPAN_PROPERTY =</span><br><span class="line">        new Property&lt;MutableForegroundColorSpan, Integer&gt;(Integer.class, &quot;MUTABLE_FOREGROUND_COLOR_SPAN_FC_PROPERTY&quot;) &#123;</span><br><span class="line"></span><br><span class="line">        @Override</span><br><span class="line">                public void set(MutableForegroundColorSpan alphaForegroundColorSpanGroup, Integer value) &#123;</span><br><span class="line">                        alphaForegroundColorSpanGroup.setForegroundColor(value);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">        @Override</span><br><span class="line">                public Integer get(MutableForegroundColorSpan span) &#123;</span><br><span class="line">                        return span.getForegroundColor();</span><br><span class="line">                &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;然后我们就可以使用<code>ObjectAnimator</code>对<code>MutableForegroundColorSpan</code>实现属性动画了。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">MutableForegroundColorSpan span = new MutableForegroundColorSpan(255, Color.BLUE);</span><br><span class="line">final SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span, 0,4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">ObjectAnimator objectAnimator = ObjectAnimator.ofInt(span, MUTABLE_FOREGROUND_COLOR_SPAN_PROPERTY, Color.BLACK, Color.RED);</span><br><span class="line">objectAnimator.setEvaluator(new ArgbEvaluator());</span><br><span class="line">objectAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() &#123;</span><br><span class="line">        @Override</span><br><span class="line">        public void onAnimationUpdate(ValueAnimator animation) &#123;</span><br><span class="line">        //refresh</span><br><span class="line">                mTvTextView.setText(spannableString);</span><br><span class="line">        &#125;       </span><br><span class="line">&#125;);</span><br><span class="line">objectAnimator.setInterpolator(mSmoothInterpolator);</span><br><span class="line">objectAnimator.setDuration(600);</span><br><span class="line">objectAnimator.start();</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;这里还只是单独一个<code>Span</code>实例的动画效果，你可以对多个Span实例进行属性动画，从而实现更加复杂的动画效果。就比如文章开始时的文字逐渐显示的动画效果。<br>&emsp;我们可以给每个字都设置一个<code>MutableForegroundColorSpan</code>实例,并将这些实例都添加到一个对象中，然后在属性动画过程中，乱序设置每个实例的<code>alpha</code>的值，从而达到文字逐渐显现的动画。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line">public class FireWorkGroup &#123;</span><br><span class="line">    private final float mProgress;</span><br><span class="line">    private final ArrayList&lt;MutableForegroundColorSpan&gt; mSpans;</span><br><span class="line">    private final ArrayList&lt;Integer&gt; mSpanIndexes;</span><br><span class="line"></span><br><span class="line">    public FireWorkGroup() &#123;</span><br><span class="line">        mProgress = 0;</span><br><span class="line">        mSpans  = new ArrayList&lt;&gt;();</span><br><span class="line">        mSpanIndexes = new ArrayList&lt;&gt;();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void addSpan(MutableForegroundColorSpan span) &#123;</span><br><span class="line">        span.setAlpha(0);</span><br><span class="line">        mSpanIndexes.add(mSpans.size());</span><br><span class="line">        mSpans.add(span);</span><br><span class="line">    &#125;</span><br><span class="line">    public void init() &#123;</span><br><span class="line">        Collections.shuffle(mSpans);</span><br><span class="line">    &#125;</span><br><span class="line">    public void setProgress(float progress) &#123;</span><br><span class="line">        int size = mSpans.size();</span><br><span class="line">        float total  = 1.0f * size * progress;</span><br><span class="line">        for (int index = 0 ; index &lt; size ; index++) &#123;</span><br><span class="line">            MutableForegroundColorSpan span = mSpans.get(index);</span><br><span class="line">            if (total &gt; 1.0f) &#123;</span><br><span class="line">                span.setAlpha(255);</span><br><span class="line">                total -= 1.0f;</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                span.setAlpha((int)(total * 255));</span><br><span class="line">                total = 0.0f;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    public float getProgress() &#123;</span><br><span class="line">        return mProgress;</span><br><span class="line">    &#125;</span><br><span class="line">    public static final Property&lt;FireWorkGroup, Float&gt; FIREWORKS_GROUP_PROGRESS_PROPERTY =</span><br><span class="line">            new Property&lt;FireWorkGroup, Float&gt;(Float.class, &quot;FIREWORKS_GROUP_PROGRESS_PROPERTY&quot;) &#123;</span><br><span class="line"></span><br><span class="line">                @Override</span><br><span class="line">                public void set(FireWorkGroup spanGroup, Float value) &#123;</span><br><span class="line">                    spanGroup.setProgress(value);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                @Override</span><br><span class="line">                public Float get(FireWorkGroup spanGroup) &#123;</span><br><span class="line">                    return spanGroup.getProgress();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h4><p>&emsp;上述的这些动画都是我在第一篇文章提到的那篇博文中实现过的效果，我在学习过程中又发现了一个实现了很多<code>TextView</code>相关动画的开源项目<a href="https://github.com/hanks-zyh/HTextView" target="_blank" rel="external">HTextView</a>。所以接下来的任务就是想使用<code>Span</code>机制去实现这个项目中的一些动画效果。希望大家继续支持我的文章，并积极指出文中的错误。<br>&emsp;!!!源码都在<a href="https://github.com/ztelur/AndroidSpan" target="_blank" rel="external">我的github</a>里。</p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/blog/categories/Android/">Android</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/blog/tags/Span/">Span</a>
+  </div>
+
+</div>
+
+
+
+	<div class="article-share" id="share">
+	
+	<div class="share-jiathis">
+	  
+<div class="jiathis_style_24x24">
+	<a class="jiathis_button_tsina"></a>
+	<a class="jiathis_button_weixin"></a>
+	<a class="jiathis_button_renren"></a>
+	<a class="jiathis_button_qzone"></a>
+	<a class="jiathis_button_googleplus"></a>
+	<a class="jiathis_button_douban"></a>
+	<a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	<a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+    var jiathis_config={
+    data_track_clickback:true,
+    sm:"copy,renren,cqq",
+    pic:"",
+    summary:"",
+    
+  </script> 
+<script type="text/javascript" src="//v3.jiathis.com/code/jia.js?uid=
+2157940" charset="utf-8"></script>      
+
+	 </div>
+	
+	</div>
+
+
+</footer>
+
+   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/blog/2016/08/26/Android-图像处理-一-Shader/" title="Android 图像处理(一) : Shader">
+  <strong>上一篇：</strong><br/>
+  <span>
+  Android 图像处理(一) : Shader</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/blog/2016/08/05/Android-Span-架构介绍/"  title="Android Span 架构介绍">
+ <strong>下一篇：</strong><br/> 
+ <span>Android Span 架构介绍
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section id="comments" class="comment">
+	<div class="ds-thread" data-thread-key="2016/08/08/Android-Span-进阶/" data-title="Android  Span 进阶" data-url="http://ztelur.github.io/blog/blog/2016/08/08/Android-Span-进阶/"></div>
+</section>
+
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">Contents</strong>
+ 
+ <ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#自定义Span"><span class="toc-number">1.</span> <span class="toc-text">自定义Span</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#通过Span实现动画"><span class="toc-number">2.</span> <span class="toc-text">通过Span实现动画</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#后记"><span class="toc-number">3.</span> <span class="toc-text">后记</span></a></li></ol>
+ 
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<aside class="clearfix">
+
+  
+
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">Categories</p>
+		<ul>
+		
+		  
+			<li><a href="/blog/categories/Android/" title="Android">Android<sup>21</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android性能/" title="Android性能">Android性能<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/" title="Java">Java<sup>4</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/JavaScript/" title="JavaScript">JavaScript<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/NIO/" title="NIO">NIO<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/NetWork/" title="NetWork">NetWork<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/Network/" title="Network">Network<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Python/" title="Python">Python<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/c/" title="c">c<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/python/" title="python">python<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/函数式编程/" title="函数式编程">函数式编程<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/分布式/" title="分布式">分布式<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/后端/" title="后端">后端<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/后端-Spring/" title="后端 - Spring">后端 - Spring<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/多线程/" title="多线程">多线程<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/容器/" title="容器">容器<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/并发/" title="并发">并发<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/思考/" title="思考">思考<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/c/数据结构/" title="数据结构">数据结构<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Java/杂记/" title="杂记">杂记<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/杂记/" title="杂记">杂记<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/源码/" title="源码">源码<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/Android/源码分析/" title="源码分析">源码分析<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/杂记/生活/" title="生活">生活<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/算法/" title="算法">算法<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/综合/" title="综合">综合<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/网络/" title="网络">网络<sup>2</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/源码/视图/" title="视图">视图<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/计划/" title="计划">计划<sup>3</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/设计/" title="设计">设计<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/读书笔记/" title="读书笔记">读书笔记<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/运维/" title="运维">运维<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/blog/categories/随笔/" title="随笔">随笔<sup>1</sup></a></li>
+		  
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">Tags</p>
+		<ul class="clearfix">
+		
+			
+				<li><a href="/blog/tags/JUC/" title="JUC">JUC<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/注解/" title="注解">注解<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/算法/" title="算法">算法<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Netty/" title="Netty">Netty<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/第三方库/" title="第三方库">第三方库<sup>3</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/OkHttp/" title="OkHttp">OkHttp<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/scroll/" title="scroll">scroll<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/TCP-IP/" title="TCP/IP">TCP/IP<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/View/" title="View">View<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Span/" title="Span">Span<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/事件传递/" title="事件传递">事件传递<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Spring-Boot/" title="Spring Boot">Spring Boot<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Jenkins/" title="Jenkins">Jenkins<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/工具/" title="工具">工具<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/GSON/" title="GSON">GSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/反射/" title="反射">反射<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/JSON/" title="JSON">JSON<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/docker/" title="docker">docker<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/kubernetes/" title="kubernetes">kubernetes<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/blog/tags/Material-Design/" title="Material Design">Material Design<sup>1</sup></a></li>
+			
+		
+		</ul>
+</div>
+
+
+  
+
+
+  <div class="rsspart">
+	<a href="/atom.xml" target="_blank" title="rss">RSS</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	
+	<section class="info">
+		<p> Hello ,I&#39;m Homer in NJU. <br/>
+			This is my blog,believe it or not.</p>
+	</section>
+	 
+	<div class="social-font" class="clearfix">
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+	</div>
+			
+		
+
+		<p class="copyright">
+		Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/wuchong/jacman" target="_blank" title="Jacman">Jacman</a> © 2018 
+		
+		<a href="/blog/about" target="_blank" title="remCarpediem">remCarpediem</a>
+		
+		
+		</p>
+</div>
+</footer>
+    <script src="/blog/js/jquery-2.0.3.min.js"></script>
+<script src="/blog/js/jquery.imagesloaded.min.js"></script>
+<script src="/blog/js/gallery.js"></script>
+<script src="/blog/js/jquery.qrcode-0.12.0.min.js"></script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+  
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else{
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  c.click(function(){
+    ta.css('display', 'block').addClass('fadeIn');
+  });
+  o.click(function(){
+    ta.css('display', 'none');
+  });
+  $(window).scroll(function(){
+    ta.css("top",Math.max(140,320-$(this).scrollTop()));
+  });
+});
+</script>
+
+
+
+
+<script type="text/javascript">
+  var duoshuoQuery = {short_name:"CarpeDiem"};
+  (function() {
+    var ds = document.createElement('script');
+    ds.type = 'text/javascript';ds.async = true;
+    ds.src = '//static.duoshuo.com/embed.js';
+    ds.charset = 'UTF-8';
+    (document.getElementsByTagName('head')[0] 
+    || document.getElementsByTagName('body')[0]).appendChild(ds);
+  })();
+</script> 
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/blog/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/blog/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.article-content').each(function(i){
+    $(this).find('img').each(function(){
+      if ($(this).parent().hasClass('fancybox')) return;
+      var alt = this.alt;
+      if (alt) $(this).after('<span class="caption">' + alt + '</span>');
+      $(this).wrap('<a href="' + this.src + '" title="' + alt + '" class="fancybox"></a>');
+    });
+    $(this).find('.fancybox').each(function(){
+      $(this).attr('rel', 'article' + i);
+    });
+  });
+  if($.fancybox){
+    $('.fancybox').fancybox();
+  }
+}); 
+</script>
+
+
+
+<!-- Analytics Begin -->
+
+<script type="text/javascript">
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+ga('create', 'UA-88918565-1', 'ztelur.github.io/');
+ga('send', 'pageview');
+</script>
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?8a8af29a4307eee9d7c7f8e9321aedae";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+<script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1260989317'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "s23.cnzz.com/z_stat.php%3Fid%3D1260989317' type='text/javascript'%3E%3C/script%3E"));</script>
+
+
+
+
+<!-- baidu search 推送-->
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+<!-- Analytics End -->
+
+<!-- Totop Begin -->
+
+	<div id="totop">
+	<a title="Back to Top"><img src="/blog/img/scrollup.png"/></a>
+	</div>
+	<script src="/blog/js/totop.js"></script>
+
+<!-- Totop End -->
+
+<!-- MathJax Begin -->
+<!-- mathjax config similar to math.stackexchange -->
+
+
+<!-- MathJax End -->
+
+<!-- Tiny_search Begin -->
+
+<!-- Tiny_search End -->
+
+  </body>
+</html>
