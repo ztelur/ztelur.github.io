@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="Chinese">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="View,Animation,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="作者： remcarpediem联系方式：segmentfault，csdn，简书  本文转载请注明作者、文章来源，链接，版权归作者所有。  &amp;emsp;前段时间，我看到了一篇关于Android动画的文章Android View 仿iOS SwitchButton Material Design，十分喜欢文章作者的笔风，可惜每个人的笔风都不同，不过我倒是实现了一个类似的Switch组件,项目地址为">
+<meta name="keywords" content="View,Animation">
+<meta property="og:type" content="article">
+<meta property="og:title" content="自定义Switch过程详解">
+<meta property="og:url" content="http://remcarpediem.net/2016/07/15/自定义Switch过程详解/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="作者： remcarpediem联系方式：segmentfault，csdn，简书  本文转载请注明作者、文章来源，链接，版权归作者所有。  &amp;emsp;前段时间，我看到了一篇关于Android动画的文章Android View 仿iOS SwitchButton Material Design，十分喜欢文章作者的笔风，可惜每个人的笔风都不同，不过我倒是实现了一个类似的Switch组件,项目地址为">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160715-sample.gif">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160715-boke1.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160715-smileface.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160715-quadTo.jpg">
+<meta property="og:updated_time" content="2018-11-18T13:40:01.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="自定义Switch过程详解">
+<meta name="twitter:description" content="作者： remcarpediem联系方式：segmentfault，csdn，简书  本文转载请注明作者、文章来源，链接，版权归作者所有。  &amp;emsp;前段时间，我看到了一篇关于Android动画的文章Android View 仿iOS SwitchButton Material Design，十分喜欢文章作者的笔风，可惜每个人的笔风都不同，不过我倒是实现了一个类似的Switch组件,项目地址为">
+<meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160715-sample.gif">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://remcarpediem.net/2016/07/15/自定义Switch过程详解/">
+
+
+
+
+
+  <title>自定义Switch过程详解 | Carpediem</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="Chinese">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Carpediem</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">blog of nobody</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://remcarpediem.net/2016/07/15/自定义Switch过程详解/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="remCarpediem">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Carpediem">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">自定义Switch过程详解</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2016-07-15T22:13:49+08:00">
+                2016-07-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/Android/" itemprop="url" rel="index">
+                    <span itemprop="name">Android</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>作者： <a href="http://ztelur.github.io/" target="_blank" rel="noopener">remcarpediem</a><br>联系方式：<a href="https://segmentfault.com/u/remcarpediem" target="_blank" rel="noopener">segmentfault</a>，<a href="http://blog.csdn.net/u012422440" target="_blank" rel="noopener">csdn</a>，<a href="http://www.jianshu.com/users/481d9f540fb9/latest_articles" target="_blank" rel="noopener">简书</a></p>
+<blockquote>
+<p>本文转载请注明作者、文章来源，链接，版权归作者所有。</p>
+</blockquote>
+<p>&emsp;前段时间，我看到了一篇关于Android动画的文章<a href="http://blog.csdn.net/bfbx5173/article/details/45191147" target="_blank" rel="noopener">Android View 仿iOS SwitchButton Material Design</a>，十分喜欢文章作者的笔风，可惜每个人的笔风都不同，不过我倒是实现了一个类似的Switch组件,项目地址为<a href="https://github.com/ztelur/FunSwitch" target="_blank" rel="noopener">https://github.com/ztelur/FunSwitch</a>，就用这篇文章来讲述一下实现过程和机制吧。</p>
+<h4 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h4><p>&emsp;我的自定义Switch是模仿github上的<a href="https://github.com/lilei644/LLSwitch" target="_blank" rel="noopener">LLSwitch</a>,其UI设计来源于Dribbble，链接<a href="https://dribbble.com/shots/2706143-Dribbble-Debut-Boring-Funny-Slider-Animation" target="_blank" rel="noopener">摸我</a>,其效果图如下</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160715-sample.gif" alt="效果图"></p>
+<h4 id="自定义View需要重载的函数"><a href="#自定义View需要重载的函数" class="headerlink" title="自定义View需要重载的函数"></a>自定义View需要重载的函数</h4><p>&emsp;我们都知道以<code>View</code>为父类来自定义视图需要重载一系列函数，下面我们就来按照调用顺序来介绍一下这些函数。需要重载的函数列表如下:</p>
+<ul>
+<li><code>onMeasure</code>  </li>
+<li><code>onSizeChanged</code></li>
+<li><code>onDraw</code></li>
+<li><code>onTouchEvent</code></li>
+<li><code>onSaveInstanceState</code></li>
+<li><code>onRestoreInstanceState</code></li>
+</ul>
+<p>&emsp;首先就是<code>onMeasure</code>函数，用于确定自定义视图的长和高。对于本文的Switch,我们让其高为宽的固定比例大小就可以了，所以重构函数实现得十分简单。<strong>这个函数确定的只是测量的长和高，并不是最终视图所显示的长和高</strong>。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onMeasure</span><span class="params">(<span class="keyword">int</span> widthMeasureSpec, <span class="keyword">int</span> heightMeasureSpec)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>.onMeasure(widthMeasureSpec, heightMeasureSpec);</span><br><span class="line">    <span class="keyword">int</span> width = MeasureSpec.getSize(widthMeasureSpec);</span><br><span class="line">    <span class="keyword">int</span> height = (<span class="keyword">int</span>) (width * DEFAULT_WIDTH_HEIGHT_PERCENT);</span><br><span class="line">    setMeasuredDimension(width,height);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;然后就是视图确定真正大小(<code>onLayout</code>)之后要调用的<code>onSizeChanged</code>函数了。这个函数调用之后，<code>draw</code>函数就可能被调用，所以，一般我们在这个函数中计算绘制时所需要的数据。<br>&emsp;接着是<code>draw</code>函数，在这个函数中，我们绘制各种图像来构成视图的UI。需要注意的是，这个函数会被频繁的调用，所以不要在函数内执行耗时的操作。<br>&emsp;最后是<code>onTouchEvent</code>函数，这个函数是用户触摸屏幕时才会被调用的，主要进行视图的触摸处理，由于我们的自定义Switch支持的触摸事件比较简单，只是支持点击事件，所以此函数的实现也比较简单。<br>&emsp;最后就是涉及到视图状态保存的两个函数。我们都知道，一定情况下，activity会被销毁，然后重新建立，比如你旋转屏幕时。这个时候，你需要保存视图的一些属性数据，以备重新建立视图时使用，来恢复之前的视图。<strong>你需要注意的是，光重载这两个函数还是不够的，还需要设置View ID和调用setSaveEnabled函数</strong>。<br>&emsp;我们接下来就一步一步的来实现这个自定义组件吧。</p>
+<h4 id="田径场式背景"><a href="#田径场式背景" class="headerlink" title="田径场式背景"></a>田径场式背景</h4><p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160715-boke1.png" alt="田径场背景"></p>
+<p>&emsp;我们先来看一下这个Switch的背景，它是一个形如田径场跑道的形状，由两个半圆和一个矩形组成，我们先来看一下如何来绘制出这样的图案。我们使用<code>Path</code>来构造出这样的图案，然后再进行绘制，代码如下所示:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onSizeChanged</span><span class="params">(<span class="keyword">int</span> w, <span class="keyword">int</span> h, <span class="keyword">int</span> oldw, <span class="keyword">int</span> oldh)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>.onSizeChanged(w, h, oldw, oldh);</span><br><span class="line">    <span class="comment">//TODO：还有padding的问题偶！！！</span></span><br><span class="line">    mWidth = w;</span><br><span class="line">    mHeight = h;</span><br><span class="line">    <span class="keyword">float</span> top = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">float</span> left = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">float</span> bottom = h*<span class="number">0.8f</span>; <span class="comment">//下边预留0.2空间来画阴影</span></span><br><span class="line">    <span class="keyword">float</span> right = w;</span><br><span class="line"></span><br><span class="line">    RectF backgroundRecf = <span class="keyword">new</span> RectF(left,top,bottom,bottom);</span><br><span class="line">    mBackgroundPath = <span class="keyword">new</span> Path();</span><br><span class="line">    <span class="comment">//<span class="doctag">TODO:</span>???????????</span></span><br><span class="line">    mBackgroundPath.arcTo(backgroundRecf,<span class="number">90</span>,<span class="number">180</span>);</span><br><span class="line"></span><br><span class="line">    backgroundRecf.left = right - bottom;</span><br><span class="line">    backgroundRecf.right = right;</span><br><span class="line">    mBackgroundPath.arcTo(backgroundRecf,<span class="number">270</span>,<span class="number">180</span>);</span><br><span class="line">    mBackgroundPath.close();</span><br><span class="line">    ........</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onDraw</span><span class="params">(Canvas canvas)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>.onDraw(canvas);</span><br><span class="line">    drawBackground(canvas);</span><br><span class="line">    drawForeground(canvas);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">drawBackground</span><span class="params">(Canvas canvas)</span> </span>&#123;</span><br><span class="line">    mPaint.setColor(mCurrentColor);</span><br><span class="line">    mPaint.setStyle(Paint.Style.FILL);</span><br><span class="line">    canvas.drawPath(mBackgroundPath,mPaint);</span><br><span class="line">    mPaint.reset();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;我们使用<code>arcTo(RectF oval, float startAngle, float sweepAngle)</code>这儿函数来绘制田径场图案。这个函数，需要传入一个RectF对象，将要绘制的圆是这个对象所代表矩形的内切圆，我们只要计算出来这个矩形的上下左右四点的坐标就可以了。我们先计算绘制左侧半圆所需要的矩形，然后函数后两个参数为90,和180。注意的是，这个函数中，角度的正方向是顺时针的，<code>startAngle</code>为90,也就是我们数学坐标系中角度为270所代表的方向。<br>&emsp;由于Path会自动连接绘制个点之间的连线，所以，我们只需要再绘制出右侧半圆的曲线即可。<br>&emsp;我们只需要将绘制左侧圆曲线的矩形进行一定距离的平移，就可以绘制出右侧曲线。所以矩形的右边界就等于整个视图的<code>right</code>，由于矩形的长为<code>bottom</code>,所以矩形的左边界就为<code>right-bottom</code>。然后再次调用<code>arcTo</code>函数，这次的起始角度就变成270了。<br>&emsp;最后调用<code>Path</code>的<code>close</code>函数，让上边画的两段圆弧连接起来，就形成了上述的田径场图案。</p>
+<h4 id="绘制脸部图形"><a href="#绘制脸部图形" class="headerlink" title="绘制脸部图形"></a>绘制脸部图形</h4><p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160715-smileface.png" alt="脸部图形"></p>
+<p>&emsp;笑脸图案看似复杂，其实就是几个图形组合在一起。首先是一个大圆，然后是里边的两个椭圆型的眼睛，然后是嘴巴。我们只要在正确的位置将这些图形绘制出来即可。<br>&emsp;和绘制背景图形的顺序类似，我们首先在<code>onSizeChanged</code>函数中进行相关函数的计算。<br>&emsp;首先是大圆脸的绘制，我们还是使用<code>drawPath</code>函数，只不过这次<code>Path</code>对象只绘制一个圆；而双眼则是使用<code>drawOval</code>函数来花椭圆；最后使用<code>drawRect</code>来绘制矩形。</p>
+<h4 id="Switch动画"><a href="#Switch动画" class="headerlink" title="Switch动画"></a>Switch动画</h4><p>&emsp;我们仔细查看自定义Switch的动画效果，可以发现，主要涉及三部分的动画效果：</p>
+<ul>
+<li>背景颜色动画转变。</li>
+<li>脸部图形的平移和转动(可以看出相当于脸部水平转动了360度)。</li>
+<li>脸部表情动画，眨眼睛和嘴巴咧开。</li>
+</ul>
+<p>&emsp;由于动画涉及的操作比较多，所以我们选择使用<code>ValueAnimator</code>+<code>AnimatorUpdateListener</code>的动画实现方式，在<code>onAnimationUpdate</code>函数中记录下来当前的<code>animatedValue</code>，然后调用<code>invalidate</code>函数来让界面重绘，在绘制界面计算数据过程中，使用记录下来的数值，从而产生动画效果。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">startCloseAnimation</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    mValueAnimator = ValueAnimator.ofFloat(NORMAL_ANIM_MAX_FRACTION,<span class="number">0</span>);</span><br><span class="line">    mValueAnimator.setDuration(mOffAnimationDuration);</span><br><span class="line">    mValueAnimator.addUpdateListener(<span class="keyword">this</span>);</span><br><span class="line">    mValueAnimator.addListener(<span class="keyword">this</span>);</span><br><span class="line">    mValueAnimator.setInterpolator(mInterpolator);</span><br><span class="line">    mValueAnimator.start();</span><br><span class="line">    startColorAnimation();</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onAnimationUpdate</span><span class="params">(ValueAnimator animation)</span> </span>&#123;</span><br><span class="line">    mAnimationFraction = (<span class="keyword">float</span>)animation.getAnimatedValue();</span><br><span class="line">    invalidate(); <span class="comment">//产生动画的关键步骤</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;所以，最终动画问题又变成了绘制静态图像问题，我们根据不同的<code>mAnimationFraction</code>的值来绘制不同的图像。<br>&emsp;接下来我们就来描述一下几个比较关键的动画的逻辑。</p>
+<h4 id="脸部转动动画"><a href="#脸部转动动画" class="headerlink" title="脸部转动动画"></a>脸部转动动画</h4><p>&emsp;其实这个脸部动画还是比较难实现的，主要是转动的这个效果没有直接的API可以实现。我们的动画只是让用户产生脸部转动的假象。由于脸部图案就是一个大圆加上充当眼睛和嘴巴的椭圆和矩形，我们可以让眼睛和嘴巴向转动方向平移，让它们平移出大圆，然后在一定时间后从另外一个方向再平移进入大圆，最终回到原来位置。这样就实现了一种脸部转动的效果。<br>&emsp;如何让眼睛和嘴巴移动到大圆边缘就消失呢？而且是随着移动渐渐的一部分一部分的消失呢？我们这里使用了另外一种思路，使用<code>clipPath</code>函数，将画布进行裁剪，只留下大圆范围内的图案。这样的话，当眼睛和嘴巴移动出大圆时，就会逐渐消失。<br>&emsp;至于眼睛和嘴巴如何平移呢？大家首先想到的方法一定是根据<code>mAnimationFraction</code>来计算它们的位置，然后在相应位置上将它们绘制出来，但是这样不是最优的方法，我们可以在绘制这些图像时，对画布进行平移，这样的话，我们绘制眼睛和嘴巴的函数就不会涉及到<code>mAnimationFraction</code>，实现比较简单。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">drawFace</span><span class="params">(Canvas canvas,<span class="keyword">float</span> fraction)</span> </span>&#123;</span><br><span class="line">        mPaint.setAntiAlias(<span class="keyword">true</span>);</span><br><span class="line">        <span class="comment">//面部背景</span></span><br><span class="line">        mPaint.setColor(mFaceColor);</span><br><span class="line">        mPaint.setStyle(Paint.Style.FILL);</span><br><span class="line">        canvas.drawPath(mFacePath,mPaint);</span><br><span class="line">		<span class="comment">//先裁剪并平移画布，然后再绘制眼部五官</span></span><br><span class="line">        translateAndClipFace(canvas,fraction);</span><br><span class="line">        drawEye(canvas,fraction);</span><br><span class="line">        drawMouth(canvas,fraction);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">translateAndClipFace</span><span class="params">(Canvas canvas,<span class="keyword">float</span> fraction)</span> </span>&#123;</span><br><span class="line">        <span class="comment">//截掉超出face的部分。</span></span><br><span class="line">        canvas.clipPath(mFacePath);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">float</span> faceTransition ;</span><br><span class="line">        <span class="comment">//TODO：合理的转动区间，眼睛出现和消失的时间比为1：1,所以当fraction=0.25时，应该只显示侧脸,计算faceTransition。</span></span><br><span class="line">        <span class="keyword">if</span> (fraction &gt;=<span class="number">0.0f</span> &amp;&amp; fraction &lt;<span class="number">0.5f</span>) &#123;</span><br><span class="line">            faceTransition = fraction * mFaceRadius *<span class="number">4</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (fraction &lt;=NORMAL_ANIM_MAX_FRACTION)&#123;</span><br><span class="line">            faceTransition = - (NORMAL_ANIM_MAX_FRACTION - fraction) * mFaceRadius * <span class="number">4</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (fraction &lt;=(NORMAL_ANIM_MAX_FRACTION+FACE_ANIM_MAX_FRACTION)/<span class="number">2</span>) &#123;</span><br><span class="line">            faceTransition =  (fraction - NORMAL_ANIM_MAX_FRACTION) * mFaceRadius * <span class="number">2</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            faceTransition = (FACE_ANIM_MAX_FRACTION - fraction) * mFaceRadius * <span class="number">2</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        canvas.translate(faceTransition,<span class="number">0</span>);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="眨眼睛和变笑脸动画"><a href="#眨眼睛和变笑脸动画" class="headerlink" title="眨眼睛和变笑脸动画"></a>眨眼睛和变笑脸动画</h4><p>&emsp;眨眼睛动画十分简单，我们只要在绘制眼睛之前对画布进行缩放即可，然后在绘制玩眼睛之后，在将画布转变回来。但是后来我发现，画布缩放的中心点不容易确认，所以，采取了使用<code>mAnimationValue</code>计算椭圆数据的方式来进行椭圆大小的缩放。<br>&emsp;变笑脸动画主要就是嘴巴的动画效果，在静止情况下，我们使用<code>drawRect</code>来绘制嘴部图形；但在动画过程中，我们使用<code>drawPath</code>和<code>quadTo</code>来共同绘制嘴巴形状。<br>&emsp;<code>Path</code>的<code>quadTo</code>是用来绘制贝塞尔曲线，具体使用方法请查看<a href="https://github.com/GcsSloop/AndroidNote/blob/master/CustomView/Advance/%5B6%5DPath_Bezier.md" target="_blank" rel="noopener">Path之贝塞尔曲线</a>。我们主要使用其二阶曲线版本，即两个数据点，一个控制点。我们计算出A,B这两个数据点，也就是静止状态下矩形的左上点和右上点，然后根据<code>mAnimationValue</code>来计算控制点c的坐标，然后完成绘制。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160715-quadTo.jpg" alt="贝塞尔曲线原理图"></p>
+<p>&emsp;嘴部图案的绘制如下所示。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">  <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">drawMouth</span><span class="params">(Canvas canvas,<span class="keyword">float</span> fraction)</span> </span>&#123;</span><br><span class="line">.......</span><br><span class="line">      <span class="comment">//嘴巴</span></span><br><span class="line">      <span class="keyword">if</span> (fraction &lt;=<span class="number">0.75</span>) &#123; <span class="comment">//</span></span><br><span class="line">          canvas.drawRect(mouthLeft, mouthTop, mouthLeft + mouthWidth, mouthTop + mouthHeight, mPaint);</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          Path path = <span class="keyword">new</span> Path();</span><br><span class="line">          path.moveTo(mouthLeft,mouthTop);</span><br><span class="line">          <span class="keyword">float</span> controlX = mouthLeft + mouthWidth/<span class="number">2</span>;</span><br><span class="line">          <span class="keyword">float</span> controlY = mouthTop + mouthHeight + mouthHeight * <span class="number">15</span> * (fraction - <span class="number">0.75f</span>);</span><br><span class="line">      path.quadTo(controlX,controlY,mouthLeft+mouthWidth,mouthTop);</span><br><span class="line">          path.close();</span><br><span class="line">          canvas.drawPath(path,mPaint);</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>&emsp;其实还有一些细节问题我没有在这篇文章上讲出，一方面是因为讲述起来太过复杂，还是大家自己查阅代码比较好，另一方面是，我觉得自己实现的方式也不是很好，就不在这里献丑了。<br>&emsp;项目还没有完全完成，比如自定义监听器和自定义属性的相关逻辑都没有添加，希望感兴趣的同学可以自行研究代码并完善它。项目地址摸我<a href="https://github.com/ztelur/FunSwitch" target="_blank" rel="noopener">我的github</a>。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/View/" rel="tag"># View</a>
+          
+            <a href="/tags/Animation/" rel="tag"># Animation</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/07/06/Python文件系统相关API总结/" rel="next" title="Python文件系统相关API总结">
+                <i class="fa fa-chevron-left"></i> Python文件系统相关API总结
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/08/05/Android-Span-架构介绍/" rel="prev" title="Android Span 架构介绍">
+                Android Span 架构介绍 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="remCarpediem">
+          <p class="site-author-name" itemprop="name">remCarpediem</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">59</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">33</span>
+                <span class="site-state-item-name">categories</span>
+              
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              
+                <span class="site-state-item-count">53</span>
+                <span class="site-state-item-name">tags</span>
+              
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#简介"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#自定义View需要重载的函数"><span class="nav-number">2.</span> <span class="nav-text">自定义View需要重载的函数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#田径场式背景"><span class="nav-number">3.</span> <span class="nav-text">田径场式背景</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#绘制脸部图形"><span class="nav-number">4.</span> <span class="nav-text">绘制脸部图形</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Switch动画"><span class="nav-number">5.</span> <span class="nav-text">Switch动画</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#脸部转动动画"><span class="nav-number">6.</span> <span class="nav-text">脸部转动动画</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#眨眼睛和变笑脸动画"><span class="nav-number">7.</span> <span class="nav-text">眨眼睛和变笑脸动画</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#总结"><span class="nav-number">8.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">remCarpediem</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

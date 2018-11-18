@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="Chinese">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="Netty,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="最近我学习了NIO相关的知识,然后发现了Netty这个基于NIO的网络应用框架,于是就研究起Netty框架源码,来好好体会一下网络框架的设计理念和思想. 这个系列的文章不仅会总结Netty各个模块的源码原理,也会写出一些自己对这些设计的理解和体会. 我基本按照并发编程网上这个系列文章的顺序来进行系列文章的顺序,不同的是我是基于Netty4.1的源码进行分析和讲解. 为了节约你的时间,本篇文章主要">
+<meta name="keywords" content="Netty">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Netty源码(一):Netty中的Buffer">
+<meta property="og:url" content="http://remcarpediem.net/2017/03/22/Netty源码-一-Netty中的Buffer/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="最近我学习了NIO相关的知识,然后发现了Netty这个基于NIO的网络应用框架,于是就研究起Netty框架源码,来好好体会一下网络框架的设计理念和思想. 这个系列的文章不仅会总结Netty各个模块的源码原理,也会写出一些自己对这些设计的理解和体会. 我基本按照并发编程网上这个系列文章的顺序来进行系列文章的顺序,不同的是我是基于Netty4.1的源码进行分析和讲解. 为了节约你的时间,本篇文章主要">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2017322-netty-compose.png">
+<meta property="og:updated_time" content="2018-11-18T13:40:01.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Netty源码(一):Netty中的Buffer">
+<meta name="twitter:description" content="最近我学习了NIO相关的知识,然后发现了Netty这个基于NIO的网络应用框架,于是就研究起Netty框架源码,来好好体会一下网络框架的设计理念和思想. 这个系列的文章不仅会总结Netty各个模块的源码原理,也会写出一些自己对这些设计的理解和体会. 我基本按照并发编程网上这个系列文章的顺序来进行系列文章的顺序,不同的是我是基于Netty4.1的源码进行分析和讲解. 为了节约你的时间,本篇文章主要">
+<meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2017322-netty-compose.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://remcarpediem.net/2017/03/22/Netty源码-一-Netty中的Buffer/">
+
+
+
+
+
+  <title>Netty源码(一):Netty中的Buffer | Carpediem</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="Chinese">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Carpediem</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">blog of nobody</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://remcarpediem.net/2017/03/22/Netty源码-一-Netty中的Buffer/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="remCarpediem">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Carpediem">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Netty源码(一):Netty中的Buffer</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-03-22T23:09:21+08:00">
+                2017-03-22
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/NIO/" itemprop="url" rel="index">
+                    <span itemprop="name">NIO</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p> 最近我学习了NIO相关的知识,然后发现了Netty这个基于NIO的网络应用框架,于是就研究起Netty框架源码,来好好体会一下网络框架的设计理念和思想.<br> 这个系列的文章不仅会总结Netty各个模块的源码原理,也会写出一些自己对这些设计的理解和体会.<br> 我基本按照并发编程网上<a href="http://ifeve.com/netty1/" target="_blank" rel="noopener">这个系列文章</a>的顺序来进行系列文章的顺序,不同的是我是基于Netty4.1的源码进行分析和讲解.<br> 为了节约你的时间,本篇文章主要内容如下:</p>
+<ul>
+<li>Netty的Buffer的内存模型,涉及读写指针</li>
+<li>Netty的Buffer框架</li>
+<li>Netty的Pool原理,轻量对象池</li>
+</ul>
+<h3 id="Buffer"><a href="#Buffer" class="headerlink" title="Buffer"></a>Buffer</h3><p> Java NIO中的Buffer用于和NIO通道进行交互,数据可以从通道读入缓冲区,也可以从缓冲区写入到通道中.所以说,Buffer其实就是一块可以读写数据的内存,我们将其包装为一个Java对象来提供一系列读写操作.<br> Netty并没有直接使用Java NIO的Buffer实现,而是自己实现了一套Buffer框架来满足自己的业务或者性能需求.</p>
+<h3 id="ByteBuf的基本原理"><a href="#ByteBuf的基本原理" class="headerlink" title="ByteBuf的基本原理"></a>ByteBuf的基本原理</h3><h4 id="读写指针的作用"><a href="#读写指针的作用" class="headerlink" title="读写指针的作用"></a>读写指针的作用</h4><p> 不同于NIO Buffer的读写指针共用原理,ByteBuf拥有<code>readerIndex</code>,<code>writerIndex</code>两个指针.下面我们就来详细的讲解一下ByteBuf的内部原理.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">+-------------------+------------------+------------------+</span><br><span class="line">| discardable bytes |  readable bytes  |  writable bytes  |</span><br><span class="line">|                   |     (CONTENT)    |                  |</span><br><span class="line">+-------------------+------------------+------------------+</span><br><span class="line">|                   |                  |                  |</span><br><span class="line">0      &lt;=      readerIndex   &lt;=   writerIndex    &lt;=    capacity</span><br></pre></td></tr></table></figure></p>
+<p> 从示意图中我们可以看出<code>readerIndex</code>和<code>writerIndex</code>最多可以将整个内容空间划分为三块:<code>废弃区</code>,<code>可读区</code>和<code>可写区</code>.下面我们就来看一下不同操作下的两个指针的变化.</p>
+<ul>
+<li><p>在初始化状态下,假设capacity为20,<code>readerIndex</code>和<code>writerIndex</code>都为0,整个空间中只存在可写区.此时只能写,不能读,进行读操作会抛出异常.</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">      +---------------------------------------------------------+</span><br><span class="line">      |             writable bytes (got more space)             |</span><br><span class="line">      +---------------------------------------------------------+</span><br><span class="line">      |                                                         |</span><br><span class="line">readerIndex(0)</span><br><span class="line"> writerIndex(0)                   &lt;=                   capacity</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>写入10个字节的数据,<code>writerIndex</code>指向10,<code>readerIndex</code>不会改变,所有内容空间中有可读区和可写区.大小都是10字节.</p>
+</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">  +-------------------+------------------+------------------+</span><br><span class="line">  |  readable bytes  |  writable bytes                      |</span><br><span class="line">  |     (CONTENT)    |                                      |</span><br><span class="line">  +--------- --------+------------------+------------------</span><br><span class="line">  |                  |                                      |</span><br><span class="line">readerIndex(0) &lt;= writerIndex(10)           &lt;=        capacity</span><br></pre></td></tr></table></figure>
+<ul>
+<li>读取5个字节的内容,<code>writerIndex</code>不变,<code>readerIndex</code>加5,指向了5.此时内容空间分为了5字节的废弃区,5字节的可读区和10字节的可写区.</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">+-------------------+------------------+------------------+</span><br><span class="line">| discardable bytes |  readable bytes  |  writable bytes  |</span><br><span class="line">|                   |     (CONTENT)    |                  |</span><br><span class="line">+-------------------+------------------+------------------+</span><br><span class="line">|                   |                  |                  |</span><br><span class="line">0      &lt;=      readerIndex(5)   &lt;=   writerIndex(10)    &lt;=  capacity</span><br></pre></td></tr></table></figure>
+<ul>
+<li>调用<code>discardReadBytes</code>方法后,将废弃区的内容舍弃掉,<code>readerIndex</code>又指向了0,<code>writerIndex</code>指向了5,相当于可读区和可写区整体向左平移了5个字节.<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">     +------------------+--------------------------------------+</span><br><span class="line">     |  readable bytes  |    writable bytes (got more space)   |</span><br><span class="line">     +------------------+--------------------------------------+</span><br><span class="line">     |                  |                                      |</span><br><span class="line">readerIndex (0) &lt;= writerIndex (5)              &lt;=        capacity</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h4 id="零拷贝"><a href="#零拷贝" class="headerlink" title="零拷贝"></a>零拷贝</h4><p> OS层次上<code>Zero-copy</code>,就是在操作数据时,不需要将数据buffer从一个内存区域拷贝到另一个内存区域,因为减少了一次内存的拷贝,因此CPU的效率得到了提升.<br> <code>Netty</code>的<code>zero-copy</code>体现在很多方面.比如Buffer的compose,duplicate,slice操作时不会拷贝底层的数据.而是通过ByteBuf对象的组合来实现上述的操作</p>
+<ul>
+<li><p>Netty提供了<code>CompositeByteBuf</code>类,可以将多个<code>ByteBuf</code>组合成一个逻辑上的Buffer,避免了各个buffer之间的拷贝,<code>CompositeByteBuf</code>并不拥有底层的数据,而是通过拥有两个buffer对象,从这两个buffer对象中获取数据来对外提供看似合并了的数据.比如我们将一份协议数据的头部buffer和消息体buffer合并成一个Buffer.<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017322-netty-compose.png" alt="compose"><br> 如上图所示,所有底层的数据还是存储在header和body这两个真实的buffer中.</p>
+</li>
+<li><p>对于<code>ByteBuf</code>的<code>slice</code>和<code>duplicate</code>操作也是如此,不同的buffer共享了相同的底层数据,而不是进行底层数据的拷贝.具体使用到的Buffer类型为<code>DuplicatedByteBuf</code>和<code>SlicedByteBuf</code>.谁说是共享的底层数据,但是通过对<code>writerIndex</code>和<code>readerIndex</code>两个指针的操作来实现slice和duplicate的功能.</p>
+</li>
+<li>Netty使用<code>wrap</code>操作将byte数组转化为<code>ByteBuf</code>对象时,将byte数组包裹到对象中,而不是拷贝数组存放到对象中.</li>
+<li>Netty 中使用 FileRegion 实现文件传输的零拷贝, 不过在底层 FileRegion 是依赖于 Java NIO FileChannel.transfer 的零拷贝功能.</li>
+</ul>
+<h3 id="Pool和Reference-Count"><a href="#Pool和Reference-Count" class="headerlink" title="Pool和Reference Count"></a>Pool和Reference Count</h3><p> 4.0之后的版本实现了高性能的Buffer池,分配策略则是结合了buddy allocation和slab allocation的jemalloc变种，实现类为<code>PoolArena</code>,这样的话,可以在频繁分配和释放Buffer时缓解GC压力,还可以在初始化新buffer时减少内存带宽消耗（初始化时不可避免的要给buffer数组赋初始值).<br> <code>ByteBuf</code>引入了<code>Reference Count</code>机制,你需要在不适用它的时候调用<code>ReferenceCountUtil.release</code>方法来减少它的引用.</p>
+<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;感觉自己在研究或在阅读源代码时还是有些问题,起始<code>ByteBuf</code>并不是<code>Netty</code>的关键所在,不应该花费这么长时间.以后还是要带着目的来看源码,不能把时间浪费在一些代码细节上.</p>
+<h3 id="引用"><a href="#引用" class="headerlink" title="引用"></a>引用</h3><ul>
+<li><a href="https://segmentfault.com/a/1190000007560884" target="_blank" rel="noopener">https://segmentfault.com/a/1190000007560884</a></li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Netty/" rel="tag"># Netty</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/03/12/关于Android-MVP模式的思考/" rel="next" title="关于Android MVP模式的思考">
+                <i class="fa fa-chevron-left"></i> 关于Android MVP模式的思考
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/03/27/Netty源码-二-Netty的Channel和Pipeline/" rel="prev" title="Netty源码(二):Netty的Channel和Pipeline">
+                Netty源码(二):Netty的Channel和Pipeline <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="remCarpediem">
+          <p class="site-author-name" itemprop="name">remCarpediem</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">59</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">33</span>
+                <span class="site-state-item-name">categories</span>
+              
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              
+                <span class="site-state-item-count">53</span>
+                <span class="site-state-item-name">tags</span>
+              
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#Buffer"><span class="nav-number">1.</span> <span class="nav-text">Buffer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ByteBuf的基本原理"><span class="nav-number">2.</span> <span class="nav-text">ByteBuf的基本原理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#读写指针的作用"><span class="nav-number">2.1.</span> <span class="nav-text">读写指针的作用</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#零拷贝"><span class="nav-number">2.2.</span> <span class="nav-text">零拷贝</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Pool和Reference-Count"><span class="nav-number">3.</span> <span class="nav-text">Pool和Reference Count</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#后记"><span class="nav-number">4.</span> <span class="nav-text">后记</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#引用"><span class="nav-number">5.</span> <span class="nav-text">引用</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">remCarpediem</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

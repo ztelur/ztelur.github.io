@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="Chinese">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="Spring Boot,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="前些日子在公司接触了spring boot和spring cloud,有感于其大大简化了spring的配置过程，十分方便使用者快速构建项目，而且拥有丰富的starter供开发者使用。但是由于其自动化配置的原因，往往导致出现问题，新手无法快速定位问题。这里我就来总结一下spring boot 自定义starter的过程,相信大家看完这篇文章之后，能够对spring boot starter的运行原">
+<meta name="keywords" content="Spring Boot">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spring Boot (一): Spring Boot starter自定义">
+<meta property="og:url" content="http://remcarpediem.net/2017/09/10/Spring-Boot-一-Spring-Boot-starter自定义/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="前些日子在公司接触了spring boot和spring cloud,有感于其大大简化了spring的配置过程，十分方便使用者快速构建项目，而且拥有丰富的starter供开发者使用。但是由于其自动化配置的原因，往往导致出现问题，新手无法快速定位问题。这里我就来总结一下spring boot 自定义starter的过程,相信大家看完这篇文章之后，能够对spring boot starter的运行原">
+<meta property="og:locale" content="Chinese">
+<meta property="og:updated_time" content="2018-11-18T13:40:01.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Spring Boot (一): Spring Boot starter自定义">
+<meta name="twitter:description" content="前些日子在公司接触了spring boot和spring cloud,有感于其大大简化了spring的配置过程，十分方便使用者快速构建项目，而且拥有丰富的starter供开发者使用。但是由于其自动化配置的原因，往往导致出现问题，新手无法快速定位问题。这里我就来总结一下spring boot 自定义starter的过程,相信大家看完这篇文章之后，能够对spring boot starter的运行原">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://remcarpediem.net/2017/09/10/Spring-Boot-一-Spring-Boot-starter自定义/">
+
+
+
+
+
+  <title>Spring Boot (一): Spring Boot starter自定义 | Carpediem</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="Chinese">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Carpediem</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">blog of nobody</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://remcarpediem.net/2017/09/10/Spring-Boot-一-Spring-Boot-starter自定义/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="remCarpediem">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Carpediem">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Spring Boot (一): Spring Boot starter自定义</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-09-10T20:25:35+08:00">
+                2017-09-10
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/后端/" itemprop="url" rel="index">
+                    <span itemprop="name">后端</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p> 前些日子在公司接触了<code>spring boot</code>和<code>spring cloud</code>,有感于其大大简化了spring的配置过程，十分方便使用者快速构建项目，而且拥有丰富的starter供开发者使用。但是由于其自动化配置的原因，往往导致出现问题，新手无法快速定位问题。这里我就来总结一下spring boot 自定义starter的过程,相信大家看完这篇文章之后，能够对<code>spring boot starter</code>的运行原理有了基本的认识。<br> 为了节约你的时间，本篇文章的主要内容有：</p>
+<ul>
+<li>spring boot starter的自定义</li>
+<li>spring boot auto-configuration的两种方式,spring.factories和注解</li>
+<li>Conditional注解的使用</li>
+</ul>
+<h3 id="引入pom依赖"><a href="#引入pom依赖" class="headerlink" title="引入pom依赖"></a>引入pom依赖</h3><p> 相信接触过spring boot的开发者都会被其丰富的starter所吸引，如果你想给项目添加redis支持，你就可以直接引用<code>spring-boot-starter-redis</code>，如果你想使项目微服务化，你可以直接使用<code>spring-cloud-starter-eureka</code>。这些都是spring boot所提供的便利开发者的组件，大家也可以自定义自己的starter并开源出去供开发者使用。<br> 创建自己的starter项目需要maven依赖是如下所示:<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-autoconfigure<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.4.4.RELEASE<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-configuration-processor<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.4.4.RELEASE<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<h4 id="核心配置类StorageAutoConfigure"><a href="#核心配置类StorageAutoConfigure" class="headerlink" title="核心配置类StorageAutoConfigure"></a>核心配置类StorageAutoConfigure</h4><p> 构建starter的关键是编写一个装配类，这个类可以提供该starter核心bean。这里我们的starter提供一个类似<code>redis</code>的键值存储功能的bean，我们叫它为<code>StorageService</code>。负责对这个bean进行自动化装配的类叫做<code>StorageAutoConfigure</code>。保存application.properties配置信息的类叫做<code>StorageServiceProperties</code>。这三种类像是铁三角一样，你可以在很多的<code>spring-boot-starter</code>中看到他们的身影。<br> 我们首先来看<code>StorageAutoConfigure</code>的定义。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="meta">@ConditionalOnClass</span>(StorageService.class)</span><br><span class="line"><span class="meta">@EnableConfigurationProperties</span>(StorageServiceProperties.class)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">StorageAutoConfigure</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> StorageServiceProperties properties;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="meta">@ConditionalOnMissingBean</span>(StorageService.class)</span><br><span class="line">    <span class="meta">@ConditionalOnProperty</span>(prefix = <span class="string">"storage.service"</span>, value = <span class="string">"enabled"</span>, havingValue = <span class="string">"true"</span>)</span><br><span class="line">    <span class="function">StorageService <span class="title">exampleService</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> StorageService(properties);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p> 我们首先讲一下源码中注解的作用。</p>
+<ul>
+<li><code>@Configuration</code>,被该注解注释的类会提供一个或则多个<code>@bean</code>修饰的方法并且会被spring容器处理来生成<code>bean definitions</code>。</li>
+<li><code>@bean</code>注解是必须修饰函数的，该函数可以提供一个<code>bean</code>。而且该函数的函数名必须和bean的名称一致，除了首字母不需要大写。</li>
+<li><code>@ConditionalOnClass</code>注解是条件判断的注解，表示对应的类在classpath目录下存在时，才会去解析对应的配置文件。</li>
+<li><code>@EnableConfigurationProperties</code>注解给出了该配置类所需要的配置信息类，也就是<code>StorageServiceProperties</code>类，这样spring容器才会去读取配置信息到<code>StorageServiceProperties</code>对象中。</li>
+<li><code>@ConditionalOnMissingBean</code>注解也是条件判断的注解，表示如果不存在对应的bean条件才成立，这里就表示如果已经有<code>StorageService</code>的bean了，那么就不再进行该bean的生成。这个注解十分重要，涉及到默认配置和用户自定义配置的原理。也就是说用户可以自定义一个<code>StorageService</code>的bean,这样的话，spring容器就不需要再初始化这个默认的bean了。</li>
+<li><code>ConditionalOnProperty</code>注解是条件判断的注解，表示如果配置文件中的响应配置项数值为true,才会对该bean进行初始化。</li>
+</ul>
+<p> 看到这里，大家大概都明白了<code>StorageAutoConfigure</code>的作用了吧，spring容器会读取相应的配置信息到<code>StorageServiceProperties</code>中，然后依据调节判断初始化StorageService这个bean。集成了该<code>starter</code>的项目就可以直接使用<code>StorageService</code>来存储键值信息了。</p>
+<h4 id="配置信息类StorageServiceProperties"><a href="#配置信息类StorageServiceProperties" class="headerlink" title="配置信息类StorageServiceProperties"></a>配置信息类StorageServiceProperties</h4><p> 存储配置信息的类<code>StorageServiceProperties</code>很简单，源码如下所示:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@ConfigurationProperties</span>(<span class="string">"storage.service"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">StorageServiceProperties</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> String username;</span><br><span class="line">    <span class="keyword">private</span> String password;</span><br><span class="line">    <span class="keyword">private</span> String url;</span><br><span class="line">    </span><br><span class="line">    ......</span><br><span class="line">    <span class="comment">//一系列的getter和setter函数</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p> <code>@ConfigurationProperties</code>注解就是让spring容器知道该配置类的配置项前缀是什么，上述的源码给出的配置信息项有<code>storage.service.username</code>,<code>storage.service.password</code>和<code>storage.service.url</code>，类似于数据库的host和用户名密码。这些配置信息都会由spring容器从<code>application.properties</code>文件中读取出来设置到该类中。</p>
+<h4 id="starter提供功能的StorageService"><a href="#starter提供功能的StorageService" class="headerlink" title="starter提供功能的StorageService"></a>starter提供功能的StorageService</h4><p> <code>StorageService</code>类是提供整个starter的核心功能的类，也就是提供键值存储的功能。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">StorageService</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> Logger logger = LoggerFactory.getLogger(StorageService.class);</span><br><span class="line">    <span class="keyword">private</span> String url;</span><br><span class="line">    <span class="keyword">private</span> String username;</span><br><span class="line">    <span class="keyword">private</span> String password;</span><br><span class="line">    <span class="keyword">private</span> HashMap&lt;String, Object&gt; storage = <span class="keyword">new</span> HashMap&lt;String, Object&gt;();</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">StorageService</span><span class="params">(StorageServiceProperties properties)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">super</span>();</span><br><span class="line">        <span class="keyword">this</span>.url = properties.getUrl();</span><br><span class="line">        <span class="keyword">this</span>.username = properties.getUsername();</span><br><span class="line">        <span class="keyword">this</span>.password = properties.getPassword();</span><br><span class="line">        logger.debug(<span class="string">"init storage with url "</span> + url + <span class="string">" name: "</span> + username + <span class="string">" password: "</span> + password);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">put</span><span class="params">(String key, Object val)</span> </span>&#123;</span><br><span class="line">        storage.put(key, val);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Object  <span class="title">get</span><span class="params">(String key)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> storage.get(key);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="注解配置和spring-factories"><a href="#注解配置和spring-factories" class="headerlink" title="注解配置和spring.factories"></a>注解配置和spring.factories</h4><p>&emsp;自定义的<code>starter</code>有两种方式来通知spring容器导入自己的auto-configuration类，也就是本文当中的<code>StorageAutoConfigure</code>类。<br>&emsp;一般都是在<code>starter</code>项目的<code>resources/META-INF</code>文件夹下的spring.factories文件中加入需要自动化配置类的全限定名称。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">org.springframework.boot.autoconfigure.EnableAutoConfiguration=starter.StorageAutoConfigure</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;<code>spring boot</code>项目中的<code>EnableAutoConfigurationImportSelector</code>会自动去每个jar的相应文件下查看spring.factories文件内容，并将其中的类加载出来在auto-configuration过程中进行配置。而<code>EnableAutoConfigurationImportSelector</code>在<code>@EnableAutoConfiguration</code>注解中被<code>import</code>。<br>&emsp;第一种方法只要是引入该starter，那么spring.factories中的auto-configuration类就会被装载，但是如果你希望有更加灵活的方式，那么就使用自定义注解来引入装配类。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Target</span>(ElementType.TYPE)</span><br><span class="line"><span class="meta">@Retention</span>(RetentionPolicy.RUNTIME)</span><br><span class="line"><span class="meta">@Import</span>(StorageAutoConfigure.class)</span><br><span class="line"><span class="meta">@Documented</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> EnableStorage &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;有了这个注解，你可以在你引入该starter的项目中使用该注解，通过<code>@import</code>注解，spring容器会自动加载<code>StorageAutoConfigure</code>并自动化进行配置。</p>
+<h4 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h4><p>&emsp;上述只是关于spring boot starter最为简单的定制和原理分析，后续我准备研究一下<code>spring cloud stream</code>的源码，主要是因为工作上一直在使用这个框架。请大家继续关注。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Spring-Boot/" rel="tag"># Spring Boot</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/07/25/Raft算法/" rel="next" title="Raft算法">
+                <i class="fa fa-chevron-left"></i> Raft算法
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/10/10/Spring-Cloud-Stream-一-：Spring基础知识/" rel="prev" title="Spring Cloud Stream(一)：Spring基础知识">
+                Spring Cloud Stream(一)：Spring基础知识 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="remCarpediem">
+          <p class="site-author-name" itemprop="name">remCarpediem</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">59</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">33</span>
+                <span class="site-state-item-name">categories</span>
+              
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              
+                <span class="site-state-item-count">53</span>
+                <span class="site-state-item-name">tags</span>
+              
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#引入pom依赖"><span class="nav-number">1.</span> <span class="nav-text">引入pom依赖</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#核心配置类StorageAutoConfigure"><span class="nav-number">1.1.</span> <span class="nav-text">核心配置类StorageAutoConfigure</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#配置信息类StorageServiceProperties"><span class="nav-number">1.2.</span> <span class="nav-text">配置信息类StorageServiceProperties</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#starter提供功能的StorageService"><span class="nav-number">1.3.</span> <span class="nav-text">starter提供功能的StorageService</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#注解配置和spring-factories"><span class="nav-number">1.4.</span> <span class="nav-text">注解配置和spring.factories</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#后记"><span class="nav-number">1.5.</span> <span class="nav-text">后记</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">remCarpediem</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

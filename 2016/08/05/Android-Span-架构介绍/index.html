@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="Chinese">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="Span,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="&amp;emsp;前几天在微博上看到一个人评论Android Span机制相当强大，有必要细心研究一下，于是就google了一下，发现了一篇很好的文章Spans, a Powerful Concept.，然后以这篇文章为基础研究了一下Android Span的用法。于是决定写几篇文章来总结一下。 Android Span 介绍&amp;emsp;对于Span，大家首先想起的应用场景就是同一个TextView中显">
+<meta name="keywords" content="Span">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Android Span 架构介绍">
+<meta property="og:url" content="http://remcarpediem.net/2016/08/05/Android-Span-架构介绍/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="&amp;emsp;前几天在微博上看到一个人评论Android Span机制相当强大，有必要细心研究一下，于是就google了一下，发现了一篇很好的文章Spans, a Powerful Concept.，然后以这篇文章为基础研究了一下Android Span的用法。于是决定写几篇文章来总结一下。 Android Span 介绍&amp;emsp;对于Span，大家首先想起的应用场景就是同一个TextView中显">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-cdcharacterstyle.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-cdparagraphstyle.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-cdupdateappearance.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-cdupdatelayout.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-BulletSpan.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-QuoteSpan.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-AliginSpan.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-UnderlineSpan.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-StrikeSpan.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-SubscriptSpan.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-SupscriptSpan.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-BackgroundSpan.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-ForegroundSpan.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-ImageSpan.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-StyleSpan.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-TypefaceSpan.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-AbsolutSizeSpan.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-RelativeSizeSpan.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-ScaleSpan.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-maskfilterblur.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-maskfilteremboss.png">
+<meta property="og:updated_time" content="2018-11-18T13:40:01.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Android Span 架构介绍">
+<meta name="twitter:description" content="&amp;emsp;前几天在微博上看到一个人评论Android Span机制相当强大，有必要细心研究一下，于是就google了一下，发现了一篇很好的文章Spans, a Powerful Concept.，然后以这篇文章为基础研究了一下Android Span的用法。于是决定写几篇文章来总结一下。 Android Span 介绍&amp;emsp;对于Span，大家首先想起的应用场景就是同一个TextView中显">
+<meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-cdcharacterstyle.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://remcarpediem.net/2016/08/05/Android-Span-架构介绍/">
+
+
+
+
+
+  <title>Android Span 架构介绍 | Carpediem</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="Chinese">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Carpediem</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">blog of nobody</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://remcarpediem.net/2016/08/05/Android-Span-架构介绍/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="remCarpediem">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Carpediem">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Android Span 架构介绍</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2016-08-05T21:48:15+08:00">
+                2016-08-05
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/Android/" itemprop="url" rel="index">
+                    <span itemprop="name">Android</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>&emsp;前几天在微博上看到一个人评论Android Span机制相当强大，有必要细心研究一下，于是就google了一下，发现了一篇很好的文章<a href="http://flavienlaurent.com/blog/2014/01/31/spans/" target="_blank" rel="noopener">Spans, a Powerful Concept.</a>，然后以这篇文章为基础研究了一下Android Span的用法。于是决定写几篇文章来总结一下。</p>
+<h3 id="Android-Span-介绍"><a href="#Android-Span-介绍" class="headerlink" title="Android Span 介绍"></a>Android Span 介绍</h3><p>&emsp;对于<code>Span</code>，大家首先想起的应用场景就是同一个<code>TextView</code>中显示不同颜色的字体。对于这种需求，我们会用到<code>ForegroundColorSpan</code><br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ForegroundColorSpan span = <span class="keyword">new</span> ForegroundColorSpan(Color.RED);</span><br><span class="line">SpannableString spannableString = <span class="keyword">new</span> SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,<span class="number">0</span>,spannableString.length()/<span class="number">2</span>,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;上面这段代码可能就是大家对Android Span的全部了解了，但是Android Span有着和Drawable同样强大的能力，希望我的这几篇文章可以带领大家初探Android Span的强大能力。</p>
+<h3 id="Android-Span-框架"><a href="#Android-Span-框架" class="headerlink" title="Android Span 框架"></a>Android Span 框架</h3><p>&emsp;Android Span 框架涉及的类遵循一下四个定义规则:</p>
+<ul>
+<li>如果一个<code>Span</code>影响字符层次上的文字格式，那么它继承<code>CharacterStyle</code>类。</li>
+<li>如果一个<code>Span</code>影响段落层次上的文字格式，那么它实现<code>ParagraphStyle</code>接口。</li>
+<li>如果一个<code>Span</code>修改字符层次上的文字外观，那么它实现<code>UpdateAppearance</code>接口。</li>
+<li>如果一个<code>Span</code>修改字符层次上的度量或者尺寸，那么它实现<code>UpdateLayout</code>接口。<br>&emsp;虽然有以上四个规则，但是我们自定义Span时并不需要直接继承或者实现这些类或者接口，而是实现其他更加具体的类。<br>&emsp;遵循这些规则，Android Span框架相关类图如下：<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-cdcharacterstyle.png" alt="CharacterStyle相关类图"></li>
+</ul>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-cdparagraphstyle.png" alt="ParagraphStyle相关类图"></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-cdupdateappearance.png" alt="UpdateAppearance相关类图"></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-cdupdatelayout.png" alt="UpdateLayout相关类图"></p>
+<h3 id="Android-Span类型介绍"><a href="#Android-Span类型介绍" class="headerlink" title="Android Span类型介绍"></a>Android Span类型介绍</h3><p>&emsp;Android Span的相关原理和机制以后再讲，我们先来了解一下当前Android预设的<code>Span</code>类型的用法吧。</p>
+<p>####　<strong>android.text.style.BulletSpan</strong><br>&emsp;<code>BulletSpan</code>影响<strong>段落层次</strong>文字的格式，它让你在段落开头添加一个黑圆点。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">BulletSpan span = new BulletSpan(15,Color.RED);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-BulletSpan.png" alt="BulletSpan效果图"></p>
+<p>####　<strong>android.text.style.QuoteSpan</strong></p>
+<p>&emsp;<code>QuoteSpan</code>影响<strong>段落层次</strong>文字的格式，它可以在段落前边添加一个竖直的引用线。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">QuoteSpan span = new QuoteSpan(Color.RED);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-QuoteSpan.png" alt="QuoteSpan效果图"></p>
+<p>####　<strong>android.text.style.AlignmentSpan</strong></p>
+<p>&emsp;<code>AlignSpan.Standard</code>影响<strong>段落层次</strong>文字的格式，它允许你控制段落的对齐方式，有居中对齐，右侧对齐和左侧对齐。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">AlignmentSpan.Standard span = new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,0,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-AliginSpan.png" alt="AlignSpan效果图"></p>
+<p>####　<strong>android.text.style.UnderlineSpan</strong></p>
+<p>&emsp;<code>UnderlineSpan</code>影响<strong>字符层次</strong>文字的格式，它可以在文字下方添加下划线。其内部实现其实就是使用<code>Paint.setUnderlineText(true)</code>实现的。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">UnderlineSpan span = new UnderlineSpan();</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-UnderlineSpan.png" alt="UnderlineSpan效果图"></p>
+<p>####　<strong>android.text.style.StrikethroughSpan</strong></p>
+<p>&emsp;<code>StrikethroughSpan</code>影响<strong>字符层次</strong>上的文字的格式，它允许你在文字上添加删除线。它内部使用<code>Paint.setStrikeThruText(true))</code>来实现。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">StrikethroughSpan span = new StrikethroughSpan();</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-StrikeSpan.png" alt="StrikethroughSpan效果图"></p>
+<p>####　<strong>android.text.style.SubscriptSpan</strong></p>
+<p>&emsp;<code>SubscriptSpan</code>影响<strong>字符层次</strong>上的文字的格式，它允许你把文字作为下标进行显示。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SubscriptSpan span = new SubscriptSpan();</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-SubscriptSpan.png" alt="SubscriptSpan效果图"></p>
+<p>####　<strong>android.text.style.SuperscriptSpan</strong></p>
+<p>&emsp;``影响<strong>字符层次</strong>上的文字的格式，它允许你把文字作为上标进行显示。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SuperscriptSpan span = new SuperscriptSpan();</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-SupscriptSpan.png" alt="SuperscriptSpan效果图"></p>
+<p>####　<strong>android.text.style.BackgroundColorSpan</strong></p>
+<p>&emsp;<code>BackgroundColorSpan</code>影响<strong>字符层次</strong>上的文字的格式，你可以使用它设置文字的背景颜色。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">BackgroundColorSpan span = new BackgroundColorSpan(Color.RED);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-BackgroundSpan.png" alt="BackgroundColorSpan效果图"></p>
+<p>####　<strong>android.text.style.ForegroundColorSpan</strong></p>
+<p>&emsp;<code>ForegroundColorSpan</code>影响<strong>字符层次</strong>上的文字的格式，你可以使用它设置文字的自己的颜色。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ForegroundColorSpan span = new ForegroundColorSpan(Color.RED);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-ForegroundSpan.png" alt="ForegroundColorSpan效果图"></p>
+<p>####　<strong>android.text.style.ImageSpan</strong></p>
+<p>&emsp;<code>ImageSpan</code>影响<strong>字符层次</strong>上的文字的格式，你可以使用它在文字中间添加图片。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ImageSpan span = new ImageSpan(this,R.mipmap.ic_launcher);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-ImageSpan.png" alt="ImageSpan效果图"></p>
+<p>####　<strong>android.text.style.StyleSpan</strong></p>
+<p>&emsp;<code>StyleSpan</code>影响<strong>字符层次</strong>上的文字的格式。它允许你设置文字的类型(bold, italic, normal)</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">StyleSpan span = new StyleSpan(Typeface.BOLD);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-StyleSpan.png" alt="StyleSpan效果图"></p>
+<p>####　<strong>android.text.style.TypefaceSpan</strong></p>
+<p>&emsp;<code>TypefaceSpan</code>影响<strong>字符层次</strong>上的文字的格式。它允许你设置文字的字体族(monospace, serif等)</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">TypefaceSpan span = new TypefaceSpan(&quot;serif&quot;);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-TypefaceSpan.png" alt="TypefaceSpan效果图"></p>
+<p>####　<strong>android.text.style.AbsoluteSizeSpan</strong></p>
+<p>&emsp;<code>AbsoluteSizeSpan</code>影响<strong>字符层次</strong>上的文字的格式。它允许你设置文字的绝对字体大小。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">AbsoluteSizeSpan span = new AbsoluteSizeSpan(24,true);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-AbsolutSizeSpan.png" alt="AbsoluteSizeSpan效果图"></p>
+<p>####　<strong>android.text.style.RelativeSizeSpan</strong></p>
+<p>&emsp;<code>RelativeSizeSpan</code>影响<strong>字符层次</strong>上的文字的格式。它允许你设置文字的相对字体大小。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">RelativeSizeSpan span = new RelativeSizeSpan(2.0f);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-RelativeSizeSpan.png" alt="RelativeSizeSpan效果图"></p>
+<p>####　<strong>android.text.style.ScaleXSpan</strong></p>
+<p><code>&amp;emsp;</code>ScaleXSpan`影响<strong>字符层次</strong>上的文字的格式。它让你让文字在ｘ方向上进行缩放。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ScaleXSpan span = new ScaleXSpan(2.0f);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-ScaleSpan.png" alt="ScaleXSpan效果图"></p>
+<p>####　<strong>android.text.style.MaskFilterSpan</strong></p>
+<p>&emsp;<code>MaskFilterSpan</code>影响<strong>字符层次</strong>上的文字的格式。它让你在文字上设置<code>android.graphics.MaskFilter</code></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">//Blur a character</span><br><span class="line">span = new MaskFilterSpan(new BlurMaskFilter(density*2, BlurMaskFilter.Blur.NORMAL));</span><br><span class="line">//Emboss a character</span><br><span class="line">span = new MaskFilterSpan(new EmbossMaskFilter(new float[] &#123; 1, 1, 1 &#125;, 0.4f, 6, 3.5f));</span><br></pre></td></tr></table></figure>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-maskfilterblur.png" alt="BlurMaskFilter效果图"></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-maskfilteremboss.png" alt="EmbossMaskFilter效果图"></p>
+<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;本篇文章只是简单介绍Android Span的使用，接下来的文章会介绍Span更加高级的用法和它的原理。希望大家继续支持。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Span/" rel="tag"># Span</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/07/15/自定义Switch过程详解/" rel="next" title="自定义Switch过程详解">
+                <i class="fa fa-chevron-left"></i> 自定义Switch过程详解
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/08/08/Android-Span-进阶/" rel="prev" title="Android  Span 进阶">
+                Android  Span 进阶 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="remCarpediem">
+          <p class="site-author-name" itemprop="name">remCarpediem</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">59</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">33</span>
+                <span class="site-state-item-name">categories</span>
+              
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              
+                <span class="site-state-item-count">53</span>
+                <span class="site-state-item-name">tags</span>
+              
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#Android-Span-介绍"><span class="nav-number">1.</span> <span class="nav-text">Android Span 介绍</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Android-Span-框架"><span class="nav-number">2.</span> <span class="nav-text">Android Span 框架</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Android-Span类型介绍"><span class="nav-number">3.</span> <span class="nav-text">Android Span类型介绍</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#后记"><span class="nav-number">4.</span> <span class="nav-text">后记</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">remCarpediem</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

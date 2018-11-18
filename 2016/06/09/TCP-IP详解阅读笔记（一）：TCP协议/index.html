@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="Chinese">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="TCP/IP,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="作者： remcarpediem联系方式：segmentfault，csdn，简书  本文转载请注明作者、文章来源，链接，版权归作者所有。  &amp;emsp;前段时间提交了本科毕业论文，这段时间特别空闲，于是希望研究一些基础性的技术，比如网络和编译原理。于是就找来《TCP/IP协议详解》来看，并做一些笔记，记录一下感悟或在重点。&amp;emsp;为了节约你的时间，本文主要内容为：  TCP/IP协议族 TC">
+<meta name="keywords" content="TCP&#x2F;IP">
+<meta property="og:type" content="article">
+<meta property="og:title" content="TCP&#x2F;IP详解阅读笔记（一）：TCP协议">
+<meta property="og:url" content="http://remcarpediem.net/2016/06/09/TCP-IP详解阅读笔记（一）：TCP协议/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="作者： remcarpediem联系方式：segmentfault，csdn，简书  本文转载请注明作者、文章来源，链接，版权归作者所有。  &amp;emsp;前段时间提交了本科毕业论文，这段时间特别空闲，于是希望研究一些基础性的技术，比如网络和编译原理。于是就找来《TCP/IP协议详解》来看，并做一些笔记，记录一下感悟或在重点。&amp;emsp;为了节约你的时间，本文主要内容为：  TCP/IP协议族 TC">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160609-TCP/IP-TCPIP%E5%8D%8F%E8%AE%AE%E6%97%8F%E5%88%86%E6%9B%BE.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160609-TCP/IP-TCPIP.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160609-TCP/IP-TCPHead.png">
+<meta property="og:updated_time" content="2018-11-18T13:40:01.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="TCP&#x2F;IP详解阅读笔记（一）：TCP协议">
+<meta name="twitter:description" content="作者： remcarpediem联系方式：segmentfault，csdn，简书  本文转载请注明作者、文章来源，链接，版权归作者所有。  &amp;emsp;前段时间提交了本科毕业论文，这段时间特别空闲，于是希望研究一些基础性的技术，比如网络和编译原理。于是就找来《TCP/IP协议详解》来看，并做一些笔记，记录一下感悟或在重点。&amp;emsp;为了节约你的时间，本文主要内容为：  TCP/IP协议族 TC">
+<meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20160609-TCP/IP-TCPIP%E5%8D%8F%E8%AE%AE%E6%97%8F%E5%88%86%E6%9B%BE.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://remcarpediem.net/2016/06/09/TCP-IP详解阅读笔记（一）：TCP协议/">
+
+
+
+
+
+  <title>TCP/IP详解阅读笔记（一）：TCP协议 | Carpediem</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="Chinese">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Carpediem</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">blog of nobody</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://remcarpediem.net/2016/06/09/TCP-IP详解阅读笔记（一）：TCP协议/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="remCarpediem">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Carpediem">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">TCP/IP详解阅读笔记（一）：TCP协议</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2016-06-09T12:28:33+08:00">
+                2016-06-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/网络/" itemprop="url" rel="index">
+                    <span itemprop="name">网络</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>作者： <a href="http://ztelur.github.io/" target="_blank" rel="noopener">remcarpediem</a><br>联系方式：<a href="https://segmentfault.com/u/remcarpediem" target="_blank" rel="noopener">segmentfault</a>，<a href="http://blog.csdn.net/u012422440" target="_blank" rel="noopener">csdn</a>，<a href="http://www.jianshu.com/users/481d9f540fb9/latest_articles" target="_blank" rel="noopener">简书</a></p>
+<blockquote>
+<p>本文转载请注明作者、文章来源，链接，版权归作者所有。</p>
+</blockquote>
+<p>&emsp;前段时间提交了本科毕业论文，这段时间特别空闲，于是希望研究一些基础性的技术，比如网络和编译原理。于是就找来《TCP/IP协议详解》来看，并做一些笔记，记录一下感悟或在重点。<br>&emsp;为了节约你的时间，本文主要内容为：</p>
+<ul>
+<li>TCP/IP协议族</li>
+<li>TCP和UDP的区别</li>
+<li>TCP提供可靠性的方式</li>
+<li>TCP首部格式</li>
+</ul>
+<h3 id="TCP-IP协议族"><a href="#TCP-IP协议族" class="headerlink" title="TCP/IP协议族"></a><strong>TCP/IP协议族</strong></h3><p>&emsp;TCP/IP协议是一组网络传输协议的集合，按照网络模型的不同层次，使用不同的传输协议进行分工合作。TCP/IP的网络参考模型一共有四层，自上而下分别为应用层，传输层，网络层和数据链路层。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160609-TCP/IP-TCPIP%E5%8D%8F%E8%AE%AE%E6%97%8F%E5%88%86%E6%9B%BE.png" alt="TCP/IP协议分层"></p>
+<ul>
+<li>链路层，有时候也称为数据链路层或网络接口层，通常包括操作系统中的设备驱动程序和计算机中对应的网络接口卡。它们一起处理与电缆（或者其他任何传输媒介）的物理接口细节。</li>
+<li>网络层，有时也称为互联网层，处理分组在网络中的活动，例如分组的选路。在TCP/IP协议族中，网络层协议包括IP协议，ICMP协议，以及IGMP协议。</li>
+<li>传输层主要为两台主机上的应用程序提供端到端的通信，在TCP/IP协议族中，有两个互不相同的传输协议：TCP（传输控制协议）和UDP（用户数据报协议）。TCP相对安全稳定，但是UDP速度更快。</li>
+<li>应用层负责处理特定的应用程序细节。几乎各种不同的TCP/IP实现都会提供下面这些通用的应用程序：<ul>
+<li>Telnet远程登陆</li>
+<li>FTP文件传输协议</li>
+<li>SMTP简单邮件传输协议</li>
+<li>SNMP 简单网络管理协议 </li>
+</ul>
+</li>
+</ul>
+<h3 id="TCP：传输控制协议"><a href="#TCP：传输控制协议" class="headerlink" title="TCP：传输控制协议"></a><strong>TCP：传输控制协议</strong></h3><p>&emsp;TCP和UDP都是传输层的协议，但是二者却有着很多的不同。TCP提供一种<strong>面向连接</strong>的，<strong>可靠</strong>的字节流服务。而UDP是一个简单的<strong>面向数据报文</strong>的传输层协议：进程中的每个输出操作都正好产生一个UDP数据报文，并且组装成一份待发送的IP数据报，而TCP协议中，应用程序产生的全体数据与真正发送的单个IP数据报可能没有什么联系。UDP也<strong>不提供可靠性保证</strong>。<br>&emsp;TCP和UDP的主要区别如图所示。</p>
+<h3 id="TCP提供可靠性的方式"><a href="#TCP提供可靠性的方式" class="headerlink" title="TCP提供可靠性的方式"></a><strong>TCP提供可靠性的方式</strong></h3><p>&ems;与UDP不同的是，TCP提供各种方式来保证数据传输的正确性：</p>
+<ul>
+<li>应用数据被分割成TCP认为最合适发送的数据快。这和UDP完全不同，应用程序产生的数据报长度不变。</li>
+<li>TCP发送一个报文段之后，它启动一个定时器，等待目的端确认收到这个报文段。如果不能及时收到一个确认，将重新发送这个报文。</li>
+<li>当TCP收到发自TCP连接另一端的数据，它将发送一个确认。</li>
+<li>TCP将保持它首部和数据的检验和。这是一个端到端的检验和，目的是检测数据在传输过程中的任何变化。如果收到端的检验和有差别，TCP将丢弃这个报文段。</li>
+<li>TCP会对收到的数据金喜重排，将收到的数据以正确的顺序交给应用层。</li>
+<li>TCP的接受端会放弃重复的数据</li>
+<li>TCP提供流量控制。TCP接受的每一方都有固定大小的缓冲空间。TCP的接受端只允许另一端发送接收端缓冲区所能容纳的数据。</li>
+</ul>
+<h3 id="TCP的首部"><a href="#TCP的首部" class="headerlink" title="TCP的首部"></a><strong>TCP的首部</strong></h3><p>&emsp;TCP数据被封装在一个IP数据报中，如下图所示。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160609-TCP/IP-TCPIP.png" alt="TCP和IP数据报"><br>&emsp;下图显示TCP首部的数据结构。如果不计任何可选字段的话，它通常是20个字节。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160609-TCP/IP-TCPHead.png" alt="TCP首部格式"></p>
+<ul>
+<li>每个TCP端都包含源端和目的端的端口号，用于寻找发送端和接受端应用进程。这两个值加上IP首部的源端IP地址和目的端IP地址唯一确定一个TCP连接。</li>
+<li>序号用来标识TCP发端向TCP收端发送的数据字节流，它表示在这个报文段中的第一个字节数据。如果将字节流看作在两个应用程序之间的单向流动，则TCP用序号来对每个字节进行计数。序号是32位的无符号数。</li>
+<li>确认序号包含发送确认的一端所期望收到的下一个序号。因此，确认序号应当是上次已经成功收到的数据字节序号+1。只有ACK标志为1时确认序号字段才有效。</li>
+<li>首部长度给出TCP首部的字节数目。需要这个值是因为任选字段的长度是可变的。</li>
+<li>TCP首部中有6个标志位。<ul>
+<li>URG：紧急指针有效标志位，当它被置为1时，紧急指针才有效。</li>
+<li>ACK：确认序号有效，当它被置为1时，确认序号才有效。</li>
+<li>PSH：接受方应该尽快将这个报文交给应用层。</li>
+<li>RST：重建连接。</li>
+<li>SYN：同步序号用来发起一个新连接。</li>
+<li>FIN：发端完成发送任务。</li>
+</ul>
+</li>
+<li>窗口大小来进行TCP的流量控制。窗口大小为字节数，起始于确认序号字段指明的值，这个值是接受端期望接受的字节。</li>
+<li>检验和覆盖了整个的TCP报文段：TCP首部和TCP数据。这是一个强制性的字段，一定由发端进行计算和存储，并由收端进行检验。</li>
+<li>紧急指针是一个正的偏移量，和序号字段中的值相加表示紧急数据最后一个字节的序号。TCP的紧急方式是发送端向另一端发送紧急数据的一种方式。</li>
+</ul>
+<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a><strong>后记</strong></h3><p>&emsp;本片文章几乎就是一个读书笔记摘要。每个章节都如此，既无营养也很浪费时间，希望自己以后可以多做一些总结和实质性的文章吧。希望以后可以找到一个好的方式来写读书笔记。 </p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/TCP-IP/" rel="tag"># TCP/IP</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/05/28/Python中的plisttext和HTTP的Content-Type/" rel="next" title="Python中的plisttext和HTTP的Content-Type">
+                <i class="fa fa-chevron-left"></i> Python中的plisttext和HTTP的Content-Type
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/06/15/TCP-IP协议详解-二-：建立和关闭连接/" rel="prev" title="TCP/IP协议详解(二)：建立和关闭连接">
+                TCP/IP协议详解(二)：建立和关闭连接 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="remCarpediem">
+          <p class="site-author-name" itemprop="name">remCarpediem</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">59</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">33</span>
+                <span class="site-state-item-name">categories</span>
+              
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              
+                <span class="site-state-item-count">53</span>
+                <span class="site-state-item-name">tags</span>
+              
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#TCP-IP协议族"><span class="nav-number">1.</span> <span class="nav-text">TCP/IP协议族</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TCP：传输控制协议"><span class="nav-number">2.</span> <span class="nav-text">TCP：传输控制协议</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TCP提供可靠性的方式"><span class="nav-number">3.</span> <span class="nav-text">TCP提供可靠性的方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TCP的首部"><span class="nav-number">4.</span> <span class="nav-text">TCP的首部</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#后记"><span class="nav-number">5.</span> <span class="nav-text">后记</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">remCarpediem</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

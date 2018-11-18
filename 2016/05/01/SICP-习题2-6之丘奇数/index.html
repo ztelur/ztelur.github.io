@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="Chinese">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="SICP,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="&amp;emsp;最近一直在阅读《SICP》，然后下午做其中的习题2.6，对其题意很不理解，于是搜索了相关资料，不禁如题设所说感到如雷灌顶，特此记录下来，以供大家阅读和交流 ####题目&amp;emsp;如果觉得将序对表示最为过程还不足以令人如雷灌顶，那么请考虑，在一个可以对程序做各类操作的语言中，我们完全可以没有数（至少在只考虑非整数的情况下），可以将0和加一操作实现为：123(define zero (l">
+<meta name="keywords" content="SICP">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SICP 习题2.6之丘奇数">
+<meta property="og:url" content="http://remcarpediem.net/2016/05/01/SICP-习题2-6之丘奇数/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="&amp;emsp;最近一直在阅读《SICP》，然后下午做其中的习题2.6，对其题意很不理解，于是搜索了相关资料，不禁如题设所说感到如雷灌顶，特此记录下来，以供大家阅读和交流 ####题目&amp;emsp;如果觉得将序对表示最为过程还不足以令人如雷灌顶，那么请考虑，在一个可以对程序做各类操作的语言中，我们完全可以没有数（至少在只考虑非整数的情况下），可以将0和加一操作实现为：123(define zero (l">
+<meta property="og:locale" content="Chinese">
+<meta property="og:updated_time" content="2018-11-18T13:40:01.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SICP 习题2.6之丘奇数">
+<meta name="twitter:description" content="&amp;emsp;最近一直在阅读《SICP》，然后下午做其中的习题2.6，对其题意很不理解，于是搜索了相关资料，不禁如题设所说感到如雷灌顶，特此记录下来，以供大家阅读和交流 ####题目&amp;emsp;如果觉得将序对表示最为过程还不足以令人如雷灌顶，那么请考虑，在一个可以对程序做各类操作的语言中，我们完全可以没有数（至少在只考虑非整数的情况下），可以将0和加一操作实现为：123(define zero (l">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://remcarpediem.net/2016/05/01/SICP-习题2-6之丘奇数/">
+
+
+
+
+
+  <title>SICP 习题2.6之丘奇数 | Carpediem</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="Chinese">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Carpediem</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">blog of nobody</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://remcarpediem.net/2016/05/01/SICP-习题2-6之丘奇数/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="remCarpediem">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Carpediem">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">SICP 习题2.6之丘奇数</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2016-05-01T19:34:38+08:00">
+                2016-05-01
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/函数式编程/" itemprop="url" rel="index">
+                    <span itemprop="name">函数式编程</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>&emsp;最近一直在阅读《SICP》，然后下午做其中的习题2.6，对其题意很不理解，于是搜索了相关资料，不禁如题设所说感到如雷灌顶，特此记录下来，以供大家阅读和交流</p>
+<p>####题目<br>&emsp;如果觉得将序对表示最为过程还不足以令人如雷灌顶，那么请考虑，在一个可以对程序做各类操作的语言中，我们完全可以没有数（至少在只考虑非整数的情况下），可以将0和加一操作实现为：<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">(<span class="name">define</span> zero (<span class="name">lambda</span> (<span class="name">f</span>) (<span class="name">lambda</span> (<span class="name">x</span>) x)))</span><br><span class="line">(<span class="name">define</span> (<span class="name">add-1</span> n)</span><br><span class="line">	(<span class="name">lambda</span> (<span class="name">f</span>) (<span class="name">lambda</span> (<span class="name">x</span>) (<span class="name">f</span> ((<span class="name">n</span> f) x)))))</span><br></pre></td></tr></table></figure></p>
+<p>这一表现形式称为Church计数，名字来源于其发明人数理学家Church，请直接定义one和two（不使用zero和add-1）（提示：利用代换法去求值）。请给出加法过程+的一个直接定义（不要反复应用add-1）</p>
+<h4 id="丘奇数"><a href="#丘奇数" class="headerlink" title="丘奇数"></a>丘奇数</h4><p>&emsp;说实话，我一直没有看懂题目中关于zero和add-1的定义，于是我搜索了相关资料。下边就结合资料谈一下它的概念。<br>&emsp;首先要明确的是丘奇数中的zero，one等并不等同于数值上的0,1,2。你可以理解为它是零这个概念的一种表现形式。换句话说，它就是零的函数式表现形式。我们先来看一下丘奇数中zero，one和two的表现形式<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">(<span class="name">define</span> zero</span><br><span class="line">  (<span class="name">lambda</span> (<span class="name">f</span>) (<span class="name">lambda</span> (<span class="name">x</span>) x)))</span><br><span class="line">(<span class="name">define</span> one</span><br><span class="line">  (<span class="name">lambda</span> (<span class="name">f</span>) (<span class="name">lambda</span> (<span class="name">x</span>) (<span class="name">f</span> x))))</span><br><span class="line">(<span class="name">define</span> two</span><br><span class="line">  (<span class="name">lambda</span> (<span class="name">f</span>) (<span class="name">lambda</span> (<span class="name">x</span>) (<span class="name">f</span> (<span class="name">f</span> x)))))</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;我们会发现zero，one和two都是一个函数，它接收(f)作为参数，其结果是一个接收(x)作为参数的函数。大家可能需要注意的是，(f)在这里显然也是一个函数，在LISP中函数是可以作为输入参数的。然后我们会发现zero，one和two的区别好像就是(f)函数被使用的次数。zero中(f)没有被使用，one中(f)使用了一次，two中(f)使用了两次，对就是这个次数来表示0,1,2的概念。<br>&emsp;我们可以实验一下检验一下<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">(<span class="name">define</span> (<span class="name">inc</span> n)</span><br><span class="line">   (<span class="name">+</span> n <span class="number">1</span>))</span><br><span class="line">&gt; ((<span class="name">zero</span> inc) <span class="number">0</span>)</span><br><span class="line"><span class="number">0</span></span><br><span class="line">&gt; ((<span class="name">zero</span> inc) <span class="number">1</span>)</span><br><span class="line"><span class="number">1</span></span><br><span class="line">&gt; ((<span class="name">one</span> inc) <span class="number">1</span>)</span><br><span class="line"><span class="number">2</span></span><br><span class="line">&gt; (((<span class="name">add-1</span> one) inc) <span class="number">1</span>)</span><br><span class="line"><span class="number">3</span></span><br></pre></td></tr></table></figure></p>
+<p>&emsp;我们定义一个过程inc就是数值意义上的加一，然后使用zero,one和add-1发现确实如同我们所想的，zero表示inc过程不会被使用，返回原数值；one表示inc被使用一次，返回加一的数值。</p>
+<h4 id="替换法求two"><a href="#替换法求two" class="headerlink" title="替换法求two"></a>替换法求two</h4><p>&emsp;我们来使用替换法通过add-1和zero来求解one吧。<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">(<span class="name">add-1</span> zero)</span><br><span class="line"><span class="comment">;展开add-1定义</span></span><br><span class="line">(<span class="name">lambda</span> (<span class="name">f</span>) (<span class="name">lambda</span> (<span class="name">x</span>) (<span class="name">f</span> ((<span class="name">zero</span> f) x))))</span><br><span class="line"></span><br><span class="line"><span class="comment">; 替换zero</span></span><br><span class="line">(<span class="name">lambda</span> (<span class="name">f</span>) (<span class="name">lambda</span> (<span class="name">x</span>) (<span class="name">f</span> ((<span class="name">lambda</span> (<span class="name">x</span>) x) x))))</span><br><span class="line"></span><br><span class="line"><span class="comment">; 简化因为((lambda (x) x) x)就等于x</span></span><br><span class="line">(<span class="name">lambda</span> (<span class="name">f</span>) (<span class="name">lambda</span> (<span class="name">x</span>) (<span class="name">f</span> x)))</span><br></pre></td></tr></table></figure></p>
+<h4 id="加法定义"><a href="#加法定义" class="headerlink" title="加法定义"></a>加法定义</h4><p>&emsp;首先我们要明白丘奇数加法的含义，我们先记其加法为add-church,那么如下代码所示，最后一个过程得出的值应该是多少呢？<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&gt; ((<span class="name">one</span> inc) <span class="number">1</span>)</span><br><span class="line"><span class="number">2</span></span><br><span class="line">&gt; ((<span class="name">two</span> inc) <span class="number">1</span>)</span><br><span class="line"><span class="number">3</span></span><br><span class="line">&gt; (((<span class="name">add-church</span> one two) inc) <span class="number">1</span>)</span><br><span class="line">?</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;根据猜测，应该是4吧。因为one表示inc对1这个数值使用一次，two标示使用两次，那么将二者加起来，那么就应该是three的含义啦，就是表示inc对1这个数值使用3次，那么就是4啦。<br>&emsp;add-church的实现如下<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">(<span class="name">define</span> (<span class="name">add-church</span> m n)</span><br><span class="line">   (<span class="name">lambda</span> (<span class="name">f</span>) (<span class="name">lambda</span> (<span class="name">x</span>) ((<span class="name">m</span> f) ((<span class="name">n</span> f) x)))))</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;如果你将其与add-1进行对比，你会发现add-1中的f变成了(m f),如果吧add-1中的f记住(one f)，你可能就会更加理解。那么你就会想add-m是如何标示的呢？</p>
+<blockquote>
+<p>参考资料<br><a href="https://pfmiles.wordpress.com/2009/11/12/%E9%80%90%E6%AD%A5%E7%90%86%E8%A7%A3%E4%B8%98%E5%A5%87%E6%95%B0%E4%B8%80/" target="_blank" rel="noopener">https://pfmiles.wordpress.com/2009/11/12/%E9%80%90%E6%AD%A5%E7%90%86%E8%A7%A3%E4%B8%98%E5%A5%87%E6%95%B0%E4%B8%80/</a><br><a href="http://www.billthelizard.com/2010/10/sicp-26-church-numerals.html" target="_blank" rel="noopener">http://www.billthelizard.com/2010/10/sicp-26-church-numerals.html</a></p>
+</blockquote>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/SICP/" rel="tag"># SICP</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/04/21/Android-Scroll详解-三-：Android-绘制过程详解/" rel="next" title="Android Scroll详解(三)：Android 绘制过程详解">
+                <i class="fa fa-chevron-left"></i> Android Scroll详解(三)：Android 绘制过程详解
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/05/09/Property-Animation框架详解-一/" rel="prev" title="Property Animation框架详解(一)">
+                Property Animation框架详解(一) <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="remCarpediem">
+          <p class="site-author-name" itemprop="name">remCarpediem</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">59</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">33</span>
+                <span class="site-state-item-name">categories</span>
+              
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              
+                <span class="site-state-item-count">53</span>
+                <span class="site-state-item-name">tags</span>
+              
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#丘奇数"><span class="nav-number">1.</span> <span class="nav-text">丘奇数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#替换法求two"><span class="nav-number">2.</span> <span class="nav-text">替换法求two</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#加法定义"><span class="nav-number">3.</span> <span class="nav-text">加法定义</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">remCarpediem</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

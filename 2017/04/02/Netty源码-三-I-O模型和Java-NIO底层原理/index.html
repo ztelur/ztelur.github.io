@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="Chinese">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="Netty,epoll,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="上一篇文章我们主要讲解了Netty的Channel和Pipeline，了解到不同的Channel可以提供基于不同网络协议的通信处理．既然涉及到网络通信，就不得不说一下多线程，同步异步相关的知识了．Netty的网络模型是多线程的Reactor模式，所有I/O请求都是异步调用，我们今天就来探讨一下一些基础概念和Java NIO的底层机制． 为了节约你的时间，本文主要内容如下：  异步，阻塞的概念 操">
+<meta name="keywords" content="Netty,epoll">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Netty源码(三):I&#x2F;O模型和Java NIO底层原理">
+<meta property="og:url" content="http://remcarpediem.net/2017/04/02/Netty源码-三-I-O模型和Java-NIO底层原理/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="上一篇文章我们主要讲解了Netty的Channel和Pipeline，了解到不同的Channel可以提供基于不同网络协议的通信处理．既然涉及到网络通信，就不得不说一下多线程，同步异步相关的知识了．Netty的网络模型是多线程的Reactor模式，所有I/O请求都是异步调用，我们今天就来探讨一下一些基础概念和Java NIO的底层机制． 为了节约你的时间，本文主要内容如下：  异步，阻塞的概念 操">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201742-netty-0_1280550787I2K8.gif">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201742-netty-0_128055089469yL.gif">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201742-netty-0_1280551028YEeQ.gif">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201742-netty-0_1280551287S777.gif">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201742-netty-0_1280551552NVgW.gif">
+<meta property="og:updated_time" content="2018-11-18T13:40:01.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Netty源码(三):I&#x2F;O模型和Java NIO底层原理">
+<meta name="twitter:description" content="上一篇文章我们主要讲解了Netty的Channel和Pipeline，了解到不同的Channel可以提供基于不同网络协议的通信处理．既然涉及到网络通信，就不得不说一下多线程，同步异步相关的知识了．Netty的网络模型是多线程的Reactor模式，所有I/O请求都是异步调用，我们今天就来探讨一下一些基础概念和Java NIO的底层机制． 为了节约你的时间，本文主要内容如下：  异步，阻塞的概念 操">
+<meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201742-netty-0_1280550787I2K8.gif">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://remcarpediem.net/2017/04/02/Netty源码-三-I-O模型和Java-NIO底层原理/">
+
+
+
+
+
+  <title>Netty源码(三):I/O模型和Java NIO底层原理 | Carpediem</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="Chinese">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Carpediem</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">blog of nobody</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://remcarpediem.net/2017/04/02/Netty源码-三-I-O模型和Java-NIO底层原理/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="remCarpediem">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Carpediem">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Netty源码(三):I/O模型和Java NIO底层原理</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-04-02T23:11:13+08:00">
+                2017-04-02
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/NIO/" itemprop="url" rel="index">
+                    <span itemprop="name">NIO</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p> <a href="http://remcarpediem.com/2017/03/27/Netty%E6%BA%90%E7%A0%81-%E4%BA%8C-Netty%E7%9A%84Channel%E5%92%8CPipeline/" target="_blank" rel="noopener">上一篇文章</a>我们主要讲解了Netty的<code>Channel</code>和<code>Pipeline</code>，了解到不同的<code>Channel</code>可以提供基于不同网络协议的通信处理．既然涉及到网络通信，就不得不说一下多线程，同步异步相关的知识了．Netty的网络模型是多线程的<code>Reactor</code>模式，所有I/O请求都是异步调用，我们今天就来探讨一下一些基础概念和Java NIO的底层机制．<br> 为了节约你的时间，本文主要内容如下：</p>
+<ul>
+<li>异步，阻塞的概念</li>
+<li>操作系统I/O的类型</li>
+<li>Java NIO的Linux底层实现</li>
+</ul>
+<h3 id="异步，同步，阻塞，非阻塞"><a href="#异步，同步，阻塞，非阻塞" class="headerlink" title="异步，同步，阻塞，非阻塞"></a>异步，同步，阻塞，非阻塞</h3><p> <strong><em>同步和异步关注的是消息通信机制</em></strong>，所谓同步就是调用者进行调用后，在没有得到结果之前，该调用一直不会返回，但是一旦调用返回，就得到了返回值，<strong><em>同步就是指调用者主动等待调用结果</em></strong>；而异步则相反，执行调用之后直接返回，所以可能没有返回值，等到有返回值时，由被调用者通过状态，通知来通知调用者．<strong>异步就是指被调用者来通知调用者调用结果就绪*</strong>．<strong><em>所以，二者在消息通信机制上有所不同，一个是调用者检查调用结果是否就绪，一个是被调用者通知调用者结果就绪</em></strong><br> <strong><em>阻塞和非阻塞关注的是程序在等待调用结果(消息，返回值)时的状态</em></strong>．阻塞调用是指在调用结果返回之前，当前线程会被挂起，调用线程只有在得到结果之后才会继续执行．非阻塞调用是指在不能立刻得到结构之前，调用线程不会被挂起，还是可以执行其他事情．<br> 两组概念相互组合就有四种情况，分别是同步阻塞，同步非阻塞，异步阻塞，异步非阻塞．我们来举个例子来分别类比上诉四种情况．<br> 比如你要从网上下载一个1G的文件，按下下载按钮之后，如果你一直在电脑旁边，等待下载结束，这种情况就是同步阻塞；如果你不需要一直呆在电脑旁边，你可以去看一会书，但是你还是隔一段时间来查看一下下载进度，这种情况就是同步非阻塞；如果你一直在电脑旁边，但是下载器在下载结束之后会响起音乐来提醒你，这就是异步阻塞；但是如果你不呆在电脑旁边，去看书，下载器下载结束后响起音乐来提醒你，那么这种情况就是异步非阻塞．</p>
+<h3 id="Unix的I-O类型"><a href="#Unix的I-O类型" class="headerlink" title="Unix的I/O类型"></a>Unix的I/O类型</h3><p> 知道上述两组概念之后，我们来看一下Unix下可用的5种I/O模型：</p>
+<ul>
+<li>阻塞I/O</li>
+<li>非阻塞I/O</li>
+<li>多路复用I/O</li>
+<li>信号驱动I/O</li>
+<li>异步I/O</li>
+</ul>
+<p> 前４种都是同步，只有最后一种是异步I/O.需要注意的是<strong><em>Java NIO依赖于Unix系统的多路复用I/O,对于I/O操作来说，它是同步I/O，但是对于编程模型来说，它是异步网络调用</em></strong>.下面我们就以系统<code>read</code>的调用来介绍不同的I/O类型．<br> 当一个<code>read</code>发生时，它会经历两个阶段:</p>
+<ul>
+<li>1 等待数据准备</li>
+<li>2 将数据从内核内存空间拷贝到进程内存空间中</li>
+</ul>
+<p> 不同的I/O类型，在这两个阶段中有不同的行为．但是由于这块内容比较多，而且多为表述性的知识，所以这里我们只给出几张图片来解释，具体解释大家可以参看<a href="http://blog.csdn.net/historyasamirror/article/details/5778378" target="_blank" rel="noopener">这篇博文</a></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201742-netty-0_1280550787I2K8.gif" alt="Blocking I/O"></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201742-netty-0_128055089469yL.gif" alt="NonBlocking I/O"></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201742-netty-0_1280551028YEeQ.gif" alt="Multiplexing I/O"></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201742-netty-0_1280551287S777.gif" alt="Asynchronous I/O"></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201742-netty-0_1280551552NVgW.gif" alt="对比"></p>
+<h3 id="Java-NIO的Linux底层实现"><a href="#Java-NIO的Linux底层实现" class="headerlink" title="Java NIO的Linux底层实现"></a>Java NIO的Linux底层实现</h3><p> 我们都知道Netty通过JNI的方式提供了Native Socket Transport，为什么<code>Netty</code>要提供自己的Native版本的NIO呢？明明Java NIO底层也是基于<code>epoll</code>调用(最新的版本)的．这里，我们先不明说，大家想一想可能的情况．下列的源码都来自于OpenJDK-8u40-b25版本．</p>
+<h4 id="open方法"><a href="#open方法" class="headerlink" title="open方法"></a>open方法</h4><p>&emsp;如果我们顺着<code>Selector.open()</code>方法一个类一个类的找下去，很容易就发现<code>Selector</code>的初始化是由<code>DefaultSelectorProvider</code>根据不同操作系统平台生成的不同的<code>SelectorProvider</code>，对于Linux系统，它会生成<code>EPollSelectorProvider</code>实例，而这个实例会生成<code>EPollSelectorImpl</code>作为最终的<code>Selector</code>实现．<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">class EPollSelectorImpl extends SelectorImpl</span><br><span class="line">&#123;</span><br><span class="line">    .....</span><br><span class="line">    // The poll object</span><br><span class="line">    EPollArrayWrapper pollWrapper;</span><br><span class="line">    .....</span><br><span class="line">    EPollSelectorImpl(SelectorProvider sp) throws IOException &#123;</span><br><span class="line">        .....</span><br><span class="line">        pollWrapper = new EPollArrayWrapper();</span><br><span class="line">        pollWrapper.initInterrupt(fd0, fd1);</span><br><span class="line">        .....</span><br><span class="line">    &#125;</span><br><span class="line">    .....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;<code>EpollArrayWapper</code>将Linux的epoll相关系统调用封装成了native方法供<code>EpollSelectorImpl</code>使用．<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">private native int epollCreate();</span><br><span class="line">private native void epollCtl(int epfd, int opcode, int fd, int events);</span><br><span class="line">private native int epollWait(long pollAddress, int numfds, long timeout,</span><br><span class="line">                             int epfd) throws IOException;</span><br></pre></td></tr></table></figure></p>
+<p> 上述三个native方法就对应Linux下epoll相关的三个系统调用<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//创建一个epoll句柄，size是这个监听的数目的最大值．</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_create</span><span class="params">(<span class="keyword">int</span> size)</span></span>;</span><br><span class="line"><span class="comment">//事件注册函数，告诉内核epoll监听什么类型的事件，参数是感兴趣的事件类型，回调和监听的fd</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_ctl</span><span class="params">(<span class="keyword">int</span> epfd, <span class="keyword">int</span> op, <span class="keyword">int</span> fd, struct epoll_event *event)</span></span>;</span><br><span class="line"><span class="comment">//等待事件的产生，类似于select调用，events参数用来从内核得到事件的集合</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_wait</span><span class="params">(<span class="keyword">int</span> epfd, struct epoll_event * events, <span class="keyword">int</span> maxevents, <span class="keyword">int</span> timeout)</span></span>;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;所以，我们会发现在<code>EpollArrayWapper</code>的构造函数中调用了<code>epollCreate</code>方法，创建了一个epoll的句柄．这样，<code>Selector</code>对象就算创造完毕了．</p>
+<h4 id="register方法"><a href="#register方法" class="headerlink" title="register方法"></a>register方法</h4><p>&emsp;与<code>open</code>类似，<code>ServerSocketChannel</code>的<code>register</code>函数底层是调用了<code>SelectorImpl</code>类的<code>register</code>方法，这个<code>SelectorImpl</code>就是<code>EPollSelectorImpl</code>的父类．<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">final</span> SelectionKey <span class="title">register</span><span class="params">(AbstractSelectableChannel ch,</span></span></span><br><span class="line"><span class="function"><span class="params">                                      <span class="keyword">int</span> ops,</span></span></span><br><span class="line"><span class="function"><span class="params">                                      Object attachment)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!(ch <span class="keyword">instanceof</span> SelChImpl))</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalSelectorException();</span><br><span class="line">    <span class="comment">//生成SelectorKey来存储到hashmap中，一共之后获取</span></span><br><span class="line">    SelectionKeyImpl k = <span class="keyword">new</span> SelectionKeyImpl((SelChImpl)ch, <span class="keyword">this</span>);</span><br><span class="line">    <span class="comment">//attach用户想要存储的对象</span></span><br><span class="line">    k.attach(attachment);</span><br><span class="line">    <span class="comment">//调用子类的implRegister方法</span></span><br><span class="line">    <span class="keyword">synchronized</span> (publicKeys) &#123;</span><br><span class="line">        implRegister(k);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//设置关注的option</span></span><br><span class="line">    k.interestOps(ops);</span><br><span class="line">    <span class="keyword">return</span> k;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;<code>EpollSelectorImpl</code>的相应的方法实现如下，它调用了<code>EPollArrayWrapper</code>的<code>add</code>方法，记录下Channel所对应的fd值,然后将ski添加到<code>keys</code>变量中．在<code>EPollArrayWrapper</code>中有一个byte数组<code>eventLow</code>记录所有的channel的fd值.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">implRegister</span><span class="params">(SelectionKeyImpl ski)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (closed)</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ClosedSelectorException();</span><br><span class="line">    SelChImpl ch = ski.channel;</span><br><span class="line">    <span class="comment">//获取Channel所对应的fd,因为在linux下socket会被当作一个文件，也会有fd</span></span><br><span class="line">    <span class="keyword">int</span> fd = Integer.valueOf(ch.getFDVal());</span><br><span class="line">    fdToKey.put(fd, ski);</span><br><span class="line">    <span class="comment">//调用pollWrapper的add方法,将channel的fd添加到监控列表中</span></span><br><span class="line">    pollWrapper.add(fd);</span><br><span class="line">    <span class="comment">//保存到HashSet中，keys是SelectorImpl的成员变量</span></span><br><span class="line">    keys.add(ski);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;我们会发现,调用<code>register</code>方法并没有涉及到<code>EpollArrayWrapper</code>中的native方法<code>epollCtl</code>的调用,这是因为他们将这个方法的调用推迟到<code>Select</code>方法中去了.<br>&emsp;</p>
+<h4 id="Select方法"><a href="#Select方法" class="headerlink" title="Select方法"></a>Select方法</h4><p>&emsp;和<code>register</code>方法类似,<code>SelectorImpl</code>中的<code>select</code>方法最终调用了其子类<code>EpollSelectorImpl</code>的<code>doSelect</code>方法<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">int</span> <span class="title">doSelect</span><span class="params">(<span class="keyword">long</span> timeout)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    .....</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ....</span><br><span class="line">        <span class="comment">//调用了poll方法,底层调用了native的epollCtl和epollWait方法</span></span><br><span class="line">        pollWrapper.poll(timeout);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        ....</span><br><span class="line">    &#125;</span><br><span class="line">    ....</span><br><span class="line">    <span class="comment">//更新selectedKeys,为之后的selectedKeys函数做准备</span></span><br><span class="line">    <span class="keyword">int</span> numKeysUpdated = updateSelectedKeys();</span><br><span class="line">    ....</span><br><span class="line">    <span class="keyword">return</span> numKeysUpdated;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p> 由上述的代码，可以看到，<code>EPollSelectorImpl</code>先调用<code>EPollArrayWapper</code>的<code>poll</code>方法,然后在更新<code>SelectedKeys</code>．其中<code>poll</code>方法会先调用<code>epollCtl</code>来注册先前在<code>register</code>方法中保存的Channel的fd和感兴趣的事件类型，然后<code>epollWait</code>方法等待感兴趣事件的生成,导致线程阻塞.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">poll</span><span class="params">(<span class="keyword">long</span> timeout)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    updateRegistrations(); <span class="comment">////先调用epollCtl,更新关注的事件类型</span></span><br><span class="line">    <span class="comment">////导致阻塞，等待事件产生</span></span><br><span class="line">    updated = epollWait(pollArrayAddress, NUM_EPOLLEVENTS, timeout, epfd);</span><br><span class="line">    .....</span><br><span class="line">    <span class="keyword">return</span> updated;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;等待关注的事件产生之后(或在等待时间超过预先设置的最大时间),<code>epollWait</code>函数就会返回.<code>select</code>函数从阻塞状态恢复.</p>
+<h4 id="selectedKeys方法"><a href="#selectedKeys方法" class="headerlink" title="selectedKeys方法"></a>selectedKeys方法</h4><p>&emsp;我们先来看<code>SelectorImpl</code>中的<code>selectedKeys</code>方法.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//是通过Util.ungrowableSet生成的,不能添加,只能减少</span></span><br><span class="line"><span class="keyword">private</span> Set&lt;SelectionKey&gt; publicSelectedKeys;</span><br><span class="line"><span class="function"><span class="keyword">public</span> Set&lt;SelectionKey&gt; <span class="title">selectedKeys</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    ....</span><br><span class="line">    <span class="keyword">return</span> publicSelectedKeys;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;很奇怪啊,怎麽直接就返回<code>publicSelectedKeys</code>了,难道在<code>select</code>函数的执行过程中有修改过这个变量吗?<br>&emsp;<code>publicSelectedKeys</code>这个对象其实是<code>selectedKeys</code>变量的一份副本,你可以在<code>SelectorImpl</code>的构造函数中找到它们俩的关系,我们再回头看一下<code>select</code>中<code>updateSelectedKeys</code>方法.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">updateSelectedKeys</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">//更新了的keys的个数,或在说是产生的事件的个数</span></span><br><span class="line">    <span class="keyword">int</span> entries = pollWrapper.updated; </span><br><span class="line">    <span class="keyword">int</span> numKeysUpdated = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i=<span class="number">0</span>; i&lt;entries; i++) &#123;</span><br><span class="line">        <span class="comment">//对应的channel的fd</span></span><br><span class="line">        <span class="keyword">int</span> nextFD = pollWrapper.getDescriptor(i);</span><br><span class="line">        <span class="comment">//通过fd找到对应的SelectionKey</span></span><br><span class="line">        SelectionKeyImpl ski = fdToKey.get(Integer.valueOf(nextFD));</span><br><span class="line">        <span class="keyword">if</span> (ski != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">int</span> rOps = pollWrapper.getEventOps(i);</span><br><span class="line">            <span class="comment">//更新selectedKey变量,并通知响应的channel来做响应的处理</span></span><br><span class="line">            <span class="keyword">if</span> (selectedKeys.contains(ski)) &#123;</span><br><span class="line">                <span class="keyword">if</span> (ski.channel.translateAndSetReadyOps(rOps, ski)) &#123;</span><br><span class="line">                    numKeysUpdated++;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                ski.channel.translateAndSetReadyOps(rOps, ski);</span><br><span class="line">                <span class="keyword">if</span> ((ski.nioReadyOps() &amp; ski.nioInterestOps()) != <span class="number">0</span>) &#123;</span><br><span class="line">                    selectedKeys.add(ski);</span><br><span class="line">                    numKeysUpdated++;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> numKeysUpdated;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;看到这里,详细大家都已经了解到了NIO的底层实现了吧.这里我想在说两个问题.<br>&emsp;一是为什么Netty自己又从新实现了一边native相关的NIO底层方法? 听听Netty的创始人是怎麽说的吧<a href="http://stackoverflow.com/questions/23465401/why-native-epoll-support-is-introduced-in-netty" target="_blank" rel="noopener">链接</a><br>&emsp;二是看这么多源码,花费这么多时间有什么作用呢?我感觉如果从非功利的角度来看,那么就是纯粹的希望了解的更多,有时候看完源码或在理解了底层原理之后,都会用一种恍然大悟的感觉,比如说<code>AQS</code>的原理.如果从目的性的角度来看,那么就是你知道底层原理之后,你的把握性就更强了,如果出了问题,你可以更快的找出来,并且解决.除此之外,你还可以按照具体的现实情况,以源码为模板在自己造轮子,实现一个更加符合你当前需求的版本.<br>&emsp;后续如果有时间,我希望好好了解一下epoll的操作系统级别的实现原理.</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Netty/" rel="tag"># Netty</a>
+          
+            <a href="/tags/epoll/" rel="tag"># epoll</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/03/27/Netty源码-二-Netty的Channel和Pipeline/" rel="next" title="Netty源码(二):Netty的Channel和Pipeline">
+                <i class="fa fa-chevron-left"></i> Netty源码(二):Netty的Channel和Pipeline
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/04/06/AbstractQueuedSynchronizer超详细原理解析/" rel="prev" title="AbstractQueuedSynchronizer超详细原理解析">
+                AbstractQueuedSynchronizer超详细原理解析 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="remCarpediem">
+          <p class="site-author-name" itemprop="name">remCarpediem</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">59</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">33</span>
+                <span class="site-state-item-name">categories</span>
+              
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              
+                <span class="site-state-item-count">53</span>
+                <span class="site-state-item-name">tags</span>
+              
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#异步，同步，阻塞，非阻塞"><span class="nav-number">1.</span> <span class="nav-text">异步，同步，阻塞，非阻塞</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Unix的I-O类型"><span class="nav-number">2.</span> <span class="nav-text">Unix的I/O类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Java-NIO的Linux底层实现"><span class="nav-number">3.</span> <span class="nav-text">Java NIO的Linux底层实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#open方法"><span class="nav-number">3.1.</span> <span class="nav-text">open方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#register方法"><span class="nav-number">3.2.</span> <span class="nav-text">register方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Select方法"><span class="nav-number">3.3.</span> <span class="nav-text">Select方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#selectedKeys方法"><span class="nav-number">3.4.</span> <span class="nav-text">selectedKeys方法</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#后记"><span class="nav-number">4.</span> <span class="nav-text">后记</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">remCarpediem</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

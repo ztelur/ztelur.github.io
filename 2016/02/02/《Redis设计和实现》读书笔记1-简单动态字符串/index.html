@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="Chinese">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="string,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="&amp;emsp;临近过年，我离开了实习了4个多月的扇贝。临走前，导师赠送给我一本《Redis设计和实现》，于是心血来潮，想读一读这本书，然后仿照书中介绍的原理实现一个小型的数据库。这是redis系列的第一篇博文，希望我可以坚持下去，不要虎头蛇尾。 简单动态字符串&amp;emsp;我们都知道Redis是由纯c代码编写而成的，而c语言中的原生字符串有很多的缺陷，不利于大型工程的使用。于是Redis的作者便自己实">
+<meta name="keywords" content="string">
+<meta property="og:type" content="article">
+<meta property="og:title" content="《Redis设计和实现》读书笔记1-简单动态字符串">
+<meta property="og:url" content="http://remcarpediem.net/2016/02/02/《Redis设计和实现》读书笔记1-简单动态字符串/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="&amp;emsp;临近过年，我离开了实习了4个多月的扇贝。临走前，导师赠送给我一本《Redis设计和实现》，于是心血来潮，想读一读这本书，然后仿照书中介绍的原理实现一个小型的数据库。这是redis系列的第一篇博文，希望我可以坚持下去，不要虎头蛇尾。 简单动态字符串&amp;emsp;我们都知道Redis是由纯c代码编写而成的，而c语言中的原生字符串有很多的缺陷，不利于大型工程的使用。于是Redis的作者便自己实">
+<meta property="og:locale" content="Chinese">
+<meta property="og:updated_time" content="2018-11-18T13:40:01.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="《Redis设计和实现》读书笔记1-简单动态字符串">
+<meta name="twitter:description" content="&amp;emsp;临近过年，我离开了实习了4个多月的扇贝。临走前，导师赠送给我一本《Redis设计和实现》，于是心血来潮，想读一读这本书，然后仿照书中介绍的原理实现一个小型的数据库。这是redis系列的第一篇博文，希望我可以坚持下去，不要虎头蛇尾。 简单动态字符串&amp;emsp;我们都知道Redis是由纯c代码编写而成的，而c语言中的原生字符串有很多的缺陷，不利于大型工程的使用。于是Redis的作者便自己实">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://remcarpediem.net/2016/02/02/《Redis设计和实现》读书笔记1-简单动态字符串/">
+
+
+
+
+
+  <title>《Redis设计和实现》读书笔记1-简单动态字符串 | Carpediem</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="Chinese">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Carpediem</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">blog of nobody</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://remcarpediem.net/2016/02/02/《Redis设计和实现》读书笔记1-简单动态字符串/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="remCarpediem">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Carpediem">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">《Redis设计和实现》读书笔记1-简单动态字符串</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2016-02-02T22:38:59+08:00">
+                2016-02-02
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/c/" itemprop="url" rel="index">
+                    <span itemprop="name">c</span>
+                  </a>
+                </span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/c/数据结构/" itemprop="url" rel="index">
+                    <span itemprop="name">数据结构</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>&emsp;临近过年，我离开了实习了4个多月的扇贝。临走前，导师赠送给我一本《Redis设计和实现》，于是心血来潮，想读一读这本书，然后仿照书中介绍的原理实现一个小型的数据库。这是redis系列的第一篇博文，希望我可以坚持下去，不要虎头蛇尾。</p>
+<h4 id="简单动态字符串"><a href="#简单动态字符串" class="headerlink" title="简单动态字符串"></a>简单动态字符串</h4><p>&emsp;我们都知道Redis是由纯c代码编写而成的，而c语言中的原生字符串有很多的缺陷，不利于大型工程的使用。于是Redis的作者便自己实现一套字符串数据结构，就是sds.h/sdshdr结构。</p>
+<h4 id="SDS的定义"><a href="#SDS的定义" class="headerlink" title="SDS的定义"></a>SDS的定义</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sdshdr</span> &#123;</span></span><br><span class="line">  <span class="comment">// 记录sdshdr中数组已经使用的数量</span></span><br><span class="line">  <span class="keyword">int</span> len;</span><br><span class="line">  <span class="comment">// 记录sdshdr中数组未使用的数量</span></span><br><span class="line">  <span class="keyword">int</span> <span class="built_in">free</span>;</span><br><span class="line">  <span class="keyword">char</span> buf[];</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>&emsp;<code>sdshdr</code>的定义如代码所示，其中<code>buf</code>属性为一个char类型的数组，数组的前五个字节分别保存着’R’,’e’,’d’,’i’,’s’五个字符，最后一个字符则保存则空字符串’\0’。之所以在数组尾部保存空字符，是为了可以使用一些c语言的字符串函数库中的函数。</p>
+<h4 id="SDS与c字符串的区别"><a href="#SDS与c字符串的区别" class="headerlink" title="SDS与c字符串的区别"></a>SDS与c字符串的区别</h4><h5 id="常数时间内获得字符串长度"><a href="#常数时间内获得字符串长度" class="headerlink" title="常数时间内获得字符串长度"></a>常数时间内获得字符串长度</h5><p>&emsp;我们都知道，在c中，字符串就是一个末尾有一个’\0’的一维数组，它并不记录本身的长度。所以，每次想要获取其长度时，都需要遍历整个数组，时间复杂度就为O(n)；而SDS因为本身就有<code>len</code>这个字段，并且在SDS被修改时，会自动改变<code>len</code>字段，所以获得字符串长度的时间复杂度为O(1).</p>
+<h5 id="杜绝缓冲区溢出"><a href="#杜绝缓冲区溢出" class="headerlink" title="杜绝缓冲区溢出"></a>杜绝缓冲区溢出</h5><p>&emsp;因为c的字符串没有任何安全保证，当我们使用<code>strcat</code>函数来拼接字符串时，如果目标字符串没有被分配足够空间的话，就会造成缓冲区溢出。而在SDS中，当然是每次修改都会进行缓冲区溢出检测，所以不会出现类似问题。</p>
+<h5 id="减少修改字符串时带来的内存重新分配次数"><a href="#减少修改字符串时带来的内存重新分配次数" class="headerlink" title="减少修改字符串时带来的内存重新分配次数"></a>减少修改字符串时带来的内存重新分配次数</h5><p>&emsp;这一条应该是使用SDS最大的优势所在啦。因为c语言中的字符串都是无法修改的，所以每次拼接或者裁剪字符串都会导致新的字符串数据结构的生成，从而需要新的内存分配或者释放部分内存。由于内存分配很消耗时间，所以使用c语言的字符串会导致数据库性能低下。<br>&emsp;而SDS会通过空间预分配和惰性空间释放来减少内存分配或者释放的次数。<br>&emsp;内存预分配是指每次需要对SDS进行空间扩展时，程序不仅分配SDS所必须要的空间，还会额外分配一些空间，将其大小赋值给’free’属性。如果需要分配的大小为n，额外分配的空间为e，总共分配空间为t,那么(默认单位为字节)<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">e = n &lt; 1MB ? n:1MB</span><br><span class="line">t = n &lt; 1MB ? n + n + 1 ? n + 1MB + 1</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;这样的话，下次再进行字符串拼接时，额外的空间就会被使用上，从而避免额外的一次内存分配。<br>&emsp;而惰性内存回收则是指裁剪字符串时，释放出来的额外空间并不会立刻被回收，而是继续保存，只是修改<code>len</code>和’free’属性，等到字符串再次被修改时使用。</p>
+<h5 id="二进制安全"><a href="#二进制安全" class="headerlink" title="二进制安全"></a>二进制安全</h5><p>&emsp;由于c语言字符串以’\0’来判断字符串的结束，所以无法保存一些图片，音频，视频这些可能写入’\0’的二进制数据。</p>
+<h4 id="后续"><a href="#后续" class="headerlink" title="后续"></a>后续</h4><p>&emsp;书里的内容很简单，希望自己也可以实现一个简单的string类型吧，不过不清楚java中String对象的实现欧，以后可以了解一下。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/string/" rel="tag"># string</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/01/16/师者的教导/" rel="next" title="师者的教导">
+                <i class="fa fa-chevron-left"></i> 师者的教导
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/02/04/图解Android事件传递之View篇/" rel="prev" title="图解Android事件传递之View篇">
+                图解Android事件传递之View篇 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="remCarpediem">
+          <p class="site-author-name" itemprop="name">remCarpediem</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">59</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">33</span>
+                <span class="site-state-item-name">categories</span>
+              
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              
+                <span class="site-state-item-count">53</span>
+                <span class="site-state-item-name">tags</span>
+              
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#简单动态字符串"><span class="nav-number">1.</span> <span class="nav-text">简单动态字符串</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#SDS的定义"><span class="nav-number">2.</span> <span class="nav-text">SDS的定义</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#SDS与c字符串的区别"><span class="nav-number">3.</span> <span class="nav-text">SDS与c字符串的区别</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#常数时间内获得字符串长度"><span class="nav-number">3.1.</span> <span class="nav-text">常数时间内获得字符串长度</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#杜绝缓冲区溢出"><span class="nav-number">3.2.</span> <span class="nav-text">杜绝缓冲区溢出</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#减少修改字符串时带来的内存重新分配次数"><span class="nav-number">3.3.</span> <span class="nav-text">减少修改字符串时带来的内存重新分配次数</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#二进制安全"><span class="nav-number">3.4.</span> <span class="nav-text">二进制安全</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#后续"><span class="nav-number">4.</span> <span class="nav-text">后续</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">remCarpediem</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

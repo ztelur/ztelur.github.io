@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="Chinese">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="Raft,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="前段时间一直在学习mit的分布式课程Distributed Systems，仔细阅读了raft论文，但是中间又跑去搞docker了，所以一直没有整理raft相关的文章，今天就来总结一下。&amp;emsp;文章中没有多少详细的图片，但是大家可以边看文章边看Raft演示动画 之前介绍的Paxos算法一直都是分布式一致性协议的标准，但是Paxos难以理解，更难以理解。于是Stanford的教授提出了Raft">
+<meta name="keywords" content="Raft">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Raft算法">
+<meta property="og:url" content="http://remcarpediem.net/2017/07/25/Raft算法/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="前段时间一直在学习mit的分布式课程Distributed Systems，仔细阅读了raft论文，但是中间又跑去搞docker了，所以一直没有整理raft相关的文章，今天就来总结一下。&amp;emsp;文章中没有多少详细的图片，但是大家可以边看文章边看Raft演示动画 之前介绍的Paxos算法一直都是分布式一致性协议的标准，但是Paxos难以理解，更难以理解。于是Stanford的教授提出了Raft">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2017725-raft-raft1.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2017725-raft-raft2.png">
+<meta property="og:updated_time" content="2018-11-18T13:40:01.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Raft算法">
+<meta name="twitter:description" content="前段时间一直在学习mit的分布式课程Distributed Systems，仔细阅读了raft论文，但是中间又跑去搞docker了，所以一直没有整理raft相关的文章，今天就来总结一下。&amp;emsp;文章中没有多少详细的图片，但是大家可以边看文章边看Raft演示动画 之前介绍的Paxos算法一直都是分布式一致性协议的标准，但是Paxos难以理解，更难以理解。于是Stanford的教授提出了Raft">
+<meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2017725-raft-raft1.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://remcarpediem.net/2017/07/25/Raft算法/">
+
+
+
+
+
+  <title>Raft算法 | Carpediem</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="Chinese">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Carpediem</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">blog of nobody</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://remcarpediem.net/2017/07/25/Raft算法/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="remCarpediem">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Carpediem">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Raft算法</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-07-25T17:09:09+08:00">
+                2017-07-25
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/分布式/" itemprop="url" rel="index">
+                    <span itemprop="name">分布式</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p> 前段时间一直在学习mit的分布式课程<a href="http://nil.csail.mit.edu/6.824/2015/index.html" target="_blank" rel="noopener">Distributed Systems</a>，仔细阅读了raft论文，但是中间又跑去搞docker了，所以一直没有整理raft相关的文章，今天就来总结一下。<br>&emsp;文章中没有多少详细的图片，但是大家可以边看文章边看<a href="http://thesecretlivesofdata.com/raft/" target="_blank" rel="noopener">Raft演示动画</a><br> 之前介绍的<a href="http://remcarpediem.com/2017/04/16/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95Paxos/" target="_blank" rel="noopener">Paxos</a>算法一直都是分布式一致性协议的标准，但是Paxos难以理解，更难以理解。于是Stanford的教授提出了Raft协议，它是一个为真实世界应用建立的协议，主要注重协议的落地性和可理解性。这里有Raft的<a href="http://nil.csail.mit.edu/6.824/2015/papers/raft-atc14.pdf" target="_blank" rel="noopener">论文</a>，大家有兴趣可以自行阅读一下。<br> Raft是为了managing a replicated log。Raft会首先选举一个leader,然后让这个leader来管理replicated log。Raft将consensus问题(也就是一致性问题)划分成三个相互独立的子问题：  </p>
+<ul>
+<li>leader election</li>
+<li>log replication</li>
+<li>safety</li>
+</ul>
+<h4 id="Raft-basis"><a href="#Raft-basis" class="headerlink" title="Raft basis"></a>Raft basis</h4><p> 任何时间每个server都处于下列三个状态之一：leader,follower,或在candidate之一。在正常状态下，整个集群只会有一个leader并且其他所有server都处于followers状态下。followers是被动的，它们只会对leader的request进行反应。第三个状态candidate是用来选举新的leader的。<br> Raft以Term来划分运行时间，你可以将其理解为任期。Term以连续的整数来命名，每个Term都以一个election开始。在一次选举中，一个或多个candidate试图成为leader。如果一个candidate赢得了election,那么它就成为leader。如果一次election中没有candidate获胜，那么就进行下一个Term,重新进行election。每个Term最多只有一leader，否则进入下一个Term,这样Term就可以作为一个logical clock。<br> Raft服务器通过RPC来交互，只需要两个RPC操作，RequestVote RPCs and AppendEntries RPCs。RequestVote用于选举而AppendEntries用于leader发送请求进行relicate log entries和心跳。</p>
+<h4 id="Leader-election"><a href="#Leader-election" class="headerlink" title="Leader election"></a>Leader election</h4><p>&emsp;Raft通过心跳机制来触发leader selection。当一个服务器启动时，默认位于followers状态，并且一直持续知道它一直接受到leader的RPC请求。leader会周期性发送心跳给所有的followers。如果follower一段时间内没有接受到心跳，那么就认为当前没有leader应该开始leader selection。<br>&emsp;开始election后，server将其Term进行加一，然后转变成candidate状态，并且给其他所有server发送RequestVote RPC请求来进行vote。这个过程一直持续到：server自己赢得election,其他的server赢得election,或者这个Term期间没有server获胜，进入下一个Term。<br>&emsp;candidate收到半数以上server的vote就赢得了election。每个server在一个Term中只会vote一次。server基于first-come-and-first-serve的规则来进行投票。一旦某个candidate赢得了election, 就变成了leader,并且开始周期性发送心跳。<br>&emsp;当等待投票时，candidate受到了其他candidate发送的AppendEntries PRC请求,如果candiate发现在包含在请求当中的Term数值大于或则等于自己的Term数值，那么该candiate主动退回到follower状态，否在拒绝该请求，继续保持candidate状态。<br>&emsp;当很多server变成candidate状态进行election时，选举失败的可能性就很高了。那么每个candiate会推迟随机时间之后进入下一个Term并进行新的election。以此来避免大量的选举失败的情况发生。</p>
+<h4 id="Log-replication"><a href="#Log-replication" class="headerlink" title="Log replication"></a>Log replication</h4><p>&emsp;一旦一个leader被选举成功，它就开始处理client请求。每个client请求都包含一个需要被replicated state machine处理的命令，leader将这些命令当作一个新的entry添加到log中。然后给follower发送AppendEntries RPCs请求来复制这个log entry。当一个entry被safely relicated(在下一小结中会讲解)，leader就会将entry交给state machine进行执行，并且将结果返回。<br>&emsp;当一个log entry可以被安全的交给state machine处理时，我们认为它是committed的。Raft保证所有committed的log entry一定是持久化的，并且一定被state machine执行。Log entry是committed一旦该entry在大多数follower上被replicated。一旦一个entry被committed,那么在它之前的所有log也是committed的。Leader会随时关注最大的committed的log的index,并在AppendEntries RPCs请求中携带该信息，这样follower就能知道哪些entry被committed，它们就会将其提交给自己的state machine来执行。<br>&emsp;当followers crash或则网络丢包时，leader会一直发送AppendEntries RPCs直到所有followers都存储了entry。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017725-raft-raft1.png" alt="log entry的排列"></p>
+<p>&emsp;每个Log entry都有其唯一标识，entry中包括了 leader Term，index和要执行的comand。index是指entry在Log中的位置。Raft通过Log Machine Property来维护Log的合理性：</p>
+<ul>
+<li>如果两个entries在不同的logs中(存储在不同的server上)拥有相同的index和term,那么他们包含相同的command。</li>
+<li>如果两个entries在不同的logs中拥有相同的index和term,那么他们之前的entries也都是一致或在内容相同的。<br>&emsp;第一条规定保证leader每个Term中的每个index最多只能创建一个entry。而第二条规定使得followers在处理AppendEntries RPCs请求时要进行一致性检测。leader在AppendEntries请求中带上了自己logs中排在新entry之前的那个entry的index和term,如果follower在自己的logs中找不到该entry,那么就拒绝添加new entry。这样就保证了第二条规定不会被违反。<br>&emsp;正常情况下，leader和followers的logs都是一致的，但是当一系列的leader crash，followers crash和election之后，followers的logs可能会被当前leader的logs多出一些entry,也可能会少一些entry。在Raft中，leader通过强迫followers的logs复制leader的logs来保持一致性。这就意味着follower logs中的冲突的entry会被重写。</li>
+</ul>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017725-raft-raft2.png" alt="leader和follower的logs冲突"></p>
+<p>&emsp;为了一致化logs,leader的logs需要和follower的logs进行对比，找出它们之间最后一条相同的entry。然后将follower logs中那条entry之后的所有entry删除，并发送leader logs中那条entry之后的entry给follower。这些行为都发生在AppendEntries RPCs的一致性检查过程中。<br>&emsp;leader会每个follower维护一个nextIndex来记录发送给这个follower的下一条log entry的index。nextIndex初始化为leader logs的最后一条entry之后的index。如果follower的logs和leader的logs不一致，那么AppendEntries RPCs的一致性检查就会失败。leader发现自己的请求被follower拒绝了，那么就减少该follower的nextIndex然后再次发送AppendEntries请求。最终nextIndex就会变成二者log中最后一个一致的entry的index。当上述情况发生之后，AppendEntries请求就会成功，就会删除follower中多的entry和添加缺少的entry。</p>
+<h4 id="Safety"><a href="#Safety" class="headerlink" title="Safety"></a>Safety</h4><p>&emsp;这一小节主要描述在leader election过程中的一些限定。这些限定保证任何一个Term的leader的logs都包含了之前Term中所有committed的entry。这也是所谓的Leader Completeness Property。</p>
+<h4 id="Election限制"><a href="#Election限制" class="headerlink" title="Election限制"></a>Election限制</h4><p>&emsp;Raft规定：在election过程中，new leader本身必须有之前Term中所有committed的log entry。也就是说每次election成功的leader必然包含之前所有的committed的log entry。这样保证了log的单向流动，一定是从leader到follower。<br>&emsp;Raft通过election vote过程来保证上述限制。一个candidate必须得到集群中多于半数的server的vote，而每个committed的log entry一定也会存在于多于半数的server的logs中。也就是说在RequestVote RPC中包含了candidate自己logs中最后一个committed的log信息，接受到该请求的server会将其和自己log中最后一个committed的log进行对比，如果自己的log晚于candiate的，那么就同意该candiate成为leader,否在拒绝。这样的话，没有包含所有committed log entry的candidate就一定不会得到超过半数的server的vote。Raft根据entry的term和index来确定每个entry的先后顺序。较大term的log entry比较新，如果log entry的term一致，那就是越大的index约新。</p>
+<h5 id="Committing-entries-from-previous-terms"><a href="#Committing-entries-from-previous-terms" class="headerlink" title="Committing entries from previous terms"></a>Committing entries from previous terms</h5><p>&emsp;如果旧的leader在committing an entry时crash了，那么新的leader是否需要重新commit这个entry呢？但是为了简化，Raft重来不会提交之前Term的log entry。没有被committed的log entry就会被重写。</p>
+<h5 id="Followers-and-candidate-crashs"><a href="#Followers-and-candidate-crashs" class="headerlink" title="Followers and candidate crashs"></a>Followers and candidate crashs</h5><p>&emsp;如果followers或在candidate在接受到RPC之前crash，leader会一直重试发送RPC。如果是在接受处理之后crash，没有发送回复，leader也是会重复发送RPC,但是因为RPC都是幂等的，所以不会造成额外的影响。</p>
+<h4 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h4><p>&emsp;Raft的应用十分广泛，比如etcd项目就是使用Raft来保证分布式一致性的，之后我也想去研究一下etcd中Raft的实现，毕竟之前都是理论。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Raft/" rel="tag"># Raft</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/07/23/Kubernetes部署/" rel="next" title="Kubernetes部署">
+                <i class="fa fa-chevron-left"></i> Kubernetes部署
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/09/10/Spring-Boot-一-Spring-Boot-starter自定义/" rel="prev" title="Spring Boot (一): Spring Boot starter自定义">
+                Spring Boot (一): Spring Boot starter自定义 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="remCarpediem">
+          <p class="site-author-name" itemprop="name">remCarpediem</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">59</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">33</span>
+                <span class="site-state-item-name">categories</span>
+              
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              
+                <span class="site-state-item-count">53</span>
+                <span class="site-state-item-name">tags</span>
+              
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#Raft-basis"><span class="nav-number">1.</span> <span class="nav-text">Raft basis</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Leader-election"><span class="nav-number">2.</span> <span class="nav-text">Leader election</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Log-replication"><span class="nav-number">3.</span> <span class="nav-text">Log replication</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Safety"><span class="nav-number">4.</span> <span class="nav-text">Safety</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Election限制"><span class="nav-number">5.</span> <span class="nav-text">Election限制</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Committing-entries-from-previous-terms"><span class="nav-number">5.1.</span> <span class="nav-text">Committing entries from previous terms</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Followers-and-candidate-crashs"><span class="nav-number">5.2.</span> <span class="nav-text">Followers and candidate crashs</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#后记"><span class="nav-number">6.</span> <span class="nav-text">后记</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">remCarpediem</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

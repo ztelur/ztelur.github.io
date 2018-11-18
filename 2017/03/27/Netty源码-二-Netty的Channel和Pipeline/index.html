@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="Chinese">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="Netty,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="本文主要讲述Netty框架中Channel相关的知识，Netty通过Channel和Pipeline等一些组件提供了所谓的Universal Communication API．与Channel相关的知识点比较多，本篇文章就主要讲解一下Channel和Pipeline的事件处理流原理．Channel,EventLoop和ChannelFuture的相关知识下篇文章中再进行讲述． 官方文档上的Ch">
+<meta name="keywords" content="Netty">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Netty源码(二):Netty的Channel和Pipeline">
+<meta property="og:url" content="http://remcarpediem.net/2017/03/27/Netty源码-二-Netty的Channel和Pipeline/index.html">
+<meta property="og:site_name" content="Carpediem">
+<meta property="og:description" content="本文主要讲述Netty框架中Channel相关的知识，Netty通过Channel和Pipeline等一些组件提供了所谓的Universal Communication API．与Channel相关的知识点比较多，本篇文章就主要讲解一下Channel和Pipeline的事件处理流原理．Channel,EventLoop和ChannelFuture的相关知识下篇文章中再进行讲述． 官方文档上的Ch">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2017327-netty-stream.png">
+<meta property="og:updated_time" content="2018-11-18T13:40:01.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Netty源码(二):Netty的Channel和Pipeline">
+<meta name="twitter:description" content="本文主要讲述Netty框架中Channel相关的知识，Netty通过Channel和Pipeline等一些组件提供了所谓的Universal Communication API．与Channel相关的知识点比较多，本篇文章就主要讲解一下Channel和Pipeline的事件处理流原理．Channel,EventLoop和ChannelFuture的相关知识下篇文章中再进行讲述． 官方文档上的Ch">
+<meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2017327-netty-stream.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://remcarpediem.net/2017/03/27/Netty源码-二-Netty的Channel和Pipeline/">
+
+
+
+
+
+  <title>Netty源码(二):Netty的Channel和Pipeline | Carpediem</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="Chinese">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Carpediem</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">blog of nobody</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            Tags
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://remcarpediem.net/2017/03/27/Netty源码-二-Netty的Channel和Pipeline/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="remCarpediem">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Carpediem">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Netty源码(二):Netty的Channel和Pipeline</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-03-27T21:38:03+08:00">
+                2017-03-27
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/NIO/" itemprop="url" rel="index">
+                    <span itemprop="name">NIO</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p> 本文主要讲述Netty框架中Channel相关的知识，Netty通过Channel和Pipeline等一些组件提供了所谓的<code>Universal Communication API</code>．与<code>Channel</code>相关的知识点比较多，本篇文章就主要讲解一下<code>Channel</code>和<code>Pipeline</code>的事件处理流原理．<code>Channel</code>,<code>EventLoop</code>和<code>ChannelFuture</code>的相关知识下篇文章中再进行讲述．</p>
+<h3 id="官方文档上的Channel"><a href="#官方文档上的Channel" class="headerlink" title="官方文档上的Channel"></a>官方文档上的Channel</h3><p> 官方文档上给出的解释是Channel是与网络Socket相关的或具有一定I/O能力的组件．一个<code>Channel</code>可以给用户提供:</p>
+<ul>
+<li>当前<code>Channel</code>的状态(比如，是否保存Open状态，是否处于连接状态)</li>
+<li><code>Channel</code>的配置参数，比如说buffer的大小</li>
+<li><code>Channel</code>支持的相关I/O操作，比如说<code>read</code>,<code>write</code>,<code>connect</code>和<code>bind</code></li>
+<li>提供一个<code>ChannelPipeline</code>来处理所有与该<code>Channel</code>相关的I/O事件和请求</li>
+</ul>
+<p> <code>Channel</code>上进行的所有I/O操作都是异步的，也就是说，所有涉及I/O操作的调用都会立刻返回，并不保证操作完成，而是会返回一个<code>ChannelFuture</code>对象来通知你操作是否完成．<br> Channel是有层级的，这样的话，你就可以很方便的利用其他已有的Channel来构建自己需要的<code>channel</code>,比如说基于<code>SocketChannel</code>来实现关于<code>SSH</code>的<code>Channel</code></p>
+<p> 此外，当你完成某些操作之后调用<code>close()</code>或在<code>close(ChannelPromise)</code>是非常重要的，这样能确保你正确的释放了所有资源．</p>
+<h4 id="我眼中的Channel"><a href="#我眼中的Channel" class="headerlink" title="我眼中的Channel"></a>我眼中的Channel</h4><p> 首先，我们应该都知道Netty支持很多I/O通信协议:</p>
+<ul>
+<li>基于TCP的NIO: <code>NioServerSocketChannel</code>,<code>NioSocketChannel</code></li>
+<li>基于UDP的NIO:<code>NioDatagramChannel</code></li>
+<li>基于TCP的OIO:<code>OioSocketChannel</code>和<code>OioServerSocketChannel</code></li>
+<li>基于UDP的OIO:<code>OioDatagramChannel</code><br>如果把关于Channel的类图列出来的话，你会发现支持各种协议的<code>Channel</code>,不信你就看一下这个类图．</li>
+</ul>
+<p> 这样想一下，<strong><em><code>Channel</code>不就是<code>Netty</code>框架用来封装不同协议逻辑的组件吗?</em></strong>，有了<code>Channel</code>的存在，所有于通信协议相关的逻辑都隐藏在不同的<code>Channel</code>实现里，然后在对外提供相对统一的API.<br> 说道这里，你可能还不知道，即使是<code>OIOChannel</code>,它提供的I/O操作也是异步的．也就是说<strong><em>在Netty框架中，不论是OIO还是NIO模型，读写都会阻塞</em></strong>．这样也体现了<code>Universal Communication API</code>的思想，这就使得我们切换Channel非常方便．我们只要初始化不同的Channel即可．<br><code>ServerBootstrap b = new ServerBootstrap(); 
+            b.group(bossGroup, workerGroup)
+             .channel(NioServerSocketChannel.class)
+ServerBootstrap b = new ServerBootstrap(); 
+            b.group(bossGroup, workerGroup)
+             .channel(OioServerSocketChannel.class)</code><br> 有关<code>Channel</code>协议相关的底层知识，我们会在下一篇文章时进行介绍．</p>
+<h3 id="ChannelHandler和ChannelPipeline"><a href="#ChannelHandler和ChannelPipeline" class="headerlink" title="ChannelHandler和ChannelPipeline"></a>ChannelHandler和ChannelPipeline</h3><p> 只有<code>Channel</code>的支持，还不足以实现<code>Universal Communication API</code>,还需要上述两个类来提供<code>ChannelHandler</code>的编程模式，基于<code>ChannelHandler</code>来开发业务逻辑，而不需要考虑网络通讯方面的事情．<br> Netty源码中一张图形象的描述了这个机制<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017327-netty-stream.png" alt="示意图"></p>
+<p>&emsp;Netty中的<code>ChannelPipeline</code>包含两条线路：Upstream和<code>Downstream</code>．Upstream对应上行，接受信息，被动的状态改变，都属于Upstream．Downstream则对应下行，发送消息，主动状态的改变．Upstream对应InBound Handler,Downstream对应Outbound Handler.从Netty内部IO线程接读到IO数据，依次经过N个Handler到达最内部的逻辑处理单元，这种称之为Inbound Handler；从Channel发出IO请求，依次经过M个Handler到达Netty内部IO线程，这种称之为Outbound Handler<br>&emsp;需要注意的是，这个Handler链中消息或在事件不会自动的向下或在向上流动或转发，而是需要由上一个Handler显示的调用<code>ChannelPipeline.sendUp(down)stream</code>来交给下一个Handler来处理．也就是说，每个Handler接受到一个<code>ChannelEvent</code>,处理结束后，如果需要继续处理，那么它需要向下一个或在上一个Handler发起一个事件．</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Netty/" rel="tag"># Netty</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/03/22/Netty源码-一-Netty中的Buffer/" rel="next" title="Netty源码(一):Netty中的Buffer">
+                <i class="fa fa-chevron-left"></i> Netty源码(一):Netty中的Buffer
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/04/02/Netty源码-三-I-O模型和Java-NIO底层原理/" rel="prev" title="Netty源码(三):I/O模型和Java NIO底层原理">
+                Netty源码(三):I/O模型和Java NIO底层原理 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="remCarpediem">
+          <p class="site-author-name" itemprop="name">remCarpediem</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">59</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">33</span>
+                <span class="site-state-item-name">categories</span>
+              
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              
+                <span class="site-state-item-count">53</span>
+                <span class="site-state-item-name">tags</span>
+              
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#官方文档上的Channel"><span class="nav-number">1.</span> <span class="nav-text">官方文档上的Channel</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#我眼中的Channel"><span class="nav-number">1.1.</span> <span class="nav-text">我眼中的Channel</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ChannelHandler和ChannelPipeline"><span class="nav-number">2.</span> <span class="nav-text">ChannelHandler和ChannelPipeline</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">remCarpediem</span>
+</div>
+
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
