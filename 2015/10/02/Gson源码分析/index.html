@@ -1,100 +1,15 @@
 <!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
 
-
-
-  
-
-
-<html class="theme-next muse use-motion" lang="Chinese">
-<head><meta name="generator" content="Hexo 3.8.0">
-  <meta charset="UTF-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<meta name="theme-color" content="#222">
-
-
-
-
-
-
-
-
-
-<meta http-equiv="Cache-Control" content="no-transform">
-<meta http-equiv="Cache-Control" content="no-siteapp">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  
-  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
-
-
-
-
-  
-  
-  
-  
-
-  
-    
-    
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-    
-    
-    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
-  
-
-
-
-
-
-
-<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
-
-<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
-
-
-  <meta name="keywords" content="GSON,">
-
-
-
-
-
-
-
-
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
-
-
-
-
-
-
-<meta name="description" content="&amp;emsp;最近研究了google开源的Json库Gson，在这里进行总结一下，应该会分为3篇博客。第一篇主要讲一下Gson的整个框架吧；第二篇主要总结一下Gson关于反射的部分;最后一篇会总结一下JsonWriter和JsonReader，主要是Json对象的处理啦。 Gson&amp;emsp;Gson是可以转换Java对象为JSON表示的java库，也可以将JSON转换为Java对象，并且可以转换你">
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>Gson源码分析 | Carpediem</title>
+  <meta name="description" content="blog of nobody" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="&amp;emsp;最近研究了google开源的Json库Gson，在这里进行总结一下，应该会分为3篇博客。第一篇主要讲一下Gson的整个框架吧；第二篇主要总结一下Gson关于反射的部分;最后一篇会总结一下JsonWriter和JsonReader，主要是Json对象的处理啦。 Gson&amp;emsp;Gson是可以转换Java对象为JSON表示的java库，也可以将JSON转换为Java对象，并且可以转换你">
 <meta name="keywords" content="GSON">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Gson源码分析">
@@ -108,253 +23,90 @@
 <meta name="twitter:title" content="Gson源码分析">
 <meta name="twitter:description" content="&amp;emsp;最近研究了google开源的Json库Gson，在这里进行总结一下，应该会分为3篇博客。第一篇主要讲一下Gson的整个框架吧；第二篇主要总结一下Gson关于反射的部分;最后一篇会总结一下JsonWriter和JsonReader，主要是Json对象的处理啦。 Gson&amp;emsp;Gson是可以转换Java对象为JSON表示的java库，也可以将JSON转换为Java对象，并且可以转换你">
 <meta name="twitter:image" content="http://7xjsjy.com1.z0.glb.clouddn.com/gson_GsonUML.jpg">
+  <!-- build:css css/screen.css -->
 
-
-
-<script type="text/javascript" id="hexo.configurations">
-  var NexT = window.NexT || {};
-  var CONFIG = {
-    root: '/',
-    scheme: 'Muse',
-    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
-    fancybox: true,
-    tabs: true,
-    motion: true,
-    duoshuo: {
-      userId: '0',
-      author: 'Author'
-    },
-    algolia: {
-      applicationID: '',
-      apiKey: '',
-      indexName: '',
-      hits: {"per_page":10},
-      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
-    }
-  };
-</script>
-
-
-
-  <link rel="canonical" href="http://remcarpediem.net/2015/10/02/Gson源码分析/">
-
-
-
-
-
-  <title>Gson源码分析 | Carpediem</title>
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-</head>
-
-<body itemscope="" itemtype="http://schema.org/WebPage" lang="Chinese">
-
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="Carpediem">
   
   
-    
   
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
 
-  <div class="container sidebar-position-left page-post-detail ">
-    <div class="headband"></div>
 
-    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
-      <div class="header-inner"><div class="site-brand-wrapper">
-  <div class="site-meta ">
-    
+<body class="post-template">
 
-    <div class="custom-logo-site-title">
-      <a href="/" class="brand" rel="start">
-        <span class="logo-line-before"><i></i></span>
-        <span class="site-title">Carpediem</span>
-        <span class="logo-line-after"><i></i></span>
-      </a>
-    </div>
-      
-        <p class="site-subtitle">blog of nobody</p>
-      
-  </div>
-
-  <div class="site-nav-toggle">
-    <button>
-      <span class="btn-bar"></span>
-      <span class="btn-bar"></span>
-      <span class="btn-bar"></span>
-    </button>
-  </div>
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home {% if page.current == 'home' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios {% if page.url contains 'iOS' %} nav-current{% endif %}" role="presentation"><a href="/archives">Archives</a></li>
+    <li class="nav-mvc {% if page.url contains 'MVC' %} nav-current{% endif %}" role="presentation"><a href="/tag">Tags</a></li>
+    <li class="nav-server {% if page.url contains 'server' %} nav-current{% endif %}" role="presentation"><a href="/category">Category</a></li>
+    <li class="nav-ruby {% if page.url contains 'ruby' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}tag/ruby">About</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
 </div>
+<span class="nav-cover"></span>
 
-<nav class="site-nav">
-  
-
-  
-    <ul id="menu" class="menu">
-      
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
         
-        <li class="menu-item menu-item-home">
-          <a href="/" rel="section">
-            
-              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
-            
-            Home
-          </a>
-        </li>
-      
-        
-        <li class="menu-item menu-item-archives">
-          <a href="/archives/" rel="section">
-            
-              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
-            
-            Archives
-          </a>
-        </li>
-      
-        
-        <li class="menu-item menu-item-tags">
-          <a href="/tags/" rel="section">
-            
-              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
-            
-            Tags
-          </a>
-        </li>
-      
-
-      
-    </ul>
-  
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
+</header>
 
   
-</nav>
 
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">Gson源码分析</h1>
+      <section class="post-meta">
+  <time datetime="2015-10-02T08:24:34.000Z" itemprop="datePublished" class="post-date">
+      2015-10-02
+  </time>
+  
+  
+  
+  <a href="/tags/GSON/">GSON</a>
+  
+  
+</section>
 
-
- </div>
     </header>
-
-    <main id="main" class="main">
-      <div class="main-inner">
-        <div class="content-wrap">
-          <div id="content" class="content">
-            
-
-  <div id="posts" class="posts-expand">
-    
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://remcarpediem.net/2015/10/02/Gson源码分析/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="remCarpediem">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Carpediem">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">Gson源码分析</h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2015-10-02T16:24:34+08:00">
-                2015-10-02
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index">
-                    <span itemprop="name">Java</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
+    <section class="post-content" itemprop="description articleBody">
       
 
-      
-        <p>&emsp;最近研究了google开源的Json库Gson，在这里进行总结一下，应该会分为3篇博客。第一篇主要讲一下Gson的整个框架吧；第二篇主要总结一下Gson关于反射的部分;最后一篇会总结一下JsonWriter和JsonReader，主要是Json对象的处理啦。</p>
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2018-11-18T13:40:01.000Z" itemprop="dateModified">
+      2018-11-18
+  </time>
+</section>
+
+       -->
+      <p>&emsp;最近研究了google开源的Json库Gson，在这里进行总结一下，应该会分为3篇博客。第一篇主要讲一下Gson的整个框架吧；第二篇主要总结一下Gson关于反射的部分;最后一篇会总结一下JsonWriter和JsonReader，主要是Json对象的处理啦。</p>
 <h3 id="Gson"><a href="#Gson" class="headerlink" title="Gson"></a>Gson</h3><p>&emsp;Gson是可以转换Java对象为JSON表示的java库，也可以将JSON转换为Java对象，并且可以转换你没有源代码的预设的复杂对象<br>&emsp;现在有一些JSON转换库，但是大多数都需要你在class中设置annotation；如果没有class的源代码你就无法实现转换，而且大多数无法支持全部的Java范型。Gson把实现上述作为设计的主要目标。<br>&emsp;Gson的目标</p>
 <ul>
 <li>提供简单的toJson(),和fromJson来实现Java对象和JSON数据的相互转换</li>
@@ -364,7 +116,15 @@
 <li>支持复杂对象的处理</li>
 </ul>
 <h3 id="框架描述"><a href="#框架描述" class="headerlink" title="框架描述"></a>框架描述</h3><p><img src="http://7xjsjy.com1.z0.glb.clouddn.com/gson_GsonUML.jpg" alt="框架类图"><br> &emsp;这是Gson库的类图，没有将所有类都表现上去，只是画了几个比较主要的类和我研究过的类。这篇文章就主要梳理一下这个框架，研究一下几个比较主要的函数的流程和各个对象的协作。</p>
-<h4 id="1-GsonBuilder"><a href="#1-GsonBuilder" class="headerlink" title="1.GsonBuilder"></a>1.GsonBuilder</h4><p> &emsp;GsonBuilder是Gson对象的Builder类啦，我们可以先看一下Gson对象的构造函数的复杂度啦,所以如果希望配置Gson,就只有使用Builder模式啦，这也是Java设计模式中所推荐的<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Gson(final Excluder excluder, final FieldNamingStrategy fieldNamingPolicy,</span><br><span class="line">      final Map&lt;Type, InstanceCreator&lt;?&gt;&gt; instanceCreators, boolean serializeNulls,</span><br><span class="line">      boolean complexMapKeySerialization, boolean generateNonExecutableGson, boolean htmlSafe,</span><br><span class="line">      boolean prettyPrinting, boolean serializeSpecialFloatingPointValues,</span><br><span class="line">      LongSerializationPolicy longSerializationPolicy,</span><br><span class="line">      List&lt;TypeAdapterFactory&gt; typeAdapterFactories)</span><br></pre></td></tr></table></figure></p>
+<h4 id="1-GsonBuilder"><a href="#1-GsonBuilder" class="headerlink" title="1.GsonBuilder"></a>1.GsonBuilder</h4><p> &emsp;GsonBuilder是Gson对象的Builder类啦，我们可以先看一下Gson对象的构造函数的复杂度啦,所以如果希望配置Gson,就只有使用Builder模式啦，这也是Java设计模式中所推荐的<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">Gson(final Excluder excluder, final FieldNamingStrategy fieldNamingPolicy,
+      final Map&lt;Type, InstanceCreator&lt;?&gt;&gt; instanceCreators, boolean serializeNulls,
+      boolean complexMapKeySerialization, boolean generateNonExecutableGson, boolean htmlSafe,
+      boolean prettyPrinting, boolean serializeSpecialFloatingPointValues,
+      LongSerializationPolicy longSerializationPolicy,
+      List&lt;TypeAdapterFactory&gt; typeAdapterFactories)
+</code></pre></p>
 <p>&emsp; GsonBuilder文件中的注释也有说明：</p>
 <blockquote>
 <p>使用这个对象去配置你的Gson对象，当你希望修改默认配置时</p>
@@ -382,376 +142,288 @@
 <li><p><code>TypeAdapterFactory</code></p>
 </li>
 </ul>
-<h4 id="2-Gson"><a href="#2-Gson" class="headerlink" title="2.Gson"></a>2.Gson</h4><p>&emsp;Gson对象就是我们最常使用的对象啦，它有一系列的fromJson,toJson的成员函数供我们调用，这篇文章的一个重点就是梳理同这两类函数的逻辑。<br>&emsp;我们先来看一下Gson的构造函数吧。构造函数名和参数列表在前边已经列出来啦，构造函数中就是将参数列表中的对象配置为成员变量，不过要注意的是对TypeAdapterFactory的操作啦。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">....</span><br><span class="line">   List&lt;TypeAdapterFactory&gt; factories = new ArrayList&lt;TypeAdapterFactory&gt;();</span><br><span class="line"></span><br><span class="line">   // built-in type adapters that cannot be overridden</span><br><span class="line">   factories.add(TypeAdapters.JSON_ELEMENT_FACTORY);</span><br><span class="line">   factories.add(ObjectTypeAdapter.FACTORY);</span><br><span class="line">   ..... //还有很多基本的TypeAdapterFactory</span><br><span class="line">   // the excluder must precede all adapters that handle user-defined types</span><br><span class="line">   factories.add(excluder);</span><br><span class="line"></span><br><span class="line">   // user&apos;s type adapters</span><br><span class="line">   factories.addAll(typeAdapterFactories);</span><br><span class="line"></span><br><span class="line">   // type adapters for basic platform types</span><br><span class="line">   factories.add(TypeAdapters.STRING_FACTORY); //里边是一些基本类型的adapter啦</span><br><span class="line">      ......</span><br><span class="line">   this.factories = Collections.unmodifiableList(factories);</span><br></pre></td></tr></table></figure></p>
+<h4 id="2-Gson"><a href="#2-Gson" class="headerlink" title="2.Gson"></a>2.Gson</h4><p>&emsp;Gson对象就是我们最常使用的对象啦，它有一系列的fromJson,toJson的成员函数供我们调用，这篇文章的一个重点就是梳理同这两类函数的逻辑。<br>&emsp;我们先来看一下Gson的构造函数吧。构造函数名和参数列表在前边已经列出来啦，构造函数中就是将参数列表中的对象配置为成员变量，不过要注意的是对TypeAdapterFactory的操作啦。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">
+	....
+    List&lt;TypeAdapterFactory&gt; factories = new ArrayList&lt;TypeAdapterFactory&gt;();
+
+    &#x2F;&#x2F; built-in type adapters that cannot be overridden
+    factories.add(TypeAdapters.JSON_ELEMENT_FACTORY);
+    factories.add(ObjectTypeAdapter.FACTORY);
+    ..... &#x2F;&#x2F;还有很多基本的TypeAdapterFactory
+    &#x2F;&#x2F; the excluder must precede all adapters that handle user-defined types
+    factories.add(excluder);
+
+    &#x2F;&#x2F; user&#39;s type adapters
+    factories.addAll(typeAdapterFactories);
+
+    &#x2F;&#x2F; type adapters for basic platform types
+    factories.add(TypeAdapters.STRING_FACTORY); &#x2F;&#x2F;里边是一些基本类型的adapter啦
+       ......
+    this.factories = Collections.unmodifiableList(factories);
+</code></pre></p>
 <p>&emsp;Gson内置了很多基本类型和对象的转换组件，类型为<code>TypeAdapter</code>,可以通过相应的<code>TypeAdapterFactory</code>来获得，所以这里<code>factories</code>就预先加载了很多基本类型转换组件的Factory,然后<code>factories.addAll(typeAdapterFactories)</code>是添加构造函数中传入的用户自定义的<code>TypeAdapterFactory</code><br> &emsp;<code>fromJson</code>和<code>toJson</code>这两类函数我们在介绍完所有的类之后在解析吧。</p>
 <h4 id="3-TypeAdapter"><a href="#3-TypeAdapter" class="headerlink" title="3.TypeAdapter"></a>3.TypeAdapter</h4><p>&emsp;这是一个抽象类，提供了两个抽象函数作为hook函数来让用户重载，分别是<code>public abstract void write(JsonWriter out, T value) throws IOException;</code>和<code>public abstract T read(JsonReader in) throws IOException;</code>一读一写，用户如果要解析自己自定义的对象，就可以继承这个类，然后实现上述两个方法，并在<code>GsonBuilder中使用</code>GsonBuilder registerTypeAdapter(Type type, Object typeAdapter) <code>来注册这个转换类，然后Gson就可以对你的自定义对象进行转换啦。需要注意的是，这里的转换完全由你自己控制，所以可定制性比较强。在介绍</code>TypeAdapters`时，我们会介绍几个简单的TypeAdapter的实现。</p>
 <h4 id="4-TypeAdapterFactory"><a href="#4-TypeAdapterFactory" class="headerlink" title="4.TypeAdapterFactory"></a>4.TypeAdapterFactory</h4><p>&emsp;这是一个接口，自定义了一个函数:<code>&lt;T&gt; TypeAdapter&lt;T&gt; create(Gson gson, TypeToken&lt;T&gt; type);</code>,具体的实现方法，我们可以在后边的<code>TypeAdapters</code>类中看到.</p>
-<h4 id="5-TypeAdapters"><a href="#5-TypeAdapters" class="headerlink" title="5.TypeAdapters"></a>5.TypeAdapters</h4><p>&emsp;这个类中定义了几乎所有的基础类型的TypeAdapter和Factory,我们现在挑出一个来研究一下。这是一个URL对象的JSON转换器啦。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">public static final TypeAdapter&lt;URL&gt; URL = new TypeAdapter&lt;URL&gt;() &#123;</span><br><span class="line">    @Override</span><br><span class="line">    public URL read(JsonReader in) throws IOException &#123;</span><br><span class="line">      if (in.peek() == JsonToken.NULL) &#123;</span><br><span class="line">        in.nextNull();</span><br><span class="line">        return null;</span><br><span class="line">      &#125;</span><br><span class="line">      String nextString = in.nextString(); //读出in中的内容</span><br><span class="line">      return &quot;null&quot;.equals(nextString) ? null : new URL(nextString);//根据读出的内容，创建URL对象</span><br><span class="line">    &#125;</span><br><span class="line">    @Override</span><br><span class="line">    public void write(JsonWriter out, URL value) throws IOException &#123;</span><br><span class="line">      out.value(value == null ? null : value.toExternalForm()); //写入内容</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;;</span><br><span class="line"></span><br><span class="line">  public static final TypeAdapterFactory URL_FACTORY = newFactory(URL.class, URL);//创建Facotry啦</span><br></pre></td></tr></table></figure></p>
+<h4 id="5-TypeAdapters"><a href="#5-TypeAdapters" class="headerlink" title="5.TypeAdapters"></a>5.TypeAdapters</h4><p>&emsp;这个类中定义了几乎所有的基础类型的TypeAdapter和Factory,我们现在挑出一个来研究一下。这是一个URL对象的JSON转换器啦。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public static final TypeAdapter&lt;URL&gt; URL = new TypeAdapter&lt;URL&gt;() {
+    @Override
+    public URL read(JsonReader in) throws IOException {
+      if (in.peek() == JsonToken.NULL) {
+        in.nextNull();
+        return null;
+      }
+      String nextString = in.nextString(); &#x2F;&#x2F;读出in中的内容
+      return &quot;null&quot;.equals(nextString) ? null : new URL(nextString);&#x2F;&#x2F;根据读出的内容，创建URL对象
+    }
+    @Override
+    public void write(JsonWriter out, URL value) throws IOException {
+      out.value(value == null ? null : value.toExternalForm()); &#x2F;&#x2F;写入内容
+    }
+  };
+
+  public static final TypeAdapterFactory URL_FACTORY = newFactory(URL.class, URL);&#x2F;&#x2F;创建Facotry啦
+</code></pre></p>
 <p> &emsp; 我们可以看到，这是一个URL的转换器，<code>JsonReader</code>和<code>JsonWriter</code>后边会介绍到，现在你就可以把他们当做类似于StringBuilder一类的Json的生成器和解释器。</p>
 <h4 id="6-TypeToken"><a href="#6-TypeToken" class="headerlink" title="6.TypeToken"></a>6.TypeToken</h4><p>&emsp;TypeToken可以看做是对Java范型的扩展，大家都知道Java范型是有类型擦除效果的，无法获得其真实类型。而这个类就是为了处理这种情况的，我们从文件中的注释也可以了解到。具体的内容，我们希望在Gson相关的第二篇博文中再详细说明，主要就是涉及围绕TypeToken的一系列的Gson对范型的支持和处理。<br>&emsp;而在Gson对象中，TypeToken主要是用于根据Type来获得相应的TypeAdapter。</p>
 <h4 id="其他类"><a href="#其他类" class="headerlink" title="其他类"></a>其他类</h4><p>&emsp;还有很多其他的类没有介绍，其中有些不太重要，我也没有太多了解，另外一些我会在接下去的两篇博文中详细介绍。</p>
 <h3 id="转换流程"><a href="#转换流程" class="headerlink" title="转换流程"></a>转换流程</h3><p>&emsp;接下来，我们就主要理通Gson两个最重要的函数的逻辑，之后的两篇博文会详细介绍其中的重要的细节，这篇博文就只诉说每一步大致的作用啦。</p>
-<h4 id="1-fromJson"><a href="#1-fromJson" class="headerlink" title="1 fromJson()"></a>1 fromJson()</h4><p>&emsp;函数名为fromJson的函数比较多，我们只看下边这个<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">@SuppressWarnings(&quot;unchecked&quot;)</span><br><span class="line"> public &lt;T&gt; T fromJson(JsonReader reader, Type typeOfT) throws JsonIOException, JsonSyntaxException &#123;</span><br><span class="line">   boolean isEmpty = true;</span><br><span class="line">   boolean oldLenient = reader.isLenient();</span><br><span class="line">   reader.setLenient(true);</span><br><span class="line">   try &#123;</span><br><span class="line">     reader.peek();</span><br><span class="line">     isEmpty = false;</span><br><span class="line">     // 反射部分的精髓,主要的就是TypeToken和TypeAdapter啦</span><br><span class="line">     TypeToken&lt;T&gt; typeToken = (TypeToken&lt;T&gt;) TypeToken.get(typeOfT);  //1:工厂方法,其中调用typeToken的构造器</span><br><span class="line">     TypeAdapter&lt;T&gt; typeAdapter = getAdapter(typeToken); //2:通过type来获得Adapter啊</span><br><span class="line">     T object = typeAdapter.read(reader);//3:通过typeAdapter来转换对象</span><br><span class="line">     return object;</span><br><span class="line">   &#125; catch (EOFException e) &#123;</span><br><span class="line">     /*</span><br><span class="line">      * For compatibility with JSON 1.5 and earlier, we return null for empty</span><br><span class="line">      * documents instead of throwing.</span><br><span class="line">      */</span><br><span class="line">     if (isEmpty) &#123;</span><br><span class="line">       return null;</span><br><span class="line">     &#125;</span><br><span class="line">     throw new JsonSyntaxException(e);</span><br><span class="line">   &#125; catch (IllegalStateException e) &#123;</span><br><span class="line">     throw new JsonSyntaxException(e);</span><br><span class="line">   &#125; catch (IOException e) &#123;</span><br><span class="line">     // TODO(inder): Figure out whether it is indeed right to rethrow this as JsonSyntaxException</span><br><span class="line">     throw new JsonSyntaxException(e);</span><br><span class="line">   &#125; finally &#123;</span><br><span class="line">     reader.setLenient(oldLenient);</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="1-fromJson"><a href="#1-fromJson" class="headerlink" title="1 fromJson()"></a>1 fromJson()</h4><p>&emsp;函数名为fromJson的函数比较多，我们只看下边这个<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike"> @SuppressWarnings(&quot;unchecked&quot;)
+  public &lt;T&gt; T fromJson(JsonReader reader, Type typeOfT) throws JsonIOException, JsonSyntaxException {
+    boolean isEmpty = true;
+    boolean oldLenient = reader.isLenient();
+    reader.setLenient(true);
+    try {
+      reader.peek();
+      isEmpty = false;
+      &#x2F;&#x2F; 反射部分的精髓,主要的就是TypeToken和TypeAdapter啦
+      TypeToken&lt;T&gt; typeToken = (TypeToken&lt;T&gt;) TypeToken.get(typeOfT);  &#x2F;&#x2F;1:工厂方法,其中调用typeToken的构造器
+      TypeAdapter&lt;T&gt; typeAdapter = getAdapter(typeToken); &#x2F;&#x2F;2:通过type来获得Adapter啊
+      T object = typeAdapter.read(reader);&#x2F;&#x2F;3:通过typeAdapter来转换对象
+      return object;
+    } catch (EOFException e) {
+      &#x2F;*
+       * For compatibility with JSON 1.5 and earlier, we return null for empty
+       * documents instead of throwing.
+       *&#x2F;
+      if (isEmpty) {
+        return null;
+      }
+      throw new JsonSyntaxException(e);
+    } catch (IllegalStateException e) {
+      throw new JsonSyntaxException(e);
+    } catch (IOException e) {
+      &#x2F;&#x2F; TODO(inder): Figure out whether it is indeed right to rethrow this as JsonSyntaxException
+      throw new JsonSyntaxException(e);
+    } finally {
+      reader.setLenient(oldLenient);
+    }
+  }
+</code></pre></p>
 <p>&emsp;如同代码中标注的一样，<code>fromJson</code>中大致分为3个比较重要的步奏.</p>
 <ul>
 <li><p>TypeToken<t> typeToken = (TypeToken<t>) TypeToken.get(typeOfT); 获得要转换类型对应的TypeToken对象，主要涉及的Gson中范型和反射的部分逻辑，我们第二篇博文再讲</t></t></p>
 </li>
 <li><p>TypeAdapter<t> typeAdapter = getAdapter(typeToken); //通过type来获得Adapter啊,这个我们先来看一下getAdapter函数,就是找出TypeToken所对应的TypeAdapter对象，用于下一步的解析。</t></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">@SuppressWarnings(&quot;unchecked&quot;)</span><br><span class="line">  public &lt;T&gt; TypeAdapter&lt;T&gt; getAdapter(TypeToken&lt;T&gt; type) &#123;</span><br><span class="line">    TypeAdapter&lt;?&gt; cached = typeTokenCache.get(type);  // typeTokenCache?? 创造adapter是很麻烦的事情吗？有cache</span><br><span class="line">    if (cached != null) &#123;</span><br><span class="line">      return (TypeAdapter&lt;T&gt;) cached;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Map&lt;TypeToken&lt;?&gt;, FutureTypeAdapter&lt;?&gt;&gt; threadCalls = calls.get();  //threadLocal get</span><br><span class="line">    boolean requiresThreadLocalCleanup = false; //是否需要清理threadLocal中的数据</span><br><span class="line">    if (threadCalls == null) &#123;</span><br><span class="line">      threadCalls = new HashMap&lt;TypeToken&lt;?&gt;, FutureTypeAdapter&lt;?&gt;&gt;();</span><br><span class="line">      calls.set(threadCalls);</span><br><span class="line">      requiresThreadLocalCleanup = true;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // the key and value type parameters always agree</span><br><span class="line">    FutureTypeAdapter&lt;T&gt; ongoingCall = (FutureTypeAdapter&lt;T&gt;) threadCalls.get(type);</span><br><span class="line">    if (ongoingCall != null) &#123;</span><br><span class="line">      return ongoingCall;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    try &#123;</span><br><span class="line">      FutureTypeAdapter&lt;T&gt; call = new FutureTypeAdapter&lt;T&gt;();</span><br><span class="line">      threadCalls.put(type, call);</span><br><span class="line"></span><br><span class="line">      for (TypeAdapterFactory factory : factories) &#123;</span><br><span class="line">        TypeAdapter&lt;T&gt; candidate = factory.create(this, type);  // 通过factory 来创建TypeAdapter啊，由于需要遍历list比较麻烦</span><br><span class="line">        if (candidate != null) &#123;</span><br><span class="line">          call.setDelegate(candidate);</span><br><span class="line">          typeTokenCache.put(type, candidate);</span><br><span class="line">          return candidate;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">     ....</span><br><span class="line">    &#125; finally &#123;</span><br><span class="line">      threadCalls.remove(type);</span><br><span class="line">	  ....</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">@SuppressWarnings(&quot;unchecked&quot;)
+  public &lt;T&gt; TypeAdapter&lt;T&gt; getAdapter(TypeToken&lt;T&gt; type) {
+    TypeAdapter&lt;?&gt; cached = typeTokenCache.get(type);  &#x2F;&#x2F; typeTokenCache?? 创造adapter是很麻烦的事情吗？有cache
+    if (cached != null) {
+      return (TypeAdapter&lt;T&gt;) cached;
+
+    }
+
+    Map&lt;TypeToken&lt;?&gt;, FutureTypeAdapter&lt;?&gt;&gt; threadCalls = calls.get();  &#x2F;&#x2F;threadLocal get
+    boolean requiresThreadLocalCleanup = false; &#x2F;&#x2F;是否需要清理threadLocal中的数据
+    if (threadCalls == null) {
+      threadCalls = new HashMap&lt;TypeToken&lt;?&gt;, FutureTypeAdapter&lt;?&gt;&gt;();
+      calls.set(threadCalls);
+      requiresThreadLocalCleanup = true;
+    }
+
+    &#x2F;&#x2F; the key and value type parameters always agree
+    FutureTypeAdapter&lt;T&gt; ongoingCall = (FutureTypeAdapter&lt;T&gt;) threadCalls.get(type);
+    if (ongoingCall != null) {
+      return ongoingCall;
+    }
+
+    try {
+      FutureTypeAdapter&lt;T&gt; call = new FutureTypeAdapter&lt;T&gt;();
+      threadCalls.put(type, call);
+
+      for (TypeAdapterFactory factory : factories) {
+        TypeAdapter&lt;T&gt; candidate = factory.create(this, type);  &#x2F;&#x2F; 通过factory 来创建TypeAdapter啊，由于需要遍历list比较麻烦
+        if (candidate != null) {
+          call.setDelegate(candidate);
+          typeTokenCache.put(type, candidate);
+          return candidate;
+        }
+      }
+     ....
+    } finally {
+      threadCalls.remove(type);
+	  ....
+    }
+  }
+</code></pre>
 <ul>
 <li>T object = typeAdapter.read(reader);//3:通过typeAdapter来转换对象,具体过程，和JsonReader，JsonWriter的原理，第三篇博文再进行讲述<h4 id="2-toJson"><a href="#2-toJson" class="headerlink" title="2 toJson"></a>2 toJson</h4>&emsp;其实toJson和fromJson很像，就是获得相应的TypeAdapter,只不过这次调用的是write方法。这里就不累赘多说啦。<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3>&emsp;博客还未写完，代码还没有看透…..</li>
 </ul>
 </li>
 </ul>
 
-      
-    </div>
-    
-    
-    
+      <h3>关于图片和转载</h3>
 
-    
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
 
-    
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
 
-    
+      <h3>关于评论和留言</h3>
 
+      如果对本文 <a href="http://remcarpediem.net/2015/10/02/Gson源码分析/">Gson源码分析</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/2015/10/02/Gson源码分析/">Gson源码分析</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
     <footer class="post-footer">
-      
-        <div class="post-tags">
-          
-            <a href="/tags/GSON/" rel="tag"># GSON</a>
-          
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">remCarpediem's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">remCarpediem</a></h4>
+        
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> Carpediem</a></span> 
         </div>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/2015/10/02/Gson源码分析/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/2015/10/02/Gson源码分析/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/2015/10/02/Gson源码分析/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
       
+ <div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script>
+    const gitalk = new Gitalk({
+    clientID: '9347af410c07624ec3e6',
+    clientSecret: '578667b93387d410574122685243499f1b546ba7',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: "http://remcarpediem.net/2015/10/02/Gson源码分析/",
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
 
-      
-      
-      
+gitalk.render('gitalk-container')
+</script>
 
-      
-        <div class="post-nav">
-          <div class="post-nav-next post-nav-item">
-            
-              <a href="/2015/09/27/Android-Async-Http-源码解析/" rel="next" title="Android-Async-Http 源码解析">
-                <i class="fa fa-chevron-left"></i> Android-Async-Http 源码解析
-              </a>
-            
-          </div>
-
-          <span class="post-nav-divider"></span>
-
-          <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2015/10/07/Gson源码分析二/" rel="prev" title="Gson源码分析二">
-                Gson源码分析二 <i class="fa fa-chevron-right"></i>
-              </a>
-            
-          </div>
-        </div>
-      
-
-      
-      
     </footer>
-  </div>
-  
-  
-  
   </article>
-
-
-
-    <div class="post-spread">
-      
-    </div>
-  </div>
-
-
-          </div>
-          
-
-
-          
-  <div class="comments" id="comments">
+</main>
+<aside class="read-next">
+ 
     
-  </div>
-
-
-        </div>
-        
-          
-  
-  <div class="sidebar-toggle">
-    <div class="sidebar-toggle-line-wrap">
-      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
-      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
-      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
-    </div>
-  </div>
-
-  <aside id="sidebar" class="sidebar">
-    
-    <div class="sidebar-inner">
-
-      
-
-      
-        <ul class="sidebar-nav motion-element">
-          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
-            Table of Contents
-          </li>
-          <li class="sidebar-nav-overview" data-target="site-overview">
-            Overview
-          </li>
-        </ul>
-      
-
-      <section class="site-overview sidebar-panel">
-        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="remCarpediem">
-          <p class="site-author-name" itemprop="name">remCarpediem</p>
-           
-              <p class="site-description motion-element" itemprop="description"></p>
-          
-        </div>
-        <nav class="site-state motion-element">
-
-          
-            <div class="site-state-item site-state-posts">
-              <a href="/archives/">
-                <span class="site-state-item-count">59</span>
-                <span class="site-state-item-name">posts</span>
-              </a>
-            </div>
-          
-
-          
+    <a class="read-next-story no-cover" href="/2015/09/27/Android-Async-Http-源码解析/">
+      <section class="post">
+        <h2>Android-Async-Http 源码解析</h2>
+        <p>
             
+              &emsp;前几天去参加一个面试，被问到了一些android 网络方面的知识，发现自己在这个方面还有些不足，需要自我补充一下相关的知识，于是最近找了些开源的网络模块的第三方库来阅读，主要是想深入了解一下http协议和相关的代码框架组织问题。这篇博客就总结一下自己阅读android-async-http的一些体会和学习吧。
+简介&emsp;介绍android async http 的相关事项，主要是翻译github上的话吧&emsp;这段 ......
             
-            <div class="site-state-item site-state-categories">
-              
-                <span class="site-state-item-count">33</span>
-                <span class="site-state-item-name">categories</span>
-              
-            </div>
-          
-
-          
-            
-            
-            <div class="site-state-item site-state-tags">
-              
-                <span class="site-state-item-count">53</span>
-                <span class="site-state-item-name">tags</span>
-              
-            </div>
-          
-
-        </nav>
-
-        
-
-        <div class="links-of-author motion-element">
-          
-        </div>
-
-        
-        
-
-        
-        
-
-        
-
-
+          </p>
       </section>
-
-      
-      <!--noindex-->
-        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
-          <div class="post-toc">
-
-            
-              
-            
-
-            
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#Gson"><span class="nav-number">1.</span> <span class="nav-text">Gson</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#框架描述"><span class="nav-number">2.</span> <span class="nav-text">框架描述</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-GsonBuilder"><span class="nav-number">2.1.</span> <span class="nav-text">1.GsonBuilder</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-Gson"><span class="nav-number">2.2.</span> <span class="nav-text">2.Gson</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-TypeAdapter"><span class="nav-number">2.3.</span> <span class="nav-text">3.TypeAdapter</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-TypeAdapterFactory"><span class="nav-number">2.4.</span> <span class="nav-text">4.TypeAdapterFactory</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-TypeAdapters"><span class="nav-number">2.5.</span> <span class="nav-text">5.TypeAdapters</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#6-TypeToken"><span class="nav-number">2.6.</span> <span class="nav-text">6.TypeToken</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#其他类"><span class="nav-number">2.7.</span> <span class="nav-text">其他类</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#转换流程"><span class="nav-number">3.</span> <span class="nav-text">转换流程</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-fromJson"><span class="nav-number">3.1.</span> <span class="nav-text">1 fromJson()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-toJson"><span class="nav-number">3.2.</span> <span class="nav-text">2 toJson</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#总结"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
-            
-
-          </div>
-        </section>
-      <!--/noindex-->
-      
-
-      
-
-    </div>
-  </aside>
-
-
-        
-      </div>
-    </main>
-
-    <footer id="footer" class="footer">
-      <div class="footer-inner">
-        <div class="copyright">
+    </a>
+    
   
-  &copy; 
-  <span itemprop="copyrightYear">2018</span>
-  <span class="with-love">
-    <i class="fa fa-heart"></i>
-  </span>
-  <span class="author" itemprop="copyrightHolder">remCarpediem</span>
-</div>
 
 
-<div class="powered-by">
-  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
-</div>
-
-<div class="theme-info">
-  Theme -
-  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
-    NexT.Muse
-  </a>
-</div>
-
-
-        
-
-        
-      </div>
-    </footer>
-
+  
     
-      <div class="back-to-top">
-        <i class="fa fa-arrow-up"></i>
-        
-      </div>
+    <a class="read-next-story no-cover" href="/2015/10/07/Gson源码分析二/">
+      <section class="post">
+        <h2>Gson源码分析二</h2>
+        <p>
+            
+              &emsp;承接上一篇博文Gson源码分析，这篇博文主要总结一下Gson中涉及Java反射逻辑的部分。
+一个Gson例子&emsp;Gson可以解析用户自定义的对象，当然你也可以使用public GsonBuilder registerTypeAdapter(Type type, Object typeAdapter)来完全按照自己的方式来解析，但是Gson其实已经为解析自定义类型对象做了适配，除非特殊需求，我们一般不需要定义自己的Ty ......
+            
+          </p>
+      </section>
+    </a>
     
+  
+</aside>
+
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">Carpediem</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
+</footer>
 
   </div>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
 
-  
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
 
 <script type="text/javascript">
-  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
-    window.Promise = null;
-  }
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
 </script>
 
 
 
 
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
-
-  
-  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
-
-  
-  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
-
-  
-  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
-
-  
-  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
-
-  
-  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
-
-
-  
-
-
-  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
-
-  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
-
-
-
-  
-  
-
-  
-  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
-<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
-
-
-
-  
-
-
-  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
-
-
-
-  
-
-
-  
-
-
-
-
-	
-
-
-
-
-
-  
-
-
-
-
-
-  
-
-
-
-
-
-
-  
-
-
-
-
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
 
 </body>
 </html>

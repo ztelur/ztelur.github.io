@@ -1,100 +1,15 @@
 <!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
 
-
-
-  
-
-
-<html class="theme-next muse use-motion" lang="Chinese">
-<head><meta name="generator" content="Hexo 3.8.0">
-  <meta charset="UTF-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<meta name="theme-color" content="#222">
-
-
-
-
-
-
-
-
-
-<meta http-equiv="Cache-Control" content="no-transform">
-<meta http-equiv="Cache-Control" content="no-siteapp">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  
-  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
-
-
-
-
-  
-  
-  
-  
-
-  
-    
-    
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-    
-    
-    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
-  
-
-
-
-
-
-
-<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
-
-<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
-
-
-  <meta name="keywords" content="第三方库,反射,JSON,">
-
-
-
-
-
-
-
-
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
-
-
-
-
-
-
-<meta name="description" content="&amp;emsp;承接上一篇博文Gson源码分析，这篇博文主要总结一下Gson中涉及Java反射逻辑的部分。 一个Gson例子&amp;emsp;Gson可以解析用户自定义的对象，当然你也可以使用public GsonBuilder registerTypeAdapter(Type type, Object typeAdapter)来完全按照自己的方式来解析，但是Gson其实已经为解析自定义类型对象做了适配，除">
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>Gson源码分析二 | Carpediem</title>
+  <meta name="description" content="blog of nobody" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="&amp;emsp;承接上一篇博文Gson源码分析，这篇博文主要总结一下Gson中涉及Java反射逻辑的部分。 一个Gson例子&amp;emsp;Gson可以解析用户自定义的对象，当然你也可以使用public GsonBuilder registerTypeAdapter(Type type, Object typeAdapter)来完全按照自己的方式来解析，但是Gson其实已经为解析自定义类型对象做了适配，除">
 <meta name="keywords" content="第三方库,反射,JSON">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Gson源码分析二">
@@ -106,619 +21,483 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Gson源码分析二">
 <meta name="twitter:description" content="&amp;emsp;承接上一篇博文Gson源码分析，这篇博文主要总结一下Gson中涉及Java反射逻辑的部分。 一个Gson例子&amp;emsp;Gson可以解析用户自定义的对象，当然你也可以使用public GsonBuilder registerTypeAdapter(Type type, Object typeAdapter)来完全按照自己的方式来解析，但是Gson其实已经为解析自定义类型对象做了适配，除">
+  <!-- build:css css/screen.css -->
 
-
-
-<script type="text/javascript" id="hexo.configurations">
-  var NexT = window.NexT || {};
-  var CONFIG = {
-    root: '/',
-    scheme: 'Muse',
-    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
-    fancybox: true,
-    tabs: true,
-    motion: true,
-    duoshuo: {
-      userId: '0',
-      author: 'Author'
-    },
-    algolia: {
-      applicationID: '',
-      apiKey: '',
-      indexName: '',
-      hits: {"per_page":10},
-      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
-    }
-  };
-</script>
-
-
-
-  <link rel="canonical" href="http://remcarpediem.net/2015/10/07/Gson源码分析二/">
-
-
-
-
-
-  <title>Gson源码分析二 | Carpediem</title>
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-</head>
-
-<body itemscope="" itemtype="http://schema.org/WebPage" lang="Chinese">
-
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="Carpediem">
   
   
-    
   
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
 
-  <div class="container sidebar-position-left page-post-detail ">
-    <div class="headband"></div>
 
-    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
-      <div class="header-inner"><div class="site-brand-wrapper">
-  <div class="site-meta ">
-    
+<body class="post-template">
 
-    <div class="custom-logo-site-title">
-      <a href="/" class="brand" rel="start">
-        <span class="logo-line-before"><i></i></span>
-        <span class="site-title">Carpediem</span>
-        <span class="logo-line-after"><i></i></span>
-      </a>
-    </div>
-      
-        <p class="site-subtitle">blog of nobody</p>
-      
-  </div>
-
-  <div class="site-nav-toggle">
-    <button>
-      <span class="btn-bar"></span>
-      <span class="btn-bar"></span>
-      <span class="btn-bar"></span>
-    </button>
-  </div>
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home {% if page.current == 'home' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios {% if page.url contains 'iOS' %} nav-current{% endif %}" role="presentation"><a href="/archives">Archives</a></li>
+    <li class="nav-mvc {% if page.url contains 'MVC' %} nav-current{% endif %}" role="presentation"><a href="/tag">Tags</a></li>
+    <li class="nav-server {% if page.url contains 'server' %} nav-current{% endif %}" role="presentation"><a href="/category">Category</a></li>
+    <li class="nav-ruby {% if page.url contains 'ruby' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}tag/ruby">About</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
 </div>
+<span class="nav-cover"></span>
 
-<nav class="site-nav">
-  
-
-  
-    <ul id="menu" class="menu">
-      
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
         
-        <li class="menu-item menu-item-home">
-          <a href="/" rel="section">
-            
-              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
-            
-            Home
-          </a>
-        </li>
-      
-        
-        <li class="menu-item menu-item-archives">
-          <a href="/archives/" rel="section">
-            
-              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
-            
-            Archives
-          </a>
-        </li>
-      
-        
-        <li class="menu-item menu-item-tags">
-          <a href="/tags/" rel="section">
-            
-              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
-            
-            Tags
-          </a>
-        </li>
-      
-
-      
-    </ul>
-  
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
+</header>
 
   
-</nav>
 
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">Gson源码分析二</h1>
+      <section class="post-meta">
+  <time datetime="2015-10-07T07:48:51.000Z" itemprop="datePublished" class="post-date">
+      2015-10-07
+  </time>
+  
+  
+  
+  <a href="/tags/第三方库/">第三方库</a> 
+  
+  <a href="/tags/反射/">反射</a> 
+  
+  <a href="/tags/JSON/">JSON</a>
+  
+  
+</section>
 
-
- </div>
     </header>
-
-    <main id="main" class="main">
-      <div class="main-inner">
-        <div class="content-wrap">
-          <div id="content" class="content">
-            
-
-  <div id="posts" class="posts-expand">
-    
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://remcarpediem.net/2015/10/07/Gson源码分析二/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="remCarpediem">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Carpediem">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">Gson源码分析二</h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2015-10-07T15:48:51+08:00">
-                2015-10-07
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index">
-                    <span itemprop="name">Java</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
+    <section class="post-content" itemprop="description articleBody">
       
 
-      
-        <p>&emsp;承接上一篇博文<a href="http://blog.csdn.net/u012422440/article/details/48860893" target="_blank" rel="noopener">Gson源码分析</a>，这篇博文主要总结一下Gson中涉及Java反射逻辑的部分。</p>
-<h4 id="一个Gson例子"><a href="#一个Gson例子" class="headerlink" title="一个Gson例子"></a>一个Gson例子</h4><p>&emsp;Gson可以解析用户自定义的对象，当然你也可以使用<code>public GsonBuilder registerTypeAdapter(Type type, Object typeAdapter)</code>来完全按照自己的方式来解析，但是Gson其实已经为解析自定义类型对象做了适配，除非特殊需求，我们一般不需要定义自己的TypeAdapter。比如下边这个例子<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">class MyType&#123;</span><br><span class="line">    private int i = 1;</span><br><span class="line">    private String name = &quot;test&quot;;</span><br><span class="line"></span><br><span class="line">    public MyType() &#123;</span><br><span class="line">        super();</span><br><span class="line">    &#125;</span><br><span class="line">    public MyType(int id,String name) &#123;</span><br><span class="line">        this();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">.....</span><br><span class="line"> MyType type = new MyType();</span><br><span class="line"> System.out.println(gson.toJson(type));</span><br></pre></td></tr></table></figure></p>
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2018-11-18T13:40:01.000Z" itemprop="dateModified">
+      2018-11-18
+  </time>
+</section>
+
+       -->
+      <p>&emsp;承接上一篇博文<a href="http://blog.csdn.net/u012422440/article/details/48860893" target="_blank" rel="noopener">Gson源码分析</a>，这篇博文主要总结一下Gson中涉及Java反射逻辑的部分。</p>
+<h4 id="一个Gson例子"><a href="#一个Gson例子" class="headerlink" title="一个Gson例子"></a>一个Gson例子</h4><p>&emsp;Gson可以解析用户自定义的对象，当然你也可以使用<code>public GsonBuilder registerTypeAdapter(Type type, Object typeAdapter)</code>来完全按照自己的方式来解析，但是Gson其实已经为解析自定义类型对象做了适配，除非特殊需求，我们一般不需要定义自己的TypeAdapter。比如下边这个例子<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">class MyType{
+    private int i = 1;
+    private String name = &quot;test&quot;;
+
+    public MyType() {
+        super();
+    }
+    public MyType(int id,String name) {
+        this();
+    }
+}
+.....
+ MyType type = new MyType();
+ System.out.println(gson.toJson(type));
+</code></pre></p>
 <p>&emsp;这样就可以将MyType对象与JSON格式字符串进行相互转换了，不得不说这是十分方便的。而且通过<code>Excluder</code>和<code>FieldNamingStragety</code>我们还可以对Gson的转换过程进行一定的控制。<br>&emsp;更为厉害的是，Gson对相对泛型和复杂的对象支持的很好，比如<code>ArrayList&lt;MyType&gt;</code>对象，也可以直接通过Gson进行转换。</p>
-<h3 id="Gson反射基础"><a href="#Gson反射基础" class="headerlink" title="Gson反射基础"></a>Gson反射基础</h3><p>&emsp;这一部分主要讲解一下Java相关的反射基础和Gson对其进行的扩展。<br>&emsp;我们都知道Java泛型是类型擦除的，也就是说在运行期间，我们无法通过反射获得泛型对象的类型，那Gson是如何解析类似于<code>ArrayList&lt;MyType&gt;</code>这样的对象的类型的呢？<br>&emsp;上篇博文中讲到了Gson中使用TypeToken来代表对象的类型，其创建时会使用到<code>$Gson$Types</code>这个对象，我们现在就来好好研究一下这个对象。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">public static Type canonicalize(Type type) &#123;</span><br><span class="line">    if (type instanceof Class) &#123;  //如果就是Class</span><br><span class="line">      Class&lt;?&gt; c = (Class&lt;?&gt;) type;</span><br><span class="line">        // c.getComponetType()就是返回数组对象的类型比如</span><br><span class="line">      return c.isArray() ? new GenericArrayTypeImpl(canonicalize(c.getComponentType())) : c;</span><br><span class="line">      // ????!!!! loop for ever ????</span><br><span class="line">    &#125; else if (type instanceof ParameterizedType) &#123;  //多级泛型 HashMap&lt;K,T&gt;</span><br><span class="line">      ParameterizedType p = (ParameterizedType) type;</span><br><span class="line">      return new ParameterizedTypeImpl(p.getOwnerType(),</span><br><span class="line">          p.getRawType(), p.getActualTypeArguments());</span><br><span class="line">    &#125; else if (type instanceof GenericArrayType) &#123;   //数组泛型</span><br><span class="line">      GenericArrayType g = (GenericArrayType) type;</span><br><span class="line">      return new GenericArrayTypeImpl(g.getGenericComponentType());</span><br><span class="line">    &#125; else if (type instanceof WildcardType) &#123;   // includes ?  , ? extends Number , ? super T</span><br><span class="line">      WildcardType w = (WildcardType) type;</span><br><span class="line">      return new WildcardTypeImpl(w.getUpperBounds(), w.getLowerBounds());</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">      // type is either serializable as-is or unsupported</span><br><span class="line">      return type;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="Gson反射基础"><a href="#Gson反射基础" class="headerlink" title="Gson反射基础"></a>Gson反射基础</h3><p>&emsp;这一部分主要讲解一下Java相关的反射基础和Gson对其进行的扩展。<br>&emsp;我们都知道Java泛型是类型擦除的，也就是说在运行期间，我们无法通过反射获得泛型对象的类型，那Gson是如何解析类似于<code>ArrayList&lt;MyType&gt;</code>这样的对象的类型的呢？<br>&emsp;上篇博文中讲到了Gson中使用TypeToken来代表对象的类型，其创建时会使用到<code>$Gson$Types</code>这个对象，我们现在就来好好研究一下这个对象。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public static Type canonicalize(Type type) {
+    if (type instanceof Class) {  &#x2F;&#x2F;如果就是Class
+      Class&lt;?&gt; c = (Class&lt;?&gt;) type;
+        &#x2F;&#x2F; c.getComponetType()就是返回数组对象的类型比如
+      return c.isArray() ? new GenericArrayTypeImpl(canonicalize(c.getComponentType())) : c;
+      &#x2F;&#x2F; ????!!!! loop for ever ????
+    } else if (type instanceof ParameterizedType) {  &#x2F;&#x2F;多级泛型 HashMap&lt;K,T&gt;
+      ParameterizedType p = (ParameterizedType) type;
+      return new ParameterizedTypeImpl(p.getOwnerType(),
+          p.getRawType(), p.getActualTypeArguments());
+    } else if (type instanceof GenericArrayType) {   &#x2F;&#x2F;数组泛型
+      GenericArrayType g = (GenericArrayType) type;
+      return new GenericArrayTypeImpl(g.getGenericComponentType());
+    } else if (type instanceof WildcardType) {   &#x2F;&#x2F; includes ?  , ? extends Number , ? super T
+      WildcardType w = (WildcardType) type;
+      return new WildcardTypeImpl(w.getUpperBounds(), w.getLowerBounds());
+    } else {
+      &#x2F;&#x2F; type is either serializable as-is or unsupported
+      return type;
+    }
+  }
+</code></pre></p>
 <p>&emsp;这里的<code>ParameterizedType</code>,<code>GenericArrayType</code>,<code>WildcardType</code>还有之后会出现的<code>TypeVariable</code>是一个重点啊，他们都是<code>Type</code>的子接口，代表所有类型的公共高阶接口。详细的解释在这里有<a href="http://blog.csdn.net/u012422440/article/details/48948921" target="_blank" rel="noopener">转载博文</a><br>&emsp;还需要进一步的实验啊，以后再来补充这一部分。还有关于如何处理泛型类型擦除的逻辑。</p>
-<p>###ReflectiveTypeAdapterFacotry<br>&emsp;在上边博文中我们说过，Gson会使用<code>TypeToken</code>来代表转换对象的类型，然后找到对应类型的<code>TypeAdapter</code>，但是对于用户自定义的类型，Gson是如何处理的呢？<br>&emsp;Gson的<code>TypeAdapters</code>中有一个可以处理自定义类型的<code>TypeAdapterFactory</code>，它就是<code>ReflectiveTypeAdapterFactory</code>,它也是这篇博文的重点内容。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">private final ConstructorConstructor constructorConstructor; //构造函数</span><br><span class="line"> private final FieldNamingStrategy fieldNamingPolicy; //命名规则</span><br><span class="line"> private final Excluder excluder; //排除器</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;上述是其成员变量，文章开头所说的用户控制Gson的转换过程就是通过这三个对象实现的，我接下来会一一讲解。<br>&emsp;我们知道在Gson中通过<code>TypeToken</code>获得相应的<code>TypeAdapter</code>的逻辑如下<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">for (TypeAdapterFactory factory : factories) &#123;</span><br><span class="line">       TypeAdapter&lt;T&gt; candidate = factory.create(this, type);</span><br><span class="line">         System.out.print(&quot;1 &quot;);</span><br><span class="line">       if (candidate != null) &#123;</span><br><span class="line">           System.out.println(candidate.toString()+type.toString());</span><br><span class="line">         call.setDelegate(candidate);</span><br><span class="line">         typeTokenCache.put(type, candidate);</span><br><span class="line">         return candidate;</span><br><span class="line">       &#125;</span><br><span class="line">     &#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;可以看出只要对应的facotry的create返回的对象不为null，就认为找到了对应的factory了，那我们在来看一下<code>ReflectiveTypeAdapterFactory</code>的create函数<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">public &lt;T&gt; TypeAdapter&lt;T&gt; create(Gson gson, final TypeToken&lt;T&gt; type) &#123;</span><br><span class="line">    Class&lt;? super T&gt; raw = type.getRawType();</span><br><span class="line">    if (!Object.class.isAssignableFrom(raw)) &#123;  </span><br><span class="line">    //如果Object都不是raw的最高类型,表示raw不是Object的子类啦 </span><br><span class="line">	 return null; // it&apos;s a primitive!</span><br><span class="line">    &#125;</span><br><span class="line">    ObjectConstructor&lt;T&gt; constructor = constructorConstructor.get(type);</span><br><span class="line">    return new Adapter&lt;T&gt;(constructor, getBoundFields(gson, type, raw));</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;ObjectConstrutor<t>是为了构造器，为了创建一个相应的对象，主要是fromJson时使用的,而getBoundFields是为了获得对象的Filed类型。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">  final InstanceCreator&lt;T&gt; typeCreator = (InstanceCreator&lt;T&gt;) instanceCreators.get(type); //no-args和type一一对应啊</span><br><span class="line">  if (typeCreator != null) &#123;</span><br><span class="line">    return new ObjectConstructor&lt;T&gt;() &#123;  //这就是最基础的Constructor啊</span><br><span class="line">      public T construct() &#123;</span><br><span class="line">        return typeCreator.createInstance(type);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  // Next try raw type match for instance creators</span><br><span class="line">  @SuppressWarnings(&quot;unchecked&quot;) // types must agree</span><br><span class="line">  final InstanceCreator&lt;T&gt; rawTypeCreator =</span><br><span class="line">      (InstanceCreator&lt;T&gt;) instanceCreators.get(rawType);</span><br><span class="line">  if (rawTypeCreator != null) &#123;</span><br><span class="line">    return new ObjectConstructor&lt;T&gt;() &#123;</span><br><span class="line">      public T construct() &#123;</span><br><span class="line">        return rawTypeCreator.createInstance(type);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  ObjectConstructor&lt;T&gt; defaultConstructor = newDefaultConstructor(rawType); //默认的构造函数</span><br><span class="line">  if (defaultConstructor != null) &#123;</span><br><span class="line">    return defaultConstructor;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">  ObjectConstructor&lt;T&gt; defaultImplementation = newDefaultImplementationConstructor(type, rawType);</span><br><span class="line">  if (defaultImplementation != null) &#123;</span><br><span class="line">    return defaultImplementation;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  // finally try unsafe</span><br><span class="line">  return newUnsafeAllocator(type, rawType);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></t></p>
-<p>&emsp;这段代码就是为了获得对应类型的构造器对象，在<code>newDefaultConstructor</code>会使用反射<code>getDeclaredConstructor</code>来获得默认的构造器。然后我在来看一下<code>getBoundFields</code><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">//获得成员变量吧</span><br><span class="line"> private Map&lt;String, BoundField&gt; getBoundFields(Gson context, TypeToken&lt;?&gt; type, Class&lt;?&gt; raw) &#123;</span><br><span class="line">   Map&lt;String, BoundField&gt; result = new LinkedHashMap&lt;String, BoundField&gt;();</span><br><span class="line">   if (raw.isInterface()) &#123; //interface没有field啦</span><br><span class="line">     return result;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   Type declaredType = type.getType();</span><br><span class="line">   while (raw != Object.class) &#123; //从当前类型一直遍历到最高类型，把所有的对象的成员遍历都收集到</span><br><span class="line">     Field[] fields = raw.getDeclaredFields();</span><br><span class="line">     for (Field field : fields) &#123;  //遍历所有的field</span><br><span class="line">       boolean serialize = excludeField(field, true);//是否需要序列化，就是是否需要转换成Json</span><br><span class="line">       boolean deserialize = excludeField(field, false);//是否需要从Json中转换过来</span><br><span class="line">       if (!serialize &amp;&amp; !deserialize) &#123;</span><br><span class="line">         continue;</span><br><span class="line">       &#125;</span><br><span class="line">       field.setAccessible(true);</span><br><span class="line">         //获得Field的type</span><br><span class="line">       Type fieldType = $Gson$Types.resolve(type.getType(), raw, field.getGenericType());//获得Field的Type</span><br><span class="line">       BoundField boundField = createBoundField(context, field, getFieldName(field),</span><br><span class="line">           TypeToken.get(fieldType), serialize, deserialize); //之后详细解释</span><br><span class="line">       BoundField previous = result.put(boundField.name, boundField);</span><br><span class="line">       if (previous != null) &#123;</span><br><span class="line">         throw new IllegalArgumentException(declaredType</span><br><span class="line">             + &quot; declares multiple JSON fields named &quot; + previous.name);</span><br><span class="line">       &#125;</span><br><span class="line">     &#125;</span><br><span class="line">     type = TypeToken.get($Gson$Types.resolve(type.getType(), raw, raw.getGenericSuperclass()));</span><br><span class="line">     raw = type.getRawType();</span><br><span class="line">   &#125;</span><br><span class="line">   return result;</span><br><span class="line"> &#125;</span><br><span class="line">  static abstract class BoundField &#123;</span><br><span class="line">   final String name;</span><br><span class="line">   final boolean serialized;</span><br><span class="line">   final boolean deserialized;</span><br><span class="line"></span><br><span class="line">   protected BoundField(String name, boolean serialized, boolean deserialized) &#123;</span><br><span class="line">     this.name = name;</span><br><span class="line">     this.serialized = serialized;</span><br><span class="line">     this.deserialized = deserialized;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;其实这一段代码逻辑很简单，主要就是遍历所有的成员遍历，大家可以看我的注释，其中涉及<code>Type</code>的操作我还没有搞懂….,但是<code>createBoundField</code>也是很重要的。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">private ReflectiveTypeAdapterFactory.BoundField createBoundField(</span><br><span class="line">      final Gson context, final Field field, final String name,</span><br><span class="line">      final TypeToken&lt;?&gt; fieldType, boolean serialize, boolean deserialize) &#123;</span><br><span class="line">    final boolean isPrimitive = Primitives.isPrimitive(fieldType.getRawType());</span><br><span class="line">    // special casing primitives here saves ~5% on Android...</span><br><span class="line">    //其实就是创建一个BoundField的子类</span><br><span class="line">    return new ReflectiveTypeAdapterFactory.BoundField(name, serialize, deserialize) &#123;</span><br><span class="line">      final TypeAdapter&lt;?&gt; typeAdapter = getFieldAdapter(context, field, fieldType);//获得子类的TypeAdapter&lt;?&gt;这是解析自定义类型对象的关键一步</span><br><span class="line">      @SuppressWarnings(&#123;&quot;unchecked&quot;, &quot;rawtypes&quot;&#125;) // the type adapter and field type always agree</span><br><span class="line">      @Override void write(JsonWriter writer, Object value)</span><br><span class="line">          throws IOException, IllegalAccessException &#123;</span><br><span class="line">        Object fieldValue = field.get(value);</span><br><span class="line">        TypeAdapter t =</span><br><span class="line">          new TypeAdapterRuntimeTypeWrapper(context, this.typeAdapter, fieldType.getType());</span><br><span class="line">        t.write(writer, fieldValue); //使用TypeAdapter进行写入</span><br><span class="line">      &#125;</span><br><span class="line">      @Override void read(JsonReader reader, Object value)</span><br><span class="line">          throws IOException, IllegalAccessException &#123;</span><br><span class="line">        Object fieldValue = typeAdapter.read(reader);</span><br><span class="line">        if (fieldValue != null || !isPrimitive) &#123;</span><br><span class="line">          field.set(value, fieldValue);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      public boolean writeField(Object value) throws IOException, IllegalAccessException &#123;</span><br><span class="line">        if (!serialized) return false;</span><br><span class="line">        Object fieldValue = field.get(value);</span><br><span class="line">        return fieldValue != value; // avoid recursion for example for Throwable.cause</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;接下来我们就来看一下对应的TypeAdapter <code>private Adapter(ObjectConstructor&lt;T&gt; constructor, Map&lt;String, BoundField&gt; boundFields)</code>，主要看其read和write方法。其中两个方法最后其实都是调用了BoundField的read和write方法，我们就只看read方法啦。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">@Override public T read(JsonReader in) throws IOException &#123;</span><br><span class="line">     if (in.peek() == JsonToken.NULL) &#123;</span><br><span class="line">       in.nextNull();</span><br><span class="line">       return null;</span><br><span class="line">     &#125;</span><br><span class="line"></span><br><span class="line">     T instance = constructor.construct(); //新建对象</span><br><span class="line"></span><br><span class="line">     try &#123;</span><br><span class="line">       in.beginObject();//读出一个&#123;</span><br><span class="line">       while (in.hasNext()) &#123;</span><br><span class="line">         String name = in.nextName();//获得一个属性的name</span><br><span class="line">         BoundField field = boundFields.get(name);//获得Field对象</span><br><span class="line">         if (field == null || !field.deserialized) &#123;//如果为null或者不需要解序列化</span><br><span class="line">           in.skipValue();</span><br><span class="line">         &#125; else &#123;</span><br><span class="line">           field.read(in, instance);//使用BoundField进行write，可以参考createBoundField</span><br><span class="line">         &#125;</span><br><span class="line">       &#125;</span><br><span class="line">     &#125; catch (IllegalStateException e) &#123;</span><br><span class="line">       throw new JsonSyntaxException(e);</span><br><span class="line">     &#125; catch (IllegalAccessException e) &#123;</span><br><span class="line">       throw new AssertionError(e);</span><br><span class="line">     &#125;</span><br><span class="line">     in.endObject();</span><br><span class="line">     return instance;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;这样对已自定义对象就可以自由的和JSON格式进行相互转换啦。但是有些同学可能会问了<code>ArrayList&lt;MyType&gt;</code>是如何转换的呢？那我们就要研究<code>CollectionTypeAdapterFactory</code>了，如果你去internal/bind文件夹下查看，你会发现很多类似的类。下边就贴出来其create函数<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">public &lt;T&gt; TypeAdapter&lt;T&gt; create(Gson gson, TypeToken&lt;T&gt; typeToken) &#123;</span><br><span class="line">   Type type = typeToken.getType();</span><br><span class="line"></span><br><span class="line">   Class&lt;? super T&gt; rawType = typeToken.getRawType();</span><br><span class="line">   if (!Collection.class.isAssignableFrom(rawType))//看是否是Collection的子类 &#123;</span><br><span class="line">     return null;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   Type elementType = $Gson$Types.getCollectionElementType(type, rawType);//获得element的Type就是List&lt;T&gt;的T的类型，同学们可能会疑问泛型不是类型擦除了吗？你可以阅读一下$Gson$Types中的代码，自行了解一下，我暂时还没有完全搞懂</span><br><span class="line">   //之后就和ReflectiveTypeAdapterFactory的逻辑类似啦</span><br><span class="line">   TypeAdapter&lt;?&gt; elementTypeAdapter = gson.getAdapter(TypeToken.get(elementType));</span><br><span class="line">   ObjectConstructor&lt;T&gt; constructor = constructorConstructor.get(typeToken);</span><br><span class="line"></span><br><span class="line">   @SuppressWarnings(&#123;&quot;unchecked&quot;, &quot;rawtypes&quot;&#125;) // create() doesn&apos;t define a type parameter</span><br><span class="line">   TypeAdapter&lt;T&gt; result = new Adapter(gson, elementType, elementTypeAdapter, constructor);</span><br><span class="line">   return result;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></p>
+<p>###ReflectiveTypeAdapterFacotry<br>&emsp;在上边博文中我们说过，Gson会使用<code>TypeToken</code>来代表转换对象的类型，然后找到对应类型的<code>TypeAdapter</code>，但是对于用户自定义的类型，Gson是如何处理的呢？<br>&emsp;Gson的<code>TypeAdapters</code>中有一个可以处理自定义类型的<code>TypeAdapterFactory</code>，它就是<code>ReflectiveTypeAdapterFactory</code>,它也是这篇博文的重点内容。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike"> private final ConstructorConstructor constructorConstructor; &#x2F;&#x2F;构造函数
+  private final FieldNamingStrategy fieldNamingPolicy; &#x2F;&#x2F;命名规则
+  private final Excluder excluder; &#x2F;&#x2F;排除器
+</code></pre></p>
+<p>&emsp;上述是其成员变量，文章开头所说的用户控制Gson的转换过程就是通过这三个对象实现的，我接下来会一一讲解。<br>&emsp;我们知道在Gson中通过<code>TypeToken</code>获得相应的<code>TypeAdapter</code>的逻辑如下<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike"> for (TypeAdapterFactory factory : factories) {
+        TypeAdapter&lt;T&gt; candidate = factory.create(this, type);
+          System.out.print(&quot;1 &quot;);
+        if (candidate != null) {
+            System.out.println(candidate.toString()+type.toString());
+          call.setDelegate(candidate);
+          typeTokenCache.put(type, candidate);
+          return candidate;
+        }
+      }
+</code></pre></p>
+<p>&emsp;可以看出只要对应的facotry的create返回的对象不为null，就认为找到了对应的factory了，那我们在来看一下<code>ReflectiveTypeAdapterFactory</code>的create函数<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public &lt;T&gt; TypeAdapter&lt;T&gt; create(Gson gson, final TypeToken&lt;T&gt; type) {
+    Class&lt;? super T&gt; raw = type.getRawType();
+    if (!Object.class.isAssignableFrom(raw)) {  
+    &#x2F;&#x2F;如果Object都不是raw的最高类型,表示raw不是Object的子类啦 
+	 return null; &#x2F;&#x2F; it&#39;s a primitive!
+    }
+    ObjectConstructor&lt;T&gt; constructor = constructorConstructor.get(type);
+    return new Adapter&lt;T&gt;(constructor, getBoundFields(gson, type, raw));
+  }
+</code></pre></p>
+<p>&emsp;ObjectConstrutor<t>是为了构造器，为了创建一个相应的对象，主要是fromJson时使用的,而getBoundFields是为了获得对象的Filed类型。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">    final InstanceCreator&lt;T&gt; typeCreator = (InstanceCreator&lt;T&gt;) instanceCreators.get(type); &#x2F;&#x2F;no-args和type一一对应啊
+    if (typeCreator != null) {
+      return new ObjectConstructor&lt;T&gt;() {  &#x2F;&#x2F;这就是最基础的Constructor啊
+        public T construct() {
+          return typeCreator.createInstance(type);
+        }
+      };
+    }
+
+    &#x2F;&#x2F; Next try raw type match for instance creators
+    @SuppressWarnings(&quot;unchecked&quot;) &#x2F;&#x2F; types must agree
+    final InstanceCreator&lt;T&gt; rawTypeCreator =
+        (InstanceCreator&lt;T&gt;) instanceCreators.get(rawType);
+    if (rawTypeCreator != null) {
+      return new ObjectConstructor&lt;T&gt;() {
+        public T construct() {
+          return rawTypeCreator.createInstance(type);
+        }
+      };
+    }
+
+    ObjectConstructor&lt;T&gt; defaultConstructor = newDefaultConstructor(rawType); &#x2F;&#x2F;默认的构造函数
+    if (defaultConstructor != null) {
+      return defaultConstructor;
+    }
+
+
+    ObjectConstructor&lt;T&gt; defaultImplementation = newDefaultImplementationConstructor(type, rawType);
+    if (defaultImplementation != null) {
+      return defaultImplementation;
+    }
+
+    &#x2F;&#x2F; finally try unsafe
+    return newUnsafeAllocator(type, rawType);
+  }
+</code></pre></t></p>
+<p>&emsp;这段代码就是为了获得对应类型的构造器对象，在<code>newDefaultConstructor</code>会使用反射<code>getDeclaredConstructor</code>来获得默认的构造器。然后我在来看一下<code>getBoundFields</code><br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike"> &#x2F;&#x2F;获得成员变量吧
+  private Map&lt;String, BoundField&gt; getBoundFields(Gson context, TypeToken&lt;?&gt; type, Class&lt;?&gt; raw) {
+    Map&lt;String, BoundField&gt; result = new LinkedHashMap&lt;String, BoundField&gt;();
+    if (raw.isInterface()) { &#x2F;&#x2F;interface没有field啦
+      return result;
+    }
+
+    Type declaredType = type.getType();
+    while (raw != Object.class) { &#x2F;&#x2F;从当前类型一直遍历到最高类型，把所有的对象的成员遍历都收集到
+      Field[] fields = raw.getDeclaredFields();
+      for (Field field : fields) {  &#x2F;&#x2F;遍历所有的field
+        boolean serialize = excludeField(field, true);&#x2F;&#x2F;是否需要序列化，就是是否需要转换成Json
+        boolean deserialize = excludeField(field, false);&#x2F;&#x2F;是否需要从Json中转换过来
+        if (!serialize &amp;&amp; !deserialize) {
+          continue;
+        }
+        field.setAccessible(true);
+          &#x2F;&#x2F;获得Field的type
+        Type fieldType = $Gson$Types.resolve(type.getType(), raw, field.getGenericType());&#x2F;&#x2F;获得Field的Type
+        BoundField boundField = createBoundField(context, field, getFieldName(field),
+            TypeToken.get(fieldType), serialize, deserialize); &#x2F;&#x2F;之后详细解释
+        BoundField previous = result.put(boundField.name, boundField);
+        if (previous != null) {
+          throw new IllegalArgumentException(declaredType
+              + &quot; declares multiple JSON fields named &quot; + previous.name);
+        }
+      }
+      type = TypeToken.get($Gson$Types.resolve(type.getType(), raw, raw.getGenericSuperclass()));
+      raw = type.getRawType();
+    }
+    return result;
+  }
+   static abstract class BoundField {
+    final String name;
+    final boolean serialized;
+    final boolean deserialized;
+
+    protected BoundField(String name, boolean serialized, boolean deserialized) {
+      this.name = name;
+      this.serialized = serialized;
+      this.deserialized = deserialized;
+    }
+</code></pre></p>
+<p>&emsp;其实这一段代码逻辑很简单，主要就是遍历所有的成员遍历，大家可以看我的注释，其中涉及<code>Type</code>的操作我还没有搞懂….,但是<code>createBoundField</code>也是很重要的。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">private ReflectiveTypeAdapterFactory.BoundField createBoundField(
+      final Gson context, final Field field, final String name,
+      final TypeToken&lt;?&gt; fieldType, boolean serialize, boolean deserialize) {
+    final boolean isPrimitive = Primitives.isPrimitive(fieldType.getRawType());
+    &#x2F;&#x2F; special casing primitives here saves ~5% on Android...
+    &#x2F;&#x2F;其实就是创建一个BoundField的子类
+    return new ReflectiveTypeAdapterFactory.BoundField(name, serialize, deserialize) {
+      final TypeAdapter&lt;?&gt; typeAdapter = getFieldAdapter(context, field, fieldType);&#x2F;&#x2F;获得子类的TypeAdapter&lt;?&gt;这是解析自定义类型对象的关键一步
+      @SuppressWarnings({&quot;unchecked&quot;, &quot;rawtypes&quot;}) &#x2F;&#x2F; the type adapter and field type always agree
+      @Override void write(JsonWriter writer, Object value)
+          throws IOException, IllegalAccessException {
+        Object fieldValue = field.get(value);
+        TypeAdapter t =
+          new TypeAdapterRuntimeTypeWrapper(context, this.typeAdapter, fieldType.getType());
+        t.write(writer, fieldValue); &#x2F;&#x2F;使用TypeAdapter进行写入
+      }
+      @Override void read(JsonReader reader, Object value)
+          throws IOException, IllegalAccessException {
+        Object fieldValue = typeAdapter.read(reader);
+        if (fieldValue != null || !isPrimitive) {
+          field.set(value, fieldValue);
+        }
+      }
+      public boolean writeField(Object value) throws IOException, IllegalAccessException {
+        if (!serialized) return false;
+        Object fieldValue = field.get(value);
+        return fieldValue != value; &#x2F;&#x2F; avoid recursion for example for Throwable.cause
+      }
+    };
+  }
+</code></pre></p>
+<p>&emsp;接下来我们就来看一下对应的TypeAdapter <code>private Adapter(ObjectConstructor&lt;T&gt; constructor, Map&lt;String, BoundField&gt; boundFields)</code>，主要看其read和write方法。其中两个方法最后其实都是调用了BoundField的read和write方法，我们就只看read方法啦。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike"> @Override public T read(JsonReader in) throws IOException {
+      if (in.peek() == JsonToken.NULL) {
+        in.nextNull();
+        return null;
+      }
+
+      T instance = constructor.construct(); &#x2F;&#x2F;新建对象
+
+      try {
+        in.beginObject();&#x2F;&#x2F;读出一个{
+        while (in.hasNext()) {
+          String name = in.nextName();&#x2F;&#x2F;获得一个属性的name
+          BoundField field = boundFields.get(name);&#x2F;&#x2F;获得Field对象
+          if (field == null || !field.deserialized) {&#x2F;&#x2F;如果为null或者不需要解序列化
+            in.skipValue();
+          } else {
+            field.read(in, instance);&#x2F;&#x2F;使用BoundField进行write，可以参考createBoundField
+          }
+        }
+      } catch (IllegalStateException e) {
+        throw new JsonSyntaxException(e);
+      } catch (IllegalAccessException e) {
+        throw new AssertionError(e);
+      }
+      in.endObject();
+      return instance;
+    }
+</code></pre></p>
+<p>&emsp;这样对已自定义对象就可以自由的和JSON格式进行相互转换啦。但是有些同学可能会问了<code>ArrayList&lt;MyType&gt;</code>是如何转换的呢？那我们就要研究<code>CollectionTypeAdapterFactory</code>了，如果你去internal/bind文件夹下查看，你会发现很多类似的类。下边就贴出来其create函数<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike"> public &lt;T&gt; TypeAdapter&lt;T&gt; create(Gson gson, TypeToken&lt;T&gt; typeToken) {
+    Type type = typeToken.getType();
+
+    Class&lt;? super T&gt; rawType = typeToken.getRawType();
+    if (!Collection.class.isAssignableFrom(rawType))&#x2F;&#x2F;看是否是Collection的子类 {
+      return null;
+    }
+
+    Type elementType = $Gson$Types.getCollectionElementType(type, rawType);&#x2F;&#x2F;获得element的Type就是List&lt;T&gt;的T的类型，同学们可能会疑问泛型不是类型擦除了吗？你可以阅读一下$Gson$Types中的代码，自行了解一下，我暂时还没有完全搞懂
+    &#x2F;&#x2F;之后就和ReflectiveTypeAdapterFactory的逻辑类似啦
+    TypeAdapter&lt;?&gt; elementTypeAdapter = gson.getAdapter(TypeToken.get(elementType));
+    ObjectConstructor&lt;T&gt; constructor = constructorConstructor.get(typeToken);
+
+    @SuppressWarnings({&quot;unchecked&quot;, &quot;rawtypes&quot;}) &#x2F;&#x2F; create() doesn&#39;t define a type parameter
+    TypeAdapter&lt;T&gt; result = new Adapter(gson, elementType, elementTypeAdapter, constructor);
+    return result;
+  }
+</code></pre></p>
 <p>&emsp;感觉关于<code>TypeToken</code>和<code>$Gson$Type</code>还是没有完全明白，所以并没有过多涉及，大家如果发现神马问题，或者有好的建议，欢迎大家批判和指教。</p>
 
-      
-    </div>
-    
-    
-    
+      <h3>关于图片和转载</h3>
 
-    
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
 
-    
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
 
-    
+      <h3>关于评论和留言</h3>
 
+      如果对本文 <a href="http://remcarpediem.net/2015/10/07/Gson源码分析二/">Gson源码分析二</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/2015/10/07/Gson源码分析二/">Gson源码分析二</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
     <footer class="post-footer">
-      
-        <div class="post-tags">
-          
-            <a href="/tags/第三方库/" rel="tag"># 第三方库</a>
-          
-            <a href="/tags/反射/" rel="tag"># 反射</a>
-          
-            <a href="/tags/JSON/" rel="tag"># JSON</a>
-          
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">remCarpediem's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">remCarpediem</a></h4>
+        
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> Carpediem</a></span> 
         </div>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/2015/10/07/Gson源码分析二/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/2015/10/07/Gson源码分析二/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/2015/10/07/Gson源码分析二/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
       
+ <div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script>
+    const gitalk = new Gitalk({
+    clientID: '9347af410c07624ec3e6',
+    clientSecret: '578667b93387d410574122685243499f1b546ba7',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: "http://remcarpediem.net/2015/10/07/Gson源码分析二/",
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
 
-      
-      
-      
+gitalk.render('gitalk-container')
+</script>
 
-      
-        <div class="post-nav">
-          <div class="post-nav-next post-nav-item">
-            
-              <a href="/2015/10/02/Gson源码分析/" rel="next" title="Gson源码分析">
-                <i class="fa fa-chevron-left"></i> Gson源码分析
-              </a>
-            
-          </div>
-
-          <span class="post-nav-divider"></span>
-
-          <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2015/10/17/生活学习记录一-RxJava-实习感悟/" rel="prev" title="生活学习记录一:RxJava+实习感悟">
-                生活学习记录一:RxJava+实习感悟 <i class="fa fa-chevron-right"></i>
-              </a>
-            
-          </div>
-        </div>
-      
-
-      
-      
     </footer>
-  </div>
-  
-  
-  
   </article>
-
-
-
-    <div class="post-spread">
-      
-    </div>
-  </div>
-
-
-          </div>
-          
-
-
-          
-  <div class="comments" id="comments">
+</main>
+<aside class="read-next">
+ 
     
-  </div>
-
-
-        </div>
-        
-          
-  
-  <div class="sidebar-toggle">
-    <div class="sidebar-toggle-line-wrap">
-      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
-      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
-      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
-    </div>
-  </div>
-
-  <aside id="sidebar" class="sidebar">
-    
-    <div class="sidebar-inner">
-
-      
-
-      
-        <ul class="sidebar-nav motion-element">
-          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
-            Table of Contents
-          </li>
-          <li class="sidebar-nav-overview" data-target="site-overview">
-            Overview
-          </li>
-        </ul>
-      
-
-      <section class="site-overview sidebar-panel">
-        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="remCarpediem">
-          <p class="site-author-name" itemprop="name">remCarpediem</p>
-           
-              <p class="site-description motion-element" itemprop="description"></p>
-          
-        </div>
-        <nav class="site-state motion-element">
-
-          
-            <div class="site-state-item site-state-posts">
-              <a href="/archives/">
-                <span class="site-state-item-count">59</span>
-                <span class="site-state-item-name">posts</span>
-              </a>
-            </div>
-          
-
-          
+    <a class="read-next-story no-cover" href="/2015/10/02/Gson源码分析/">
+      <section class="post">
+        <h2>Gson源码分析</h2>
+        <p>
             
+              &emsp;最近研究了google开源的Json库Gson，在这里进行总结一下，应该会分为3篇博客。第一篇主要讲一下Gson的整个框架吧；第二篇主要总结一下Gson关于反射的部分;最后一篇会总结一下JsonWriter和JsonReader，主要是Json对象的处理啦。
+Gson&emsp;Gson是可以转换Java对象为JSON表示的java库，也可以将JSON转换为Java对象，并且可以转换你没有源代码的预设的复杂对象&emsp;现 ......
             
-            <div class="site-state-item site-state-categories">
-              
-                <span class="site-state-item-count">33</span>
-                <span class="site-state-item-name">categories</span>
-              
-            </div>
-          
-
-          
-            
-            
-            <div class="site-state-item site-state-tags">
-              
-                <span class="site-state-item-count">53</span>
-                <span class="site-state-item-name">tags</span>
-              
-            </div>
-          
-
-        </nav>
-
-        
-
-        <div class="links-of-author motion-element">
-          
-        </div>
-
-        
-        
-
-        
-        
-
-        
-
-
+          </p>
       </section>
-
-      
-      <!--noindex-->
-        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
-          <div class="post-toc">
-
-            
-              
-            
-
-            
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#一个Gson例子"><span class="nav-number">1.</span> <span class="nav-text">一个Gson例子</span></a></li></ol><li class="nav-item nav-level-3"><a class="nav-link" href="#Gson反射基础"><span class="nav-number"></span> <span class="nav-text">Gson反射基础</span></a></li></div>
-            
-
-          </div>
-        </section>
-      <!--/noindex-->
-      
-
-      
-
-    </div>
-  </aside>
-
-
-        
-      </div>
-    </main>
-
-    <footer id="footer" class="footer">
-      <div class="footer-inner">
-        <div class="copyright">
+    </a>
+    
   
-  &copy; 
-  <span itemprop="copyrightYear">2018</span>
-  <span class="with-love">
-    <i class="fa fa-heart"></i>
-  </span>
-  <span class="author" itemprop="copyrightHolder">remCarpediem</span>
-</div>
 
 
-<div class="powered-by">
-  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
-</div>
-
-<div class="theme-info">
-  Theme -
-  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
-    NexT.Muse
-  </a>
-</div>
-
-
-        
-
-        
-      </div>
-    </footer>
-
+  
     
-      <div class="back-to-top">
-        <i class="fa fa-arrow-up"></i>
-        
-      </div>
+    <a class="read-next-story no-cover" href="/2015/10/17/生活学习记录一-RxJava-实习感悟/">
+      <section class="post">
+        <h2>生活学习记录一:RxJava+实习感悟</h2>
+        <p>
+            
+              &emsp;很久之前就希望自己可以把生活中的点滴都化为文字,记录下来了,今天就写下第一篇博文吧.希望有个好的开始,然后坚持下去.&emsp;前一段时间,在腾讯员工的微信群中看到了有关RxJava和eventBus的对比文章的分享,于是趁着周末,研究一下最近很火的RxJava的使用.&emsp;在学习RxJava的过程中主要参考了下列的几篇文章:
+
+给android开发者的RxJava详解 ,这是我主要学习的一篇,大多数有关RxJava的 ......
+            
+          </p>
+      </section>
+    </a>
     
+  
+</aside>
+
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">Carpediem</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
+</footer>
 
   </div>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
 
-  
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
 
 <script type="text/javascript">
-  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
-    window.Promise = null;
-  }
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
 </script>
 
 
 
 
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
-
-  
-  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
-
-  
-  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
-
-  
-  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
-
-  
-  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
-
-  
-  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
-
-
-  
-
-
-  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
-
-  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
-
-
-
-  
-  
-
-  
-  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
-<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
-
-
-
-  
-
-
-  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
-
-
-
-  
-
-
-  
-
-
-
-
-	
-
-
-
-
-
-  
-
-
-
-
-
-  
-
-
-
-
-
-
-  
-
-
-
-
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
 
 </body>
 </html>

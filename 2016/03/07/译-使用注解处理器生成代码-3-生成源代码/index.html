@@ -1,100 +1,15 @@
 <!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
 
-
-
-  
-
-
-<html class="theme-next muse use-motion" lang="Chinese">
-<head><meta name="generator" content="Hexo 3.8.0">
-  <meta charset="UTF-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<meta name="theme-color" content="#222">
-
-
-
-
-
-
-
-
-
-<meta http-equiv="Cache-Control" content="no-transform">
-<meta http-equiv="Cache-Control" content="no-siteapp">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  
-  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
-
-
-
-
-  
-  
-  
-  
-
-  
-    
-    
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-    
-    
-    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
-  
-
-
-
-
-
-
-<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
-
-<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
-
-
-  <meta name="keywords" content="注解,">
-
-
-
-
-
-
-
-
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
-
-
-
-
-
-
-<meta name="description" content="本博文原文地址摸我 本篇博文是关于使用注解处理器生成java代码系列的第三篇也是最后一篇文章。在第一篇（在这里）中，我们介绍了注解和其一般用法。在第二篇（在这里）中，我们介绍了注解处理器，如何构造并且使用它。 在本篇博文中，我们将想你展示如何使用注解处理器来生成源代码。 简介 生成源代码很简单。生成正确的源代码却很难。优雅高效的去生成正确的代码是很麻烦的任务。 幸运的是，Model-Driver">
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>[译]使用注解处理器生成代码-3 生成源代码 | Carpediem</title>
+  <meta name="description" content="blog of nobody" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="本博文原文地址摸我 本篇博文是关于使用注解处理器生成java代码系列的第三篇也是最后一篇文章。在第一篇（在这里）中，我们介绍了注解和其一般用法。在第二篇（在这里）中，我们介绍了注解处理器，如何构造并且使用它。 在本篇博文中，我们将想你展示如何使用注解处理器来生成源代码。 简介 生成源代码很简单。生成正确的源代码却很难。优雅高效的去生成正确的代码是很麻烦的任务。 幸运的是，Model-Driver">
 <meta name="keywords" content="注解">
 <meta property="og:type" content="article">
 <meta property="og:title" content="[译]使用注解处理器生成代码-3 生成源代码">
@@ -106,266 +21,258 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="[译]使用注解处理器生成代码-3 生成源代码">
 <meta name="twitter:description" content="本博文原文地址摸我 本篇博文是关于使用注解处理器生成java代码系列的第三篇也是最后一篇文章。在第一篇（在这里）中，我们介绍了注解和其一般用法。在第二篇（在这里）中，我们介绍了注解处理器，如何构造并且使用它。 在本篇博文中，我们将想你展示如何使用注解处理器来生成源代码。 简介 生成源代码很简单。生成正确的源代码却很难。优雅高效的去生成正确的代码是很麻烦的任务。 幸运的是，Model-Driver">
+  <!-- build:css css/screen.css -->
 
-
-
-<script type="text/javascript" id="hexo.configurations">
-  var NexT = window.NexT || {};
-  var CONFIG = {
-    root: '/',
-    scheme: 'Muse',
-    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
-    fancybox: true,
-    tabs: true,
-    motion: true,
-    duoshuo: {
-      userId: '0',
-      author: 'Author'
-    },
-    algolia: {
-      applicationID: '',
-      apiKey: '',
-      indexName: '',
-      hits: {"per_page":10},
-      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
-    }
-  };
-</script>
-
-
-
-  <link rel="canonical" href="http://remcarpediem.net/2016/03/07/译-使用注解处理器生成代码-3-生成源代码/">
-
-
-
-
-
-  <title>[译]使用注解处理器生成代码-3 生成源代码 | Carpediem</title>
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-</head>
-
-<body itemscope="" itemtype="http://schema.org/WebPage" lang="Chinese">
-
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="Carpediem">
   
   
-    
   
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
 
-  <div class="container sidebar-position-left page-post-detail ">
-    <div class="headband"></div>
 
-    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
-      <div class="header-inner"><div class="site-brand-wrapper">
-  <div class="site-meta ">
-    
+<body class="post-template">
 
-    <div class="custom-logo-site-title">
-      <a href="/" class="brand" rel="start">
-        <span class="logo-line-before"><i></i></span>
-        <span class="site-title">Carpediem</span>
-        <span class="logo-line-after"><i></i></span>
-      </a>
-    </div>
-      
-        <p class="site-subtitle">blog of nobody</p>
-      
-  </div>
-
-  <div class="site-nav-toggle">
-    <button>
-      <span class="btn-bar"></span>
-      <span class="btn-bar"></span>
-      <span class="btn-bar"></span>
-    </button>
-  </div>
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home {% if page.current == 'home' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios {% if page.url contains 'iOS' %} nav-current{% endif %}" role="presentation"><a href="/archives">Archives</a></li>
+    <li class="nav-mvc {% if page.url contains 'MVC' %} nav-current{% endif %}" role="presentation"><a href="/tag">Tags</a></li>
+    <li class="nav-server {% if page.url contains 'server' %} nav-current{% endif %}" role="presentation"><a href="/category">Category</a></li>
+    <li class="nav-ruby {% if page.url contains 'ruby' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}tag/ruby">About</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
 </div>
+<span class="nav-cover"></span>
 
-<nav class="site-nav">
-  
-
-  
-    <ul id="menu" class="menu">
-      
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
         
-        <li class="menu-item menu-item-home">
-          <a href="/" rel="section">
-            
-              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
-            
-            Home
-          </a>
-        </li>
-      
-        
-        <li class="menu-item menu-item-archives">
-          <a href="/archives/" rel="section">
-            
-              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
-            
-            Archives
-          </a>
-        </li>
-      
-        
-        <li class="menu-item menu-item-tags">
-          <a href="/tags/" rel="section">
-            
-              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
-            
-            Tags
-          </a>
-        </li>
-      
-
-      
-    </ul>
-  
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
+</header>
 
   
-</nav>
 
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">[译]使用注解处理器生成代码-3 生成源代码</h1>
+      <section class="post-meta">
+  <time datetime="2016-03-07T13:51:20.000Z" itemprop="datePublished" class="post-date">
+      2016-03-07
+  </time>
+  
+  
+  
+  <a href="/tags/注解/">注解</a>
+  
+  
+</section>
 
-
- </div>
     </header>
-
-    <main id="main" class="main">
-      <div class="main-inner">
-        <div class="content-wrap">
-          <div id="content" class="content">
-            
-
-  <div id="posts" class="posts-expand">
-    
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://remcarpediem.net/2016/03/07/译-使用注解处理器生成代码-3-生成源代码/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="remCarpediem">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Carpediem">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">[译]使用注解处理器生成代码-3 生成源代码</h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2016-03-07T21:51:20+08:00">
-                2016-03-07
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/Android/" itemprop="url" rel="index">
-                    <span itemprop="name">Android</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
+    <section class="post-content" itemprop="description articleBody">
       
 
-      
-        <p> 本博文原文地址<a href="https://deors.wordpress.com/2011/10/31/annotation-generators/" target="_blank" rel="noopener">摸我</a><br> 本篇博文是关于使用注解处理器生成java代码系列的第三篇也是最后一篇文章。在第一篇（在<a href="http://www.jianshu.com/p/ed2a755fc053" target="_blank" rel="noopener">这里</a>）中，我们介绍了注解和其一般用法。在第二篇（在<a href="http://www.jianshu.com/p/d294bf008bec" target="_blank" rel="noopener">这里</a>）中，我们介绍了注解处理器，如何构造并且使用它。 在本篇博文中，我们将想你展示如何使用注解处理器来生成源代码。</p>
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2018-11-18T13:40:01.000Z" itemprop="dateModified">
+      2018-11-18
+  </time>
+</section>
+
+       -->
+      <p> 本博文原文地址<a href="https://deors.wordpress.com/2011/10/31/annotation-generators/" target="_blank" rel="noopener">摸我</a><br> 本篇博文是关于使用注解处理器生成java代码系列的第三篇也是最后一篇文章。在第一篇（在<a href="http://www.jianshu.com/p/ed2a755fc053" target="_blank" rel="noopener">这里</a>）中，我们介绍了注解和其一般用法。在第二篇（在<a href="http://www.jianshu.com/p/d294bf008bec" target="_blank" rel="noopener">这里</a>）中，我们介绍了注解处理器，如何构造并且使用它。 在本篇博文中，我们将想你展示如何使用注解处理器来生成源代码。</p>
 <h4 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h4><p> 生成源代码很简单。生成正确的源代码却很难。优雅高效的去生成正确的代码是很麻烦的任务。<br> 幸运的是，Model-Driver Engineering(1)为我们提供了基于已经证明有效的过程和工具的成熟的方法理论。</p>
 <h4 id="MDE-的-Model-和-Meta-model"><a href="#MDE-的-Model-和-Meta-model" class="headerlink" title="MDE 的 Model 和 Meta-model"></a>MDE 的 Model 和 Meta-model</h4><p> 在讨论如何使用注解处理器生成源代码之前，有几个相关的概念我们要实现讲明，那就是<strong>models</strong> 和 <strong>meta-model</strong><br> MDE的理论基础之一为抽象的构造(construction of abstractions)。我们将软件系统在不同的层次和细节上使用不同的方法进行建模。当软件在一个抽象层次上被建模完成之后，我们就开始对下一个抽象层次进行建模，知道建立一个完备的，可部署的产品。<br> 在这种理论环境下，一个model 就是我们用来在某一抽象层级上表示软件系统的抽象。<br> meta-model就是我们用来写model的规则，你可以理解为model的纲要或者语法。</p>
 <h4 id="使用注解处理器生成源代码"><a href="#使用注解处理器生成源代码" class="headerlink" title="使用注解处理器生成源代码"></a>使用注解处理器生成源代码</h4><p> 由上述描述可见，注解是定义model和meta-model的好方法，注解类型(Annotation Type)充当meta-model的角色，标注在一段代码上的注解来提供model。<br> 我们可以使用这个model来生成配置文件或者从现有代码中生成新代码。比如，通过注解bean来生成远程代理或者数据访问对象。<br> 这个方法的核心就是使用注解处理器。注解处理器可以读取在源代码中发现的注解，并且对注解做任何想做的事情-比如，打开文件，写文件，等等。</p>
-<h4 id="Filter"><a href="#Filter" class="headerlink" title="Filter"></a>Filter</h4><p> 我们在第二篇博文中曾经说过，每个处理器都可以通过处理环境(processing environment)对象获得一些有用的工具，Filter就是其中之一。<br> <strong>javax.annotation.processing.Filer</strong>接口定义了一些关于创建源文件，类文件和一般资源的方法。通过使用<code>Filter</code>我们可以使用正确的文件目录，并且确保不会丢失文件系统中的生成的文件或者资源。<br> 下面这个例子可以显示如何在注解处理器中生成代码。生成的类名就是被注解的类名加上BeanInfo的后缀：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">if</span> (e.getKind() == ElementKind.CLASS) &#123;     </span><br><span class="line">  TypeElement classElement = (TypeElement) e;</span><br><span class="line">  PackageElement packageElement =         </span><br><span class="line">        (PackageElement) classElement.getEnclosingElement();  </span><br><span class="line">  JavaFileObject jfo =  processingEnv.getFiler().</span><br><span class="line">        createSourceFile(classElement.getQualifiedName() </span><br><span class="line">        + <span class="string">"BeanInfo"</span>);     </span><br><span class="line"></span><br><span class="line">  BufferedWriter bw = <span class="keyword">new</span> BufferedWriter(jfo.openWriter());       </span><br><span class="line">  bw.append(<span class="string">"package "</span>);      </span><br><span class="line">  bw.append(packageElement.getQualifiedName());     </span><br><span class="line">  bw.append(<span class="string">";"</span>);     </span><br><span class="line">  bw.newLine();     </span><br><span class="line">  bw.newLine();     </span><br><span class="line">  <span class="comment">// rest of generated class contents</span></span><br></pre></td></tr></table></figure></p>
+<h4 id="Filter"><a href="#Filter" class="headerlink" title="Filter"></a>Filter</h4><p> 我们在第二篇博文中曾经说过，每个处理器都可以通过处理环境(processing environment)对象获得一些有用的工具，Filter就是其中之一。<br> <strong>javax.annotation.processing.Filer</strong>接口定义了一些关于创建源文件，类文件和一般资源的方法。通过使用<code>Filter</code>我们可以使用正确的文件目录，并且确保不会丢失文件系统中的生成的文件或者资源。<br> 下面这个例子可以显示如何在注解处理器中生成代码。生成的类名就是被注解的类名加上BeanInfo的后缀：<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">
+if (e.getKind() == ElementKind.CLASS) {     
+  TypeElement classElement = (TypeElement) e;
+  PackageElement packageElement =         
+        (PackageElement) classElement.getEnclosingElement();  
+  JavaFileObject jfo =  processingEnv.getFiler().
+        createSourceFile(classElement.getQualifiedName() 
+        + &quot;BeanInfo&quot;);     
+
+  BufferedWriter bw = new BufferedWriter(jfo.openWriter());       
+  bw.append(&quot;package &quot;);      
+  bw.append(packageElement.getQualifiedName());     
+  bw.append(&quot;;&quot;);     
+  bw.newLine();     
+  bw.newLine();     
+  &#x2F;&#x2F; rest of generated class contents
+</code></pre></p>
 <p>####不要这样生成代码<br> 上边这个例子十分简单，有趣但是很混乱。<br> 我们把从注解中读取信息的逻辑和写生成的源文件的逻辑混一起拉。<br> 按照上述那种方式很难写出简洁的代码，如果当我们遇到一些更加复杂的逻辑时，就更难啦。<br> 我们需要一个更加优雅的实现方式：- 将不同逻辑分离- 使用模版来让代码生成更加简单<br> 让我们看看使用Apache的Velocity构造代码生成器的例子吧。</p>
-<h4 id="Velocity简介"><a href="#Velocity简介" class="headerlink" title="Velocity简介"></a>Velocity简介</h4><p> <a href="http://velocity.apache.org/" target="_blank" rel="noopener">Velocity</a> 是通过混合模版和java类的数据来生成各类文本文件的模版引擎。 <code>Velocity</code>可以在<code>MVC</code>框架中渲染视图或者在<code>xml</code>传输数据时替代<code>XSLT</code><br> <code>Velocity</code>有它自己的语言叫做Velocity Template Language（VTL）。在VTL中，我们可以定义变量，控制流，迭代和获取java对象中的数据。<br> 下面就是<code>Velocity</code>模版的一个片段:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">**#foreach($field in $fields)**     </span><br><span class="line">/**      </span><br><span class="line">* Returns the $&#123;field.simpleName&#125; property descriptor.      </span><br><span class="line">*      </span><br><span class="line">* @return the property descriptor      </span><br><span class="line">*/     </span><br><span class="line">public PropertyDescriptor </span><br><span class="line">$&#123;field.simpleName&#125;PropertyDescriptor() &#123;         </span><br><span class="line">  PropertyDescriptor theDescriptor = null;         </span><br><span class="line">  return theDescriptor;     </span><br><span class="line">&#125; </span><br><span class="line">#end </span><br><span class="line">#foreach($method in $methods)     </span><br><span class="line">/**      </span><br><span class="line">* Returns the </span><br><span class="line">*</span><br><span class="line">*$&#123;method.simpleName&#125;**() method descriptor.      </span><br><span class="line">*      </span><br><span class="line">* @return the method descriptor      </span><br><span class="line">*/     </span><br><span class="line">public MethodDescriptor</span><br><span class="line">$&#123;method.simpleName&#125;MethodDescriptor() &#123;         </span><br><span class="line">  MethodDescriptor descriptor = null;</span><br></pre></td></tr></table></figure></p>
+<h4 id="Velocity简介"><a href="#Velocity简介" class="headerlink" title="Velocity简介"></a>Velocity简介</h4><p> <a href="http://velocity.apache.org/" target="_blank" rel="noopener">Velocity</a> 是通过混合模版和java类的数据来生成各类文本文件的模版引擎。 <code>Velocity</code>可以在<code>MVC</code>框架中渲染视图或者在<code>xml</code>传输数据时替代<code>XSLT</code><br> <code>Velocity</code>有它自己的语言叫做Velocity Template Language（VTL）。在VTL中，我们可以定义变量，控制流，迭代和获取java对象中的数据。<br> 下面就是<code>Velocity</code>模版的一个片段:<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">**#foreach($field in $fields)**     
+&#x2F;**      
+* Returns the ${field.simpleName} property descriptor.      
+*      
+* @return the property descriptor      
+*&#x2F;     
+public PropertyDescriptor 
+${field.simpleName}PropertyDescriptor() {         
+  PropertyDescriptor theDescriptor = null;         
+  return theDescriptor;     
+} 
+#end 
+#foreach($method in $methods)     
+&#x2F;**      
+* Returns the 
+*
+*${method.simpleName}**() method descriptor.      
+*      
+* @return the method descriptor      
+*&#x2F;     
+public MethodDescriptor
+${method.simpleName}MethodDescriptor() {         
+  MethodDescriptor descriptor = null;
+</code></pre></p>
 <p> 正如你所看到的，VTL十分简单并且易于理解。<code>#foreach($field in $fields)</code>代表对对象集合的迭代；<code>${method.simpleName}</code>则是打印数据信息。</p>
 <h4 id="Velocity代码生成器"><a href="#Velocity代码生成器" class="headerlink" title="Velocity代码生成器"></a>Velocity代码生成器</h4><p> 既然我们决定使用<code>Veloctiy</code>来增强我们的代码生成器，那么我们就要重新进行设计：</p>
 <ul>
 <li>设计用来生成代码的模版</li>
 <li>注解处理器会从<code>round environment</code>中读取被注解元素，并且将其保存到对象中，比如保存成员变量，方法，或者类，包的表.</li>
 <li>注解处理器需要初始化<code>Velocity</code>相关上下文- 注解处理器需要加载<code>Velocity</code>模版- 注解处理器会创建源文件(使用<code>Filer</code>)并且传递一个<code>Writer</code>给<code>Velocity</code>模版</li>
-<li><code>Veloctiy</code>引擎生成源代码<br> 使用这个方案，我们会发现处理器和生成器相关的代码是清晰，良好组织并且易于理解和维护。<br> 让我们一步一步的来实现这个方案吧。<br>####步骤一:实现一个模版<br> 为了简单，我们并不会展示<code>BeanInfo</code>生成器的全部代码，而是只展示我们注解处理器需要使用的一部分成员变量和方法。<br> 我们先创建一个名为beaninfovm的文件，并且放置在Maven的<code>src/main/resource</code>下。文件内容如下:<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> $&#123;packageName&#125;;</span><br><span class="line"><span class="keyword">import</span> java.beans.MethodDescriptor;</span><br><span class="line"><span class="keyword">import</span> java.beans.ParameterDescriptor;</span><br><span class="line"><span class="keyword">import</span> java.beans.PropertyDescriptor;</span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Method;</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> $</span>&#123;className&#125;BeanInfo </span><br><span class="line">        extends java.beans.SimpleBeanInfo </span><br><span class="line">&#123; </span><br><span class="line">  <span class="comment">/** * Gets the bean class object. </span></span><br><span class="line"><span class="comment">  * </span></span><br><span class="line"><span class="comment">  * <span class="doctag">@return</span> the bean class </span></span><br><span class="line"><span class="comment">  */</span> </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Class <span class="title">getBeanClass</span><span class="params">()</span> </span>&#123; </span><br><span class="line">    <span class="keyword">return</span> $&#123;packageName&#125;.$&#123;className&#125;.class; </span><br><span class="line">  &#125; </span><br><span class="line">  <span class="comment">/** </span></span><br><span class="line"><span class="comment">  * Gets the bean class name. </span></span><br><span class="line"><span class="comment">  * </span></span><br><span class="line"><span class="comment">  * <span class="doctag">@return</span> the bean class name </span></span><br><span class="line"><span class="comment">  */</span> </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title">getBeanClassName</span><span class="params">()</span> </span>&#123; </span><br><span class="line">    <span class="keyword">return</span> <span class="string">"$&#123;packageName&#125;.$&#123;className&#125;"</span>; </span><br><span class="line">  &#125; </span><br><span class="line">  <span class="comment">/** </span></span><br><span class="line"><span class="comment">  * Finds the right method by comparing name &amp; number of parameters in the class </span></span><br><span class="line"><span class="comment">  * method list. </span></span><br><span class="line"><span class="comment">  * </span></span><br><span class="line"><span class="comment">  * <span class="doctag">@param</span> classObject the class object </span></span><br><span class="line"><span class="comment">  * <span class="doctag">@param</span> methodName the method name </span></span><br><span class="line"><span class="comment">  * <span class="doctag">@param</span> parameterCount the number of parameters </span></span><br><span class="line"><span class="comment">  * </span></span><br><span class="line"><span class="comment">  * <span class="doctag">@return</span> the method if found, &lt;code&gt;null&lt;/code&gt; otherwise       </span></span><br><span class="line"><span class="comment">  */</span> </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Method <span class="title">findMethod</span><span class="params">(Class classObject, String methodName, <span class="keyword">int</span> parameterCount)</span> </span>&#123; </span><br><span class="line">    <span class="keyword">try</span> &#123; </span><br><span class="line">      <span class="comment">// since this method attempts to find a method by getting all     </span></span><br><span class="line">      <span class="comment">// methods from the class, this method should only be called if </span></span><br><span class="line">      <span class="comment">// getMethod cannot find the method </span></span><br><span class="line">      Method[] methods = classObject.getMethods(); </span><br><span class="line">      <span class="keyword">for</span> (Method method : methods) &#123; </span><br><span class="line">        <span class="keyword">if</span> (method.getParameterTypes().length ==</span><br><span class="line">            parameterCount &amp;&amp;method.getName().</span><br><span class="line">                equals(methodName)) &#123; </span><br><span class="line">          <span class="keyword">return</span> method; </span><br><span class="line">        &#125; </span><br><span class="line">      &#125; </span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable t) &#123; </span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">null</span>; </span><br><span class="line">    &#125; </span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">null</span>; </span><br><span class="line">    &#125;</span><br><span class="line">#foreach($field in $fields) </span><br><span class="line"><span class="comment">/** </span></span><br><span class="line"><span class="comment">  * Returns the $&#123;field.simpleName&#125; property descriptor. </span></span><br><span class="line"><span class="comment">  * </span></span><br><span class="line"><span class="comment">  * <span class="doctag">@return</span> the property descriptor </span></span><br><span class="line"><span class="comment">  */</span> </span><br><span class="line"><span class="keyword">public</span> PropertyDescriptor </span><br><span class="line">$&#123;field.simpleName&#125;PropertyDescriptor() &#123; </span><br><span class="line">   PropertyDescriptor theDescriptor = <span class="keyword">null</span>; </span><br><span class="line">   <span class="keyword">return</span> theDescriptor; </span><br><span class="line">&#125;</span><br><span class="line">#end#foreach($method in $methods) </span><br><span class="line"><span class="comment">/** </span></span><br><span class="line"><span class="comment">  * Returns the $&#123;method.simpleName&#125;() method descriptor. </span></span><br><span class="line"><span class="comment">  * </span></span><br><span class="line"><span class="comment">  * <span class="doctag">@return</span> the method descriptor </span></span><br><span class="line"><span class="comment">  */</span> </span><br><span class="line"><span class="keyword">public</span> MethodDescriptor $&#123;method.simpleName&#125;MethodDescriptor() &#123; </span><br><span class="line">   MethodDescriptor descriptor = <span class="keyword">null</span>; </span><br><span class="line">   Method method = <span class="keyword">null</span>; </span><br><span class="line">   <span class="keyword">try</span> &#123; </span><br><span class="line">    <span class="comment">// finds the method using getMethod with parameter types </span></span><br><span class="line">    <span class="comment">// TODO parameterize parameter types </span></span><br><span class="line">      Class[] parameterTypes =  </span><br><span class="line">        &#123;java.beans.PropertyChangeListener.class&#125;; </span><br><span class="line">     method=getBeanClass().</span><br><span class="line">         getMethod(<span class="string">"$&#123;method.simpleName&#125;"</span>, parameterTypes); </span><br><span class="line">  &#125; <span class="keyword">catch</span> (Throwable t) &#123; </span><br><span class="line">    <span class="comment">// alternative: use findMethod </span></span><br><span class="line">    <span class="comment">// TODO parameterize number of parameters </span></span><br><span class="line">    method = findMethod(getBeanClass(), <span class="string">"$&#123;method.simpleName&#125;"</span>, <span class="number">1</span>); </span><br><span class="line"> &#125; </span><br><span class="line">  <span class="keyword">try</span> &#123; </span><br><span class="line">    <span class="comment">// creates the method descriptor with parameter descriptors     </span></span><br><span class="line">    <span class="comment">// TODO parameterize parameter descriptors     </span></span><br><span class="line">    ParameterDescriptor parameterDescriptor1 = <span class="keyword">new</span>   </span><br><span class="line">        ParameterDescriptor();     </span><br><span class="line">    parameterDescriptor1.setName(<span class="string">"listener"</span>); </span><br><span class="line">    parameterDescriptor1.setDisplayName(<span class="string">"listener"</span>); </span><br><span class="line">    ParameterDescriptor[] parameterDescriptors = </span><br><span class="line">      &#123;parameterDescriptor1&#125;; </span><br><span class="line">    descriptor = <span class="keyword">new</span> MethodDescriptor(method,   </span><br><span class="line">        parameterDescriptors); </span><br><span class="line">   &#125; <span class="keyword">catch</span> (Throwable t) &#123; </span><br><span class="line">      <span class="comment">// alternative: create a plain method descriptor </span></span><br><span class="line">      descriptor = <span class="keyword">new</span> MethodDescriptor(method); </span><br><span class="line">   &#125; </span><br><span class="line">  <span class="comment">// TODO parameterize descriptor properties   </span></span><br><span class="line">   descriptor.setDisplayName(<span class="string">"$&#123;method.simpleName&#125;    </span></span><br><span class="line"><span class="string">        (java.beans.PropertyChangeListener)"</span>); </span><br><span class="line">   descriptor.setShortDescription(<span class="string">"Adds a property change </span></span><br><span class="line"><span class="string">        listener."</span>); </span><br><span class="line">   descriptor.setExpert(<span class="keyword">false</span>); </span><br><span class="line">   descriptor.setHidden(<span class="keyword">false</span>); </span><br><span class="line">   descriptor.setValue(<span class="string">"preferred"</span>, <span class="keyword">false</span>); </span><br><span class="line">   <span class="keyword">return</span> descriptor; </span><br><span class="line"> &#125;</span><br><span class="line">#end</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<li><code>Veloctiy</code>引擎生成源代码<br> 使用这个方案，我们会发现处理器和生成器相关的代码是清晰，良好组织并且易于理解和维护。<br> 让我们一步一步的来实现这个方案吧。<br>####步骤一:实现一个模版<br> 为了简单，我们并不会展示<code>BeanInfo</code>生成器的全部代码，而是只展示我们注解处理器需要使用的一部分成员变量和方法。<br> 我们先创建一个名为beaninfovm的文件，并且放置在Maven的<code>src/main/resource</code>下。文件内容如下:
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">package ${packageName};
+import java.beans.MethodDescriptor;
+import java.beans.ParameterDescriptor;
+import java.beans.PropertyDescriptor;
+import java.lang.reflect.Method;
+public class ${className}BeanInfo 
+        extends java.beans.SimpleBeanInfo 
+{ 
+  &#x2F;** * Gets the bean class object. 
+  * 
+  * @return the bean class 
+  *&#x2F; 
+  public static Class getBeanClass() { 
+    return ${packageName}.${className}.class; 
+  } 
+  &#x2F;** 
+  * Gets the bean class name. 
+  * 
+  * @return the bean class name 
+  *&#x2F; 
+  public static String getBeanClassName() { 
+    return &quot;${packageName}.${className}&quot;; 
+  } 
+  &#x2F;** 
+  * Finds the right method by comparing name &amp; number of parameters in the class 
+  * method list. 
+  * 
+  * @param classObject the class object 
+  * @param methodName the method name 
+  * @param parameterCount the number of parameters 
+  * 
+  * @return the method if found, &lt;code&gt;null&lt;&#x2F;code&gt; otherwise       
+  *&#x2F; 
+  public static Method findMethod(Class classObject, String methodName, int parameterCount) { 
+    try { 
+      &#x2F;&#x2F; since this method attempts to find a method by getting all     
+      &#x2F;&#x2F; methods from the class, this method should only be called if 
+      &#x2F;&#x2F; getMethod cannot find the method 
+      Method[] methods = classObject.getMethods(); 
+      for (Method method : methods) { 
+        if (method.getParameterTypes().length ==
+            parameterCount &amp;&amp;method.getName().
+                equals(methodName)) { 
+          return method; 
+        } 
+      } 
+    } catch (Throwable t) { 
+      return null; 
+    } 
+    return null; 
+    }
+#foreach($field in $fields) 
+&#x2F;** 
+  * Returns the ${field.simpleName} property descriptor. 
+  * 
+  * @return the property descriptor 
+  *&#x2F; 
+public PropertyDescriptor 
+${field.simpleName}PropertyDescriptor() { 
+   PropertyDescriptor theDescriptor = null; 
+   return theDescriptor; 
+}
+#end#foreach($method in $methods) 
+&#x2F;** 
+  * Returns the ${method.simpleName}() method descriptor. 
+  * 
+  * @return the method descriptor 
+  *&#x2F; 
+public MethodDescriptor ${method.simpleName}MethodDescriptor() { 
+   MethodDescriptor descriptor = null; 
+   Method method = null; 
+   try { 
+    &#x2F;&#x2F; finds the method using getMethod with parameter types 
+    &#x2F;&#x2F; TODO parameterize parameter types 
+      Class[] parameterTypes =  
+        {java.beans.PropertyChangeListener.class}; 
+     method=getBeanClass().
+         getMethod(&quot;${method.simpleName}&quot;, parameterTypes); 
+  } catch (Throwable t) { 
+    &#x2F;&#x2F; alternative: use findMethod 
+    &#x2F;&#x2F; TODO parameterize number of parameters 
+    method = findMethod(getBeanClass(), &quot;${method.simpleName}&quot;, 1); 
+ } 
+  try { 
+    &#x2F;&#x2F; creates the method descriptor with parameter descriptors     
+    &#x2F;&#x2F; TODO parameterize parameter descriptors     
+    ParameterDescriptor parameterDescriptor1 = new   
+        ParameterDescriptor();     
+    parameterDescriptor1.setName(&quot;listener&quot;); 
+    parameterDescriptor1.setDisplayName(&quot;listener&quot;); 
+    ParameterDescriptor[] parameterDescriptors = 
+      {parameterDescriptor1}; 
+    descriptor = new MethodDescriptor(method,   
+        parameterDescriptors); 
+   } catch (Throwable t) { 
+      &#x2F;&#x2F; alternative: create a plain method descriptor 
+      descriptor = new MethodDescriptor(method); 
+   } 
+  &#x2F;&#x2F; TODO parameterize descriptor properties   
+   descriptor.setDisplayName(&quot;${method.simpleName}    
+        (java.beans.PropertyChangeListener)&quot;); 
+   descriptor.setShortDescription(&quot;Adds a property change 
+        listener.&quot;); 
+   descriptor.setExpert(false); 
+   descriptor.setHidden(false); 
+   descriptor.setValue(&quot;preferred&quot;, false); 
+   return descriptor; 
+ }
+#end
+}
+</code></pre>
 </li>
 </ul>
 <p> 为了使用上述的模版，我们需要向<code>Velocity</code>传递下边这些信息:</p>
@@ -389,14 +296,143 @@
 </li>
 </ul>
 <p> 所有的这些信息都会从源文件中的注解中获得，并保存到<code>JavaBean</code>中，再传递给<code>Velocity</code>。</p>
-<h4 id="步骤二-注解处理器读取信息"><a href="#步骤二-注解处理器读取信息" class="headerlink" title="步骤二:注解处理器读取信息"></a>步骤二:注解处理器读取信息</h4><p> 让我们来实现一个注解处理器，并且注解它支持处理<code>BeanInfo</code>注解类型，相关原理请查看第二篇博文。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@SupportedAnnotationTypes</span>(<span class="string">"example.annotations.beaninfo.BeanInfo"</span>)</span><br><span class="line"><span class="meta">@SupportedSourceVersion</span>(SourceVersion.RELEASE_6)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BeanInfoProcessor</span> <span class="keyword">extends</span> <span class="title">AbstractProcessor</span> </span>&#123;</span><br></pre></td></tr></table></figure></p>
-<p> 注解处理器需要从注解和源文件中提取。你可以使用<code>JavaBean</code>来保存你需要的信息。但是在这个例子中，我们将使用<code>javax.lang.model.element</code>,因为我们不计划传递给<code>Velocity</code>过多信息:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">  String packageName = <span class="keyword">null</span>; </span><br><span class="line">  Map&lt;String, VariableElement&gt; fields = <span class="keyword">new</span> HashMap&lt;String,     </span><br><span class="line">    VariableElement&gt;(); </span><br><span class="line">  Map&lt;String, ExecutableElement&gt; methods = <span class="keyword">new</span> </span><br><span class="line">    HashMap&lt;String, ExecutableElement&gt;(); </span><br><span class="line">  <span class="keyword">for</span> (Element e : roundEnv.</span><br><span class="line">      getElementsAnnotatedWith(BeanInfo.class)) &#123; </span><br><span class="line">    <span class="keyword">if</span> (e.getKind() == ElementKind.CLASS) &#123; </span><br><span class="line">      TypeElement classElement = (TypeElement) e; </span><br><span class="line">      PackageElement packageElement = (PackageElement) </span><br><span class="line">        classElement.getEnclosingElement();   </span><br><span class="line">      processingEnv.getMessager().printMessage( </span><br><span class="line">            Diagnostic.Kind.NOTE, <span class="string">"annotated class: "</span> + </span><br><span class="line">            classElement.getQualifiedName(), e); </span><br><span class="line">      fqClassName = classElement.getQualifiedName().</span><br><span class="line">                toString(); </span><br><span class="line">      className =  classElement.getSimpleName().toString(); </span><br><span class="line">      packageName = packageElement.getQualifiedName().</span><br><span class="line">                toString(); </span><br><span class="line">   &#125; <span class="keyword">else</span> <span class="keyword">if</span> (e.getKind() == ElementKind.FIELD) &#123; </span><br><span class="line">      VariableElement varElement = (VariableElement) e;   </span><br><span class="line">      processingEnv.getMessager().printMessage( </span><br><span class="line">        Diagnostic.Kind.NOTE, <span class="string">"annotated field: "</span> + </span><br><span class="line">        varElement.getSimpleName(), e); </span><br><span class="line">      fields.put(varElement.getSimpleName().toString(),       </span><br><span class="line">        varElement); </span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (e.getKind() == ElementKind.METHOD) &#123; </span><br><span class="line">      ExecutableElement exeElement = (ExecutableElement) e;     </span><br><span class="line">      processingEnv.getMessager().printMessage( </span><br><span class="line">        Diagnostic.Kind.NOTE, <span class="string">"annotated method: "</span> + </span><br><span class="line">        exeElement.getSimpleName(), e); </span><br><span class="line">      methods.put(exeElement.getSimpleName().toString(),   </span><br><span class="line">        exeElement); </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<h4 id="步骤三-初始化Velocity并且加载模版"><a href="#步骤三-初始化Velocity并且加载模版" class="headerlink" title="步骤三:初始化Velocity并且加载模版"></a>步骤三:初始化<code>Velocity</code>并且加载模版</h4><p> 下边的代码片段展示了如何初始化<code>Velocity</code>并且加载模版<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (fqClassName != <span class="keyword">null</span>) &#123; </span><br><span class="line">  Properties props = <span class="keyword">new</span> Properties(); </span><br><span class="line">  URL url = <span class="keyword">this</span>.getClass().getClassLoader().</span><br><span class="line">        getResource(<span class="string">"velocity.properties"</span>); </span><br><span class="line">  props.load(url.openStream()); </span><br><span class="line">  VelocityEngine ve = <span class="keyword">new</span> VelocityEngine(props); </span><br><span class="line">  ve.init(); </span><br><span class="line">  VelocityContext vc = <span class="keyword">new</span> VelocityContext(); </span><br><span class="line">  vc.put(<span class="string">"classNameassName); </span></span><br><span class="line"><span class="string">  vc.put("</span>packageNameckageName); </span><br><span class="line">  vc.put(<span class="string">"fieldselds); </span></span><br><span class="line"><span class="string">  vc.put("</span>methodsthods); </span><br><span class="line">  Template vt = ve.getTemplate(<span class="string">"beaninfo.vm"</span>);</span><br></pre></td></tr></table></figure></p>
-<p> <code>Velocity</code>的配置文件，应该命名为<code>Velocity.properties</code>,并放置在<code>src/main/resources</code>文件夹下。配置文件的内容如下：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">runtime.log.logsystem.class = org.apache.velocity.runtime.log.SystemLogChute</span><br><span class="line">resource.loader = classpath</span><br><span class="line">classpath.resource.loader.class = org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader</span><br></pre></td></tr></table></figure></p>
+<h4 id="步骤二-注解处理器读取信息"><a href="#步骤二-注解处理器读取信息" class="headerlink" title="步骤二:注解处理器读取信息"></a>步骤二:注解处理器读取信息</h4><p> 让我们来实现一个注解处理器，并且注解它支持处理<code>BeanInfo</code>注解类型，相关原理请查看第二篇博文。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">@SupportedAnnotationTypes(&quot;example.annotations.beaninfo.BeanInfo&quot;)
+@SupportedSourceVersion(SourceVersion.RELEASE_6)
+public class BeanInfoProcessor extends AbstractProcessor {
+</code></pre></p>
+<p> 注解处理器需要从注解和源文件中提取。你可以使用<code>JavaBean</code>来保存你需要的信息。但是在这个例子中，我们将使用<code>javax.lang.model.element</code>,因为我们不计划传递给<code>Velocity</code>过多信息:<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">  String packageName = null; 
+  Map&lt;String, VariableElement&gt; fields = new HashMap&lt;String,     
+    VariableElement&gt;(); 
+  Map&lt;String, ExecutableElement&gt; methods = new 
+    HashMap&lt;String, ExecutableElement&gt;(); 
+  for (Element e : roundEnv.
+      getElementsAnnotatedWith(BeanInfo.class)) { 
+    if (e.getKind() == ElementKind.CLASS) { 
+      TypeElement classElement = (TypeElement) e; 
+      PackageElement packageElement = (PackageElement) 
+        classElement.getEnclosingElement();   
+      processingEnv.getMessager().printMessage( 
+            Diagnostic.Kind.NOTE, &quot;annotated class: &quot; + 
+            classElement.getQualifiedName(), e); 
+      fqClassName = classElement.getQualifiedName().
+                toString(); 
+      className =  classElement.getSimpleName().toString(); 
+      packageName = packageElement.getQualifiedName().
+                toString(); 
+   } else if (e.getKind() == ElementKind.FIELD) { 
+      VariableElement varElement = (VariableElement) e;   
+      processingEnv.getMessager().printMessage( 
+        Diagnostic.Kind.NOTE, &quot;annotated field: &quot; + 
+        varElement.getSimpleName(), e); 
+      fields.put(varElement.getSimpleName().toString(),       
+        varElement); 
+    } else if (e.getKind() == ElementKind.METHOD) { 
+      ExecutableElement exeElement = (ExecutableElement) e;     
+      processingEnv.getMessager().printMessage( 
+        Diagnostic.Kind.NOTE, &quot;annotated method: &quot; + 
+        exeElement.getSimpleName(), e); 
+      methods.put(exeElement.getSimpleName().toString(),   
+        exeElement); 
+} 
+</code></pre></p>
+<h4 id="步骤三-初始化Velocity并且加载模版"><a href="#步骤三-初始化Velocity并且加载模版" class="headerlink" title="步骤三:初始化Velocity并且加载模版"></a>步骤三:初始化<code>Velocity</code>并且加载模版</h4><p> 下边的代码片段展示了如何初始化<code>Velocity</code>并且加载模版<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">  if (fqClassName != null) { 
+    Properties props = new Properties(); 
+    URL url = this.getClass().getClassLoader().
+          getResource(&quot;velocity.properties&quot;); 
+    props.load(url.openStream()); 
+    VelocityEngine ve = new VelocityEngine(props); 
+    ve.init(); 
+    VelocityContext vc = new VelocityContext(); 
+    vc.put(&quot;classNameassName); 
+    vc.put(&quot;packageNameckageName); 
+    vc.put(&quot;fieldselds); 
+    vc.put(&quot;methodsthods); 
+    Template vt = ve.getTemplate(&quot;beaninfo.vm&quot;);
+</code></pre></p>
+<p> <code>Velocity</code>的配置文件，应该命名为<code>Velocity.properties</code>,并放置在<code>src/main/resources</code>文件夹下。配置文件的内容如下：<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">runtime.log.logsystem.class = org.apache.velocity.runtime.log.SystemLogChute
+resource.loader = classpath
+classpath.resource.loader.class = org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader
+</code></pre></p>
 <p> 这些属性配置了<code>Velocity</code>的日志和寻找模版的类路径。</p>
-<h4 id="步骤四：创建新的文件并且生成代码"><a href="#步骤四：创建新的文件并且生成代码" class="headerlink" title="步骤四：创建新的文件并且生成代码"></a>步骤四：创建新的文件并且生成代码</h4><p> 最后，我们建立新的代码文件并以这个文件为目标运行模版。下边的代码片段展示了如何如何去做上述操作:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">JavaFileObject jfo = processingEnv.getFiler().createSourceFile</span><br><span class="line">    ( fqClassName + <span class="string">"BeanInfo"</span>); </span><br><span class="line">processingEnv.getMessager().printMessage( </span><br><span class="line">    Diagnostic.Kind.NOTE, <span class="string">"creating source file: "</span> + jfo.toUri()); </span><br><span class="line">Writer writer = jfo.openWriter(); </span><br><span class="line">processingEnv.getMessager().printMessage(   </span><br><span class="line">    Diagnostic.Kind.NOTE, <span class="string">"applying velocity template: "</span> + </span><br><span class="line">    vt.getName());</span><br><span class="line">vt.merge(vc, writer); </span><br><span class="line">writer.close();</span><br></pre></td></tr></table></figure></p>
-<h4 id="步骤五：打包并运行"><a href="#步骤五：打包并运行" class="headerlink" title="步骤五：打包并运行"></a>步骤五：打包并运行</h4><p> 最终，注册注解处理器（可以回想一下在第二篇博文中的服务配置相关内容），打包处理器并且在命令行，eclipse和Maven构建项目时使用它。<br> 假设下边就是需要处理的类：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> example.velocity.client;</span><br><span class="line"><span class="keyword">import</span> example.annotations.beaninfo.BeanInfo;</span><br><span class="line"><span class="meta">@BeanInfo</span> </span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Article</span> </span>&#123; </span><br><span class="line">  <span class="meta">@BeanInfo</span> </span><br><span class="line">  <span class="keyword">private</span> String id; </span><br><span class="line">  <span class="meta">@BeanInfo</span> </span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">int</span> department; </span><br><span class="line">  <span class="meta">@BeanInfo</span> </span><br><span class="line">  <span class="keyword">private</span> String status; </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="title">Article</span><span class="params">()</span> </span>&#123; <span class="keyword">super</span>(); &#125; </span><br><span class="line">  <span class="function"><span class="keyword">public</span> String <span class="title">getId</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> id; &#125; </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setId</span><span class="params">(String id)</span> </span>&#123; <span class="keyword">this</span>.id = id; &#125; </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getDepartment</span><span class="params">()</span> </span>&#123; </span><br><span class="line">    <span class="keyword">return</span> department; </span><br><span class="line">  &#125; </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setDepartment</span><span class="params">(<span class="keyword">int</span> department)</span> </span>&#123; </span><br><span class="line">    <span class="keyword">this</span>.department = department; </span><br><span class="line">  &#125; </span><br><span class="line">  <span class="function"><span class="keyword">public</span> String <span class="title">getStatus</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> status; &#125; </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setStatus</span><span class="params">(String status)</span> </span>&#123; </span><br><span class="line">    <span class="keyword">this</span>.status = status; </span><br><span class="line">  &#125; </span><br><span class="line">  <span class="meta">@BeanInfo</span> </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">activate</span><span class="params">()</span> </span>&#123; setStatus(<span class="string">"active"</span>); &#125; </span><br><span class="line">  <span class="meta">@BeanInfo</span> <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">deactivate</span><span class="params">()</span> </span>&#123; </span><br><span class="line">    setStatus(<span class="string">"inactive"</span>); </span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p> 当我们使用命令行执行编译任务时，我们在终端上看到被注解标注的元素被找到并且BeanInfo类被生成。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">Article.java:6: Note: annotated class: </span><br><span class="line">example.annotations.velocity.client.Article</span><br><span class="line">public class Article &#123; </span><br><span class="line">  ^</span><br><span class="line">Article.java:9: Note: annotated field: id </span><br><span class="line">  private String id; </span><br><span class="line">    ^</span><br><span class="line">Article.java:12: Note: annotated field: department </span><br><span class="line">  private int department; </span><br><span class="line">    ^</span><br><span class="line">Article.java:15: Note: annotated field: status </span><br><span class="line">  private String status; </span><br><span class="line">    ^</span><br><span class="line">Article.java:53: Note: annotated method: activate </span><br><span class="line">  public void <span class="function"><span class="title">activate</span></span>() &#123; </span><br><span class="line">    ^</span><br><span class="line">Article.java:59: Note: annotated method: deactivate </span><br><span class="line">  public void <span class="function"><span class="title">deactivate</span></span>() &#123; </span><br><span class="line">    ^ </span><br><span class="line">Note: creating <span class="built_in">source</span> file: file:/c:/projects/example.annotations.velocity.client/src/main/java/example/annotations/velocity/client/ArticleBeanInfo.java</span><br><span class="line">Note: applying velocity template: beaninfo.vm</span><br><span class="line">Note: example\annotations\velocity\client\ArticleBeanInfo.java uses unchecked or unsafe operations.</span><br><span class="line">Note: Recompile with -Xlint:unchecked <span class="keyword">for</span> details.</span><br></pre></td></tr></table></figure></p>
+<h4 id="步骤四：创建新的文件并且生成代码"><a href="#步骤四：创建新的文件并且生成代码" class="headerlink" title="步骤四：创建新的文件并且生成代码"></a>步骤四：创建新的文件并且生成代码</h4><p> 最后，我们建立新的代码文件并以这个文件为目标运行模版。下边的代码片段展示了如何如何去做上述操作:<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">JavaFileObject jfo = processingEnv.getFiler().createSourceFile
+    ( fqClassName + &quot;BeanInfo&quot;); 
+processingEnv.getMessager().printMessage( 
+    Diagnostic.Kind.NOTE, &quot;creating source file: &quot; + jfo.toUri()); 
+Writer writer = jfo.openWriter(); 
+processingEnv.getMessager().printMessage(   
+    Diagnostic.Kind.NOTE, &quot;applying velocity template: &quot; + 
+    vt.getName());
+vt.merge(vc, writer); 
+writer.close();
+</code></pre></p>
+<h4 id="步骤五：打包并运行"><a href="#步骤五：打包并运行" class="headerlink" title="步骤五：打包并运行"></a>步骤五：打包并运行</h4><p> 最终，注册注解处理器（可以回想一下在第二篇博文中的服务配置相关内容），打包处理器并且在命令行，eclipse和Maven构建项目时使用它。<br> 假设下边就是需要处理的类：<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">package example.velocity.client;
+import example.annotations.beaninfo.BeanInfo;
+@BeanInfo 
+public class Article { 
+  @BeanInfo 
+  private String id; 
+  @BeanInfo 
+  private int department; 
+  @BeanInfo 
+  private String status; 
+  public Article() { super(); } 
+  public String getId() { return id; } 
+  public void setId(String id) { this.id = id; } 
+  public int getDepartment() { 
+    return department; 
+  } 
+  public void setDepartment(int department) { 
+    this.department = department; 
+  } 
+  public String getStatus() { return status; } 
+  public void setStatus(String status) { 
+    this.status = status; 
+  } 
+  @BeanInfo 
+  public void activate() { setStatus(&quot;active&quot;); } 
+  @BeanInfo public void deactivate() { 
+    setStatus(&quot;inactive&quot;); 
+  }
+}
+</code></pre></p>
+<p> 当我们使用命令行执行编译任务时，我们在终端上看到被注解标注的元素被找到并且BeanInfo类被生成。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-bash">Article.java:6: Note: annotated class: 
+example.annotations.velocity.client.Article
+public class Article { 
+  ^
+Article.java:9: Note: annotated field: id 
+  private String id; 
+    ^
+Article.java:12: Note: annotated field: department 
+  private int department; 
+    ^
+Article.java:15: Note: annotated field: status 
+  private String status; 
+    ^
+Article.java:53: Note: annotated method: activate 
+  public void activate() { 
+    ^
+Article.java:59: Note: annotated method: deactivate 
+  public void deactivate() { 
+    ^ 
+Note: creating source file: file:&#x2F;c:&#x2F;projects&#x2F;example.annotations.velocity.client&#x2F;src&#x2F;main&#x2F;java&#x2F;example&#x2F;annotations&#x2F;velocity&#x2F;client&#x2F;ArticleBeanInfo.java
+Note: applying velocity template: beaninfo.vm
+Note: example\annotations\velocity\client\ArticleBeanInfo.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+</code></pre></p>
 <p> 检查相应的文件夹我们会发现<code>BeanInfo</code>类文件被创建。任务完成！</p>
 <h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p> 在这个系列文章中，我们学习了如何使用Java6中的注解处理器框架生成源代码：</p>
 <ul>
@@ -407,354 +443,156 @@
 <li>我们学习了如何使用<code>Velocity</code>来创建优雅的，强大的，可维护的基于注解处理器的代码生成器。<br> 现在是时候实现你自己的项目去啦。<br>-<br>(1) 如何你想详细了解<code>MDE</code>,请查看<a href="http://en.wikipedia.org/wiki/Model-driven_engineering" target="_blank" rel="noopener">这篇文件</a><br>(2) <code>Filter</code>的API文档可以在<a href="http://download.oracle.com/javase/6/docs/api/javax/annotation/processing/Filer.html" target="_blank" rel="noopener">这里</a>进行查看</li>
 </ul>
 
-      
-    </div>
-    
-    
-    
+      <h3>关于图片和转载</h3>
 
-    
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
 
-    
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
 
-    
+      <h3>关于评论和留言</h3>
 
+      如果对本文 <a href="http://remcarpediem.net/2016/03/07/译-使用注解处理器生成代码-3-生成源代码/">[译]使用注解处理器生成代码-3 生成源代码</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/2016/03/07/译-使用注解处理器生成代码-3-生成源代码/">[译]使用注解处理器生成代码-3 生成源代码</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
     <footer class="post-footer">
-      
-        <div class="post-tags">
-          
-            <a href="/tags/注解/" rel="tag"># 注解</a>
-          
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">remCarpediem's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">remCarpediem</a></h4>
+        
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> Carpediem</a></span> 
         </div>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/2016/03/07/译-使用注解处理器生成代码-3-生成源代码/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/2016/03/07/译-使用注解处理器生成代码-3-生成源代码/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/2016/03/07/译-使用注解处理器生成代码-3-生成源代码/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
       
+ <div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script>
+    const gitalk = new Gitalk({
+    clientID: '9347af410c07624ec3e6',
+    clientSecret: '578667b93387d410574122685243499f1b546ba7',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: "http://remcarpediem.net/2016/03/07/译-使用注解处理器生成代码-3-生成源代码/",
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
 
-      
-      
-      
+gitalk.render('gitalk-container')
+</script>
 
-      
-        <div class="post-nav">
-          <div class="post-nav-next post-nav-item">
-            
-              <a href="/2016/03/05/2016年，计划目录/" rel="next" title="2016年，计划目录">
-                <i class="fa fa-chevron-left"></i> 2016年，计划目录
-              </a>
-            
-          </div>
-
-          <span class="post-nav-divider"></span>
-
-          <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2016/03/16/Android-MotionEvent详解/" rel="prev" title="Android MotionEvent详解">
-                Android MotionEvent详解 <i class="fa fa-chevron-right"></i>
-              </a>
-            
-          </div>
-        </div>
-      
-
-      
-      
     </footer>
-  </div>
-  
-  
-  
   </article>
-
-
-
-    <div class="post-spread">
-      
-    </div>
-  </div>
-
-
-          </div>
-          
-
-
-          
-  <div class="comments" id="comments">
+</main>
+<aside class="read-next">
+ 
     
-  </div>
-
-
-        </div>
-        
-          
-  
-  <div class="sidebar-toggle">
-    <div class="sidebar-toggle-line-wrap">
-      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
-      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
-      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
-    </div>
-  </div>
-
-  <aside id="sidebar" class="sidebar">
-    
-    <div class="sidebar-inner">
-
-      
-
-      
-        <ul class="sidebar-nav motion-element">
-          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
-            Table of Contents
-          </li>
-          <li class="sidebar-nav-overview" data-target="site-overview">
-            Overview
-          </li>
-        </ul>
-      
-
-      <section class="site-overview sidebar-panel">
-        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="remCarpediem">
-          <p class="site-author-name" itemprop="name">remCarpediem</p>
-           
-              <p class="site-description motion-element" itemprop="description"></p>
-          
-        </div>
-        <nav class="site-state motion-element">
-
-          
-            <div class="site-state-item site-state-posts">
-              <a href="/archives/">
-                <span class="site-state-item-count">59</span>
-                <span class="site-state-item-name">posts</span>
-              </a>
-            </div>
-          
-
-          
+    <a class="read-next-story no-cover" href="/2016/03/05/2016年，计划目录/">
+      <section class="post">
+        <h2>2016年，计划目录</h2>
+        <p>
             
+              &emsp;建立一个计划目录，记录一下１６年的计划和实现情况,进行不定时的更新。
+计划清单英语学习ESL_Pod [暂停]《English as a second language podcast presents – Introduction to the United States》总共100课。还没有开始，从3月5日开始
+扇贝　
+单词 :在背英语单词书，5518词，完成进度8.10%　 计划每天５０词，并且阅读两篇文章 
+
+新概念 ......
             
-            <div class="site-state-item site-state-categories">
-              
-                <span class="site-state-item-count">33</span>
-                <span class="site-state-item-name">categories</span>
-              
-            </div>
-          
-
-          
-            
-            
-            <div class="site-state-item site-state-tags">
-              
-                <span class="site-state-item-count">53</span>
-                <span class="site-state-item-name">tags</span>
-              
-            </div>
-          
-
-        </nav>
-
-        
-
-        <div class="links-of-author motion-element">
-          
-        </div>
-
-        
-        
-
-        
-        
-
-        
-
-
+          </p>
       </section>
-
-      
-      <!--noindex-->
-        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
-          <div class="post-toc">
-
-            
-              
-            
-
-            
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#简介"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#MDE-的-Model-和-Meta-model"><span class="nav-number">2.</span> <span class="nav-text">MDE 的 Model 和 Meta-model</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#使用注解处理器生成源代码"><span class="nav-number">3.</span> <span class="nav-text">使用注解处理器生成源代码</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Filter"><span class="nav-number">4.</span> <span class="nav-text">Filter</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Velocity简介"><span class="nav-number">5.</span> <span class="nav-text">Velocity简介</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Velocity代码生成器"><span class="nav-number">6.</span> <span class="nav-text">Velocity代码生成器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#步骤二-注解处理器读取信息"><span class="nav-number">7.</span> <span class="nav-text">步骤二:注解处理器读取信息</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#步骤三-初始化Velocity并且加载模版"><span class="nav-number">8.</span> <span class="nav-text">步骤三:初始化Velocity并且加载模版</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#步骤四：创建新的文件并且生成代码"><span class="nav-number">9.</span> <span class="nav-text">步骤四：创建新的文件并且生成代码</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#步骤五：打包并运行"><span class="nav-number">10.</span> <span class="nav-text">步骤五：打包并运行</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#总结"><span class="nav-number">11.</span> <span class="nav-text">总结</span></a></li></ol></div>
-            
-
-          </div>
-        </section>
-      <!--/noindex-->
-      
-
-      
-
-    </div>
-  </aside>
-
-
-        
-      </div>
-    </main>
-
-    <footer id="footer" class="footer">
-      <div class="footer-inner">
-        <div class="copyright">
+    </a>
+    
   
-  &copy; 
-  <span itemprop="copyrightYear">2018</span>
-  <span class="with-love">
-    <i class="fa fa-heart"></i>
-  </span>
-  <span class="author" itemprop="copyrightHolder">remCarpediem</span>
-</div>
 
 
-<div class="powered-by">
-  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
-</div>
-
-<div class="theme-info">
-  Theme -
-  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
-    NexT.Muse
-  </a>
-</div>
-
-
-        
-
-        
-      </div>
-    </footer>
-
+  
     
-      <div class="back-to-top">
-        <i class="fa fa-arrow-up"></i>
-        
-      </div>
+    <a class="read-next-story no-cover" href="/2016/03/16/Android-MotionEvent详解/">
+      <section class="post">
+        <h2>Android MotionEvent详解</h2>
+        <p>
+            
+              &emsp;在前边几篇博文中（《图解Android事件传递之ViewGroup篇》，《图解Android事件传递之View篇》），我们已经了解了android触摸事件传递机制，接着我们再来研究一下与触摸事件传递相关的几个比较重要的类，比如MotionEvent。我们今天就来详细说明一下这个类的各方面用法。
+事件坐标的含义 我们都知道，每个触摸事件都代表用户在屏幕上的一个动作，而每个动作必定有其发生的位置。在MotionEvent中就有一 ......
+            
+          </p>
+      </section>
+    </a>
     
+  
+</aside>
+
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">Carpediem</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
+</footer>
 
   </div>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
 
-  
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
 
 <script type="text/javascript">
-  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
-    window.Promise = null;
-  }
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
 </script>
 
 
 
 
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
-
-  
-  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
-
-  
-  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
-
-  
-  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
-
-  
-  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
-
-  
-  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
-
-
-  
-
-
-  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
-
-  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
-
-
-
-  
-  
-
-  
-  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
-<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
-
-
-
-  
-
-
-  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
-
-
-
-  
-
-
-  
-
-
-
-
-	
-
-
-
-
-
-  
-
-
-
-
-
-  
-
-
-
-
-
-
-  
-
-
-
-
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
 
 </body>
 </html>

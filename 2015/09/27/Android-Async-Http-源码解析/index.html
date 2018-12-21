@@ -1,100 +1,15 @@
 <!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
 
-
-
-  
-
-
-<html class="theme-next muse use-motion" lang="Chinese">
-<head><meta name="generator" content="Hexo 3.8.0">
-  <meta charset="UTF-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<meta name="theme-color" content="#222">
-
-
-
-
-
-
-
-
-
-<meta http-equiv="Cache-Control" content="no-transform">
-<meta http-equiv="Cache-Control" content="no-siteapp">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  
-  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
-
-
-
-
-  
-  
-  
-  
-
-  
-    
-    
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-    
-    
-    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
-  
-
-
-
-
-
-
-<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
-
-<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
-
-
-  <meta name="keywords" content="第三方库,Http,">
-
-
-
-
-
-
-
-
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
-
-
-
-
-
-
-<meta name="description" content="&amp;emsp;前几天去参加一个面试，被问到了一些android 网络方面的知识，发现自己在这个方面还有些不足，需要自我补充一下相关的知识，于是最近找了些开源的网络模块的第三方库来阅读，主要是想深入了解一下http协议和相关的代码框架组织问题。这篇博客就总结一下自己阅读android-async-http的一些体会和学习吧。 简介&amp;emsp;介绍android async http 的相关事项，主要是">
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>Android-Async-Http 源码解析 | Carpediem</title>
+  <meta name="description" content="blog of nobody" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="&amp;emsp;前几天去参加一个面试，被问到了一些android 网络方面的知识，发现自己在这个方面还有些不足，需要自我补充一下相关的知识，于是最近找了些开源的网络模块的第三方库来阅读，主要是想深入了解一下http协议和相关的代码框架组织问题。这篇博客就总结一下自己阅读android-async-http的一些体会和学习吧。 简介&amp;emsp;介绍android async http 的相关事项，主要是">
 <meta name="keywords" content="第三方库,Http">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Android-Async-Http 源码解析">
@@ -108,264 +23,92 @@
 <meta name="twitter:title" content="Android-Async-Http 源码解析">
 <meta name="twitter:description" content="&amp;emsp;前几天去参加一个面试，被问到了一些android 网络方面的知识，发现自己在这个方面还有些不足，需要自我补充一下相关的知识，于是最近找了些开源的网络模块的第三方库来阅读，主要是想深入了解一下http协议和相关的代码框架组织问题。这篇博客就总结一下自己阅读android-async-http的一些体会和学习吧。 简介&amp;emsp;介绍android async http 的相关事项，主要是">
 <meta name="twitter:image" content="http://7xjsjy.com1.z0.glb.clouddn.com/async_http_绘图1.jpg">
+  <!-- build:css css/screen.css -->
 
-
-
-<script type="text/javascript" id="hexo.configurations">
-  var NexT = window.NexT || {};
-  var CONFIG = {
-    root: '/',
-    scheme: 'Muse',
-    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
-    fancybox: true,
-    tabs: true,
-    motion: true,
-    duoshuo: {
-      userId: '0',
-      author: 'Author'
-    },
-    algolia: {
-      applicationID: '',
-      apiKey: '',
-      indexName: '',
-      hits: {"per_page":10},
-      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
-    }
-  };
-</script>
-
-
-
-  <link rel="canonical" href="http://remcarpediem.net/2015/09/27/Android-Async-Http-源码解析/">
-
-
-
-
-
-  <title>Android-Async-Http 源码解析 | Carpediem</title>
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-</head>
-
-<body itemscope="" itemtype="http://schema.org/WebPage" lang="Chinese">
-
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="Carpediem">
   
   
-    
   
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
 
-  <div class="container sidebar-position-left page-post-detail ">
-    <div class="headband"></div>
 
-    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
-      <div class="header-inner"><div class="site-brand-wrapper">
-  <div class="site-meta ">
-    
+<body class="post-template">
 
-    <div class="custom-logo-site-title">
-      <a href="/" class="brand" rel="start">
-        <span class="logo-line-before"><i></i></span>
-        <span class="site-title">Carpediem</span>
-        <span class="logo-line-after"><i></i></span>
-      </a>
-    </div>
-      
-        <p class="site-subtitle">blog of nobody</p>
-      
-  </div>
-
-  <div class="site-nav-toggle">
-    <button>
-      <span class="btn-bar"></span>
-      <span class="btn-bar"></span>
-      <span class="btn-bar"></span>
-    </button>
-  </div>
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home {% if page.current == 'home' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios {% if page.url contains 'iOS' %} nav-current{% endif %}" role="presentation"><a href="/archives">Archives</a></li>
+    <li class="nav-mvc {% if page.url contains 'MVC' %} nav-current{% endif %}" role="presentation"><a href="/tag">Tags</a></li>
+    <li class="nav-server {% if page.url contains 'server' %} nav-current{% endif %}" role="presentation"><a href="/category">Category</a></li>
+    <li class="nav-ruby {% if page.url contains 'ruby' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}tag/ruby">About</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
 </div>
+<span class="nav-cover"></span>
 
-<nav class="site-nav">
-  
-
-  
-    <ul id="menu" class="menu">
-      
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
         
-        <li class="menu-item menu-item-home">
-          <a href="/" rel="section">
-            
-              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
-            
-            Home
-          </a>
-        </li>
-      
-        
-        <li class="menu-item menu-item-archives">
-          <a href="/archives/" rel="section">
-            
-              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
-            
-            Archives
-          </a>
-        </li>
-      
-        
-        <li class="menu-item menu-item-tags">
-          <a href="/tags/" rel="section">
-            
-              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
-            
-            Tags
-          </a>
-        </li>
-      
-
-      
-    </ul>
-  
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
+</header>
 
   
-</nav>
 
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">Android-Async-Http 源码解析</h1>
+      <section class="post-meta">
+  <time datetime="2015-09-27T06:37:49.000Z" itemprop="datePublished" class="post-date">
+      2015-09-27
+  </time>
+  
+  
+  
+  <a href="/tags/第三方库/">第三方库</a> 
+  
+  <a href="/tags/Http/">Http</a>
+  
+  
+</section>
 
-
- </div>
     </header>
-
-    <main id="main" class="main">
-      <div class="main-inner">
-        <div class="content-wrap">
-          <div id="content" class="content">
-            
-
-  <div id="posts" class="posts-expand">
-    
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://remcarpediem.net/2015/09/27/Android-Async-Http-源码解析/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="remCarpediem">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Carpediem">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">Android-Async-Http 源码解析</h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2015-09-27T14:37:49+08:00">
-                2015-09-27
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/Android/" itemprop="url" rel="index">
-                    <span itemprop="name">Android</span>
-                  </a>
-                </span>
-
-                
-                
-                  , 
-                
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/Android/Network/" itemprop="url" rel="index">
-                    <span itemprop="name">Network</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
+    <section class="post-content" itemprop="description articleBody">
       
 
-      
-        <p>&emsp;前几天去参加一个面试，被问到了一些android 网络方面的知识，发现自己在这个方面还有些不足，需要自我补充一下相关的知识，于是最近找了些开源的网络模块的第三方库来阅读，主要是想深入了解一下http协议和相关的代码框架组织问题。这篇博客就总结一下自己阅读android-async-http的一些体会和学习吧。</p>
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2018-11-18T13:40:01.000Z" itemprop="dateModified">
+      2018-11-18
+  </time>
+</section>
+
+       -->
+      <p>&emsp;前几天去参加一个面试，被问到了一些android 网络方面的知识，发现自己在这个方面还有些不足，需要自我补充一下相关的知识，于是最近找了些开源的网络模块的第三方库来阅读，主要是想深入了解一下http协议和相关的代码框架组织问题。这篇博客就总结一下自己阅读android-async-http的一些体会和学习吧。</p>
 <h4 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h4><p>&emsp;介绍android async http 的相关事项，主要是翻译github上的话吧<br>&emsp;这段是官网翻译，大家请随意跳过,详细介绍请转到[<a href="http://loopj.com/android-async-http/" target="_blank" rel="noopener">http://loopj.com/android-async-http/</a>]<br>&emsp;android-async-http是建立在Apache HttpClient之上的基于回调的异步android http client，它使用Handler机制，请求在UI线程之外发生，但是回调逻辑在UI线程中进行执行</p>
 <blockquote>
 <p><strong>特点</strong>(部分)：</p>
@@ -383,10 +126,231 @@
 <li>可以通过BaseJsonResponseHandler和Jackson Json , Gson 和其他Json第三方库进行集成</li>
 </ul>
 </blockquote>
-<h4 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">AsyncHttpClient client = new AsyncHttpClient();</span><br><span class="line"></span><br><span class="line">client.get(&quot;https://www.google.com&quot;, new       AsyncHttpResponseHandler() &#123;   </span><br><span class="line">    </span><br><span class="line">    @Override</span><br><span class="line">    public void onStart() &#123;</span><br><span class="line">        // 请求开始发生的回调    </span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    @Override</span><br><span class="line">    public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) &#123;</span><br><span class="line">        // 成功获得response的回调</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    @Override</span><br><span class="line">    public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable</span><br><span class="line">error)</span><br><span class="line">&#123;</span><br><span class="line">        // 失败的回调 :(</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    @Override</span><br><span class="line">    public void onRetry(int retryNo) &#123;</span><br><span class="line">        // 请求被重试时的回调</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    @Override</span><br><span class="line">    public void onProgress(long bytesWritten, long totalSize) &#123;</span><br><span class="line">        // 请求发生过程中的回调</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    @Override</span><br><span class="line">    public void onFinish() &#123;</span><br><span class="line">        // 完成请求时的对调，未知成功还是失败</span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<h4 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h4>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">
+  AsyncHttpClient client = new AsyncHttpClient();
+  
+  client.get(&quot;https:&#x2F;&#x2F;www.google.com&quot;, new       AsyncHttpResponseHandler() {   
+      
+      @Override
+      public void onStart() {
+          &#x2F;&#x2F; 请求开始发生的回调    
+      }
+ 
+      @Override
+      public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+          &#x2F;&#x2F; 成功获得response的回调
+      }
+ 
+      @Override
+      public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable
+  error)
+  {
+          &#x2F;&#x2F; 失败的回调 :(
+      }
+ 
+      @Override
+      public void onRetry(int retryNo) {
+          &#x2F;&#x2F; 请求被重试时的回调
+      }
+ 
+      @Override
+      public void onProgress(long bytesWritten, long totalSize) {
+          &#x2F;&#x2F; 请求发生过程中的回调
+      }
+ 
+      @Override
+      public void onFinish() {
+          &#x2F;&#x2F; 完成请求时的对调，未知成功还是失败
+      }
+  }); 
+</code></pre>
 <h4 id="源码解析"><a href="#源码解析" class="headerlink" title="源码解析"></a>源码解析</h4><p><img src="http://7xjsjy.com1.z0.glb.clouddn.com/async_http_绘图1.jpg" alt="主要类类图"><br>&emsp;上图就是android-async-http的主要类的类图，我们下面就来一个一个类解析一下</p>
-<h6 id="AsyncHttpClient"><a href="#AsyncHttpClient" class="headerlink" title="AsyncHttpClient"></a>AsyncHttpClient</h6><p>&emsp;先看AsyncHttpClient,它是这个http库的核心类之一，封装了发生http请求的所有逻辑，可以说它是这个库的中心类。它的构造函数如下:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br></pre></td><td class="code"><pre><span class="line">  public AsyncHttpClient(SchemeRegistry schemeRegistry) &#123;</span><br><span class="line">    // http param</span><br><span class="line">    BasicHttpParams httpParams = new BasicHttpParams();</span><br><span class="line"></span><br><span class="line">    // connect params builder ?????</span><br><span class="line">    ConnManagerParams.setTimeout(httpParams, connectTimeout);</span><br><span class="line">    ConnManagerParams.setMaxConnectionsPerRoute(httpParams, new ConnPerRouteBean(maxConnections));</span><br><span class="line">    ConnManagerParams.setMaxTotalConnections(httpParams, DEFAULT_MAX_CONNECTIONS);</span><br><span class="line"></span><br><span class="line">    // httpConnectionParams</span><br><span class="line">    HttpConnectionParams.setSoTimeout(httpParams, responseTimeout);</span><br><span class="line">    HttpConnectionParams.setConnectionTimeout(httpParams, connectTimeout);</span><br><span class="line">    HttpConnectionParams.setTcpNoDelay(httpParams, true);</span><br><span class="line">    HttpConnectionParams.setSocketBufferSize(httpParams, DEFAULT_SOCKET_BUFFER_SIZE);</span><br><span class="line"></span><br><span class="line">    HttpProtocolParams.setVersion(httpParams, HttpVersion.HTTP_1_1);</span><br><span class="line"></span><br><span class="line">    ClientConnectionManager cm = createConnectionManager(schemeRegistry, httpParams);</span><br><span class="line">    Utils.asserts(cm != null, &quot;Custom implementation of #createConnectionManager(SchemeRegistry, BasicHttpParams) returned null&quot;);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    //thread poll</span><br><span class="line">    threadPool = getDefaultThreadPool();</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * weakHashMap context:这是不会出现内存泄露</span><br><span class="line">     * synchronizedMap 是建立一个线程安全的map加一个同步锁啊。</span><br><span class="line">     */</span><br><span class="line">    requestMap = Collections.synchronizedMap(new WeakHashMap&lt;Context, List&lt;RequestHandle&gt;&gt;());</span><br><span class="line"></span><br><span class="line">    clientHeaderMap = new HashMap&lt;String, String&gt;();</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    httpContext = new SyncBasicHttpContext(new BasicHttpContext());</span><br><span class="line">    // 默认的apache的httpclient</span><br><span class="line">    httpClient = new DefaultHttpClient(cm, httpParams);</span><br><span class="line"></span><br><span class="line">    // 请求拦截器啊</span><br><span class="line">    httpClient.addRequestInterceptor(new HttpRequestInterceptor() &#123;</span><br><span class="line">        @Override</span><br><span class="line">        public void process(HttpRequest request, HttpContext context) &#123;</span><br><span class="line">            // 预处理,声明浏览器支持的编码类型啊</span><br><span class="line">            if (!request.containsHeader(HEADER_ACCEPT_ENCODING)) &#123; //加上GZIP的头部</span><br><span class="line">                request.addHeader(HEADER_ACCEPT_ENCODING, ENCODING_GZIP);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            // 对于默认的clientHeader进行遍历，比较，添加</span><br><span class="line">            for (String header : clientHeaderMap.keySet()) &#123;</span><br><span class="line">                if (request.containsHeader(header)) &#123;  //如果包含</span><br><span class="line">                    Header overwritten = request.getFirstHeader(header);</span><br><span class="line">                    log.d(LOG_TAG,</span><br><span class="line">                            String.format(&quot;Headers were overwritten! (%s | %s) overwrites (%s | %s)&quot;,</span><br><span class="line">                                    header, clientHeaderMap.get(header),</span><br><span class="line">                                    overwritten.getName(), overwritten.getValue())</span><br><span class="line">                    );</span><br><span class="line"></span><br><span class="line">                    //remove the overwritten header</span><br><span class="line">                    request.removeHeader(overwritten);</span><br><span class="line">                &#125;</span><br><span class="line">                request.addHeader(header, clientHeaderMap.get(header)); //写入clientHeaderMap中的值</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    // response拦截器,对gzip进行解压缩啊</span><br><span class="line">    httpClient.addResponseInterceptor(new HttpResponseInterceptor() &#123;</span><br><span class="line"></span><br><span class="line">        @Override</span><br><span class="line">        public void process(HttpResponse response, HttpContext context) &#123;</span><br><span class="line">            final HttpEntity entity = response.getEntity(); //</span><br><span class="line">            if (entity == null) &#123;</span><br><span class="line">                return;</span><br><span class="line">            &#125;</span><br><span class="line">            final Header encoding = entity.getContentEncoding();</span><br><span class="line">            if (encoding != null) &#123;</span><br><span class="line">                for (HeaderElement element : encoding.getElements()) &#123; //遍历头部信息</span><br><span class="line">                    if (element.getName().equalsIgnoreCase(ENCODING_GZIP)) &#123;</span><br><span class="line">                        response.setEntity(new InflatingEntity(entity)); //InflatingEntity 这是解压gzip的</span><br><span class="line">                        break;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    // 另外一个模块的请求拦截器 ???? 身份认证的</span><br><span class="line">    httpClient.addRequestInterceptor(new HttpRequestInterceptor() &#123;</span><br><span class="line">        @Override</span><br><span class="line">        public void process(final HttpRequest request, final HttpContext context) throws HttpException, IOException &#123;</span><br><span class="line">            AuthState authState = (AuthState) context.getAttribute(ClientContext.TARGET_AUTH_STATE);</span><br><span class="line">            CredentialsProvider credsProvider = (CredentialsProvider) context.getAttribute(</span><br><span class="line">                    ClientContext.CREDS_PROVIDER);</span><br><span class="line">            HttpHost targetHost = (HttpHost) context.getAttribute(ExecutionContext.HTTP_TARGET_HOST);</span><br><span class="line"></span><br><span class="line">            if (authState.getAuthScheme() == null) &#123;</span><br><span class="line">                AuthScope authScope = new AuthScope(targetHost.getHostName(), targetHost.getPort());</span><br><span class="line">                Credentials creds = credsProvider.getCredentials(authScope);</span><br><span class="line">                if (creds != null) &#123;</span><br><span class="line">                    authState.setAuthScheme(new BasicScheme());</span><br><span class="line">                    authState.setCredentials(creds);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, 0);</span><br><span class="line"></span><br><span class="line">    // 重试Handler，用于重新发送请求</span><br><span class="line">    httpClient.setHttpRequestRetryHandler(new RetryHandler(DEFAULT_MAX_RETRIES, DEFAULT_RETRY_SLEEP_TIME_MILLIS));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;在构造函数中，AsyncHttpClient主要是初始化了threadPool作为发生请求的线程池，httpContext作为发生请求的网络context，还有最为重要的httpClient,它的类型是Apache的DefaultHttpClient，然后设置了设计gzip压缩和身份认证的请求拦截器和回应拦截器，具体逻辑代码中都有注释。<br>&emsp;AsyncHttp中还有一个我认为是整个库精髓所在的函数，如果你理解了这个函数，那么整个库的代码框架和思想其实你就已经知道了。它就是sendRequest(),AsyncHttp的关于网络请求的方法，比如get,post,head，最终都是调用了这个函数。在这个函数中，其他几个比较主要的类都有出现。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line">    *</span><br><span class="line">    * 这是这里的重点啊，创建一个request放在队列中，等待一个thread去执行</span><br><span class="line">    * Puts a new request in queue as a new thread in pool to be executed</span><br><span class="line">    *</span><br><span class="line">    * @param client          HttpClient to be used for request, can differ in single requests</span><br><span class="line">    * @param contentType     MIME body type, for POST and PUT requests, may be null</span><br><span class="line">    * @param context         Context of Android application, to hold the reference of request</span><br><span class="line">    * @param httpContext     HttpContext in which the request will be executed</span><br><span class="line">    * @param responseHandler ResponseHandler or its subclass to put the response into</span><br><span class="line">    * @param uriRequest      instance of HttpUriRequest, which means it must be of HttpDelete,</span><br><span class="line">    *                        HttpPost, HttpGet, HttpPut, etc.</span><br><span class="line">    * @return RequestHandle of future request process</span><br><span class="line">    */</span><br><span class="line">   protected RequestHandle sendRequest(DefaultHttpClient client, HttpContext httpContext, HttpUriRequest uriRequest, String contentType, ResponseHandlerInterface responseHandler, Context context) &#123;</span><br><span class="line">       if (uriRequest == null) &#123;</span><br><span class="line">           throw new IllegalArgumentException(&quot;HttpUriRequest must not be null&quot;);</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       if (responseHandler == null) &#123;</span><br><span class="line">           throw new IllegalArgumentException(&quot;ResponseHandler must not be null&quot;);</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       if (responseHandler.getUseSynchronousMode() &amp;&amp; !responseHandler.getUsePoolThread()) &#123;</span><br><span class="line">           throw new IllegalArgumentException(&quot;Synchronous ResponseHandler used in AsyncHttpClient. You should create your response handler in a looper thread or use SyncHttpClient instead.&quot;);</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       if (contentType != null) &#123;</span><br><span class="line">           if (uriRequest instanceof HttpEntityEnclosingRequestBase &amp;&amp; ((HttpEntityEnclosingRequestBase) uriRequest).getEntity() != null &amp;&amp; uriRequest.containsHeader(HEADER_CONTENT_TYPE)) &#123;</span><br><span class="line">               log.w(LOG_TAG, &quot;Passed contentType will be ignored because HttpEntity sets content type&quot;);</span><br><span class="line">           &#125; else &#123;</span><br><span class="line">               uriRequest.setHeader(HEADER_CONTENT_TYPE, contentType);</span><br><span class="line">           &#125;</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       responseHandler.setRequestHeaders(uriRequest.getAllHeaders());</span><br><span class="line">       responseHandler.setRequestURI(uriRequest.getURI());</span><br><span class="line"></span><br><span class="line">       // runnable</span><br><span class="line">       AsyncHttpRequest request = newAsyncHttpRequest(client, httpContext, uriRequest, contentType, responseHandler, context);</span><br><span class="line"></span><br><span class="line">       threadPool.submit(request);</span><br><span class="line"></span><br><span class="line">       // Handler 持有Request的弱引用，可以对其执行操作</span><br><span class="line">       RequestHandle requestHandle = new RequestHandle(request);</span><br><span class="line"></span><br><span class="line">       if (context != null) &#123;  //如果此时context为不为空</span><br><span class="line">           List&lt;RequestHandle&gt; requestList;</span><br><span class="line">           // Add request to request map</span><br><span class="line">           synchronized (requestMap) &#123;  // 需要添加到context作为键的List中去</span><br><span class="line">               requestList = requestMap.get(context);</span><br><span class="line">               if (requestList == null) &#123;</span><br><span class="line">                   requestList = Collections.synchronizedList(new LinkedList&lt;RequestHandle&gt;());</span><br><span class="line">                   requestMap.put(context, requestList);</span><br><span class="line">               &#125;</span><br><span class="line">           &#125;</span><br><span class="line"></span><br><span class="line">           requestList.add(requestHandle);</span><br><span class="line"></span><br><span class="line">           // 每次发送请求的时候进行一轮runnable删除</span><br><span class="line">           Iterator&lt;RequestHandle&gt; iterator = requestList.iterator();</span><br><span class="line">           while (iterator.hasNext()) &#123;</span><br><span class="line">               if (iterator.next().shouldBeGarbageCollected()) &#123;</span><br><span class="line">                   iterator.remove();</span><br><span class="line">               &#125;</span><br><span class="line">           &#125;</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       return requestHandle; //返回句柄啊</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure></p>
+<h6 id="AsyncHttpClient"><a href="#AsyncHttpClient" class="headerlink" title="AsyncHttpClient"></a>AsyncHttpClient</h6><p>&emsp;先看AsyncHttpClient,它是这个http库的核心类之一，封装了发生http请求的所有逻辑，可以说它是这个库的中心类。它的构造函数如下:<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">      public AsyncHttpClient(SchemeRegistry schemeRegistry) {
+        &#x2F;&#x2F; http param
+        BasicHttpParams httpParams = new BasicHttpParams();
+
+        &#x2F;&#x2F; connect params builder ?????
+        ConnManagerParams.setTimeout(httpParams, connectTimeout);
+        ConnManagerParams.setMaxConnectionsPerRoute(httpParams, new ConnPerRouteBean(maxConnections));
+        ConnManagerParams.setMaxTotalConnections(httpParams, DEFAULT_MAX_CONNECTIONS);
+
+        &#x2F;&#x2F; httpConnectionParams
+        HttpConnectionParams.setSoTimeout(httpParams, responseTimeout);
+        HttpConnectionParams.setConnectionTimeout(httpParams, connectTimeout);
+        HttpConnectionParams.setTcpNoDelay(httpParams, true);
+        HttpConnectionParams.setSocketBufferSize(httpParams, DEFAULT_SOCKET_BUFFER_SIZE);
+
+        HttpProtocolParams.setVersion(httpParams, HttpVersion.HTTP_1_1);
+
+        ClientConnectionManager cm = createConnectionManager(schemeRegistry, httpParams);
+        Utils.asserts(cm != null, &quot;Custom implementation of #createConnectionManager(SchemeRegistry, BasicHttpParams) returned null&quot;);
+
+
+        &#x2F;&#x2F;thread poll
+        threadPool = getDefaultThreadPool();
+
+        &#x2F;**
+         * weakHashMap context:这是不会出现内存泄露
+         * synchronizedMap 是建立一个线程安全的map加一个同步锁啊。
+         *&#x2F;
+        requestMap = Collections.synchronizedMap(new WeakHashMap&lt;Context, List&lt;RequestHandle&gt;&gt;());
+
+        clientHeaderMap = new HashMap&lt;String, String&gt;();
+
+
+        httpContext = new SyncBasicHttpContext(new BasicHttpContext());
+        &#x2F;&#x2F; 默认的apache的httpclient
+        httpClient = new DefaultHttpClient(cm, httpParams);
+
+        &#x2F;&#x2F; 请求拦截器啊
+        httpClient.addRequestInterceptor(new HttpRequestInterceptor() {
+            @Override
+            public void process(HttpRequest request, HttpContext context) {
+                &#x2F;&#x2F; 预处理,声明浏览器支持的编码类型啊
+                if (!request.containsHeader(HEADER_ACCEPT_ENCODING)) { &#x2F;&#x2F;加上GZIP的头部
+                    request.addHeader(HEADER_ACCEPT_ENCODING, ENCODING_GZIP);
+                }
+
+                &#x2F;&#x2F; 对于默认的clientHeader进行遍历，比较，添加
+                for (String header : clientHeaderMap.keySet()) {
+                    if (request.containsHeader(header)) {  &#x2F;&#x2F;如果包含
+                        Header overwritten = request.getFirstHeader(header);
+                        log.d(LOG_TAG,
+                                String.format(&quot;Headers were overwritten! (%s | %s) overwrites (%s | %s)&quot;,
+                                        header, clientHeaderMap.get(header),
+                                        overwritten.getName(), overwritten.getValue())
+                        );
+
+                        &#x2F;&#x2F;remove the overwritten header
+                        request.removeHeader(overwritten);
+                    }
+                    request.addHeader(header, clientHeaderMap.get(header)); &#x2F;&#x2F;写入clientHeaderMap中的值
+                }
+            }
+        });
+
+        &#x2F;&#x2F; response拦截器,对gzip进行解压缩啊
+        httpClient.addResponseInterceptor(new HttpResponseInterceptor() {
+
+            @Override
+            public void process(HttpResponse response, HttpContext context) {
+                final HttpEntity entity = response.getEntity(); &#x2F;&#x2F;
+                if (entity == null) {
+                    return;
+                }
+                final Header encoding = entity.getContentEncoding();
+                if (encoding != null) {
+                    for (HeaderElement element : encoding.getElements()) { &#x2F;&#x2F;遍历头部信息
+                        if (element.getName().equalsIgnoreCase(ENCODING_GZIP)) {
+                            response.setEntity(new InflatingEntity(entity)); &#x2F;&#x2F;InflatingEntity 这是解压gzip的
+                            break;
+                        }
+                    }
+                }
+            }
+        });
+
+        &#x2F;&#x2F; 另外一个模块的请求拦截器 ???? 身份认证的
+        httpClient.addRequestInterceptor(new HttpRequestInterceptor() {
+            @Override
+            public void process(final HttpRequest request, final HttpContext context) throws HttpException, IOException {
+                AuthState authState = (AuthState) context.getAttribute(ClientContext.TARGET_AUTH_STATE);
+                CredentialsProvider credsProvider = (CredentialsProvider) context.getAttribute(
+                        ClientContext.CREDS_PROVIDER);
+                HttpHost targetHost = (HttpHost) context.getAttribute(ExecutionContext.HTTP_TARGET_HOST);
+
+                if (authState.getAuthScheme() == null) {
+                    AuthScope authScope = new AuthScope(targetHost.getHostName(), targetHost.getPort());
+                    Credentials creds = credsProvider.getCredentials(authScope);
+                    if (creds != null) {
+                        authState.setAuthScheme(new BasicScheme());
+                        authState.setCredentials(creds);
+                    }
+                }
+            }
+        }, 0);
+
+        &#x2F;&#x2F; 重试Handler，用于重新发送请求
+        httpClient.setHttpRequestRetryHandler(new RetryHandler(DEFAULT_MAX_RETRIES, DEFAULT_RETRY_SLEEP_TIME_MILLIS));
+    }
+</code></pre></p>
+<p>&emsp;在构造函数中，AsyncHttpClient主要是初始化了threadPool作为发生请求的线程池，httpContext作为发生请求的网络context，还有最为重要的httpClient,它的类型是Apache的DefaultHttpClient，然后设置了设计gzip压缩和身份认证的请求拦截器和回应拦截器，具体逻辑代码中都有注释。<br>&emsp;AsyncHttp中还有一个我认为是整个库精髓所在的函数，如果你理解了这个函数，那么整个库的代码框架和思想其实你就已经知道了。它就是sendRequest(),AsyncHttp的关于网络请求的方法，比如get,post,head，最终都是调用了这个函数。在这个函数中，其他几个比较主要的类都有出现。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike"> &#x2F;**
+     *
+     * 这是这里的重点啊，创建一个request放在队列中，等待一个thread去执行
+     * Puts a new request in queue as a new thread in pool to be executed
+     *
+     * @param client          HttpClient to be used for request, can differ in single requests
+     * @param contentType     MIME body type, for POST and PUT requests, may be null
+     * @param context         Context of Android application, to hold the reference of request
+     * @param httpContext     HttpContext in which the request will be executed
+     * @param responseHandler ResponseHandler or its subclass to put the response into
+     * @param uriRequest      instance of HttpUriRequest, which means it must be of HttpDelete,
+     *                        HttpPost, HttpGet, HttpPut, etc.
+     * @return RequestHandle of future request process
+     *&#x2F;
+    protected RequestHandle sendRequest(DefaultHttpClient client, HttpContext httpContext, HttpUriRequest uriRequest, String contentType, ResponseHandlerInterface responseHandler, Context context) {
+        if (uriRequest == null) {
+            throw new IllegalArgumentException(&quot;HttpUriRequest must not be null&quot;);
+        }
+
+        if (responseHandler == null) {
+            throw new IllegalArgumentException(&quot;ResponseHandler must not be null&quot;);
+        }
+
+        if (responseHandler.getUseSynchronousMode() &amp;&amp; !responseHandler.getUsePoolThread()) {
+            throw new IllegalArgumentException(&quot;Synchronous ResponseHandler used in AsyncHttpClient. You should create your response handler in a looper thread or use SyncHttpClient instead.&quot;);
+        }
+
+        if (contentType != null) {
+            if (uriRequest instanceof HttpEntityEnclosingRequestBase &amp;&amp; ((HttpEntityEnclosingRequestBase) uriRequest).getEntity() != null &amp;&amp; uriRequest.containsHeader(HEADER_CONTENT_TYPE)) {
+                log.w(LOG_TAG, &quot;Passed contentType will be ignored because HttpEntity sets content type&quot;);
+            } else {
+                uriRequest.setHeader(HEADER_CONTENT_TYPE, contentType);
+            }
+        }
+
+        responseHandler.setRequestHeaders(uriRequest.getAllHeaders());
+        responseHandler.setRequestURI(uriRequest.getURI());
+
+        &#x2F;&#x2F; runnable
+        AsyncHttpRequest request = newAsyncHttpRequest(client, httpContext, uriRequest, contentType, responseHandler, context);
+
+        threadPool.submit(request);
+
+        &#x2F;&#x2F; Handler 持有Request的弱引用，可以对其执行操作
+        RequestHandle requestHandle = new RequestHandle(request);
+
+        if (context != null) {  &#x2F;&#x2F;如果此时context为不为空
+            List&lt;RequestHandle&gt; requestList;
+            &#x2F;&#x2F; Add request to request map
+            synchronized (requestMap) {  &#x2F;&#x2F; 需要添加到context作为键的List中去
+                requestList = requestMap.get(context);
+                if (requestList == null) {
+                    requestList = Collections.synchronizedList(new LinkedList&lt;RequestHandle&gt;());
+                    requestMap.put(context, requestList);
+                }
+            }
+
+            requestList.add(requestHandle);
+
+            &#x2F;&#x2F; 每次发送请求的时候进行一轮runnable删除
+            Iterator&lt;RequestHandle&gt; iterator = requestList.iterator();
+            while (iterator.hasNext()) {
+                if (iterator.next().shouldBeGarbageCollected()) {
+                    iterator.remove();
+                }
+            }
+        }
+
+        return requestHandle; &#x2F;&#x2F;返回句柄啊
+    }
+</code></pre></p>
 <p>&emsp;我们可以看到在函数中</p>
 <ul>
 <li>使用传入的参数和对象本身的成员变量来构造了一个AsynHttpRequest(本身继承Runnable,之后详细介绍),将其放入threadPool中</li>
@@ -395,364 +359,346 @@
 <li>添加Handler到requestList中，然后遍历requestList删除需要垃圾回收的对象</li>
 <li>最后返回requestHandler。</li>
 </ul>
-<h6 id="AsyncHttpRequest"><a href="#AsyncHttpRequest" class="headerlink" title="AsyncHttpRequest"></a>AsyncHttpRequest</h6><p>&emsp;这个类是Runnable的子类,主要是用来进行发送请求和重试这套逻辑，而且ResponseHandlerInterface中的大多数回调函数都是在此对象中回调的。我们主要看一下它的<code>run()</code>,<code>makeRequest()</code>和 <code>makemakeRequestWithRetries()</code>方法<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line">@Override</span><br><span class="line">    public void run() &#123;</span><br><span class="line">        if (isCancelled()) &#123;  //如果run的时候是取消状态，那么就关闭了</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // Carry out pre-processing for this request only once.</span><br><span class="line">        if (!isRequestPreProcessed) &#123;  //必须进行一次预处理</span><br><span class="line">            isRequestPreProcessed = true;</span><br><span class="line">            onPreProcessRequest(this);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        if (isCancelled()) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        responseHandler.sendStartMessage();  // 回调handler，已经开始</span><br><span class="line"></span><br><span class="line">        if (isCancelled()) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // 进行带重试的请求</span><br><span class="line">        try &#123;</span><br><span class="line">            makeRequestWithRetries();</span><br><span class="line">        &#125; catch (IOException e) &#123;</span><br><span class="line">            if (!isCancelled()) &#123;</span><br><span class="line">                responseHandler.sendFailureMessage(0, null, null, e);</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                AsyncHttpClient.log.e(&quot;AsyncHttpRequest&quot;, &quot;makeRequestWithRetries returned error&quot;, e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        if (isCancelled()) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        responseHandler.sendFinishMessage();</span><br><span class="line"></span><br><span class="line">        if (isCancelled()) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // Carry out post-processing for this request.</span><br><span class="line">        onPostProcessRequest(this);</span><br><span class="line"></span><br><span class="line">        isFinished = true;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;可以看出，在run中，根据发送网络请求的不同阶段调用了一系列的回调函数，其中比较重要的是<code>responseHandler.sendFinishMessage()</code>,在这里会回调函数进行解析response；在各个阶段开始前都有调用<code>isCancelled()</code>进行判断是否request被取消了。<br>&emsp;接下来是<code>makeRequest()</code>,在其中就调用了<code>HttpClient.execute(request,context)</code>进行正式的发送请求。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">private void makeRequest() throws IOException &#123;</span><br><span class="line">        if (isCancelled()) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // Fixes #115</span><br><span class="line">        if (request.getURI().getScheme() == null) &#123;</span><br><span class="line">            // subclass of IOException so processed in the caller</span><br><span class="line">            throw new MalformedURLException(&quot;No valid URI scheme was provided&quot;);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        if (responseHandler instanceof RangeFileAsyncHttpResponseHandler) &#123;</span><br><span class="line">            ((RangeFileAsyncHttpResponseHandler) responseHandler).updateRequestHeaders(request);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        HttpResponse response = client.execute(request, context);</span><br><span class="line"></span><br><span class="line">        if (isCancelled()) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // Carry out pre-processing for this response.</span><br><span class="line">        responseHandler.onPreProcessResponse(responseHandler, response);</span><br><span class="line"></span><br><span class="line">        if (isCancelled()) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // The response is ready, handle it.</span><br><span class="line">        responseHandler.sendResponseMessage(response);</span><br><span class="line"></span><br><span class="line">        if (isCancelled()) &#123;</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // Carry out post-processing for this response.</span><br><span class="line">        responseHandler.onPostProcessResponse(responseHandler, response);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<h6 id="AsyncHttpRequest"><a href="#AsyncHttpRequest" class="headerlink" title="AsyncHttpRequest"></a>AsyncHttpRequest</h6><p>&emsp;这个类是Runnable的子类,主要是用来进行发送请求和重试这套逻辑，而且ResponseHandlerInterface中的大多数回调函数都是在此对象中回调的。我们主要看一下它的<code>run()</code>,<code>makeRequest()</code>和 <code>makemakeRequestWithRetries()</code>方法<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">@Override
+    public void run() {
+        if (isCancelled()) {  &#x2F;&#x2F;如果run的时候是取消状态，那么就关闭了
+            return;
+        }
+
+        &#x2F;&#x2F; Carry out pre-processing for this request only once.
+        if (!isRequestPreProcessed) {  &#x2F;&#x2F;必须进行一次预处理
+            isRequestPreProcessed = true;
+            onPreProcessRequest(this);
+        }
+
+        if (isCancelled()) {
+            return;
+        }
+
+        responseHandler.sendStartMessage();  &#x2F;&#x2F; 回调handler，已经开始
+
+        if (isCancelled()) {
+            return;
+        }
+
+        &#x2F;&#x2F; 进行带重试的请求
+        try {
+            makeRequestWithRetries();
+        } catch (IOException e) {
+            if (!isCancelled()) {
+                responseHandler.sendFailureMessage(0, null, null, e);
+            } else {
+                AsyncHttpClient.log.e(&quot;AsyncHttpRequest&quot;, &quot;makeRequestWithRetries returned error&quot;, e);
+            }
+        }
+
+        if (isCancelled()) {
+            return;
+        }
+
+        responseHandler.sendFinishMessage();
+
+        if (isCancelled()) {
+            return;
+        }
+
+        &#x2F;&#x2F; Carry out post-processing for this request.
+        onPostProcessRequest(this);
+
+        isFinished = true;
+    }
+</code></pre></p>
+<p>&emsp;可以看出，在run中，根据发送网络请求的不同阶段调用了一系列的回调函数，其中比较重要的是<code>responseHandler.sendFinishMessage()</code>,在这里会回调函数进行解析response；在各个阶段开始前都有调用<code>isCancelled()</code>进行判断是否request被取消了。<br>&emsp;接下来是<code>makeRequest()</code>,在其中就调用了<code>HttpClient.execute(request,context)</code>进行正式的发送请求。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">private void makeRequest() throws IOException {
+        if (isCancelled()) {
+            return;
+        }
+
+        &#x2F;&#x2F; Fixes #115
+        if (request.getURI().getScheme() == null) {
+            &#x2F;&#x2F; subclass of IOException so processed in the caller
+            throw new MalformedURLException(&quot;No valid URI scheme was provided&quot;);
+        }
+
+        if (responseHandler instanceof RangeFileAsyncHttpResponseHandler) {
+            ((RangeFileAsyncHttpResponseHandler) responseHandler).updateRequestHeaders(request);
+        }
+
+        HttpResponse response = client.execute(request, context);
+
+        if (isCancelled()) {
+            return;
+        }
+
+        &#x2F;&#x2F; Carry out pre-processing for this response.
+        responseHandler.onPreProcessResponse(responseHandler, response);
+
+        if (isCancelled()) {
+            return;
+        }
+
+        &#x2F;&#x2F; The response is ready, handle it.
+        responseHandler.sendResponseMessage(response);
+
+        if (isCancelled()) {
+            return;
+        }
+
+        &#x2F;&#x2F; Carry out post-processing for this response.
+        responseHandler.onPostProcessResponse(responseHandler, response);
+    }
+</code></pre></p>
 <h6 id="RequestHandler"><a href="#RequestHandler" class="headerlink" title="RequestHandler"></a>RequestHandler</h6><p>&emsp;持有AsyncHttpRequest一个弱引用的句柄类，主要的功能是可以让客户端取消AsyncHttpRequest请求</p>
-<h6 id="AsyncHttpResponseHandler"><a href="#AsyncHttpResponseHandler" class="headerlink" title="AsyncHttpResponseHandler"></a>AsyncHttpResponseHandler</h6><p>&emsp;实现ResponseHandlerInterface的一个类，也是我们经常会用到的一个类，在android-async-http中有很多类都实现了ResponseHandlerInterface或者继承了这个类,比如BianryHttpResponseHandler,FileAsyncHttpResponseHandler,每个类都对应不同的网络请求的返回数据资源，有些可能是专门用于文件下载的，有些是解析json的，大家可以自己去了解各个类的作用。<br>&emsp;android-sync-http发送网络请求可以同步也可以异步，而且异步会在相应的thread中进行回调，其中涉及的逻辑就在这些类中。这个类也可以控制发送请求所使用的线程。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line">     * Creates a new AsyncHttpResponseHandler with a user-supplied looper. If</span><br><span class="line">     * the passed looper is null, the looper attached to the current thread will</span><br><span class="line">     * be used.</span><br><span class="line">     *</span><br><span class="line">	 * 如果调用了这个，那么就不是异步，而且是在当前线程中调用了</span><br><span class="line">     * @param looper The looper to work with</span><br><span class="line">     */</span><br><span class="line">    public AsyncHttpResponseHandler(Looper looper) &#123;</span><br><span class="line">        this.looper = looper == null ? Looper.myLooper() : looper;</span><br><span class="line"></span><br><span class="line">        // Use asynchronous mode by default.</span><br><span class="line">        setUseSynchronousMode(false);</span><br><span class="line"></span><br><span class="line">        // Do not use the pool&apos;s thread to fire callbacks by default.</span><br><span class="line">        setUsePoolThread(false);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
-<p>&amp;emsp；大家可以发现构造函数传入了一个Looper,相信对android Handler机制比较了解的同学立即就知道这个库的异步调用是如何在当前线程中进行回调的了吧。这个类实现的回调函数中大多数都是进行<code>sendMessage(obtainMessage(FAILURE_MESSAGE, new Object[]{statusCode, headers, responseBody, throwable}));</code>这样的调用。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">protected void sendMessage(Message msg) &#123;   // 如果是同步就自己处理，否则交由handler处理</span><br><span class="line">       if (getUseSynchronousMode() || handler == null) &#123;</span><br><span class="line">           handleMessage(msg);</span><br><span class="line">       &#125; else if (!Thread.currentThread().isInterrupted()) &#123; // do not send messages if request has been cancelled</span><br><span class="line">           Utils.asserts(handler != null, &quot;handler should not be null!&quot;);</span><br><span class="line">           handler.sendMessage(msg);</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;这就是发生message的函数，发现如果同步模式，那么就调用自己的handleMessage处理，否则交由构造函数中的Looper生成的handler进行处理,其实最终处理的还是这个对象的handlerMessage方法，但是是在另外一个Looper所在的线程中执行的。<br>&amp;emsp；其实这个类中还有两个涉及http response解析的方法也是很重要的，就是<code>sendResponseMesssage(HttpResponse response)</code>和<code>getResponseData(HttpEntity entity)</code>，可是我对http协议不太了解，也害怕说错了，这里就只附上源码吧，上边有我的注释<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line">// 获得网络请求返回进行处理</span><br><span class="line">    @Override</span><br><span class="line">    public void sendResponseMessage(HttpResponse response) throws IOException &#123;</span><br><span class="line">        // do not process if request has been cancelled</span><br><span class="line">        if (!Thread.currentThread().isInterrupted()) &#123;  //thread isInterrupted means that request is cancelled</span><br><span class="line">            StatusLine status = response.getStatusLine(); // 状态行</span><br><span class="line">            byte[] responseBody; // 回复体</span><br><span class="line">            responseBody = getResponseData(response.getEntity());</span><br><span class="line">            // additional cancellation check as getResponseData() can take non-zero time to process</span><br><span class="line">            if (!Thread.currentThread().isInterrupted()) &#123;</span><br><span class="line">                if (status.getStatusCode() &gt;= 300) &#123;</span><br><span class="line">                    sendFailureMessage(status.getStatusCode(), response.getAllHeaders(), responseBody, new HttpResponseException(status.getStatusCode(), status.getReasonPhrase()));</span><br><span class="line">                &#125; else &#123;</span><br><span class="line">                    sendSuccessMessage(status.getStatusCode(), response.getAllHeaders(), responseBody);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * Returns byte array of response HttpEntity contents</span><br><span class="line">	 * 解析http的response</span><br><span class="line">     *</span><br><span class="line">     * @param entity can be null</span><br><span class="line">     * @return response entity body or null</span><br><span class="line">     * @throws java.io.IOException if reading entity or creating byte array failed</span><br><span class="line">     */</span><br><span class="line">    byte[] getResponseData(HttpEntity entity) throws IOException &#123;</span><br><span class="line">        byte[] responseBody = null;</span><br><span class="line">        if (entity != null) &#123;</span><br><span class="line">            InputStream instream = entity.getContent(); // 获得输入流</span><br><span class="line">            if (instream != null) &#123;</span><br><span class="line">                long contentLength = entity.getContentLength(); // 获得size</span><br><span class="line">                if (contentLength &gt; Integer.MAX_VALUE) &#123;</span><br><span class="line">                    throw new IllegalArgumentException(&quot;HTTP entity too large to be buffered in memory&quot;);</span><br><span class="line">                &#125;</span><br><span class="line">                int buffersize = (contentLength &lt;= 0) ? BUFFER_SIZE : (int) contentLength; // contentLength有可能为负数吗</span><br><span class="line">                try &#123;</span><br><span class="line">                    ByteArrayBuffer buffer = new ByteArrayBuffer(buffersize); // byte array的buffer类</span><br><span class="line">                    try &#123;</span><br><span class="line">                        byte[] tmp = new byte[BUFFER_SIZE];</span><br><span class="line">                        long count = 0;</span><br><span class="line">                        int l;</span><br><span class="line">                        // do not send messages if request has been cancelled</span><br><span class="line">                        while ((l = instream.read(tmp)) != -1 &amp;&amp; !Thread.currentThread().isInterrupted()) &#123;</span><br><span class="line">                            count += l;</span><br><span class="line">                            buffer.append(tmp, 0, l);</span><br><span class="line">                            sendProgressMessage(count, (contentLength &lt;= 0 ? 1 : contentLength));</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125; finally &#123;</span><br><span class="line">                        AsyncHttpClient.silentCloseInputStream(instream);</span><br><span class="line">                        AsyncHttpClient.endEntityViaReflection(entity);</span><br><span class="line">                    &#125;</span><br><span class="line">                    responseBody = buffer.toByteArray();</span><br><span class="line">                &#125; catch (OutOfMemoryError e) &#123;</span><br><span class="line">                    System.gc();</span><br><span class="line">                    throw new IOException(&quot;File too large to fit into available memory&quot;);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        return responseBody;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<h6 id="AsyncHttpResponseHandler"><a href="#AsyncHttpResponseHandler" class="headerlink" title="AsyncHttpResponseHandler"></a>AsyncHttpResponseHandler</h6><p>&emsp;实现ResponseHandlerInterface的一个类，也是我们经常会用到的一个类，在android-async-http中有很多类都实现了ResponseHandlerInterface或者继承了这个类,比如BianryHttpResponseHandler,FileAsyncHttpResponseHandler,每个类都对应不同的网络请求的返回数据资源，有些可能是专门用于文件下载的，有些是解析json的，大家可以自己去了解各个类的作用。<br>&emsp;android-sync-http发送网络请求可以同步也可以异步，而且异步会在相应的thread中进行回调，其中涉及的逻辑就在这些类中。这个类也可以控制发送请求所使用的线程。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;**
+     * Creates a new AsyncHttpResponseHandler with a user-supplied looper. If
+     * the passed looper is null, the looper attached to the current thread will
+     * be used.
+     *
+	 * 如果调用了这个，那么就不是异步，而且是在当前线程中调用了
+     * @param looper The looper to work with
+     *&#x2F;
+    public AsyncHttpResponseHandler(Looper looper) {
+        this.looper = looper == null ? Looper.myLooper() : looper;
+
+        &#x2F;&#x2F; Use asynchronous mode by default.
+        setUseSynchronousMode(false);
+
+        &#x2F;&#x2F; Do not use the pool&#39;s thread to fire callbacks by default.
+        setUsePoolThread(false);
+    }
+</code></pre></p>
+<p>&amp;emsp；大家可以发现构造函数传入了一个Looper,相信对android Handler机制比较了解的同学立即就知道这个库的异步调用是如何在当前线程中进行回调的了吧。这个类实现的回调函数中大多数都是进行<code>sendMessage(obtainMessage(FAILURE_MESSAGE, new Object[]{statusCode, headers, responseBody, throwable}));</code>这样的调用。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike"> protected void sendMessage(Message msg) {   &#x2F;&#x2F; 如果是同步就自己处理，否则交由handler处理
+        if (getUseSynchronousMode() || handler == null) {
+            handleMessage(msg);
+        } else if (!Thread.currentThread().isInterrupted()) { &#x2F;&#x2F; do not send messages if request has been cancelled
+            Utils.asserts(handler != null, &quot;handler should not be null!&quot;);
+            handler.sendMessage(msg);
+        }
+    }
+</code></pre></p>
+<p>&emsp;这就是发生message的函数，发现如果同步模式，那么就调用自己的handleMessage处理，否则交由构造函数中的Looper生成的handler进行处理,其实最终处理的还是这个对象的handlerMessage方法，但是是在另外一个Looper所在的线程中执行的。<br>&amp;emsp；其实这个类中还有两个涉及http response解析的方法也是很重要的，就是<code>sendResponseMesssage(HttpResponse response)</code>和<code>getResponseData(HttpEntity entity)</code>，可是我对http协议不太了解，也害怕说错了，这里就只附上源码吧，上边有我的注释<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 获得网络请求返回进行处理
+    @Override
+    public void sendResponseMessage(HttpResponse response) throws IOException {
+        &#x2F;&#x2F; do not process if request has been cancelled
+        if (!Thread.currentThread().isInterrupted()) {  &#x2F;&#x2F;thread isInterrupted means that request is cancelled
+            StatusLine status = response.getStatusLine(); &#x2F;&#x2F; 状态行
+            byte[] responseBody; &#x2F;&#x2F; 回复体
+            responseBody = getResponseData(response.getEntity());
+            &#x2F;&#x2F; additional cancellation check as getResponseData() can take non-zero time to process
+            if (!Thread.currentThread().isInterrupted()) {
+                if (status.getStatusCode() &gt;= 300) {
+                    sendFailureMessage(status.getStatusCode(), response.getAllHeaders(), responseBody, new HttpResponseException(status.getStatusCode(), status.getReasonPhrase()));
+                } else {
+                    sendSuccessMessage(status.getStatusCode(), response.getAllHeaders(), responseBody);
+                }
+            }
+        }
+    }
+
+    &#x2F;**
+     * Returns byte array of response HttpEntity contents
+	 * 解析http的response
+     *
+     * @param entity can be null
+     * @return response entity body or null
+     * @throws java.io.IOException if reading entity or creating byte array failed
+     *&#x2F;
+    byte[] getResponseData(HttpEntity entity) throws IOException {
+        byte[] responseBody = null;
+        if (entity != null) {
+            InputStream instream = entity.getContent(); &#x2F;&#x2F; 获得输入流
+            if (instream != null) {
+                long contentLength = entity.getContentLength(); &#x2F;&#x2F; 获得size
+                if (contentLength &gt; Integer.MAX_VALUE) {
+                    throw new IllegalArgumentException(&quot;HTTP entity too large to be buffered in memory&quot;);
+                }
+                int buffersize = (contentLength &lt;= 0) ? BUFFER_SIZE : (int) contentLength; &#x2F;&#x2F; contentLength有可能为负数吗
+                try {
+                    ByteArrayBuffer buffer = new ByteArrayBuffer(buffersize); &#x2F;&#x2F; byte array的buffer类
+                    try {
+                        byte[] tmp = new byte[BUFFER_SIZE];
+                        long count = 0;
+                        int l;
+                        &#x2F;&#x2F; do not send messages if request has been cancelled
+                        while ((l = instream.read(tmp)) != -1 &amp;&amp; !Thread.currentThread().isInterrupted()) {
+                            count += l;
+                            buffer.append(tmp, 0, l);
+                            sendProgressMessage(count, (contentLength &lt;= 0 ? 1 : contentLength));
+                        }
+                    } finally {
+                        AsyncHttpClient.silentCloseInputStream(instream);
+                        AsyncHttpClient.endEntityViaReflection(entity);
+                    }
+                    responseBody = buffer.toByteArray();
+                } catch (OutOfMemoryError e) {
+                    System.gc();
+                    throw new IOException(&quot;File too large to fit into available memory&quot;);
+                }
+            }
+        }
+        return responseBody;
+    }
+</code></pre></p>
 <h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>&emsp;android-async-http 算是源代码量最小的一个网络库了，当然它还有些却缺点，比如没有缓存机制，我看github中已经有人给它加上了缓存，大家也可以自己尝试一下，并且更好的是，这个库可以与其他的第三方库进行集成，大家可以打造属于自己的网络请求+处理数据的框架。</p>
 
-      
-    </div>
-    
-    
-    
+      <h3>关于图片和转载</h3>
 
-    
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
 
-    
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
 
-    
+      <h3>关于评论和留言</h3>
 
+      如果对本文 <a href="http://remcarpediem.net/2015/09/27/Android-Async-Http-源码解析/">Android-Async-Http 源码解析</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/2015/09/27/Android-Async-Http-源码解析/">Android-Async-Http 源码解析</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
     <footer class="post-footer">
-      
-        <div class="post-tags">
-          
-            <a href="/tags/第三方库/" rel="tag"># 第三方库</a>
-          
-            <a href="/tags/Http/" rel="tag"># Http</a>
-          
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">remCarpediem's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">remCarpediem</a></h4>
+        
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> Carpediem</a></span> 
         </div>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/2015/09/27/Android-Async-Http-源码解析/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/2015/09/27/Android-Async-Http-源码解析/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/2015/09/27/Android-Async-Http-源码解析/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
       
+ <div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script>
+    const gitalk = new Gitalk({
+    clientID: '9347af410c07624ec3e6',
+    clientSecret: '578667b93387d410574122685243499f1b546ba7',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: "http://remcarpediem.net/2015/09/27/Android-Async-Http-源码解析/",
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
 
-      
-      
-      
+gitalk.render('gitalk-container')
+</script>
 
-      
-        <div class="post-nav">
-          <div class="post-nav-next post-nav-item">
-            
-              <a href="/2015/09/18/初识Dagger2/" rel="next" title="初识Dagger2">
-                <i class="fa fa-chevron-left"></i> 初识Dagger2
-              </a>
-            
-          </div>
-
-          <span class="post-nav-divider"></span>
-
-          <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2015/10/02/Gson源码分析/" rel="prev" title="Gson源码分析">
-                Gson源码分析 <i class="fa fa-chevron-right"></i>
-              </a>
-            
-          </div>
-        </div>
-      
-
-      
-      
     </footer>
-  </div>
-  
-  
-  
   </article>
-
-
-
-    <div class="post-spread">
-      
-    </div>
-  </div>
-
-
-          </div>
-          
-
-
-          
-  <div class="comments" id="comments">
+</main>
+<aside class="read-next">
+ 
     
-  </div>
-
-
-        </div>
-        
-          
-  
-  <div class="sidebar-toggle">
-    <div class="sidebar-toggle-line-wrap">
-      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
-      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
-      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
-    </div>
-  </div>
-
-  <aside id="sidebar" class="sidebar">
-    
-    <div class="sidebar-inner">
-
-      
-
-      
-        <ul class="sidebar-nav motion-element">
-          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
-            Table of Contents
-          </li>
-          <li class="sidebar-nav-overview" data-target="site-overview">
-            Overview
-          </li>
-        </ul>
-      
-
-      <section class="site-overview sidebar-panel">
-        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="remCarpediem">
-          <p class="site-author-name" itemprop="name">remCarpediem</p>
-           
-              <p class="site-description motion-element" itemprop="description"></p>
-          
-        </div>
-        <nav class="site-state motion-element">
-
-          
-            <div class="site-state-item site-state-posts">
-              <a href="/archives/">
-                <span class="site-state-item-count">59</span>
-                <span class="site-state-item-name">posts</span>
-              </a>
-            </div>
-          
-
-          
+    <a class="read-next-story no-cover" href="/2015/09/18/初识Dagger2/">
+      <section class="post">
+        <h2>初识Dagger2</h2>
+        <p>
             
+              
+&emsp;要使用Dagger2，首先要了解的就是控制反转和依赖注入这两个概念。
+
+一、控制反转
+&emsp;在wiki词条中，控制反转如下定义：In software engineering, inversion of control (IoC) describes a design in which custom-written portions of a computer program receive the flow of  ......
             
-            <div class="site-state-item site-state-categories">
-              
-                <span class="site-state-item-count">33</span>
-                <span class="site-state-item-name">categories</span>
-              
-            </div>
-          
-
-          
-            
-            
-            <div class="site-state-item site-state-tags">
-              
-                <span class="site-state-item-count">53</span>
-                <span class="site-state-item-name">tags</span>
-              
-            </div>
-          
-
-        </nav>
-
-        
-
-        <div class="links-of-author motion-element">
-          
-        </div>
-
-        
-        
-
-        
-        
-
-        
-
-
+          </p>
       </section>
-
-      
-      <!--noindex-->
-        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
-          <div class="post-toc">
-
-            
-              
-            
-
-            
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#简介"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#基本使用"><span class="nav-number">2.</span> <span class="nav-text">基本使用</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#源码解析"><span class="nav-number">3.</span> <span class="nav-text">源码解析</span></a><ol class="nav-child"><li class="nav-item nav-level-6"><a class="nav-link" href="#AsyncHttpClient"><span class="nav-number">3.0.1.</span> <span class="nav-text">AsyncHttpClient</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#AsyncHttpRequest"><span class="nav-number">3.0.2.</span> <span class="nav-text">AsyncHttpRequest</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#RequestHandler"><span class="nav-number">3.0.3.</span> <span class="nav-text">RequestHandler</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#AsyncHttpResponseHandler"><span class="nav-number">3.0.4.</span> <span class="nav-text">AsyncHttpResponseHandler</span></a></li></ol></li></ol><li class="nav-item nav-level-4"><a class="nav-link" href="#总结"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></div>
-            
-
-          </div>
-        </section>
-      <!--/noindex-->
-      
-
-      
-
-    </div>
-  </aside>
-
-
-        
-      </div>
-    </main>
-
-    <footer id="footer" class="footer">
-      <div class="footer-inner">
-        <div class="copyright">
+    </a>
+    
   
-  &copy; 
-  <span itemprop="copyrightYear">2018</span>
-  <span class="with-love">
-    <i class="fa fa-heart"></i>
-  </span>
-  <span class="author" itemprop="copyrightHolder">remCarpediem</span>
-</div>
 
 
-<div class="powered-by">
-  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
-</div>
-
-<div class="theme-info">
-  Theme -
-  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
-    NexT.Muse
-  </a>
-</div>
-
-
-        
-
-        
-      </div>
-    </footer>
-
+  
     
-      <div class="back-to-top">
-        <i class="fa fa-arrow-up"></i>
-        
-      </div>
+    <a class="read-next-story no-cover" href="/2015/10/02/Gson源码分析/">
+      <section class="post">
+        <h2>Gson源码分析</h2>
+        <p>
+            
+              &emsp;最近研究了google开源的Json库Gson，在这里进行总结一下，应该会分为3篇博客。第一篇主要讲一下Gson的整个框架吧；第二篇主要总结一下Gson关于反射的部分;最后一篇会总结一下JsonWriter和JsonReader，主要是Json对象的处理啦。
+Gson&emsp;Gson是可以转换Java对象为JSON表示的java库，也可以将JSON转换为Java对象，并且可以转换你没有源代码的预设的复杂对象&emsp;现 ......
+            
+          </p>
+      </section>
+    </a>
     
+  
+</aside>
+
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">Carpediem</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
+</footer>
 
   </div>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
 
-  
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
 
 <script type="text/javascript">
-  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
-    window.Promise = null;
-  }
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
 </script>
 
 
 
 
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
-
-  
-  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
-
-  
-  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
-
-  
-  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
-
-  
-  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
-
-  
-  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
-
-
-  
-
-
-  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
-
-  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
-
-
-
-  
-  
-
-  
-  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
-<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
-
-
-
-  
-
-
-  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
-
-
-
-  
-
-
-  
-
-
-
-
-	
-
-
-
-
-
-  
-
-
-
-
-
-  
-
-
-
-
-
-
-  
-
-
-
-
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
 
 </body>
 </html>

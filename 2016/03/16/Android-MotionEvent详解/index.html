@@ -1,100 +1,15 @@
 <!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
 
-
-
-  
-
-
-<html class="theme-next muse use-motion" lang="Chinese">
-<head><meta name="generator" content="Hexo 3.8.0">
-  <meta charset="UTF-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<meta name="theme-color" content="#222">
-
-
-
-
-
-
-
-
-
-<meta http-equiv="Cache-Control" content="no-transform">
-<meta http-equiv="Cache-Control" content="no-siteapp">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  
-  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
-
-
-
-
-  
-  
-  
-  
-
-  
-    
-    
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-    
-    
-    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
-  
-
-
-
-
-
-
-<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
-
-<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
-
-
-  <meta name="keywords" content="MotionEvent,">
-
-
-
-
-
-
-
-
-  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
-
-
-
-
-
-
-<meta name="description" content="&amp;emsp;在前边几篇博文中（《图解Android事件传递之ViewGroup篇》，《图解Android事件传递之View篇》），我们已经了解了android触摸事件传递机制，接着我们再来研究一下与触摸事件传递相关的几个比较重要的类，比如MotionEvent。我们今天就来详细说明一下这个类的各方面用法。 事件坐标的含义 我们都知道，每个触摸事件都代表用户在屏幕上的一个动作，而每个动作必定有其发生">
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>Android MotionEvent详解 | Carpediem</title>
+  <meta name="description" content="blog of nobody" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="&amp;emsp;在前边几篇博文中（《图解Android事件传递之ViewGroup篇》，《图解Android事件传递之View篇》），我们已经了解了android触摸事件传递机制，接着我们再来研究一下与触摸事件传递相关的几个比较重要的类，比如MotionEvent。我们今天就来详细说明一下这个类的各方面用法。 事件坐标的含义 我们都知道，每个触摸事件都代表用户在屏幕上的一个动作，而每个动作必定有其发生">
 <meta name="keywords" content="MotionEvent">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Android MotionEvent详解">
@@ -110,266 +25,166 @@
 <meta name="twitter:title" content="Android MotionEvent详解">
 <meta name="twitter:description" content="&amp;emsp;在前边几篇博文中（《图解Android事件传递之ViewGroup篇》，《图解Android事件传递之View篇》），我们已经了解了android触摸事件传递机制，接着我们再来研究一下与触摸事件传递相关的几个比较重要的类，比如MotionEvent。我们今天就来详细说明一下这个类的各方面用法。 事件坐标的含义 我们都知道，每个触摸事件都代表用户在屏幕上的一个动作，而每个动作必定有其发生">
 <meta name="twitter:image" content="http://upload-images.jianshu.io/upload_images/623378-f45e4c2e22f0e8aa.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+  <!-- build:css css/screen.css -->
 
-
-
-<script type="text/javascript" id="hexo.configurations">
-  var NexT = window.NexT || {};
-  var CONFIG = {
-    root: '/',
-    scheme: 'Muse',
-    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
-    fancybox: true,
-    tabs: true,
-    motion: true,
-    duoshuo: {
-      userId: '0',
-      author: 'Author'
-    },
-    algolia: {
-      applicationID: '',
-      apiKey: '',
-      indexName: '',
-      hits: {"per_page":10},
-      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
-    }
-  };
-</script>
-
-
-
-  <link rel="canonical" href="http://remcarpediem.net/2016/03/16/Android-MotionEvent详解/">
-
-
-
-
-
-  <title>Android MotionEvent详解 | Carpediem</title>
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-</head>
-
-<body itemscope="" itemtype="http://schema.org/WebPage" lang="Chinese">
-
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="Carpediem">
   
   
-    
   
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
 
-  <div class="container sidebar-position-left page-post-detail ">
-    <div class="headband"></div>
 
-    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
-      <div class="header-inner"><div class="site-brand-wrapper">
-  <div class="site-meta ">
-    
+<body class="post-template">
 
-    <div class="custom-logo-site-title">
-      <a href="/" class="brand" rel="start">
-        <span class="logo-line-before"><i></i></span>
-        <span class="site-title">Carpediem</span>
-        <span class="logo-line-after"><i></i></span>
-      </a>
-    </div>
-      
-        <p class="site-subtitle">blog of nobody</p>
-      
-  </div>
-
-  <div class="site-nav-toggle">
-    <button>
-      <span class="btn-bar"></span>
-      <span class="btn-bar"></span>
-      <span class="btn-bar"></span>
-    </button>
-  </div>
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home {% if page.current == 'home' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios {% if page.url contains 'iOS' %} nav-current{% endif %}" role="presentation"><a href="/archives">Archives</a></li>
+    <li class="nav-mvc {% if page.url contains 'MVC' %} nav-current{% endif %}" role="presentation"><a href="/tag">Tags</a></li>
+    <li class="nav-server {% if page.url contains 'server' %} nav-current{% endif %}" role="presentation"><a href="/category">Category</a></li>
+    <li class="nav-ruby {% if page.url contains 'ruby' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}tag/ruby">About</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
 </div>
+<span class="nav-cover"></span>
 
-<nav class="site-nav">
-  
-
-  
-    <ul id="menu" class="menu">
-      
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
         
-        <li class="menu-item menu-item-home">
-          <a href="/" rel="section">
-            
-              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
-            
-            Home
-          </a>
-        </li>
-      
-        
-        <li class="menu-item menu-item-archives">
-          <a href="/archives/" rel="section">
-            
-              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
-            
-            Archives
-          </a>
-        </li>
-      
-        
-        <li class="menu-item menu-item-tags">
-          <a href="/tags/" rel="section">
-            
-              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
-            
-            Tags
-          </a>
-        </li>
-      
-
-      
-    </ul>
-  
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
+</header>
 
   
-</nav>
 
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">Android MotionEvent详解</h1>
+      <section class="post-meta">
+  <time datetime="2016-03-16T05:54:44.000Z" itemprop="datePublished" class="post-date">
+      2016-03-16
+  </time>
+  
+  
+  
+  <a href="/tags/MotionEvent/">MotionEvent</a>
+  
+  
+</section>
 
-
- </div>
     </header>
-
-    <main id="main" class="main">
-      <div class="main-inner">
-        <div class="content-wrap">
-          <div id="content" class="content">
-            
-
-  <div id="posts" class="posts-expand">
-    
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://remcarpediem.net/2016/03/16/Android-MotionEvent详解/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="remCarpediem">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Carpediem">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">Android MotionEvent详解</h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">Posted on</span>
-              
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2016-03-16T13:54:44+08:00">
-                2016-03-16
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">In</span>
-              
-              
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
-                  <a href="/categories/Android/" itemprop="url" rel="index">
-                    <span itemprop="name">Android</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
+    <section class="post-content" itemprop="description articleBody">
       
 
-      
-        <p>&emsp;在前边几篇博文中（<a href="http://ztelur.github.io/2016/02/11/%E5%9B%BE%E8%A7%A3Android%E4%BA%8B%E4%BB%B6%E4%BC%A0%E9%80%92%E4%B9%8BViewGroup%E7%AF%87/" target="_blank" rel="noopener">《图解Android事件传递之ViewGroup篇》</a>，<a href="http://ztelur.github.io/2016/02/04/%E5%9B%BE%E8%A7%A3Android%E4%BA%8B%E4%BB%B6%E4%BC%A0%E9%80%92%E4%B9%8BView%E7%AF%87/" target="_blank" rel="noopener">《图解Android事件传递之View篇》</a>），我们已经了解了android触摸事件传递机制，接着我们再来研究一下与触摸事件传递相关的几个比较重要的类，比如<code>MotionEvent</code>。我们今天就来详细说明一下这个类的各方面用法。</p>
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2018-11-18T13:40:01.000Z" itemprop="dateModified">
+      2018-11-18
+  </time>
+</section>
+
+       -->
+      <p>&emsp;在前边几篇博文中（<a href="http://ztelur.github.io/2016/02/11/%E5%9B%BE%E8%A7%A3Android%E4%BA%8B%E4%BB%B6%E4%BC%A0%E9%80%92%E4%B9%8BViewGroup%E7%AF%87/" target="_blank" rel="noopener">《图解Android事件传递之ViewGroup篇》</a>，<a href="http://ztelur.github.io/2016/02/04/%E5%9B%BE%E8%A7%A3Android%E4%BA%8B%E4%BB%B6%E4%BC%A0%E9%80%92%E4%B9%8BView%E7%AF%87/" target="_blank" rel="noopener">《图解Android事件传递之View篇》</a>），我们已经了解了android触摸事件传递机制，接着我们再来研究一下与触摸事件传递相关的几个比较重要的类，比如<code>MotionEvent</code>。我们今天就来详细说明一下这个类的各方面用法。</p>
 <h4 id="事件坐标的含义"><a href="#事件坐标的含义" class="headerlink" title="事件坐标的含义"></a>事件坐标的含义</h4><p> 我们都知道，每个触摸事件都代表用户在屏幕上的一个动作，而每个动作必定有其发生的位置。在<code>MotionEvent</code>中就有一系列与标触摸事件发生位置相关的函数：</p>
 <ul>
 <li><code>getX()</code>和<code>getY()</code>：由这两个函数获得的x,y值是相对的坐标值，相对于消费这个事件的视图的左上点的坐标。</li>
-<li><code>getRawX()</code>和<code>getRawY()</code>:有这两个函数获得的x,y值是绝对坐标，是相对于屏幕的。<br> 在之前的文章中，我们曾经分析过事件如何通过层层分发，最终到达消费它的视图手中。其中<code>ViewGroup</code>的<code>dispatchTransformedTouchEvent</code>函数有如下一段代码:<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="keyword">float</span> offsetX = mScrollX - child.mLeft;</span><br><span class="line">   <span class="keyword">final</span> <span class="keyword">float</span> offsetY = mScrollY - child.mTop;</span><br><span class="line">   event.offsetLocation(offsetX, offsetY);</span><br><span class="line">handled = child.dispatchTouchEvent(event);</span><br><span class="line">event.offsetLocation(-offsetX, -offsetY);</span><br></pre></td></tr></table></figure>
+<li><code>getRawX()</code>和<code>getRawY()</code>:有这两个函数获得的x,y值是绝对坐标，是相对于屏幕的。<br> 在之前的文章中，我们曾经分析过事件如何通过层层分发，最终到达消费它的视图手中。其中<code>ViewGroup</code>的<code>dispatchTransformedTouchEvent</code>函数有如下一段代码:
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">	final float offsetX = mScrollX - child.mLeft;
+    final float offsetY = mScrollY - child.mTop;
+    event.offsetLocation(offsetX, offsetY);
+	handled = child.dispatchTouchEvent(event);
+	event.offsetLocation(-offsetX, -offsetY);
+</code></pre>
 </li>
 </ul>
 <p> 这段代码清晰展示了父视图把事件分发给子视图时，<code>getX()</code>和<code>getY</code>所获得的相关坐标是如何改变的。当父视图处理事件时，上述两个函数获得的相对坐标是相对于父视图的，然后通过上边这段代码，调整了相对坐标的值，让其变为相对于子视图啦。</p>
 <p><img src="http://upload-images.jianshu.io/upload_images/623378-f45e4c2e22f0e8aa.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="绝对坐标和相对坐标示意图"></p>
-<h4 id="事件类型"><a href="#事件类型" class="headerlink" title="事件类型"></a>事件类型</h4><p> 涉及<code>MotionEvent</code>使用的代码一般如下:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> action = MotionEventCompat.getActionMasked(event);</span><br><span class="line"><span class="keyword">switch</span>(action) &#123;</span><br><span class="line">	<span class="keyword">case</span> MotionEvent.ACTION_DOWN:</span><br><span class="line">		<span class="keyword">break</span>;</span><br><span class="line">	<span class="keyword">case</span> MotionEvent.ACTION_MOVE:</span><br><span class="line">		<span class="keyword">break</span>;</span><br><span class="line">	<span class="keyword">case</span> MotionEvent.ACTION_UP:</span><br><span class="line">		<span class="keyword">break</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="事件类型"><a href="#事件类型" class="headerlink" title="事件类型"></a>事件类型</h4><p> 涉及<code>MotionEvent</code>使用的代码一般如下:<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">	int action = MotionEventCompat.getActionMasked(event);
+	switch(action) {
+		case MotionEvent.ACTION_DOWN:
+			break;
+		case MotionEvent.ACTION_MOVE:
+			break;
+		case MotionEvent.ACTION_UP:
+			break;
+	}
+</code></pre></p>
 <p> 这里就引入了关于<code>MotionEvent</code>的一个重要概念，事件类型。事件类型就是指<code>MotionEvent</code>对象所代表的动作。比如说，当你的<strong>一个</strong>手指在屏幕上滑动一下时，系统会产生一系列的触摸事件对象,他们所代表的动作有所不同。有的事件代表你手指<strong>按下</strong>这个动作,有的事件代表你手指在屏幕上<strong>滑动</strong>,还有的事件代表你手指<strong>离开</strong>屏幕。这些事件的事件类型就分别为<code>ACTION_DOWN</code>,<code>ACTION_MOVE</code>,和<code>ACTION_UP</code>。上述这个动作所产生的一系列事件，被称为一个事件流，它包括一个<code>ACTION_DOWN</code>事件，很多个<code>ACTION_MOVE</code>事件，和一个<code>ACTION_UP</code>事件。</p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2016316-%E5%8D%95%E4%B8%AA%E6%89%8B%E6%8C%87%E5%8A%A8%E4%BD%9C.gif" alt="单个手指动作.gif"></p>
 <p> 当然，除了这三个类型外，还有很多不同的事件类型,比如<code>ACTION_CANCEL</code>。它代表当前的手势被取消。要理解这个类型，就必须要了解<code>ViewGroup</code>分发事件的机制。一般来说，如果一个子视图接收了父视图分发给它的<code>ACTION_DOWN</code>事件，那么与<code>ACTION_DOWN</code>事件相关的事件流就都要分发给这个子视图，但是如果父视图希望拦截其中的一些事件，不再继续转发事件给这个子视图的话，那么就需要给子视图一个<code>ACTION_CANCEL</code>事件。<br> 其他的类型会在接下来的博文中一一解释。</p>
-<h4 id="Pointer"><a href="#Pointer" class="headerlink" title="Pointer"></a>Pointer</h4><p> 细心的同学会发现，在上一节我描述用户手指在屏幕上滑动的例子时，特地说明了手指的数量为一个。那么当用户两个或者多个手指在屏幕上滑动时，系统又会产生怎样的事件流呢？<br> 为了可以表示多个触摸点的动作，<code>MotionEvent</code>中引入了<code>Pointer</code>的概念，一个pointer就代表一个触摸点，每个pointer都有自己的事件类型，也有自己的横轴坐标值。<strong>一个<code>MotionEvent</code>对象中可能会存储多个pointer的相关信息，每个pointer都会有一个自己的id和index。pointer的id在整个事件流中是不会发生变化的，但是index会发生变化。</strong><br> <code>MotionEvent</code>类中的很多方法都是可以传入一个int值作为参数的，其实传入的就是pointer的index值。比如<code>getX(pointerIndex)</code>和<code>getY(pointerIndex)</code>，此时，它们返回的就是index所代表的触摸点相关事件坐标值。<br> 由于pointer的index值在不同的<code>MotionEvent</code>对象中会发生变化，但是id值却不会变化。所以，当我们要记录一个触摸点的事件流时，就只需要保存其id,然后使用<code>findPointerIndex(int)</code>来获得其index值，然后再获得其他信息。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">static</span> <span class="keyword">int</span> INVALID_ID = -<span class="number">1</span>;</span><br><span class="line">   <span class="keyword">private</span> <span class="keyword">int</span> mActivePointerId = INVALID_ID;</span><br><span class="line">   <span class="keyword">private</span> <span class="keyword">int</span> mSecondaryPointerId = INVALID_ID;</span><br><span class="line">   <span class="keyword">private</span> <span class="keyword">float</span> mPrimaryLastX = -<span class="number">1</span>;</span><br><span class="line">   <span class="keyword">private</span> <span class="keyword">float</span> mPrimaryLastY = -<span class="number">1</span>;</span><br><span class="line">   <span class="keyword">private</span> <span class="keyword">float</span> mSecondaryLastX = -<span class="number">1</span>;</span><br><span class="line">   <span class="keyword">private</span> <span class="keyword">float</span> mSecondaryLastY = -<span class="number">1</span>;</span><br><span class="line">   <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">onTouchEvent</span><span class="params">(MotionEvent event)</span> </span>&#123;</span><br><span class="line">       <span class="keyword">int</span> action = MotionEventCompat.getActionMasked(event);</span><br><span class="line"></span><br><span class="line">       <span class="keyword">switch</span> (action) &#123;</span><br><span class="line">           <span class="keyword">case</span> MotionEvent.ACTION_DOWN:</span><br><span class="line">               <span class="keyword">int</span> index = event.getActionIndex();</span><br><span class="line">               mActivePointerId = event.getPointerId(index);</span><br><span class="line">               mPrimaryLastX = MotionEventCompat.getX(event,index);</span><br><span class="line">               mPrimaryLastY = MotionEventCompat.getY(event,index);</span><br><span class="line">               <span class="keyword">break</span>;</span><br><span class="line">           <span class="keyword">case</span> MotionEvent.ACTION_POINTER_DOWN:</span><br><span class="line">               index = event.getActionIndex();</span><br><span class="line">               mSecondaryPointerId = event.getPointerId(index);</span><br><span class="line">               mSecondaryLastX = event.getX(index);</span><br><span class="line">               mSecondaryLastY = event.getY(index);</span><br><span class="line">               <span class="keyword">break</span>;</span><br><span class="line">           <span class="keyword">case</span> MotionEvent.ACTION_MOVE:</span><br><span class="line">               index = event.findPointerIndex(mActivePointerId);</span><br><span class="line">               <span class="keyword">int</span> secondaryIndex = MotionEventCompat.findPointerIndex(event,mSecondaryPointerId);</span><br><span class="line">               <span class="keyword">final</span> <span class="keyword">float</span> x = MotionEventCompat.getX(event,index);</span><br><span class="line">               <span class="keyword">final</span> <span class="keyword">float</span> y = MotionEventCompat.getY(event,index);</span><br><span class="line">               <span class="keyword">final</span> <span class="keyword">float</span> secondX = MotionEventCompat.getX(event,secondaryIndex);</span><br><span class="line">               <span class="keyword">final</span> <span class="keyword">float</span> secondY = MotionEventCompat.getY(event,secondaryIndex);</span><br><span class="line">               <span class="keyword">break</span>;</span><br><span class="line">           <span class="keyword">case</span> MotionEvent.ACTION_POINTER_UP:</span><br><span class="line">               xxxxxx(涉及pointer id的转换，之后的文章会讲解)</span><br><span class="line">               <span class="keyword">break</span>;</span><br><span class="line">           <span class="keyword">case</span> MotionEvent.ACTION_UP:</span><br><span class="line">           <span class="keyword">case</span> MotionEvent.ACTION_CANCEL:</span><br><span class="line">               mActivePointerId = INVALID_ID;</span><br><span class="line">               mPrimaryLastX =-<span class="number">1</span>;</span><br><span class="line">               mPrimaryLastY = -<span class="number">1</span>;</span><br><span class="line">               <span class="keyword">break</span>;</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="Pointer"><a href="#Pointer" class="headerlink" title="Pointer"></a>Pointer</h4><p> 细心的同学会发现，在上一节我描述用户手指在屏幕上滑动的例子时，特地说明了手指的数量为一个。那么当用户两个或者多个手指在屏幕上滑动时，系统又会产生怎样的事件流呢？<br> 为了可以表示多个触摸点的动作，<code>MotionEvent</code>中引入了<code>Pointer</code>的概念，一个pointer就代表一个触摸点，每个pointer都有自己的事件类型，也有自己的横轴坐标值。<strong>一个<code>MotionEvent</code>对象中可能会存储多个pointer的相关信息，每个pointer都会有一个自己的id和index。pointer的id在整个事件流中是不会发生变化的，但是index会发生变化。</strong><br> <code>MotionEvent</code>类中的很多方法都是可以传入一个int值作为参数的，其实传入的就是pointer的index值。比如<code>getX(pointerIndex)</code>和<code>getY(pointerIndex)</code>，此时，它们返回的就是index所代表的触摸点相关事件坐标值。<br> 由于pointer的index值在不同的<code>MotionEvent</code>对象中会发生变化，但是id值却不会变化。所以，当我们要记录一个触摸点的事件流时，就只需要保存其id,然后使用<code>findPointerIndex(int)</code>来获得其index值，然后再获得其他信息。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">	private final static int INVALID_ID = -1;
+    private int mActivePointerId = INVALID_ID;
+    private int mSecondaryPointerId = INVALID_ID;
+    private float mPrimaryLastX = -1;
+    private float mPrimaryLastY = -1;
+    private float mSecondaryLastX = -1;
+    private float mSecondaryLastY = -1;
+    public boolean onTouchEvent(MotionEvent event) {
+        int action = MotionEventCompat.getActionMasked(event);
+
+        switch (action) {
+            case MotionEvent.ACTION_DOWN:
+                int index = event.getActionIndex();
+                mActivePointerId = event.getPointerId(index);
+                mPrimaryLastX = MotionEventCompat.getX(event,index);
+                mPrimaryLastY = MotionEventCompat.getY(event,index);
+                break;
+            case MotionEvent.ACTION_POINTER_DOWN:
+                index = event.getActionIndex();
+                mSecondaryPointerId = event.getPointerId(index);
+                mSecondaryLastX = event.getX(index);
+                mSecondaryLastY = event.getY(index);
+                break;
+            case MotionEvent.ACTION_MOVE:
+                index = event.findPointerIndex(mActivePointerId);
+                int secondaryIndex = MotionEventCompat.findPointerIndex(event,mSecondaryPointerId);
+                final float x = MotionEventCompat.getX(event,index);
+                final float y = MotionEventCompat.getY(event,index);
+                final float secondX = MotionEventCompat.getX(event,secondaryIndex);
+                final float secondY = MotionEventCompat.getY(event,secondaryIndex);
+                break;
+            case MotionEvent.ACTION_POINTER_UP:
+                xxxxxx(涉及pointer id的转换，之后的文章会讲解)
+                break;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                mActivePointerId = INVALID_ID;
+                mPrimaryLastX =-1;
+                mPrimaryLastY = -1;
+                break;
+        }
+        return true;
+    }
+</code></pre></p>
 <p> 除了pointer的概念，<code>MotionEvent</code>还引入了两个事件类型：</p>
 <ul>
 <li><code>ACTION_POINTER_DOWN</code>:代表用户<strong>又</strong>使用一个手指触摸到屏幕上，也就是说，在已经有一个触摸点的情况下，有新出现了一个触摸点。</li>
@@ -385,9 +200,32 @@
 <li>一个<code>ACTION_UP</code>事件，代表用户的最后一个手指离开了屏幕</li>
 </ul>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2016316-%E4%B8%A4%E4%B8%AA%E6%89%8B%E6%8C%87%E7%9A%84%E5%8A%A8%E4%BD%9C.gif" alt="两个手指的动作.gif"></p>
-<h4 id="getAction-和-getActionMasked"><a href="#getAction-和-getActionMasked" class="headerlink" title="getAction 和 getActionMasked"></a>getAction 和 getActionMasked</h4><p>&emsp;这一段之前有问题，多谢马同学指出其中的错误。<br> 看到文章开头那段代码的同学可能会有点疑问：好像在很多代码里，大家都是通过<code>getAction</code>获得事件类型的，那么它和<code>getActionMasked</code>又有什么不同呢？<br> 从上一节我们可以得知，一个<code>MotionEvent</code>对象中可以包含多个触摸点的事件。当<code>MotionEvent</code>对象只包含一个触摸点的事件时，上边两个函数的结果是相同的，但是当包含多个触摸点时，二者的结果就不同啦。<br> <code>getAction</code>获得的int值是由pointer的index值和事件类型值组合而成的，而<code>getActionWithMasked</code>则只返回事件的类型值<br> 举个例子（注:假设了int中不同位所代表的含义，可能不是例子所中的前8位代表index,后8位代表事件类型）:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">getAction() returns 0x0105.</span><br><span class="line">getActionMasked() will return 0x0005</span><br><span class="line">其中0x0100就是pointer的index值。</span><br></pre></td></tr></table></figure></p>
+<h4 id="getAction-和-getActionMasked"><a href="#getAction-和-getActionMasked" class="headerlink" title="getAction 和 getActionMasked"></a>getAction 和 getActionMasked</h4><p>&emsp;这一段之前有问题，多谢马同学指出其中的错误。<br> 看到文章开头那段代码的同学可能会有点疑问：好像在很多代码里，大家都是通过<code>getAction</code>获得事件类型的，那么它和<code>getActionMasked</code>又有什么不同呢？<br> 从上一节我们可以得知，一个<code>MotionEvent</code>对象中可以包含多个触摸点的事件。当<code>MotionEvent</code>对象只包含一个触摸点的事件时，上边两个函数的结果是相同的，但是当包含多个触摸点时，二者的结果就不同啦。<br> <code>getAction</code>获得的int值是由pointer的index值和事件类型值组合而成的，而<code>getActionWithMasked</code>则只返回事件的类型值<br> 举个例子（注:假设了int中不同位所代表的含义，可能不是例子所中的前8位代表index,后8位代表事件类型）:<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">getAction() returns 0x0105.
+getActionMasked() will return 0x0005
+其中0x0100就是pointer的index值。
+</code></pre></p>
 <p> 一般来说，<code>(getAction() &amp; ACTION_POINTER_INDEX_MASK)&gt;&gt;ACTION_POINTER_INDEX_SHIFT</code>就获得了pointer的index,等同于<code>getActionIndex</code>函数;<code>getAction()&amp; ACTION_MASK</code>就获得了pointer的事件类型，等同于<code>getActionMasked</code>函数。</p>
-<h4 id="批处理"><a href="#批处理" class="headerlink" title="批处理"></a>批处理</h4><p> 为了效率，Android系统在处理<code>ACTION_MOVE</code>事件时会将连续的几个多触点移动事件打包到一个<code>MotionEvent</code>对象中。我们可以通过<code>getX(int)</code>和<code>getY(int)</code>来获得最近发生的一个触摸点事件的坐标，然后使用<code>getHistorical(int,int)</code>和<code>getHistorical(int,int)</code>来获得时间稍早的触点事件的坐标，二者是发生时间先后的关系。所以，我们应该先处理通过<code>getHistoricalXX</code>相关函数获得的事件信息，然后在处理当前的事件信息。<br> 下边就是Android Guide中相关的例子:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">printSamples</span><span class="params">(MotionEvent ev)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> historySize = ev.getHistorySize();</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> pointerCount = ev.getPointerCount();</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> h = <span class="number">0</span>; h &lt; historySize; h++) &#123;</span><br><span class="line">        System.out.printf(<span class="string">"At time %d:"</span>, ev.getHistoricalEventTime(h));</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> p = <span class="number">0</span>; p &lt; pointerCount; p++) &#123;</span><br><span class="line">            System.out.printf(<span class="string">"  pointer %d: (%f,%f)"</span>,</span><br><span class="line">                ev.getPointerId(p), ev.getHistoricalX(p, h), ev.getHistoricalY(p, h));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    System.out.printf(<span class="string">"At time %d:"</span>, ev.getEventTime());</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> p = <span class="number">0</span>; p &lt; pointerCount; p++) &#123;</span><br><span class="line">        System.out.printf(<span class="string">"  pointer %d: (%f,%f)"</span>,</span><br><span class="line">            ev.getPointerId(p), ev.getX(p), ev.getY(p));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="批处理"><a href="#批处理" class="headerlink" title="批处理"></a>批处理</h4><p> 为了效率，Android系统在处理<code>ACTION_MOVE</code>事件时会将连续的几个多触点移动事件打包到一个<code>MotionEvent</code>对象中。我们可以通过<code>getX(int)</code>和<code>getY(int)</code>来获得最近发生的一个触摸点事件的坐标，然后使用<code>getHistorical(int,int)</code>和<code>getHistorical(int,int)</code>来获得时间稍早的触点事件的坐标，二者是发生时间先后的关系。所以，我们应该先处理通过<code>getHistoricalXX</code>相关函数获得的事件信息，然后在处理当前的事件信息。<br> 下边就是Android Guide中相关的例子:<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java"> void printSamples(MotionEvent ev) {
+     final int historySize = ev.getHistorySize();
+     final int pointerCount = ev.getPointerCount();
+     for (int h = 0; h &lt; historySize; h++) {
+         System.out.printf(&quot;At time %d:&quot;, ev.getHistoricalEventTime(h));
+         for (int p = 0; p &lt; pointerCount; p++) {
+             System.out.printf(&quot;  pointer %d: (%f,%f)&quot;,
+                 ev.getPointerId(p), ev.getHistoricalX(p, h), ev.getHistoricalY(p, h));
+         }
+     }
+     System.out.printf(&quot;At time %d:&quot;, ev.getEventTime());
+     for (int p = 0; p &lt; pointerCount; p++) {
+         System.out.printf(&quot;  pointer %d: (%f,%f)&quot;,
+             ev.getPointerId(p), ev.getX(p), ev.getY(p));
+     }
+ }
+</code></pre></p>
 <h4 id="后续"><a href="#后续" class="headerlink" title="后续"></a>后续</h4><p> 之后的博文会继续分析关于触摸处理的几个比较重要的类，比如<code>OverScroller</code>和<code>EdgeEffect</code>;然后会是一篇关于滑动手势处理代码分析的文章。请大家继续关注。</p>
 <p>–<br>参考文章:</p>
 <ul>
@@ -397,354 +235,153 @@
 <li><a href="http://developer.android.com/intl/zh-cn/training/gestures/index.html" target="_blank" rel="noopener">Android Gesture Guide</a></li>
 </ul>
 
-      
-    </div>
-    
-    
-    
+      <h3>关于图片和转载</h3>
 
-    
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
 
-    
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
 
-    
+      <h3>关于评论和留言</h3>
 
+      如果对本文 <a href="http://remcarpediem.net/2016/03/16/Android-MotionEvent详解/">Android MotionEvent详解</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/2016/03/16/Android-MotionEvent详解/">Android MotionEvent详解</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
     <footer class="post-footer">
-      
-        <div class="post-tags">
-          
-            <a href="/tags/MotionEvent/" rel="tag"># MotionEvent</a>
-          
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">remCarpediem's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">remCarpediem</a></h4>
+        
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> Carpediem</a></span> 
         </div>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/2016/03/16/Android-MotionEvent详解/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/2016/03/16/Android-MotionEvent详解/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/2016/03/16/Android-MotionEvent详解/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
       
+ <div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script>
+    const gitalk = new Gitalk({
+    clientID: '9347af410c07624ec3e6',
+    clientSecret: '578667b93387d410574122685243499f1b546ba7',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: "http://remcarpediem.net/2016/03/16/Android-MotionEvent详解/",
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
 
-      
-      
-      
+gitalk.render('gitalk-container')
+</script>
 
-      
-        <div class="post-nav">
-          <div class="post-nav-next post-nav-item">
-            
-              <a href="/2016/03/07/译-使用注解处理器生成代码-3-生成源代码/" rel="next" title="[译]使用注解处理器生成代码-3 生成源代码">
-                <i class="fa fa-chevron-left"></i> [译]使用注解处理器生成代码-3 生成源代码
-              </a>
-            
-          </div>
-
-          <span class="post-nav-divider"></span>
-
-          <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2016/03/27/Android-Scroll详解-一-：基础知识/" rel="prev" title="Android Scroll详解(一)：基础知识">
-                Android Scroll详解(一)：基础知识 <i class="fa fa-chevron-right"></i>
-              </a>
-            
-          </div>
-        </div>
-      
-
-      
-      
     </footer>
-  </div>
-  
-  
-  
   </article>
-
-
-
-    <div class="post-spread">
-      
-    </div>
-  </div>
-
-
-          </div>
-          
-
-
-          
-  <div class="comments" id="comments">
+</main>
+<aside class="read-next">
+ 
     
-  </div>
-
-
-        </div>
-        
-          
-  
-  <div class="sidebar-toggle">
-    <div class="sidebar-toggle-line-wrap">
-      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
-      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
-      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
-    </div>
-  </div>
-
-  <aside id="sidebar" class="sidebar">
-    
-    <div class="sidebar-inner">
-
-      
-
-      
-        <ul class="sidebar-nav motion-element">
-          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
-            Table of Contents
-          </li>
-          <li class="sidebar-nav-overview" data-target="site-overview">
-            Overview
-          </li>
-        </ul>
-      
-
-      <section class="site-overview sidebar-panel">
-        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="remCarpediem">
-          <p class="site-author-name" itemprop="name">remCarpediem</p>
-           
-              <p class="site-description motion-element" itemprop="description"></p>
-          
-        </div>
-        <nav class="site-state motion-element">
-
-          
-            <div class="site-state-item site-state-posts">
-              <a href="/archives/">
-                <span class="site-state-item-count">59</span>
-                <span class="site-state-item-name">posts</span>
-              </a>
-            </div>
-          
-
-          
+    <a class="read-next-story no-cover" href="/2016/03/07/译-使用注解处理器生成代码-3-生成源代码/">
+      <section class="post">
+        <h2>[译]使用注解处理器生成代码-3 生成源代码</h2>
+        <p>
             
+               本博文原文地址摸我 本篇博文是关于使用注解处理器生成java代码系列的第三篇也是最后一篇文章。在第一篇（在这里）中，我们介绍了注解和其一般用法。在第二篇（在这里）中，我们介绍了注解处理器，如何构造并且使用它。 在本篇博文中，我们将想你展示如何使用注解处理器来生成源代码。
+简介 生成源代码很简单。生成正确的源代码却很难。优雅高效的去生成正确的代码是很麻烦的任务。 幸运的是，Model-Driver Engineering(1)为我们提供 ......
             
-            <div class="site-state-item site-state-categories">
-              
-                <span class="site-state-item-count">33</span>
-                <span class="site-state-item-name">categories</span>
-              
-            </div>
-          
-
-          
-            
-            
-            <div class="site-state-item site-state-tags">
-              
-                <span class="site-state-item-count">53</span>
-                <span class="site-state-item-name">tags</span>
-              
-            </div>
-          
-
-        </nav>
-
-        
-
-        <div class="links-of-author motion-element">
-          
-        </div>
-
-        
-        
-
-        
-        
-
-        
-
-
+          </p>
       </section>
-
-      
-      <!--noindex-->
-        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
-          <div class="post-toc">
-
-            
-              
-            
-
-            
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#事件坐标的含义"><span class="nav-number">1.</span> <span class="nav-text">事件坐标的含义</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#事件类型"><span class="nav-number">2.</span> <span class="nav-text">事件类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Pointer"><span class="nav-number">3.</span> <span class="nav-text">Pointer</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#getAction-和-getActionMasked"><span class="nav-number">4.</span> <span class="nav-text">getAction 和 getActionMasked</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#批处理"><span class="nav-number">5.</span> <span class="nav-text">批处理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#后续"><span class="nav-number">6.</span> <span class="nav-text">后续</span></a></li></ol></div>
-            
-
-          </div>
-        </section>
-      <!--/noindex-->
-      
-
-      
-
-    </div>
-  </aside>
-
-
-        
-      </div>
-    </main>
-
-    <footer id="footer" class="footer">
-      <div class="footer-inner">
-        <div class="copyright">
+    </a>
+    
   
-  &copy; 
-  <span itemprop="copyrightYear">2018</span>
-  <span class="with-love">
-    <i class="fa fa-heart"></i>
-  </span>
-  <span class="author" itemprop="copyrightHolder">remCarpediem</span>
-</div>
 
 
-<div class="powered-by">
-  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
-</div>
-
-<div class="theme-info">
-  Theme -
-  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
-    NexT.Muse
-  </a>
-</div>
-
-
-        
-
-        
-      </div>
-    </footer>
-
+  
     
-      <div class="back-to-top">
-        <i class="fa fa-arrow-up"></i>
-        
-      </div>
+    <a class="read-next-story no-cover" href="/2016/03/27/Android-Scroll详解-一-：基础知识/">
+      <section class="post">
+        <h2>Android Scroll详解(一)：基础知识</h2>
+        <p>
+            
+              &emsp;在前边的文章中，我们已经对Android触摸事件处理有了大致的了解，并且详细探讨了MotionEvent的相关用法。对之前文章中的知识还不是很了解的同学，请阅读《Android MotionEvent详解》&emsp;今天，我们就来探讨一下Android中界面滚动效果的相关机制，本篇文章主要讲解一下滚动相关的知识点，之后的文章会涉及实际的代码和原理。希望大家阅读完这篇文章之后，能够了解或者掌握一下知识:
+
+Android 视 ......
+            
+          </p>
+      </section>
+    </a>
     
+  
+</aside>
+
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">Carpediem</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
+</footer>
 
   </div>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
 
-  
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
 
 <script type="text/javascript">
-  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
-    window.Promise = null;
-  }
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
 </script>
 
 
 
 
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
-
-  
-  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
-
-  
-  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
-
-  
-  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
-
-  
-  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
-
-  
-  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
-
-
-  
-
-
-  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
-
-  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
-
-
-
-  
-  
-
-  
-  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
-<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
-
-
-
-  
-
-
-  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
-
-
-
-  
-
-
-  
-
-
-
-
-	
-
-
-
-
-
-  
-
-
-
-
-
-  
-
-
-
-
-
-
-  
-
-
-
-
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
 
 </body>
 </html>
