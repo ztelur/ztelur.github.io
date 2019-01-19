@@ -26,7 +26,7 @@
 <meta property="og:image" content="http://pie6tw55i.bkt.clouddn.com/2018-mysql-6innodb%E5%AE%9E%E7%8E%B02.jpg">
 <meta property="og:image" content="http://pie6tw55i.bkt.clouddn.com/2018-mysql-6innodb%E7%9A%84%E5%AE%9E%E7%8E%B0%E4%BA%8B%E5%8A%A13.jpg">
 <meta property="og:image" content="http://pie6tw55i.bkt.clouddn.com/qrcode_for_gh_bcc90a2a52c5_344.jpg">
-<meta property="og:updated_time" content="2018-11-18T14:08:00.000Z">
+<meta property="og:updated_time" content="2018-12-24T14:31:35.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="MySQL探秘(六):InnoDB一致性非锁定读">
 <meta name="twitter:description" content="&amp;emsp;一致性非锁定读(consistent nonlocking read)是指InnoDB存储引擎通过多版本控制(MVVC)读取当前数据库中行数据的方式。如果读取的行正在执行DELETE或UPDATE操作，这时读取操作不会因此去等待行上锁的释放。相反地，InnoDB会去读取行的一个快照。  &amp;emsp;上图直观地展现了InnoDB一致性非锁定读的机制。之所以称其为非锁定读，是因为不需要等待">
@@ -103,7 +103,14 @@
     <section class="post-content" itemprop="description articleBody">
       
 
-      <!--  -->
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2018-12-24T14:31:35.000Z" itemprop="dateModified">
+      2018-12-24
+  </time>
+</section>
+
+       -->
       <p>&emsp;一致性非锁定读(consistent nonlocking read)是指InnoDB存储引擎通过多版本控制(MVVC)读取当前数据库中行数据的方式。如果读取的行正在执行DELETE或UPDATE操作，这时读取操作不会因此去等待行上锁的释放。相反地，InnoDB会去读取行的一个快照。</p>
 <p><img src="http://pie6tw55i.bkt.clouddn.com/2018-mysql-6%E7%AE%80%E5%8D%95%E7%9A%84MVVC.jpg" alt="一致性非锁定读示意图"></p>
 <p>&emsp;上图直观地展现了InnoDB一致性非锁定读的机制。之所以称其为非锁定读，是因为不需要等待行上排他锁的释放。快照数据是指该行的之前版本的数据，每行记录可能有多个版本，一般称这种技术为行多版本技术。由此带来的并发控制，称之为多版本并发控制(Multi Version Concurrency Control, MVVC)。InnoDB是通过undo log来实现MVVC。undo log本身用来在事务中回滚数据，因此快照数据本身是没有额外开销。此外，读取快照数据是不需要上锁的，因为没有事务需要对历史的数据进行修改操作。</p>
@@ -268,6 +275,23 @@ gitalk.render('gitalk-container')
   
 
 
+  
+    
+    <a class="read-next-story no-cover" href="/2018/12/24/MySQL探秘-八-InnoDB的事务/">
+      <section class="post">
+        <h2></h2>
+        <p>
+            
+              &emsp;事务是数据库最为重要的机制之一，凡是使用过数据库的人，都了解数据库的事务机制，也对ACID四个基本特性如数家珍。但是聊起事务或者ACID的底层实现原理，往往言之不详，不明所以。所以，今天我们就一起来分析和探讨InnoDB的事务机制，希望能建立起对事务底层实现原理的具体了解。
+
+&emsp;数据库事务具有ACID四大特性。ACID是以下4个词的缩写：
+
+原子性(atomicity) ：事务最小工作单元，要么全成功，要么全失败  ......
+            
+          </p>
+      </section>
+    </a>
+    
   
 </aside>
 
