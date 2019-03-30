@@ -17,7 +17,7 @@
 <meta property="og:site_name" content="Carpediem">
 <meta property="og:description" content="最近在阅读《多处理器编程艺术》一书，掌握了很多Java多线程的底层知识，现在就做一下书中链表-锁的作用一章的总结。&amp;emsp;为了节约你的时间，本文主要内容如下：  带锁的链表队列 细粒度同步 乐观同步 惰性同步 非阻塞同步  粗粒度同步&amp;emsp;所谓粗粒度同步其实很简单，就是在List的add,remove,contains函数的开始就直接使用Lock加锁，然后在函数结尾释放。&amp;emsp;a">
 <meta property="og:locale" content="Chinese">
-<meta property="og:updated_time" content="2018-11-18T13:40:01.000Z">
+<meta property="og:updated_time" content="2019-03-22T13:51:00.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="《多处理器编程艺术》－链表：锁的作用">
 <meta name="twitter:description" content="最近在阅读《多处理器编程艺术》一书，掌握了很多Java多线程的底层知识，现在就做一下书中链表-锁的作用一章的总结。&amp;emsp;为了节约你的时间，本文主要内容如下：  带锁的链表队列 细粒度同步 乐观同步 惰性同步 非阻塞同步  粗粒度同步&amp;emsp;所谓粗粒度同步其实很简单，就是在List的add,remove,contains函数的开始就直接使用Lock加锁，然后在函数结尾释放。&amp;emsp;a">
@@ -95,8 +95,8 @@
 
       <!-- 
       <section class="post-updated">
-  Last updated on <time datetime="2018-11-18T13:40:01.000Z" itemprop="dateModified">
-      2018-11-18
+  Last updated on <time datetime="2019-03-22T13:51:00.000Z" itemprop="dateModified">
+      2019-03-22
   </time>
 </section>
 
@@ -111,32 +111,32 @@
 </ul>
 <h3 id="粗粒度同步"><a href="#粗粒度同步" class="headerlink" title="粗粒度同步"></a>粗粒度同步</h3><p>&emsp;所谓粗粒度同步其实很简单，就是在List的<code>add</code>,<code>remove</code>,<code>contains</code>函数的开始就直接使用Lock加锁，然后在函数结尾释放。<br>&emsp;<code>add</code>函数的代码如下所示，函数的主体就是链表的遍历添加逻辑，只不过在开始和结束进行了锁的获取和释放。<br>
 <!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">    private Node head;
-    private Lock lock = new ReentrantLock();
-    public boolean add(T item) {
-        Node pred, curr;
-        int key = item.hashCode();
-        lock.lock();
-        try {
-            pred = head;
+<pre class="line-numbers" style=""><code class="language-java">private Node head;
+private Lock lock = new ReentrantLock();
+public boolean add(T item) {
+    Node pred, curr;
+    int key = item.hashCode();
+    lock.lock();
+    try {
+        pred = head;
+        curr = pred.next;
+        while(curr.key &lt; key) {
+            pred = curr;
             curr = pred.next;
-            while(curr.key &lt; key) {
-                pred = curr;
-                curr = pred.next;
-            }
-            if (key == curr.key) {
-                return false;
-            } else {
-                Node node = new Node(item);
-                node.next = curr;
-                pred.next = node;
-                return true;
-            }
-
-        } finally {
-            lock.unlock();
         }
+        if (key == curr.key) {
+            return false;
+        } else {
+            Node node = new Node(item);
+            node.next = curr;
+            pred.next = node;
+            return true;
+        }
+
+    } finally {
+        lock.unlock();
     }
+}
 </code></pre></p>
 <p>&emsp;大家看到这里就会想到，这不就是类似于<code>Hashtable</code>的实现方式吗？把可能出现多线程问题的函数都用一个重入锁锁住。但是这个方法的缺点很明显，如果竞争激烈的话，对链表的操作效率会很低，因为<code>add</code>,<code>remove</code>,<code>contains</code>三个函数都需要获取锁，也都需要等待锁的释放。至于如何优化，我们可以一步一步往下看</p>
 <h3 id="细粒度同步"><a href="#细粒度同步" class="headerlink" title="细粒度同步"></a>细粒度同步</h3><p>&emsp;<strong><em>我们可以通过锁定单个节点而不是整个链表来提高并发</em></strong>。给每个节点增加一个Lock变量以及相关的lock()和unlock()函数,当线程遍历链表的时候，若它是第一个访问节点的线程，则锁住被访问的节点，在随后的某个时刻释放锁。这种细粒度的锁机制允许并发线程以流水线的方式遍历链表。<br>&emsp;使用这种方式来遍历链表，必须同时获取两个相邻节点的锁，通过“交叉手”的方式来获取锁：除了初始的head哨兵节点外，只有在已经获取pred的锁时，才能获取curr的锁。</p>
@@ -144,81 +144,81 @@
 <!-- Has Prism -->
 <pre class="line-numbers" style=""><code class="language-java">&#x2F;&#x2F;每个Node对象中都有一个Lock对象，可以进行lock()和unlock()操作
 public boolean add(T item) {
-        int key = item.hashCode();
-        head.lock();
-        Node pred = head;
+    int key = item.hashCode();
+    head.lock();
+    Node pred = head;
+    try {
+        Node curr = pred.next;
+        curr.lock();
+
         try {
-            Node curr = pred.next;
-            curr.lock();
-
-            try {
-                while (curr.key &lt; key) {
-                    pred.unlock();
-                    pred = curr;
-                    curr = pred.next;
-                    curr.lock();
-                }
-
-                if (curr.key == key) {
-                    return false;
-                }
-                Node newNode = new Node(item);
-                newNode.next = curr;
-                pred.next = newNode;
-                return true;
-            } finally {
-                curr.unlock();
+            while (curr.key &lt; key) {
+                pred.unlock();
+                pred = curr;
+                curr = pred.next;
+                curr.lock();
             }
 
+            if (curr.key == key) {
+                return false;
+            }
+            Node newNode = new Node(item);
+            newNode.next = curr;
+            pred.next = newNode;
+            return true;
         } finally {
-            pred.unlock();
+            curr.unlock();
         }
+
+    } finally {
+        pred.unlock();
     }
+}
 </code></pre>
 <h3 id="乐观同步"><a href="#乐观同步" class="headerlink" title="乐观同步"></a>乐观同步</h3><p>&emsp;虽然细粒度锁是对单一粒度锁的一种改进，但它仍然出现很长的获取锁和释放锁的序列。而且，访问链表中不同部分的线程仍然可能相互阻塞。例如，一个正在删除链表中第二个元素的线程将会阻塞所有试图查找后继节点的线程。<br>&emsp;减少同步代价的一种方式就是乐观：<strong><em>不需要获取锁就可以查找，对找到的节点进行加锁，然后确认锁住的节点是正确的；如果一个同步冲突导致节点被错误的锁定，则释放这些锁重新开始</em></strong>。<br>
 <!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">    public boolean add(T item) {
-        int key = item.hashCode();
+<pre class="line-numbers" style=""><code class="language-java">public boolean add(T item) {
+    int key = item.hashCode();
 
-        while (true) { &#x2F;&#x2F;如果不成功，就进行重试
-            Node pred = head;
-            Node curr = pred.next;
-            while (curr.key &lt; key) {
-                pred = curr;
-                curr = pred.next;
-            }
-            &#x2F;&#x2F;找到目标相关的pred和curr之后再将二者锁住
-            pred.lock();
-            curr.lock();
-            try {
-                &#x2F;&#x2F;锁住二者之后再进行判断，是否存在并发冲突
-                if (validate(pred, curr)) {
-                    &#x2F;&#x2F;如果不存在，那么就直接进行正常操作
-                    if (curr.key == key) {
-                        return false;
-                    } else {
-                        Node node = new Node(item);
-                        node.next = curr;
-                        pred.next = node;
-                    }
+    while (true) { &#x2F;&#x2F;如果不成功，就进行重试
+        Node pred = head;
+        Node curr = pred.next;
+        while (curr.key &lt; key) {
+            pred = curr;
+            curr = pred.next;
+        }
+        &#x2F;&#x2F;找到目标相关的pred和curr之后再将二者锁住
+        pred.lock();
+        curr.lock();
+        try {
+            &#x2F;&#x2F;锁住二者之后再进行判断，是否存在并发冲突
+            if (validate(pred, curr)) {
+                &#x2F;&#x2F;如果不存在，那么就直接进行正常操作
+                if (curr.key == key) {
+                    return false;
+                } else {
+                    Node node = new Node(item);
+                    node.next = curr;
+                    pred.next = node;
                 }
-            } finally {
-                pred.unlock();
-                curr.unlock();
             }
+        } finally {
+            pred.unlock();
+            curr.unlock();
         }
     }
-    public boolean validate(Node pred, Node curr) {
-        &#x2F;&#x2F;从队列头开始查找pred和curr,判断是否存在并发冲突
-        Node node = head;
-        while (node.key &lt;= pred.key) {
-            if (node == pred) {
-                return pred.next == curr;
-            }
-            node = node.next;
+}
+public boolean validate(Node pred, Node curr) {
+    &#x2F;&#x2F;从队列头开始查找pred和curr,判断是否存在并发冲突
+    Node node = head;
+    while (node.key &lt;= pred.key) {
+        if (node == pred) {
+            return pred.next == curr;
         }
-        return false;
+        node = node.next;
     }
+    return false;
+}
 </code></pre></p>
 <p>&emsp;由于不再使用能保护并发修改的锁，所以每个方法调用都可能遍历那些已经被删除的节点，所以在进行添加，删除获取判断是否存在的之前必须再次进行验证。</p>
 <h3 id="惰性同步"><a href="#惰性同步" class="headerlink" title="惰性同步"></a>惰性同步</h3><p>&emsp;当不用锁遍历两次链表的代价比使用锁遍历一次链表的代价小很多时，乐观同步的实现效果非常好。但是这种算法的缺点之一就是contains()方法在遍历时需要锁，这一点并不令人满意，其原因在于对contains()的调用要比其他方法的调用频繁得多。<br>&emsp;<strong><em>使用惰性同步的方法，使得contains()调用是无等待的，同时add()和remove()方法即使在被阻塞的情况下也只需要遍历一次链表</em></strong>。<br>&emsp;<strong><em>对每个节点增加一个布尔类型的marked域，用于说明该节点是否在节点集合中。现在，遍历不再需要锁定目标结点，也没有必须通过重新遍历整个链表来验证结点是否可达。所有未被标记的节点必然是可达的</em></strong>。</p>
