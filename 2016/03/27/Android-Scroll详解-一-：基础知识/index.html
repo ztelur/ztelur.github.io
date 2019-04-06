@@ -1,11 +1,15 @@
 <!DOCTYPE html>
-<html lang="Ch">
-<head><meta name="generator" content="Hexo 3.8.0">
-    <meta charset="utf-8">
-    
-    <title>Android Scroll详解(一)：基础知识 | Carpediem</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <meta name="description" content="&amp;emsp;在前边的文章中，我们已经对Android触摸事件处理有了大致的了解，并且详细探讨了MotionEvent的相关用法。对之前文章中的知识还不是很了解的同学，请阅读《Android MotionEvent详解》&amp;emsp;今天，我们就来探讨一下Android中界面滚动效果的相关机制，本篇文章主要讲解一下滚动相关的知识点，之后的文章会涉及实际的代码和原理。希望大家阅读完这篇文章之后，能够了解">
+<html prefix="og: http://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>Android Scroll详解(一)：基础知识 | Carpediem</title>
+  <meta name="description" content="blog of nobody" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="&amp;emsp;在前边的文章中，我们已经对Android触摸事件处理有了大致的了解，并且详细探讨了MotionEvent的相关用法。对之前文章中的知识还不是很了解的同学，请阅读《Android MotionEvent详解》&amp;emsp;今天，我们就来探讨一下Android中界面滚动效果的相关机制，本篇文章主要讲解一下滚动相关的知识点，之后的文章会涉及实际的代码和原理。希望大家阅读完这篇文章之后，能够了解">
 <meta name="keywords" content="scroll">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Android Scroll详解(一)：基础知识">
@@ -20,244 +24,87 @@
 <meta name="twitter:title" content="Android Scroll详解(一)：基础知识">
 <meta name="twitter:description" content="&amp;emsp;在前边的文章中，我们已经对Android触摸事件处理有了大致的了解，并且详细探讨了MotionEvent的相关用法。对之前文章中的知识还不是很了解的同学，请阅读《Android MotionEvent详解》&amp;emsp;今天，我们就来探讨一下Android中界面滚动效果的相关机制，本篇文章主要讲解一下滚动相关的知识点，之后的文章会涉及实际的代码和原理。希望大家阅读完这篇文章之后，能够了解">
 <meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2016327-androidscroll-View%E5%9D%90%E6%A0%87%E8%BD%B4.png">
-    
+  <!-- build:css css/screen.css -->
 
-    
-        <link rel="alternate" href="/" title="Carpediem" type="application/atom+xml">
-    
-
-    
-
-    <link rel="stylesheet" href="/libs/font-awesome/css/font-awesome.min.css">
-    <link rel="stylesheet" href="/libs/open-sans/styles.css">
-    <link rel="stylesheet" href="/libs/source-code-pro/styles.css">
-
-    <link rel="stylesheet" href="/css/style.css">
-
-    <script src="/libs/jquery/2.1.3/jquery.min.js"></script>
-    
-    
-        <link rel="stylesheet" href="/libs/lightgallery/css/lightgallery.min.css">
-    
-    
-        <link rel="stylesheet" href="/libs/justified-gallery/justifiedGallery.min.css">
-    
-    
-    
-    
-
-
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
+  
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="Carpediem">
+  
+  
+  
 <link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
-</html>
-<body>
-    <div id="container">
-        <header id="header">
-    <div id="header-main" class="header-inner">
-        <div class="outer">
-            <a href="/" id="logo">
-                <i class="logo"></i>
-                <span class="site-title">Carpediem</span>
-            </a>
-            <nav id="main-nav">
-                
-                    <a class="main-nav-link" href="/.">Home</a>
-                
-                    <a class="main-nav-link" href="/archives">Archives</a>
-                
-                    <a class="main-nav-link" href="/categories">Categories</a>
-                
-                    <a class="main-nav-link" href="/tags">Tags</a>
-                
-                    <a class="main-nav-link" href="/about">About</a>
-                
-            </nav>
-            
-                
-                <nav id="sub-nav">
-                    <div class="profile" id="profile-nav">
-                        <a id="profile-anchor" href="javascript:;">
-                            <img class="avatar" src="/css/images/avatar.png">
-                            <i class="fa fa-caret-down"></i>
-                        </a>
-                    </div>
-                </nav>
-            
-            <div id="search-form-wrap">
 
-    <form class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
-        <button type="submit" class="search-form-submit"></button>
-    </form>
-    <div class="ins-search">
-    <div class="ins-search-mask"></div>
-    <div class="ins-search-container">
-        <div class="ins-input-wrapper">
-            <input type="text" class="ins-search-input" placeholder="Type something...">
-            <span class="ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
-        </div>
-        <div class="ins-section-wrapper">
-            <div class="ins-section-container"></div>
-        </div>
-    </div>
+
+<body class="post-template">
+
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home" role="presentation"><a href="/">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios" role="presentation"><a href="/archives">Archives</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
 </div>
-<script>
-(function (window) {
-    var INSIGHT_CONFIG = {
-        TRANSLATION: {
-            POSTS: 'Posts',
-            PAGES: 'Pages',
-            CATEGORIES: 'Categories',
-            TAGS: 'Tags',
-            UNTITLED: '(Untitled)',
-        },
-        ROOT_URL: '/',
-        CONTENT_URL: '/content.json',
-    };
-    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
-})(window);
-</script>
-<script src="/js/insight.js"></script>
+<span class="nav-cover"></span>
 
-</div>
-        </div>
-    </div>
-    <div id="main-nav-mobile" class="header-sub header-inner">
-        <table class="menu outer">
-            <tr>
-                
-                    <td><a class="main-nav-link" href="/.">Home</a></td>
-                
-                    <td><a class="main-nav-link" href="/archives">Archives</a></td>
-                
-                    <td><a class="main-nav-link" href="/categories">Categories</a></td>
-                
-                    <td><a class="main-nav-link" href="/tags">Tags</a></td>
-                
-                    <td><a class="main-nav-link" href="/about">About</a></td>
-                
-                <td>
-                    
-    <div class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
-    </div>
-
-                </td>
-            </tr>
-        </table>
-    </div>
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
+        
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
 </header>
 
-        <div class="outer">
-            
-                
+  
 
-<aside id="profile" class="profile-fixed">
-    <div class="inner profile-inner">
-        <div class="base-info profile-block">
-            <img id="avatar" src="/css/images/avatar.png">
-            <h2 id="name">PPOffice</h2>
-            <h3 id="title">Web Developer &amp; Designer</h3>
-            <span id="location"><i class="fa fa-map-marker"></i>Harbin, China</span>
-            <a id="follow" target="_blank" href="https://github.com/ppoffice/">FOLLOW</a>
-        </div>
-        <div class="article-info profile-block">
-            <div class="article-info-block">
-                68
-                <span>posts</span>
-            </div>
-            <div class="article-info-block">
-                58
-                <span>tags</span>
-            </div>
-        </div>
-        
-        <div class="profile-block social-links">
-            <table>
-                <tr>
-                    
-                    
-                    <td>
-                        <a href="http://github.com/ppoffice/hexo-theme-icarus" target="_blank" title="github" class="tooltip">
-                            <i class="fa fa-github"></i>
-                        </a>
-                    </td>
-                    
-                    <td>
-                        <a href="/" target="_blank" title="twitter" class="tooltip">
-                            <i class="fa fa-twitter"></i>
-                        </a>
-                    </td>
-                    
-                    <td>
-                        <a href="/" target="_blank" title="facebook" class="tooltip">
-                            <i class="fa fa-facebook"></i>
-                        </a>
-                    </td>
-                    
-                    <td>
-                        <a href="/" target="_blank" title="dribbble" class="tooltip">
-                            <i class="fa fa-dribbble"></i>
-                        </a>
-                    </td>
-                    
-                    <td>
-                        <a href="/" target="_blank" title="rss" class="tooltip">
-                            <i class="fa fa-rss"></i>
-                        </a>
-                    </td>
-                    
-                </tr>
-            </table>
-        </div>
-        
-    </div>
-</aside>
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">Android Scroll详解(一)：基础知识</h1>
+      <section class="post-meta">
+  <time datetime="2016-03-27T10:23:06.000Z" itemprop="datePublished" class="post-date">
+      2016-03-27
+  </time>
+  
+  
+  
+  <a href="/tags/scroll/">scroll</a>
+  
+  
+</section>
 
-            
-            <section id="main"><article id="post-Android-Scroll详解-一-：基础知识" class="article article-type-post" itemscope="" itemprop="blogPost">
-    <div class="article-inner">
-        
-        
-            <header class="article-header">
-                
-    
-        <h1 class="article-title" itemprop="name">
-            Android Scroll详解(一)：基础知识
-        </h1>
-    
+    </header>
+    <section class="post-content" itemprop="description articleBody">
+      
 
-                
-                    <div class="article-meta">
-                        
-    <div class="article-date">
-        <i class="fa fa-calendar"></i>
-        <a href="/2016/03/27/Android-Scroll详解-一-：基础知识/">
-            <time datetime="2016-03-27T10:23:06.000Z" itemprop="datePublished">2016-03-27</time>
-        </a>
-    </div>
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2018-11-18T13:40:01.000Z" itemprop="dateModified">
+      2018-11-18
+  </time>
+</section>
 
-
-                        
-    <div class="article-category">
-    	<i class="fa fa-folder"></i>
-        <a class="article-category-link" href="/categories/Android/">Android</a>
-    </div>
-
-                        
-    <div class="article-tag">
-        <i class="fa fa-tag"></i>
-        <a class="tag-link" href="/tags/scroll/">scroll</a>
-    </div>
-
-                    </div>
-                
-            </header>
-        
-        
-        <div class="article-entry" itemprop="articleBody">
-        
-            
-            <p>&emsp;在前边的文章中，我们已经对Android触摸事件处理有了大致的了解，并且详细探讨了<code>MotionEvent</code>的相关用法。对之前文章中的知识还不是很了解的同学，请阅读<a href="http://ztelur.github.io/2016/03/16/Android-MotionEvent%E8%AF%A6%E8%A7%A3/" target="_blank" rel="noopener">《Android MotionEvent详解》</a><br>&emsp;今天，我们就来探讨一下Android中界面滚动效果的相关机制，本篇文章主要讲解一下滚动相关的知识点，之后的文章会涉及实际的代码和原理。希望大家阅读完这篇文章之后，能够了解或者掌握一下知识:</p>
+       -->
+      <p>&emsp;在前边的文章中，我们已经对Android触摸事件处理有了大致的了解，并且详细探讨了<code>MotionEvent</code>的相关用法。对之前文章中的知识还不是很了解的同学，请阅读<a href="http://ztelur.github.io/2016/03/16/Android-MotionEvent%E8%AF%A6%E8%A7%A3/" target="_blank" rel="noopener">《Android MotionEvent详解》</a><br>&emsp;今天，我们就来探讨一下Android中界面滚动效果的相关机制，本篇文章主要讲解一下滚动相关的知识点，之后的文章会涉及实际的代码和原理。希望大家阅读完这篇文章之后，能够了解或者掌握一下知识:</p>
 <ul>
 <li>Android 视图的组成部分</li>
 <li><code>mScrollX</code>和<code>mScrollY</code>对视图显示的影响</li>
@@ -406,297 +253,163 @@ public void handleMessage(Message msg) {
 <p><a href="http://blog.csdn.net/xiaanming/article/details/17483273" target="_blank" rel="noopener">http://blog.csdn.net/xiaanming/article/details/17483273</a></p>
 </blockquote>
 
+      <h3>关于图片和转载</h3>
+
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
+
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
+
+      <h3>关于评论和留言</h3>
+
+      如果对本文 <a href="http://remcarpediem.net/2016/03/27/Android-Scroll详解-一-：基础知识/">Android Scroll详解(一)：基础知识</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/2016/03/27/Android-Scroll详解-一-：基础知识/">Android Scroll详解(一)：基础知识</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
+    <footer class="post-footer">
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">remCarpediem's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">remCarpediem</a></h4>
         
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> Carpediem</a></span> 
         </div>
-        <footer class="article-footer">
-            <div class="share-container">
-
-
-
-</div>
-
-    <a data-url="http://remcarpediem.net/2016/03/27/Android-Scroll详解-一-：基础知识/" data-id="cju4wk8by000bez667ojfvoll" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/2016/03/27/Android-Scroll详解-一-：基础知识/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/2016/03/27/Android-Scroll详解-一-：基础知识/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/2016/03/27/Android-Scroll详解-一-：基础知识/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
+      
+<div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script src="/js/md5.min.js"></script>
 <script>
-    (function ($) {
-        // Prevent duplicate binding
-        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
-            __SHARE_BUTTON_BINDED__ = true;
-        } else {
-            return;
-        }
-        $('body').on('click', function() {
-            $('.article-share-box.on').removeClass('on');
-        }).on('click', '.article-share-link', function(e) {
-            e.stopPropagation();
+    const gitalk = new Gitalk({
+    clientID: 'ece2d2cd7c5f768a4c22',
+    clientSecret: '1ad562557353b888b4b622239d45150c5df6d5ee',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: md5("http://remcarpediem.net/2016/03/27/Android-Scroll详解-一-：基础知识/"),
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
 
-            var $this = $(this),
-                url = $this.attr('data-url'),
-                encodedUrl = encodeURIComponent(url),
-                id = 'article-share-box-' + $this.attr('data-id'),
-                offset = $this.offset(),
-                box;
-
-            if ($('#' + id).length) {
-                box = $('#' + id);
-
-                if (box.hasClass('on')){
-                    box.removeClass('on');
-                    return;
-                }
-            } else {
-                var html = [
-                    '<div id="' + id + '" class="article-share-box">',
-                        '<input class="article-share-input" value="' + url + '">',
-                        '<div class="article-share-links">',
-                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
-                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
-                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
-                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
-                        '</div>',
-                    '</div>'
-                ].join('');
-
-              box = $(html);
-
-              $('body').append(box);
-            }
-
-            $('.article-share-box.on').hide();
-
-            box.css({
-                top: offset.top + 25,
-                left: offset.left
-            }).addClass('on');
-
-        }).on('click', '.article-share-box', function (e) {
-            e.stopPropagation();
-        }).on('click', '.article-share-box-input', function () {
-            $(this).select();
-        }).on('click', '.article-share-box-link', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
-        });
-    })(jQuery);
+gitalk.render('gitalk-container')
 </script>
 
+    </footer>
+  </article>
+</main>
+<aside class="read-next">
+ 
+    
+    <a class="read-next-story no-cover" href="/2016/03/16/Android-MotionEvent详解/">
+      <section class="post">
+        <h2>Android MotionEvent详解</h2>
+        <p>
             
-    
-
-        </footer>
-    </div>
-    
-        
-<nav id="article-nav">
-    
-        <a href="/2016/04/05/《异类-不一样成功的启示录》读后感/" id="article-nav-newer" class="article-nav-link-wrap">
-            <strong class="article-nav-caption">Newer</strong>
-            <div class="article-nav-title">
-                
-                    《异类-不一样成功的启示录》读后感
-                
-            </div>
-        </a>
-    
-    
-        <a href="/2016/03/16/Android-MotionEvent详解/" id="article-nav-older" class="article-nav-link-wrap">
-            <strong class="article-nav-caption">Older</strong>
-            <div class="article-nav-title">Android MotionEvent详解</div>
-        </a>
-    
-</nav>
-
-
-    
-</article>
-
-
-    
-    
-
-</section>
+              &emsp;在前边几篇博文中（《图解Android事件传递之ViewGroup篇》，《图解Android事件传递之View篇》），我们已经了解了android触摸事件传递机制，接着我们再来研究一下与触摸事件传递相关的几个比较重要的类，比如MotionEvent。我们今天就来详细说明一下这个类的各方面用法。
+事件坐标的含义 我们都知道，每个触摸事件都代表用户在屏幕上的一个动作，而每个动作必定有其发生的位置。在MotionEvent中就有一 ......
             
-                
-<aside id="sidebar">
-   
-        
-    <div class="widget-wrap">
-        <h3 class="widget-title">recent</h3>
-        <div class="widget">
-            <ul id="recent-post" class="">
-                
-                    <li>
-                        
-                        <!-- <div class="item-thumbnail">
-                            <a href="/2019/04/06/基于Redis和Lua的分布式限流/" class="thumbnail">
+          </p>
+      </section>
+    </a>
     
-    
-        <span class="thumbnail-image thumbnail-none"></span>
-    
-</a>
-
-                        </div> -->
-                        
-                        <div class="item-inner">
-                            <p class="item-category"><a class="article-category-link" href="/categories/分布式/">分布式</a></p>
-                            <p class="item-title"><a href="/2019/04/06/基于Redis和Lua的分布式限流/" class="title">基于Redis和Lua的分布式限流</a></p>
-                            <p class="item-date"><time datetime="2019-04-06T02:51:31.000Z" itemprop="datePublished">2019-04-06</time></p>
-                        </div>
-                    </li>
-                
-                    <li>
-                        
-                        <!-- <div class="item-thumbnail">
-                            <a href="/2019/03/30/超详细的Guava-RateLimiter限流原理解析/" class="thumbnail">
-    
-    
-        <span class="thumbnail-image thumbnail-none"></span>
-    
-</a>
-
-                        </div> -->
-                        
-                        <div class="item-inner">
-                            <p class="item-category"></p>
-                            <p class="item-title"><a href="/2019/03/30/超详细的Guava-RateLimiter限流原理解析/" class="title">超详细的Guava RateLimiter限流原理解析</a></p>
-                            <p class="item-date"><time datetime="2019-03-30T05:33:07.000Z" itemprop="datePublished">2019-03-30</time></p>
-                        </div>
-                    </li>
-                
-                    <li>
-                        
-                        <!-- <div class="item-thumbnail">
-                            <a href="/2019/03/09/TCP-IP的底层队列/" class="thumbnail">
-    
-    
-        <span class="thumbnail-image thumbnail-none"></span>
-    
-</a>
-
-                        </div> -->
-                        
-                        <div class="item-inner">
-                            <p class="item-category"><a class="article-category-link" href="/categories/网络/">网络</a></p>
-                            <p class="item-title"><a href="/2019/03/09/TCP-IP的底层队列/" class="title">TCP/IP的底层队列</a></p>
-                            <p class="item-date"><time datetime="2019-03-09T15:24:38.000Z" itemprop="datePublished">2019-03-09</time></p>
-                        </div>
-                    </li>
-                
-                    <li>
-                        
-                        <!-- <div class="item-thumbnail">
-                            <a href="/2019/02/27/TCP拥塞控制算法简介/" class="thumbnail">
-    
-    
-        <span class="thumbnail-image thumbnail-none"></span>
-    
-</a>
-
-                        </div> -->
-                        
-                        <div class="item-inner">
-                            <p class="item-category"><a class="article-category-link" href="/categories/网络/">网络</a></p>
-                            <p class="item-title"><a href="/2019/02/27/TCP拥塞控制算法简介/" class="title">TCP拥塞控制算法简介</a></p>
-                            <p class="item-date"><time datetime="2019-02-27T15:08:05.000Z" itemprop="datePublished">2019-02-27</time></p>
-                        </div>
-                    </li>
-                
-                    <li>
-                        
-                        <!-- <div class="item-thumbnail">
-                            <a href="/2019/02/17/Spring-AOP-二-修饰者模式和JDK-Proxy/" class="thumbnail">
-    
-    
-        <span class="thumbnail-image thumbnail-none"></span>
-    
-</a>
-
-                        </div> -->
-                        
-                        <div class="item-inner">
-                            <p class="item-category"></p>
-                            <p class="item-title"><a href="/2019/02/17/Spring-AOP-二-修饰者模式和JDK-Proxy/" class="title">Spring AOP(二) 修饰者模式和JDK Proxy</a></p>
-                            <p class="item-date"><time datetime="2019-02-17T05:20:37.000Z" itemprop="datePublished">2019-02-17</time></p>
-                        </div>
-                    </li>
-                
-            </ul>
-        </div>
-    </div>
-
-    
-        
-    <div class="widget-wrap">
-        <h3 class="widget-title">categories</h3>
-        <div class="widget">
-            <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">21</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/NetWork/">NetWork</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Android/Network/">Network</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Android/源码分析/">源码分析</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/Android性能/">Android性能</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">4</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/Java/JavaScript/">JavaScript</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/杂记/">杂记</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/NIO/">NIO</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/c/">c</a><span class="category-list-count">1</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/c/数据结构/">数据结构</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/python/">python</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/函数式编程/">函数式编程</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/后端/">后端</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/后端-Spring/">后端 - Spring</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/容器/">容器</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/思考/">思考</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">2</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/生活/">生活</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/源码/">源码</a><span class="category-list-count">1</span><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/categories/源码/视图/">视图</a><span class="category-list-count">1</span></li></ul></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/综合/">综合</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计划/">计划</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/运维/">运维</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/随笔/">随笔</a><span class="category-list-count">1</span></li></ul>
-        </div>
-    </div>
-
-    
-        
-    <div class="widget-wrap">
-        <h3 class="widget-title">archives</h3>
-        <div class="widget">
-            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
-        </div>
-    </div>
-
-    
-        
-    <div class="widget-wrap widget-list">
-        <h3 class="widget-title">links</h3>
-        <div class="widget">
-            <ul>
-                
-                    <li>
-                        <a href="http://hexo.io">Hexo</a>
-                    </li>
-                
-            </ul>
-        </div>
-    </div>
+  
 
 
+  
     
-    <div id="toTop" class="fa fa-angle-up"></div>
+    <a class="read-next-story no-cover" href="/2016/04/05/《异类-不一样成功的启示录》读后感/">
+      <section class="post">
+        <h2>《异类-不一样成功的启示录》读后感</h2>
+        <p>
+            
+              &emsp;前几天清明节，放假三天，可惜三天再下雨，真是清明时节雨纷纷啊。下雨就不能出去游玩，于是呆在屋里，一口气把《异类：不一样成功的启示录》这本书看完了。&emsp;本书的作者是格拉德威尔，他的著作及文章常涉及到出乎意料的社会科学研究领域，尤其是在社会学、心理学、社会心理学方面，对学术工作的应用层面做出了广泛而深入的探索。他是牙买加人，在书中，他也提到了自己的家族崛起的故事。&emsp;在《异类》中，他将取得非凡成就的人叫做“异类” ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
 </aside>
 
-            
-        </div>
-        <footer id="footer">
-    <div class="outer">
-        <div id="footer-info" class="inner">
-            &copy; 2019 remCarpediem<br>
-            Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>. Theme by <a href="http://github.com/ppoffice">PPOffice</a>
-        </div>
-    </div>
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">Carpediem</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
 </footer>
-        
+
+  </div>
+  <script type="text/javascript" src="/js/jquery-2.0.3.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
+
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
+
+<script type="text/javascript">
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
+</script>
 
 
-    
-        <script src="/libs/lightgallery/js/lightgallery.min.js"></script>
-        <script src="/libs/lightgallery/js/lg-thumbnail.min.js"></script>
-        <script src="/libs/lightgallery/js/lg-pager.min.js"></script>
-        <script src="/libs/lightgallery/js/lg-autoplay.min.js"></script>
-        <script src="/libs/lightgallery/js/lg-fullscreen.min.js"></script>
-        <script src="/libs/lightgallery/js/lg-zoom.min.js"></script>
-        <script src="/libs/lightgallery/js/lg-hash.min.js"></script>
-        <script src="/libs/lightgallery/js/lg-share.min.js"></script>
-        <script src="/libs/lightgallery/js/lg-video.min.js"></script>
-    
-    
-        <script src="/libs/justified-gallery/jquery.justifiedGallery.min.js"></script>
-    
-    
 
 
 
-<!-- Custom Scripts -->
-<script src="/js/main.js"></script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?554eef38a291d93799b59702c4733a31";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
 
-    </div>
+
 </body>
 </html>
