@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>Redis 事件机制详解 | 程序员历小冰</title>
+  <meta name="description" content="remcarpediem" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Redis 采用事件驱动机制来处理大量的网络IO。它并没有使用 libevent 或者 libev 这样的成熟开源方案，而是自己实现一个非常简洁的事件驱动库 ae_event。 Redis中的事件驱动库只关注网络IO，以及定时器。该事件库处理下面两类事件：  文件事件(file  event)：用于处理 Redis 服务器和客户端之间的网络IO。 时间事件(time  eveat)：Redis 服">
+<meta name="keywords" content="redis">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis 事件机制详解">
+<meta property="og:url" content="http://remcarpediem.net/2019/08/04/Redis-事件机制详解/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="Redis 采用事件驱动机制来处理大量的网络IO。它并没有使用 libevent 或者 libev 这样的成熟开源方案，而是自己实现一个非常简洁的事件驱动库 ae_event。 Redis中的事件驱动库只关注网络IO，以及定时器。该事件库处理下面两类事件：  文件事件(file  event)：用于处理 Redis 服务器和客户端之间的网络IO。 时间事件(time  eveat)：Redis 服">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://remcarpediem.net/images/19_85/image1.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_85/image2.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_85/image3.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_85/image4.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_85/image5.png">
+<meta property="og:image" content="http://remcarpediem.net/images/logo.png">
+<meta property="og:updated_time" content="2019-08-05T12:59:04.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Redis 事件机制详解">
+<meta name="twitter:description" content="Redis 采用事件驱动机制来处理大量的网络IO。它并没有使用 libevent 或者 libev 这样的成熟开源方案，而是自己实现一个非常简洁的事件驱动库 ae_event。 Redis中的事件驱动库只关注网络IO，以及定时器。该事件库处理下面两类事件：  文件事件(file  event)：用于处理 Redis 服务器和客户端之间的网络IO。 时间事件(time  eveat)：Redis 服">
+<meta name="twitter:image" content="http://remcarpediem.net/images/19_85/image1.png">
+  <!-- build:css css/screen.css -->
+
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
+  
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="程序员历小冰">
+  
+  
+  
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+
+
+<body class="post-template">
+
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home" role="presentation"><a href="/">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios" role="presentation"><a href="/archives">Archives</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
+</div>
+<span class="nav-cover"></span>
+
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
+        
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
+</header>
+
+  
+
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">Redis 事件机制详解</h1>
+      <section class="post-meta">
+  <time datetime="2019-08-04T10:37:29.000Z" itemprop="datePublished" class="post-date">
+      2019-08-04
+  </time>
+  
+  
+  
+  <a href="/tags/redis/">redis</a>
+  
+  
+</section>
+
+    </header>
+    <section class="post-content" itemprop="description articleBody">
+      
+
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2019-08-05T12:59:04.000Z" itemprop="dateModified">
+      2019-08-05
+  </time>
+</section>
+
+       -->
+      <p>Redis 采用事件驱动机制来处理大量的网络IO。它并没有使用 libevent 或者 libev 这样的成熟开源方案，而是自己实现一个非常简洁的事件驱动库 ae_event。</p>
+<p>Redis中的事件驱动库只关注网络IO，以及定时器。该事件库处理下面两类事件：</p>
+<ul>
+<li>文件事件(file  event)：用于处理 Redis 服务器和客户端之间的网络IO。</li>
+<li>时间事件(time  eveat)：Redis 服务器中的一些操作（比如serverCron函数）需要在给定的时间点执行，而时间事件就是处理这类定时操作的。</li>
+</ul>
+<p>事件驱动库的代码主要是在src/ae.c中实现的，其示意图如下所示。</p>
+<p><img src="/images/19_85/image1.png" alt="事件管理器示意图"></p>
+<p><code>aeEventLoop</code>是整个事件驱动的核心，它管理着文件事件表和时间事件列表，<br>不断地循环处理着就绪的文件事件和到期的时间事件。下面我们就先分别介绍文件事件和时间事件，然后讲述相关的<code>aeEventLoop</code>源码实现。</p>
+<h3 id="文件事件"><a href="#文件事件" class="headerlink" title="文件事件"></a>文件事件</h3><p>Redis基于Reactor模式开发了自己的网络事件处理器，也就是文件事件处理器。文件事件处理器使用IO多路复用技术，同时监听多个套接字，并为套接字关联不同的事件处理函数。当套接字的可读或者可写事件触发时，就会调用相应的事件处理函数。</p>
+<p>Redis 使用的IO多路复用技术主要有：<code>select</code>、<code>epoll</code>、<code>evport</code>和<code>kqueue</code>等。每个IO多路复用函数库在 Redis 源码中都对应一个单独的文件，比如ae_select.c，ae_epoll.c， ae_kqueue.c等。Redis 会根据不同的操作系统，按照不同的优先级选择多路复用技术。事件响应框架一般都采用该架构，比如 netty 和 libevent。</p>
+<p><img src="/images/19_85/image2.png" alt="示意图"></p>
+<p>如下图所示，文件事件处理器有四个组成部分，它们分别是套接字、I/O多路复用程序、文件事件分派器以及事件处理器。</p>
+<p><img src="/images/19_85/image3.png" alt="示意图"></p>
+<p>文件事件是对套接字操作的抽象，每当一个套接字准备好执行 accept、read、write和 close 等操作时，就会产生一个文件事件。因为 Redis 通常会连接多个套接字，所以多个文件事件有可能并发的出现。</p>
+<p>I/O多路复用程序负责监听多个套接字，并向文件事件派发器传递那些产生了事件的套接字。</p>
+<p>尽管多个文件事件可能会并发地出现，但I/O多路复用程序总是会将所有产生的套接字都放到同一个队列(也就是后文中描述的<code>aeEventLoop</code>的<code>fired</code>就绪事件表)里边，然后文件事件处理器会以有序、同步、单个套接字的方式处理该队列中的套接字，也就是处理就绪的文件事件。</p>
+<p><img src="/images/19_85/image4.png" alt="一次请求的过程示意图"></p>
+<p>所以，一次 Redis 客户端与服务器进行连接并且发送命令的过程如上图所示。</p>
+<ul>
+<li>客户端向服务端发起建立 socket 连接的请求，那么监听套接字将产生 AE_READABLE 事件，触发<strong>连接应答处理器</strong>执行。处理器会对客户端的连接请求进行应答，然后创建客户端套接字，以及客户端状态，并将客户端套接字的 AE_READABLE 事件与<strong>命令请求处理器</strong>关联。</li>
+<li>客户端建立连接后，向服务器发送命令，那么客户端套接字将产生 AE_READABLE 事件，触发<strong>命令请求处理器</strong>执行，处理器读取客户端命令，然后传递给相关程序去执行。</li>
+<li>执行命令获得相应的命令回复，为了将命令回复传递给客户端，服务器将客户端套接字的 AE_WRITEABLE 事件与<strong>命令回复处理器</strong>关联。当客户端试图读取命令回复时，客户端套接字产生 AE_WRITEABLE 事件，触发命令<strong>回复处理器</strong>将命令回复全部写入到套接字中。</li>
+</ul>
+<h3 id="时间事件"><a href="#时间事件" class="headerlink" title="时间事件"></a>时间事件</h3><p>Redis 的时间事件分为以下两类：</p>
+<ul>
+<li>定时事件：让一段程序在指定的时间之后执行一次。</li>
+<li>周期性事件：让一段程序每隔指定时间就执行一次。</li>
+</ul>
+<p>Redis 的时间事件的具体定义结构如下所示。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">typedef struct aeTimeEvent {
+    &#x2F;* 全局唯一ID *&#x2F;
+    long long id; &#x2F;* time event identifier. *&#x2F;
+    &#x2F;* 秒精确的UNIX时间戳，记录时间事件到达的时间*&#x2F;
+    long when_sec; &#x2F;* seconds *&#x2F;
+    &#x2F;* 毫秒精确的UNIX时间戳，记录时间事件到达的时间*&#x2F;
+    long when_ms; &#x2F;* milliseconds *&#x2F;
+    &#x2F;* 时间处理器 *&#x2F;
+    aeTimeProc *timeProc;
+    &#x2F;* 事件结束回调函数，析构一些资源*&#x2F;
+    aeEventFinalizerProc *finalizerProc;
+    &#x2F;* 私有数据 *&#x2F;
+    void *clientData;
+    &#x2F;* 前驱节点 *&#x2F;
+    struct aeTimeEvent *prev;
+    &#x2F;* 后继节点 *&#x2F;
+    struct aeTimeEvent *next;
+} aeTimeEvent;
+</code></pre>
+<p>一个时间事件是定时事件还是周期性事件取决于时间处理器的返回值：</p>
+<ul>
+<li>如果返回值是 AE_NOMORE，那么这个事件是一个定时事件，该事件在达到后删除，之后不会再重复。</li>
+<li>如果返回值是非 AE_NOMORE 的值，那么这个事件为周期性事件，当一个时间事件到达后，服务器会根据时间处理器的返回值，对时间事件的 <code>when</code> 属性进行更新，让这个事件在一段时间后再次达到。</li>
+</ul>
+<p>Redis 将所有时间事件都放在一个无序链表中，每次 Redis 会遍历整个链表，查找所有已经到达的时间事件，并且调用相应的事件处理器。</p>
+<p>介绍完文件事件和时间事件，我们接下来看一下 <code>aeEventLoop</code>的具体实现。</p>
+<h3 id="创建事件管理器"><a href="#创建事件管理器" class="headerlink" title="创建事件管理器"></a>创建事件管理器</h3><p>Redis 服务端在其初始化函数 <code>initServer</code>中，会创建事件管理器<code>aeEventLoop</code>对象。</p>
+<p>函数<code>aeCreateEventLoop</code>将创建一个事件管理器，主要是初始化 <code>aeEventLoop</code>的各个属性值，比如<code>events</code>、<code>fired</code>、<code>timeEventHead</code>和<code>apidata</code>：</p>
+<ul>
+<li>首先创建<code>aeEventLoop</code>对象。</li>
+<li>初始化未就绪文件事件表、就绪文件事件表。<code>events</code>指针指向未就绪文件事件表、<code>fired</code>指针指向就绪文件事件表。表的内容在后面添加具体事件时进行初变更。</li>
+<li>初始化时间事件列表，设置<code>timeEventHead</code>和<code>timeEventNextId</code>属性。</li>
+<li>调用<code>aeApiCreate</code> 函数创建<code>epoll</code>实例，并初始化 <code>apidata</code>。</li>
+</ul>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">aeEventLoop *aeCreateEventLoop(int setsize) {
+    aeEventLoop *eventLoop;
+    int i;
+    &#x2F;* 创建事件状态结构 *&#x2F;
+    if ((eventLoop = zmalloc(sizeof(*eventLoop))) == NULL) goto err;
+    &#x2F;* 创建未就绪事件表、就绪事件表 *&#x2F;
+    eventLoop-&gt;events = zmalloc(sizeof(aeFileEvent)*setsize);
+    eventLoop-&gt;fired = zmalloc(sizeof(aeFiredEvent)*setsize);
+    if (eventLoop-&gt;events == NULL || eventLoop-&gt;fired == NULL) goto err;
+    &#x2F;* 设置数组大小 *&#x2F;
+    eventLoop-&gt;setsize = setsize;
+    &#x2F;* 初始化执行最近一次执行时间 *&#x2F;
+    eventLoop-&gt;lastTime = time(NULL);
+    &#x2F;* 初始化时间事件结构 *&#x2F;
+    eventLoop-&gt;timeEventHead = NULL;
+    eventLoop-&gt;timeEventNextId = 0;
+    eventLoop-&gt;stop = 0;
+    eventLoop-&gt;maxfd = -1;
+    eventLoop-&gt;beforesleep = NULL;
+    eventLoop-&gt;aftersleep = NULL;
+    &#x2F;* 将多路复用io与事件管理器关联起来 *&#x2F;
+    if (aeApiCreate(eventLoop) == -1) goto err;
+    &#x2F;* 初始化监听事件 *&#x2F;
+    for (i = 0; i &lt; setsize; i++)
+        eventLoop-&gt;events[i].mask = AE_NONE;
+    return eventLoop;
+err:
+   .....
+}
+</code></pre>
+<p><code>aeApiCreate</code> 函数首先创建了<code>aeApiState</code>对象，初始化了epoll就绪事件表；然后调用<code>epoll_create</code>创建了<code>epoll</code>实例，最后将该<code>aeApiState</code>赋值给<code>apidata</code>属性。</p>
+<p><code>aeApiState</code>对象中<code>epfd</code>存储<code>epoll</code>的标识，<code>events</code>是一个<code>epoll</code>就绪事件数组，当有<code>epoll</code>事件发生时，所有发生的<code>epoll</code>事件和其描述符将存储在这个数组中。这个就绪事件数组由应用层开辟空间、内核负责把所有发生的事件填充到该数组。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">static int aeApiCreate(aeEventLoop *eventLoop) {
+    aeApiState *state = zmalloc(sizeof(aeApiState));
+
+    if (!state) return -1;
+    &#x2F;* 初始化epoll就绪事件表 *&#x2F;
+    state-&gt;events = zmalloc(sizeof(struct epoll_event)*eventLoop-&gt;setsize);
+    if (!state-&gt;events) {
+        zfree(state);
+        return -1;
+    }
+    &#x2F;* 创建 epoll 实例 *&#x2F;
+    state-&gt;epfd = epoll_create(1024); &#x2F;* 1024 is just a hint for the kernel *&#x2F;
+    if (state-&gt;epfd == -1) {
+        zfree(state-&gt;events);
+        zfree(state);
+        return -1;
+    }
+    &#x2F;* 事件管理器与epoll关联 *&#x2F;
+    eventLoop-&gt;apidata = state;
+    return 0;
+}
+typedef struct aeApiState {
+    &#x2F;* epoll_event 实例描述符*&#x2F;
+    int epfd;
+    &#x2F;* 存储epoll就绪事件表 *&#x2F;
+    struct epoll_event *events;
+} aeApiState;
+</code></pre>
+<h3 id="创建文件事件"><a href="#创建文件事件" class="headerlink" title="创建文件事件"></a>创建文件事件</h3><p><code>aeFileEvent</code>是文件事件结构，对于每一个具体的事件，都有读处理函数和写处理函数等。Redis 调用<code>aeCreateFileEvent</code>函数针对不同的套接字的读写事件注册对应的文件事件。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">typedef struct aeFileEvent {
+    &#x2F;* 监听事件类型掩码,值可以是 AE_READABLE 或 AE_WRITABLE *&#x2F;
+    int mask;
+    &#x2F;* 读事件处理器 *&#x2F;
+    aeFileProc *rfileProc;
+    &#x2F;* 写事件处理器 *&#x2F;
+    aeFileProc *wfileProc;
+    &#x2F;* 多路复用库的私有数据 *&#x2F;
+    void *clientData;
+} aeFileEvent;
+&#x2F;* 使用typedef定义的处理器函数的函数类型 *&#x2F;
+typedef void aeFileProc(struct aeEventLoop *eventLoop, 
+int fd, void *clientData, int mask);
+</code></pre>
+<p>比如说，Redis 进行主从复制时，从服务器需要主服务器建立连接，它会发起一个 socekt连接，然后调用<code>aeCreateFileEvent</code>函数针对发起的socket的读写事件注册了对应的事件处理器，也就是<code>syncWithMaster</code>函数。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">aeCreateFileEvent(server.el,fd,AE_READABLE|AE_WRITABLE,syncWithMaster,NULL);
+&#x2F;* 符合aeFileProc的函数定义 *&#x2F;
+void syncWithMaster(aeEventLoop *el, int fd, void *privdata, int mask) {....}
+</code></pre>
+<p><code>aeCreateFileEvent</code>的参数<code>fd</code>指的是具体的<code>socket</code>套接字，<code>proc</code>指<code>fd</code>产生事件时，具体的处理函数，<code>clientData</code>则是回调处理函数时需要传入的数据。<br><code>aeCreateFileEvent</code>主要做了三件事情：</p>
+<ul>
+<li>以<code>fd</code>为索引，在<code>events</code>未就绪事件表中找到对应事件。</li>
+<li>调用<code>aeApiAddEvent</code>函数，该事件注册到具体的底层 I/O 多路复用中，本例为epoll。</li>
+<li>填充事件的回调、参数、事件类型等参数。</li>
+</ul>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">int aeCreateFileEvent(aeEventLoop *eventLoop, int fd, int mask,
+                       aeFileProc *proc, void *clientData)
+{
+    &#x2F;* 取出 fd 对应的文件事件结构, fd 代表具体的 socket 套接字 *&#x2F;
+    aeFileEvent *fe = &amp;eventLoop-&gt;events[fd];
+    &#x2F;* 监听指定 fd 的指定事件 *&#x2F;
+    if (aeApiAddEvent(eventLoop, fd, mask) == -1)
+        return AE_ERR;
+    &#x2F;* 置文件事件类型，以及事件的处理器 *&#x2F;
+    fe-&gt;mask |= mask;
+    if (mask &amp; AE_READABLE) fe-&gt;rfileProc = proc;
+    if (mask &amp; AE_WRITABLE) fe-&gt;wfileProc = proc;
+    &#x2F;* 私有数据 *&#x2F;
+    fe-&gt;clientData = clientData;
+    if (fd &gt; eventLoop-&gt;maxfd)
+        eventLoop-&gt;maxfd = fd;
+    return AE_OK;
+}
+</code></pre>
+<p>如上文所说，Redis 基于的底层 I/O 多路复用库有多套，所以<code>aeApiAddEvent</code>也有多套实现，下面的源码是<code>epoll</code>下的实现。其核心操作就是调用<code>epoll</code>的<code>epoll_ctl</code>函数来向<code>epoll</code>注册响应事件。有关<code>epoll</code>相关的知识可以看一下<a href="https://mp.weixin.qq.com/s/O40MlDhAgCmcyUgu2jX1dg" target="_blank" rel="noopener">《Java NIO源码分析》</a><br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) {
+    aeApiState *state = eventLoop-&gt;apidata;
+    struct epoll_event ee = {0}; &#x2F;* avoid valgrind warning *&#x2F;
+    &#x2F;* 如果 fd 没有关联任何事件，那么这是一个 ADD 操作。如果已经关联了某个&#x2F;某些事件，那么这是一个 MOD 操作。 *&#x2F;
+    int op = eventLoop-&gt;events[fd].mask == AE_NONE ?
+            EPOLL_CTL_ADD : EPOLL_CTL_MOD;
+
+    &#x2F;* 注册事件到 epoll *&#x2F;
+    ee.events = 0;
+    mask |= eventLoop-&gt;events[fd].mask; &#x2F;* Merge old events *&#x2F;
+    if (mask &amp; AE_READABLE) ee.events |= EPOLLIN;
+    if (mask &amp; AE_WRITABLE) ee.events |= EPOLLOUT;
+    ee.data.fd = fd;
+    &#x2F;* 调用epoll_ctl 系统调用，将事件加入epoll中 *&#x2F;
+    if (epoll_ctl(state-&gt;epfd,op,fd,&amp;ee) == -1) return -1;
+    return 0;
+}
+</code></pre></p>
+<h3 id="事件处理"><a href="#事件处理" class="headerlink" title="事件处理"></a>事件处理</h3><p>因为 Redis 中同时存在文件事件和时间事件两个事件类型，所以服务器必须对这两个事件进行调度，决定何时处理文件事件，何时处理时间事件，以及如何调度它们。</p>
+<p><code>aeMain</code>函数以一个无限循环不断地调用<code>aeProcessEvents</code>函数来处理所有的事件。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">void aeMain(aeEventLoop *eventLoop) {
+    eventLoop-&gt;stop = 0;
+    while (!eventLoop-&gt;stop) {
+        &#x2F;* 如果有需要在事件处理前执行的函数，那么执行它 *&#x2F;
+        if (eventLoop-&gt;beforesleep != NULL)
+            eventLoop-&gt;beforesleep(eventLoop);
+        &#x2F;* 开始处理事件*&#x2F;
+        aeProcessEvents(eventLoop, AE_ALL_EVENTS|AE_CALL_AFTER_SLEEP);
+    }
+}
+</code></pre>
+<p>下面是<code>aeProcessEvents</code>的伪代码，它会首先计算距离当前时间最近的时间事件，以此计算一个超时时间；然后调用<code>aeApiPoll</code>函数去等待底层的I/O多路复用事件就绪；<code>aeApiPoll</code>函数返回之后，会处理所有已经产生文件事件和已经达到的时间事件。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;* 伪代码 *&#x2F;
+int aeProcessEvents(aeEventLoop *eventLoop, int flags) {
+    &#x2F;* 获取到达时间距离当前时间最接近的时间事件*&#x2F;
+    time_event = aeSearchNearestTimer();
+    &#x2F;* 计算最接近的时间事件距离到达还有多少毫秒*&#x2F;
+    remaind_ms = time_event.when - unix_ts_now();
+    &#x2F;* 如果事件已经到达，那么remaind_ms为负数，将其设置为0 *&#x2F;
+    if (remaind_ms &lt; 0) remaind_ms = 0;
+    &#x2F;* 根据 remaind_ms 的值，创建 timeval 结构*&#x2F;
+    timeval = create_timeval_with_ms(remaind_ms);
+    &#x2F;* 阻塞并等待文件事件产生，最大阻塞时间由传入的 timeval 结构决定，如果remaind_ms 的值为0，则aeApiPoll 调用后立刻返回，不阻塞*&#x2F;
+    &#x2F;* aeApiPoll调用epoll_wait函数，等待I&#x2F;O事件*&#x2F;
+    aeApiPoll(timeval);
+    &#x2F;* 处理所有已经产生的文件事件*&#x2F;
+    processFileEvents();
+    &#x2F;* 处理所有已经到达的时间事件*&#x2F;
+    processTimeEvents();
+}
+</code></pre>
+<p>与<code>aeApiAddEvent</code>类似，<code>aeApiPoll</code>也有多套实现，它其实就做了两件事情，调用<code>epoll_wait</code>阻塞等待<code>epoll</code>的事件就绪，超时时间就是之前根据最快达到时间事件计算而来的超时时间；然后将就绪的<code>epoll</code>事件转换到fired就绪事件。<code>aeApiPoll</code>就是上文所说的I/O多路复用程序。具体过程如下图所示。</p>
+<p><img src="/images/19_85/image5.png" alt="aeApiPoll示意图"></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) 
+{
+    aeApiState *state = eventLoop-&gt;apidata;
+    int retval, numevents = 0;
+    &#x2F;&#x2F; 调用epoll_wait函数，等待时间为最近达到时间事件的时间计算而来。
+    retval = epoll_wait(state-&gt;epfd,state-&gt;events,eventLoop-&gt;setsize,
+            tvp ? (tvp-&gt;tv_sec*1000 + tvp-&gt;tv_usec&#x2F;1000) : -1);
+    &#x2F;&#x2F; 有至少一个事件就绪？
+    if (retval &gt; 0) 
+    {
+        int j;
+        &#x2F;*为已就绪事件设置相应的模式，并加入到 eventLoop 的 fired 数组中*&#x2F;
+        numevents = retval;
+        for (j = 0; j &lt; numevents; j++) 
+	{
+            int mask = 0;
+            struct epoll_event *e = state-&gt;events+j;
+            if (e-&gt;events &amp; EPOLLIN)
+		mask |= AE_READABLE;
+            if (e-&gt;events &amp; EPOLLOUT)
+		mask |= AE_WRITABLE;
+            if (e-&gt;events &amp; EPOLLERR) 
+		mask |= AE_WRITABLE;
+            if (e-&gt;events &amp; EPOLLHUP)
+		mask |= AE_WRITABLE;
+            &#x2F;* 设置就绪事件表元素 *&#x2F;
+            eventLoop-&gt;fired[j].fd = e-&gt;data.fd;
+            eventLoop-&gt;fired[j].mask = mask;
+        }
+    }
+    
+    &#x2F;&#x2F; 返回已就绪事件个数
+    return numevents;
+}
+</code></pre>
+<p><code>processFileEvent</code>是处理就绪文件事件的伪代码，也是上文所述的文件事件分派器，它其实就是遍历<code>fired</code>就绪事件表，然后根据对应的事件类型来调用事件中注册的不同处理器，读事件调用<code>rfileProc</code>，而写事件调用<code>wfileProc</code>。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">void processFileEvent(int numevents) {
+    for (j = 0; j &lt; numevents; j++) {
+            &#x2F;* 从已就绪数组中获取事件 *&#x2F;
+            aeFileEvent *fe = &amp;eventLoop-&gt;events[eventLoop-&gt;fired[j].fd];
+            int mask = eventLoop-&gt;fired[j].mask;
+            int fd = eventLoop-&gt;fired[j].fd;
+            int fired = 0;
+            int invert = fe-&gt;mask &amp; AE_BARRIER;
+	        &#x2F;* 读事件 *&#x2F;
+            if (!invert &amp;&amp; fe-&gt;mask &amp; mask &amp; AE_READABLE) {
+                &#x2F;* 调用读处理函数 *&#x2F;
+                fe-&gt;rfileProc(eventLoop,fd,fe-&gt;clientData,mask);
+                fired++;
+            }
+            &#x2F;* 写事件. *&#x2F;
+            if (fe-&gt;mask &amp; mask &amp; AE_WRITABLE) {
+                if (!fired || fe-&gt;wfileProc != fe-&gt;rfileProc) {
+                    fe-&gt;wfileProc(eventLoop,fd,fe-&gt;clientData,mask);
+                    fired++;
+                }
+            }
+            if (invert &amp;&amp; fe-&gt;mask &amp; mask &amp; AE_READABLE) {
+                if (!fired || fe-&gt;wfileProc != fe-&gt;rfileProc) {
+                    fe-&gt;rfileProc(eventLoop,fd,fe-&gt;clientData,mask);
+                    fired++;
+                }
+            }
+            processed++;
+        }
+    }
+}
+</code></pre>
+<p>而<code>processTimeEvents</code>是处理时间事件的函数，它会遍历<code>aeEventLoop</code>的事件事件列表，如果时间事件到达就执行其<code>timeProc</code>函数，并根据函数的返回值是否等于<code>AE_NOMORE</code>来决定该时间事件是否是周期性事件，并修改器到达时间。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">static int processTimeEvents(aeEventLoop *eventLoop) {
+    int processed = 0;
+    aeTimeEvent *te;
+    long long maxId;
+    time_t now = time(NULL);
+    ....
+    eventLoop-&gt;lastTime = now;
+
+    te = eventLoop-&gt;timeEventHead;
+    maxId = eventLoop-&gt;timeEventNextId-1;
+    &#x2F;* 遍历时间事件链表 *&#x2F;
+    while(te) {
+        long now_sec, now_ms;
+        long long id;
+
+        &#x2F;* 删除需要删除的时间事件 *&#x2F;
+        if (te-&gt;id == AE_DELETED_EVENT_ID) {
+            aeTimeEvent *next = te-&gt;next;
+            if (te-&gt;prev)
+                te-&gt;prev-&gt;next = te-&gt;next;
+            else
+                eventLoop-&gt;timeEventHead = te-&gt;next;
+            if (te-&gt;next)
+                te-&gt;next-&gt;prev = te-&gt;prev;
+            if (te-&gt;finalizerProc)
+                te-&gt;finalizerProc(eventLoop, te-&gt;clientData);
+            zfree(te);
+            te = next;
+            continue;
+        }
+
+        &#x2F;* id 大于最大maxId,是该循环周期生成的时间事件，不处理 *&#x2F;
+        if (te-&gt;id &gt; maxId) {
+            te = te-&gt;next;
+            continue;
+        }
+        aeGetTime(&amp;now_sec, &amp;now_ms);
+        &#x2F;* 事件已经到达，调用其timeProc函数*&#x2F;
+        if (now_sec &gt; te-&gt;when_sec ||
+            (now_sec == te-&gt;when_sec &amp;&amp; now_ms &gt;= te-&gt;when_ms))
+        {
+            int retval;
+
+            id = te-&gt;id;
+            retval = te-&gt;timeProc(eventLoop, id, te-&gt;clientData);
+            processed++;
+            &#x2F;* 如果返回值不等于 AE_NOMORE,表示是一个周期性事件，修改其when_sec和when_ms属性*&#x2F;
+            if (retval != AE_NOMORE) {
+                aeAddMillisecondsToNow(retval,&amp;te-&gt;when_sec,&amp;te-&gt;when_ms);
+            } else {
+                &#x2F;* 一次性事件，标记为需删除，下次遍历时会删除*&#x2F;
+                te-&gt;id = AE_DELETED_EVENT_ID;
+            }
+        }
+        te = te-&gt;next;
+    }
+    return processed;
+}
+</code></pre></p>
+<h3 id="删除事件"><a href="#删除事件" class="headerlink" title="删除事件"></a>删除事件</h3><p>当不在需要某个事件时，需要把事件删除掉。例如: 如果fd同时监听读事件、写事件。当不在需要监听写事件时，可以把该fd的写事件删除。</p>
+<p><code>aeDeleteEventLoop</code>函数的执行过程总结为以下几个步骤<br>1、根据<code>fd</code>在未就绪表中查找到事件<br>2、取消该<code>fd</code>对应的相应事件标识符<br>3、调用<code>aeApiFree</code>函数，内核会将epoll监听红黑树上的相应事件监听取消。</p>
+<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>接下来，我们会继续学习 Redis 的主从复制相关的原理，欢迎大家持续关注。</p>
+<p><img src="/images/logo.png" alt=""></p>
+
+      <h3>关于图片和转载</h3>
+
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
+
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
+
+      <h3>关于评论和留言</h3>
+
+      如果对本文 <a href="http://remcarpediem.net/2019/08/04/Redis-事件机制详解/">Redis 事件机制详解</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/2019/08/04/Redis-事件机制详解/">Redis 事件机制详解</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
+    <footer class="post-footer">
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">历小冰's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">历小冰</a></h4>
+        
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> 程序员历小冰</a></span> 
+        </div>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/2019/08/04/Redis-事件机制详解/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/2019/08/04/Redis-事件机制详解/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/2019/08/04/Redis-事件机制详解/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
+      
+<div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script src="/js/md5.min.js"></script>
+<script>
+    const gitalk = new Gitalk({
+    clientID: 'ece2d2cd7c5f768a4c22',
+    clientSecret: '1ad562557353b888b4b622239d45150c5df6d5ee',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: md5("http://remcarpediem.net/2019/08/04/Redis-事件机制详解/"),
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
+
+gitalk.render('gitalk-container')
+</script>
+
+    </footer>
+  </article>
+</main>
+<aside class="read-next">
+ 
+    
+    <a class="read-next-story no-cover" href="/2019/07/28/Redis-AOF-持久化详解/">
+      <section class="post">
+        <h2>Redis AOF 持久化详解</h2>
+        <p>
+            
+              Redis 是一种内存数据库，将数据保存在内存中，读写效率要比传统的将数据保存在磁盘上的数据库要快很多。但是一旦进程退出，Redis 的数据就会丢失。
+为了解决这个问题，Redis 提供了 RDB 和 AOF 两种持久化方案，将内存中的数据保存到磁盘中，避免数据丢失。RDB的介绍在这篇文章中《Redis RDB 持久化详解》，今天我们来看一下 AOF 相关的原理。
+AOF( append only file )持久化以独立日志的方式记录 ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+
+
+  
+</aside>
+
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">程序员历小冰</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
+</footer>
+
+  </div>
+  <script type="text/javascript" src="/js/jquery-2.0.3.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
+
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
+
+<script type="text/javascript">
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
+</script>
+
+
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?554eef38a291d93799b59702c4733a31";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+</body>
+</html>
