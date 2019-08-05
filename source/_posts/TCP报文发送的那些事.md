@@ -1,0 +1,116 @@
+---
+title: TCP报文发送的那些事
+date: 2019-04-17 11:44:06
+tags: TCP
+---
+&emsp;今天我们来总结学习一下TCP发送报文的相关知识，主要包括发送报文的步骤，MSS，滑动窗口和Nagle算法。
+
+### 发送报文
+
+&emsp;该节是根据陶辉大神的系列文章总结。如下图所示，我们一起来看一下TCP发送报文时操作系统内核都做了那些事情。其中有些概念在接下来的小节中会介绍。
+![](https://upload-images.jianshu.io/upload_images/623378-abc6a2862b36d9f8.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+&emsp;首先，用户程序在用户态调用`send`方法来发送一段较长的数据。然后`send`函数调用内核态的`tcp_sendmsg`方法进行处理。
+
+&emsp;`send`方法返回成功，内核也不一定真正将IP报文都发送到网络中了，也就是说内核发送报文和`send`方法是不同步的。所以，内核将用户态内存中的发送数据，拷贝到内核态内存中，不依赖于用户态内存，这样可以使得进程可以快速释放发送数据占用的用户态内存。
+
+&emsp;在拷贝过程中，内核将待发送数据，按照MSS来划分成多个尽量接近MSS大小的分片，放到这个TCP连接对应的`tcp_write_queue`发送队列中
+
+&emsp;内核中为这个TCP连接分配的内核缓存，也就是`tcp_write_queue`是有限的。当没有多余的空间来复制用户态的待发送数据时，就需要调用一个方法`sk_stream_wait_memory`来等待滑动窗口移动，释放出一些缓存出来（收到ACK后，不需要再缓存原来已经发送出的报文，因为既然已经确认对方收到，就不需要定时重发，自然就释放缓存了）
+
+&emsp;当这个套接字是阻塞套接字时，等待的超时时间就是`SO_SNDTIMEO`选项指定的发送超时时间。如果这个套接字是非阻塞套接字，则超时时间就是0。也就是说，`sk_stream_wait_memory`对于非阻塞套接字会直接返回，并将 errno错误码置为EAGAIN
+
+&emsp;我们假定使用了阻塞套接字，且等待了足够久的时间，收到了对方的ACK，滑动窗口释放出了缓存。所以，可以将剩下的用户态数据都组成MSS报文拷贝到内核态的缓存队列中。
+
+&emsp;最后，调用tcp_push等方法，它最终会调用IP层的方法来发送tcp_write_queue队列中的报文。注意的是，IP层方法返回时，也不意味着报文发送了出去。
+
+&emsp;在发送函数处理过程中，Nagle算法、滑动窗口、拥塞窗口都会影响发送操作。
+
+### MTU和MSS
+
+&emsp;我们都知道TCP/IP架构有五层协议，低层协议的规则会影响到上层协议，比如说数据链路层的最大传输单元MTU和传输层TCP协议的最大报文段长度MSS。
+
+
+&emsp;数据链路层协议会对网络分组的长度进行限制，也就是不能超过其规定的MTU，例如以太网限制为1500字节，802.3限制为1492字节。**但是，需要注意的时，现在有些网卡具备自动分包功能，所以也可以传输远大于MTU的帧**。
+
+![MTU示意图.jpg](https://upload-images.jianshu.io/upload_images/623378-fbd04adb120e3147.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+&emsp;网络层的IP协议试图发送报文时，若一个报文的长度大于MTU限制，就会被分成若干个小于MTU的报文，每个报文都会有独立的IP头部。IP协议能自动获取所在局域网的MTU值，然后按照这个MTU来分片。IP协议的分片机制对于传输层是透明的，接收方的IP协议会根据收到的多个IP包头部，将发送方IP层分片出的IP包重组为一个消息。
+
+&emsp;这种IP层的分片效率是很差的，因为首先做了额外的分片操作，然后所有分片都到达后，接收方才能重组成一个包，其中任何一个分片丢失了，都必须重发所有分片。
+
+&emsp;所以，TCP层为了避免IP层执行数据报分片定义了最大报文段长度MSS。在TCP建立连接时会通知各自期望接收到的MSS的大小。
+
+&emsp;需要注意的是MSS的值是预估值。两台主机只是根据其所在局域网的计算MSS，但是TCP连接上可能会穿过许多中间网络，这些网络分别具有不同的数据链路层，导致问题。比如说，若中间途径的MTU小于两台主机所在的网络MTU时，选定的MSS仍然太大了，会导致中间路由器出现IP层的分片或者直接返回错误(设置IP头部的DF标志位)。
+
+&emsp;比如阿里中间件的[这篇文章](http://jm.taobao.org/2017/07/27/20170727/)(链接不见的话，请看文末)所说，当上述情况发生时，可能会导致卡死状态，比如scp的时候不动了，或者其他更复杂操作的时候不动了，卡死的状态。
+
+
+### 滑动窗口
+
+&emsp;IP层协议属于不可靠的协议，IP层并不关心数据是否发送到了接收方，TCP通过确认机制来保证数据传输的可靠性。
+
+&emsp;除了保证数据必定发送到对端，TCP还要解决包乱序（reordering）和流控的问题。包乱序和流控会涉及滑动窗口和接收报文的out_of_order队列，另外拥塞控制算法也会处理流控，详情请看[TCP拥塞控制算法简介
+](https://mp.weixin.qq.com/s?__biz=MzU2MDYwMDMzNQ==&mid=2247483756&idx=1&sn=99c27d03f77989ac6dc9de05d2d1c4df&chksm=fc04c50ccb734c1a77a3cc8839f297914a9f65d33529c801867575208c57035544aa5f06a4de&token=1868391263&lang=zh_CN#rd)。
+
+&emsp;TCP头里有一个字段叫Window，又叫Advertised-Window，这个字段是接收端告诉发送端自己还有多少缓冲区可以接收数据。于是发送端就可以根据这个接收端的处理能力来发送数据，否则会导致接收端处理不过来。
+
+
+&emsp;我们可以将TCP缓冲区中的数据分为以下四类，并把它们看作一个时间轴
+
+![滑动窗口](https://upload-images.jianshu.io/upload_images/623378-eec3479aa2a291d5.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+- Sent and Acknowledged: 表示已经发送成功并已经被确认的数据，比如图中的前31个字节的数据
+
+- Send But Not Yet Acknowledged：表示发送但没有被确认的数据，数据被发送出去，没有收到接收端的ACK，认为并没有完成发送，这个属于窗口内的数据。
+
+- Not Sent，Recipient Ready to Receive：表示需要尽快发送的数据，这部分数据已经被加载到缓存等待发送，也就是窗口中。接收方ACK表示能够接受这些包，所以发送方需要尽快发送这些包。
+
+- Not Sent，Recipient Not Ready to Receive： 表示属于未发送，同时接收端也不允许发送的，因为这些数据已经超出了发送端所接收的范围
+
+&emsp;除了四种不同范畴的数据外，我们可以看到上边的示意图中还有三种窗口。
+
+- Window Already：已经发送了，但是没有收到ACK，和Send But Not Yet Acknowledged部分重合。
+- Usable Window :  可用窗口，和Not Sent，Recipient Ready to Receive部分重合
+- Send Window:  真正的窗口大小。建立连接时接收方会告知发送方自己能够处理的发送窗口大小，同时在接收过程中也不断的通告可以发送窗口大小，来实时调节。
+
+
+&emsp;下面，我们来看一下滑动窗口的滑动。下图是窗口滑动窗口的示意图。
+
+![image.png](https://upload-images.jianshu.io/upload_images/623378-33ecc45748af436f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+&emsp;当发送方收到发送数据的确认消息时，会移动发送窗口。比如上图中，接收到36字节的确认，将其之前的5个字节都移除窗口，发出了46-51的字节，将52到56的字节加入到可用窗口。
+
+&emsp;下面我们来看一下整体的示意图。
+
+![接受端控制发送端](https://upload-images.jianshu.io/upload_images/623378-576a32c139b88eaf.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+&emsp;图片来源为tcpipguide.
+
+&emsp;Client端窗口的不同颜色的矩形块代表的含义和上边滑动窗口示意图的含义相同。我们只简单看一下第二三四步。接收端发送的TCP报文window为260，表示发送窗口减少100，可以发现黑色矩形缩短了。并且ack为141，所以发送端将140个字节的数据从滑动窗口中移除，从Send But Not Yet Acknowledged变为Sent and Acknowledged，也就是从蓝色变成紫色。然后发送端发送180字节的数据，就有180字节的数据从Not Sent，Recipient Ready to Receive变为Send But Not Yet Acknowledged，也就是从绿色变为蓝色。
+
+
+### Nagle算法
+&emsp;上述滑动窗口会出现一种Silly Window Syndrome的问题，当接收方来不及取走Receive Windows里的数据，会导致发送方的窗口越来越小。到最后，如果接收方腾出几个字节并告诉发送方现在有几个字节的window，而我们的发送方会义无反顾地发送这几个字节。
+
+&emsp;只为了发送几个字节，要加上TCP和IP头的40多个字节。这样，效率太低，就像你搬运物品，明明一次可以全部搬完，但是却偏偏一次只搬一个物品，来回搬多次。
+
+&emsp;为此，TCP引入了Nagle算法。应用进程调用发送方法时，可能每次只发送小块数据，造成这台机器发送了许多小的TCP报文。对于整个网络的执行效率来说，小的TCP报文会增加网络拥塞的可能。因此，如果有可能，应该将相临的TCP报文合并成一个较大的TCP报文（当然还是小于MSS的）发送。
+
+&emsp;Nagle算法的规则（可参考tcp_output.c文件里tcp_nagle_check函数注释）：
+- 如果包长度达到MSS，则允许发送；
+- 如果该包含有FIN，则允许发送；
+- 设置了TCP_NODELAY选项，则允许发送；
+- 未设置TCP_CORK选项时，若所有发出去的小数据包（包长度小于MSS）均被确认，则允许发送；
+- 上述条件都未满足，但发生了超时（一般为200ms），则立即发送。
+
+&emsp;**当对请求的时延非常在意且网络环境非常好的时候（例如同一个机房内），Nagle算法可以关闭**。使用TCP_NODELAY套接字选项就可以关闭Nagle算法
+
+
+![](https://upload-images.jianshu.io/upload_images/623378-7d960275042f309d.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+个人博客: [Remcarpediem](http://remcarpediem.net/2019/03/09/TCP-IP%E7%9A%84%E5%BA%95%E5%B1%82%E9%98%9F%E5%88%97/)
+
+### 参考
+
+- 阿里中间件 http://jm.taobao.org/2017/07/27/20170727/
+
