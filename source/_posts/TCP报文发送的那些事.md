@@ -8,7 +8,7 @@ tags: TCP
 ### 发送报文
 
 &emsp;该节是根据陶辉大神的系列文章总结。如下图所示，我们一起来看一下TCP发送报文时操作系统内核都做了那些事情。其中有些概念在接下来的小节中会介绍。
-![](https://upload-images.jianshu.io/upload_images/623378-abc6a2862b36d9f8.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](/images/19_914/图1.webp)
 
 &emsp;首先，用户程序在用户态调用`send`方法来发送一段较长的数据。然后`send`函数调用内核态的`tcp_sendmsg`方法进行处理。
 
@@ -33,7 +33,7 @@ tags: TCP
 
 &emsp;数据链路层协议会对网络分组的长度进行限制，也就是不能超过其规定的MTU，例如以太网限制为1500字节，802.3限制为1492字节。**但是，需要注意的时，现在有些网卡具备自动分包功能，所以也可以传输远大于MTU的帧**。
 
-![MTU示意图.jpg](https://upload-images.jianshu.io/upload_images/623378-fbd04adb120e3147.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](/images/19_914/图2.webp)
 
 &emsp;网络层的IP协议试图发送报文时，若一个报文的长度大于MTU限制，就会被分成若干个小于MTU的报文，每个报文都会有独立的IP头部。IP协议能自动获取所在局域网的MTU值，然后按照这个MTU来分片。IP协议的分片机制对于传输层是透明的，接收方的IP协议会根据收到的多个IP包头部，将发送方IP层分片出的IP包重组为一个消息。
 
@@ -53,12 +53,12 @@ tags: TCP
 &emsp;除了保证数据必定发送到对端，TCP还要解决包乱序（reordering）和流控的问题。包乱序和流控会涉及滑动窗口和接收报文的out_of_order队列，另外拥塞控制算法也会处理流控，详情请看[TCP拥塞控制算法简介
 ](https://mp.weixin.qq.com/s?__biz=MzU2MDYwMDMzNQ==&mid=2247483756&idx=1&sn=99c27d03f77989ac6dc9de05d2d1c4df&chksm=fc04c50ccb734c1a77a3cc8839f297914a9f65d33529c801867575208c57035544aa5f06a4de&token=1868391263&lang=zh_CN#rd)。
 
+
 &emsp;TCP头里有一个字段叫Window，又叫Advertised-Window，这个字段是接收端告诉发送端自己还有多少缓冲区可以接收数据。于是发送端就可以根据这个接收端的处理能力来发送数据，否则会导致接收端处理不过来。
 
 
 &emsp;我们可以将TCP缓冲区中的数据分为以下四类，并把它们看作一个时间轴
-
-![滑动窗口](https://upload-images.jianshu.io/upload_images/623378-eec3479aa2a291d5.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](/images/19_914/图3.webp)
 
 - Sent and Acknowledged: 表示已经发送成功并已经被确认的数据，比如图中的前31个字节的数据
 
@@ -76,14 +76,13 @@ tags: TCP
 
 
 &emsp;下面，我们来看一下滑动窗口的滑动。下图是窗口滑动窗口的示意图。
-
-![image.png](https://upload-images.jianshu.io/upload_images/623378-33ecc45748af436f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](/images/19_914/图4.webp)
 
 &emsp;当发送方收到发送数据的确认消息时，会移动发送窗口。比如上图中，接收到36字节的确认，将其之前的5个字节都移除窗口，发出了46-51的字节，将52到56的字节加入到可用窗口。
 
 &emsp;下面我们来看一下整体的示意图。
+![](/images/19_914/图5.webp)
 
-![接受端控制发送端](https://upload-images.jianshu.io/upload_images/623378-576a32c139b88eaf.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 &emsp;图片来源为tcpipguide.
 
 &emsp;Client端窗口的不同颜色的矩形块代表的含义和上边滑动窗口示意图的含义相同。我们只简单看一下第二三四步。接收端发送的TCP报文window为260，表示发送窗口减少100，可以发现黑色矩形缩短了。并且ack为141，所以发送端将140个字节的数据从滑动窗口中移除，从Send But Not Yet Acknowledged变为Sent and Acknowledged，也就是从蓝色变成紫色。然后发送端发送180字节的数据，就有180字节的数据从Not Sent，Recipient Ready to Receive变为Send But Not Yet Acknowledged，也就是从绿色变为蓝色。
