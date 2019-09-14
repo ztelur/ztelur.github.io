@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>编程小技巧之 Linux 文本处理命令 | 程序员历小冰</title>
+  <meta name="description" content="remcarpediem" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="合格的程序员都善于使用工具，正所谓君子性非异也，善假于物也。合理的利用 Linux 的命令行工具，可以提高我们的工作效率。 本文简单的介绍三个能使用 Linux 文本处理命令的场景，给大家开阔一下思路。希望大家阅读完这篇文章之后，要多加实践，将这些技巧内化到自己的日常工作习惯中，真正的提高效率。内化很重要，就像开玩笑所说的一样，即使我知道高内聚，低耦合的要求，了解 23 种设计模式和 6 大原则，">
+<meta name="keywords" content="工具, Linux">
+<meta property="og:type" content="article">
+<meta property="og:title" content="编程小技巧之 Linux 文本处理命令">
+<meta property="og:url" content="http://remcarpediem.net/2019/09/14/编程小技巧之-Linux-文本处理命令/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="合格的程序员都善于使用工具，正所谓君子性非异也，善假于物也。合理的利用 Linux 的命令行工具，可以提高我们的工作效率。 本文简单的介绍三个能使用 Linux 文本处理命令的场景，给大家开阔一下思路。希望大家阅读完这篇文章之后，要多加实践，将这些技巧内化到自己的日常工作习惯中，真正的提高效率。内化很重要，就像开玩笑所说的一样，即使我知道高内聚，低耦合的要求，了解 23 种设计模式和 6 大原则，">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://remcarpediem.net/images/logo.png">
+<meta property="og:updated_time" content="2019-09-14T12:50:24.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="编程小技巧之 Linux 文本处理命令">
+<meta name="twitter:description" content="合格的程序员都善于使用工具，正所谓君子性非异也，善假于物也。合理的利用 Linux 的命令行工具，可以提高我们的工作效率。 本文简单的介绍三个能使用 Linux 文本处理命令的场景，给大家开阔一下思路。希望大家阅读完这篇文章之后，要多加实践，将这些技巧内化到自己的日常工作习惯中，真正的提高效率。内化很重要，就像开玩笑所说的一样，即使我知道高内聚，低耦合的要求，了解 23 种设计模式和 6 大原则，">
+<meta name="twitter:image" content="http://remcarpediem.net/images/logo.png">
+  <!-- build:css css/screen.css -->
+
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
+  
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="程序员历小冰">
+  
+  
+  
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+
+
+<body class="post-template">
+
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home" role="presentation"><a href="/">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios" role="presentation"><a href="/archives">Archives</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
+</div>
+<span class="nav-cover"></span>
+
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
+        
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
+</header>
+
+  
+
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">编程小技巧之 Linux 文本处理命令</h1>
+      <section class="post-meta">
+  <time datetime="2019-09-14T12:47:30.000Z" itemprop="datePublished" class="post-date">
+      2019-09-14
+  </time>
+  
+  
+  
+  <a href="/tags/工具-Linux/">工具, Linux</a>
+  
+  
+</section>
+
+    </header>
+    <section class="post-content" itemprop="description articleBody">
+      
+
+      <!--  -->
+      <p>合格的程序员都善于使用工具，正所谓君子性非异也，善假于物也。合理的利用 Linux 的命令行工具，可以提高我们的工作效率。</p>
+<p>本文简单的介绍三个能使用 Linux 文本处理命令的场景，给大家开阔一下思路。希望大家阅读完这篇文章之后，要多加实践，将这些技巧内化到自己的日常工作习惯中，真正的提高效率。内化很重要，就像开玩笑所说的一样，即使我知道高内聚，低耦合的要求，了解 23 种设计模式和 6 大原则，熟读代码整洁之道，却仍然写不出优秀的代码。知道和内化到行为中区别还是很大的。</p>
+<blockquote>
+<p>能不能让正确的原则指导正确的行动本身，其实就是区分是否是高手的一个显著标志。</p>
+</blockquote>
+<p>程序员日常工作中往往要处理一些数据和文本，比如说统计一些服务日志文件信息，根据数据库数据生成一些处理数据的SQL和搜索文件内容等。可以直接通过编写代码处理，但不够便捷，因为有时候线上相关的代码环境依赖不一定具备。而直接使用 Linux 的文本处理命令可以很方便地处理这些问题。</p>
+<h3 id="日志文件捞数据"><a href="#日志文件捞数据" class="headerlink" title="日志文件捞数据"></a>日志文件捞数据</h3><p>在工作中，我们往往需要对一些具有固定格式的文件进行信息统计，比如说根据 nginx 的 access.log 文件数据，计算出每个后端 API 接口的调用次数，并且排序。</p>
+<p>nginx 的 access.log 文件文件格式配置如下所示，每个字段之间通过空格分隔开来。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">log_format  main  &#39;$remote_addr - $remote_user [$time_local] &quot;$request&quot; &#39;
+                  &#39;$status $body_bytes_sent &quot;$http_referer&quot; &#39;
+                  &#39;&quot;$http_user_agent&quot; &quot;$http_x_forwarded_for&quot;&#39;;
+</code></pre></p>
+<p>上述配置中字段含义如下：</p>
+<ul>
+<li>$remote_addr : 发送请求的源地址</li>
+<li>$remote_user : 发送请求的用户信息</li>
+<li>$time_local : 接收请求的本地时间</li>
+<li>$request : 请求信息，比如说 http 的 method 和 路径。</li>
+<li>$status : 请求状态，比如说 200、401或者 500。</li>
+<li>$body_bytes_sent : 请求 body 字节数。</li>
+<li>$http_referer : 域名。</li>
+<li>$http_user_agent : 用户端 agent 信息，一般就是浏览器信息</li>
+<li>$http_x_forwarded_for : 其他信息。</li>
+</ul>
+<p>具体的一段 access.log 内容如下所示。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">58.213.85.34 - - [11&#x2F;Sep&#x2F;2019:03:36:11 +0800] &quot;POST &#x2F;publish&#x2F;pending&#x2F;list HTTP&#x2F;2.0&quot; 200 1328 &quot;https:&#x2F;&#x2F;remcarpediem.com&#x2F;&quot; &quot;Mozilla&#x2F;5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit&#x2F;537.36 (KHTML, like Gecko) Chrome&#x2F;75.0.3770.142 Safari&#x2F;537.36&quot;
+58.213.85.34 - - [11&#x2F;Sep&#x2F;2019:03:36:30 +0800] &quot;GET &#x2F;publish&#x2F;search_inner?key=test HTTP&#x2F;2.0&quot; 200 34466 &quot;https:&#x2F;&#x2F;remcarpediem.com&#x2F;&quot; &quot;Mozilla&#x2F;5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit&#x2F;537.36 (KHTML, like Gecko) Chrome&#x2F;75.0.3770.142 Safari&#x2F;537.36&quot;
+</code></pre>
+<p>那么，我们可以通过下面命令来统计所有接口调用的次数，并且从大到小排序显示。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">cat &#x2F;var&#x2F;log&#x2F;nginx&#x2F;access.log | awk &#39;{print $7}&#39; | awk -F&#39;?&#39; &#39;{print $1}&#39; | sort | uniq -c | sort -nr
+</code></pre>
+<p>这条命令涉及了 cat、awk、sort ， uniq 四个命令行工具和 | 连接符的含义，我们依次简单讲解一下它们的使用，感兴趣的同学可以自行去全面了解学习。</p>
+<p>cat 命令是将文件内容打印到标准输出设备上，可以是终端，也可以是其他文件。比如说：<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">cat &#x2F;var&#x2F;log&#x2F;nginx&#x2F;access.log # 打印到终端
+cat &#x2F;var&#x2F;log&#x2F;nginx&#x2F;access.log &gt; copy.log # 打印到其他文件中
+</code></pre></p>
+<p>| 符号是管道操作符，它将的一个命令的 stdout 指向第二个命令的 stdin。在这条命令中 | 符号将 cat 命令的输出指向到 awk 命令的输入中。</p>
+<p>awk 是贝尔实验室 1977 年搞出来的文本流处理工具，用于对具有固定格式的文件进行流处理。比如说 nginx 的 access.log 文件，它各个字段之间通过空格分隔开来，awk 就很适合处理此类文件。</p>
+<p><code>&#39;{print $7}&#39;</code> 就是 awk 的指令声明，表示打印出变量<code>$7</code>，<code>$7</code>则是 awk 内置的变量，代表按照分隔符分隔开来的第七个文本内容。对于 access.log 文件来说就是 <code>$request</code> 代表的路径相关的内容。 <code>$request</code> 的全部内容是<code>POST /publish/pending/list HTTP/2.0</code>，<code>$6</code> 对应 <code>POST</code>，而 <code>$7</code> 对应的就是 <code>/publish/pending/list</code>。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">awk &#39;{print $7}&#39; Access.log # &#39;&#39;中是命令声明，后边跟着要操作的文件，也就是awk的输入流。
+</code></pre>
+<p>但是有些时候我们发现文本内容并不是按照空格进行分隔的，比如说 <code>$request</code> 内容可能为 <code>/publish/search_inner?key=test</code>，虽然是相同的 path，但是 query 不同，我们统计接口调用量时需要将 query 部分过滤掉。我们可以使用 awk 的 -F 指令指定分隔符。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">awk -F&#39;?&#39; &#39;{print $1}&#39; 
+# 可以将 &#x2F;publish&#x2F;search_inner?key=test 处理为 &#x2F;publish&#x2F;search_inner
+</code></pre>
+<p>sort 是专门用于排序的命令，它有多个参数：</p>
+<ul>
+<li>-n 按数值进行排序，默认是按照字符值排序，按照数值比较 10 &gt; 2 但是按照字符值排序，2 &gt;10 ，因为字符值会先比较首位，也就是 2 &gt; 1。</li>
+<li>-r 默认是升序排列，这个参数指定按照逆序排列。</li>
+<li>-k N 指定按第N列排序，默认是第一个值</li>
+</ul>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">sort -nr Access.log # 按照数值逆序排序
+</code></pre>
+<p>最后一个命令是 uniq，它用于消除重复行，或者统计。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">sort unsort.txt | uniq #  消除重复行
+sort unsort.txt | uniq -c # 统计各行在文件中出现的次数，输入格式是[字数] [内容]
+sort unsort.txt | uniq -d # 找出重复行
+</code></pre>
+<p>比如说<code>cat /var/log/nginx/access.log | awk &#39;{print $7}&#39; | awk -F&#39;?&#39; &#39;{print $1}&#39; | sort | uniq -c</code> 命令的输出如下所示，正好作为 <code>sort -nr</code>  的输入。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">5 &#x2F;announcement&#x2F;pending&#x2F;list
+5 &#x2F;announcement&#x2F;search_inner
+</code></pre></p>
+<p>利用这些指令，我们可以通过 access.log 统计很多信息，比如下列这些信息( access.log 的信息配置不同，不可以直接照搬 )。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">cat access.log | awk -F ‘^A’ ‘{if($5 == 500) print $0}’ 
+#查找当前日志文件 500 错误的访问：
+tail -f access.log | awk -F ‘^A’ ‘{if($6&gt;1) print $0}’ 
+#查找耗时超过 1s 的慢请求
+</code></pre>
+<h3 id="数据库SQL"><a href="#数据库SQL" class="headerlink" title="数据库SQL"></a>数据库SQL</h3><p>在业务迭代过程中，有些数据库数据可能需要使用脚本去修改，这是我们可以要根据一些数据生成对应的 SQL 命令，这里我们可以使用命令行工具快速生成。<br>比如说我们要将一系列订单状态有问题，需要将其恢复成正常的状态。你现在已经收集到了这批订单的信息。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">oder_id name info good_id
+100000  &#39;裤子&#39; &#39;山东&#39; 1000
+100001  &#39;上衣&#39; &#39;江苏&#39; 1000
+100002  &#39;内衣&#39; &#39;内蒙古&#39; 1000
+........
+100003  &#39;袜子&#39; &#39;江西&#39; 1000
+</code></pre></p>
+<p>那么你可以使用如下命令直接生成对应的 SQL 语句。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">cat ErrorOrderIdFile | awk &#39;{print&quot;UPDATE ORDER SET state = 0 WHERE resource_id = &quot;$1}&#39;
+</code></pre></p>
+<p>这里 <code>&#39;&#39;</code>中都是 awk 的命令内容，而<code>&quot;&quot;</code>中是打印的纯文本，所以我们可以将需要补充的 SQL 命令打印出来。</p>
+<h3 id="代码信息统计"><a href="#代码信息统计" class="headerlink" title="代码信息统计"></a>代码信息统计</h3><p>在大公司中，各个团队往往会公开出自己的接口给兄弟团队调用，但是随着版本地快速迭代，公开的接口越来越多，想要关闭掉又往往不清楚上游调用方是哪个部门的，轻易不敢关闭或者修改。这时，如果你能访问整个公司的代码库，就可以通过下面的脚本搜索一下项目中是否出现该接口相关的关键词。</p>
+<p>笔者公司团队中微服务间通过 FeignClient 相互调用，所以对于这种情况，可以直接将搜索出对应 FeignClient 的函数名出现的文件名称。</p>
+<p>下面是一段在多个项目中统计某些关键词出现次数，并打印出文件名的 bash 脚本。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">#!&#x2F;bin&#x2F;bash
+keyword=$1 # 将bash命令的第一个参数赋值给 keyword
+prefix=`echo $keyword | tr -s &#39;.&#39; &#39;|&#39; | sed &#39;s&#x2F;$&#x2F;|&#x2F;&#39;` # 处理前缀
+files=`find services -name &quot;*.java&quot; -or -name &quot;*.js&quot; | xargs grep -il $keyword` 
+# 最关键的一条，搜索services文件夹下文件名后缀为.java或者.js并且内容中有关键词的文件名称。
+if [ -z &quot;$files&quot; ];then
+	echo ${prefix}0
+fi
+# 打印
+for f in $files;do
+echo &quot;$prefix$f&quot;
+done
+</code></pre>
+<p>我们只看一下最关键的 find 命令，其他的命令比如 tr 或者 sed，大家可以自行了解学习。</p>
+<p>find 用于查找文件，可以按照文件名称、文件操作权限、文件属主、文件访问时间等条件来查找。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">find services -name &quot;*.java&quot; -or -name &quot;*.js&quot; # 搜索 services 文件夹下
+find . -atime 7 -type f -print 
+# -atime是访问时间，-type 是文件类型，区分文件和目录，查找最近7天访问过的文件。
+find . -type f -user remcarpediem -print&#x2F;&#x2F; 找用户 remcarpediem 所拥有的文件
+find . ! -name &quot;*.java&quot; -print # !是否定参数，查找所有不是以 .java 结尾的文件。
+find . -type f -name &quot;*.java&quot; -delete # find 之后的操作，可以删除当前目录下所有的 java 文件
+find . type f -name &quot;*.java&quot; | xargs rm # 上边语句的另外一种写法
+</code></pre>
+<p>xargs 命令能够将输入数据转化为特定命令的命令行参数，比如说多行变一行等，串联多个命令行，比如说上边 find 和 rm。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&gt; ls 
+Sentinel					groovy-engine					spring-cloud-bus-stream-binder-rocketmq
+agent-demo					hash						spring-cloud-stream-binder-rabbit
+&gt; ls | xargs # 将 ls 的输出内容变成一行。
+Sentinel agent-demo groovy-engine  hash spring-cloud-bus-stream-binder-rocketmq spring-cloud-stream-binder-rabbit
+&gt; echo &quot;nameXnameXnameXname&quot; | xargs -dX 
+name name name name
+# -d 选项可以自定义一个定界符，相信你已经了解 xargs 的大致作用了吧，按照分隔符拆分文本到一行，默认分隔符当时是回车了。
+</code></pre>
+<p>最后一个命令时 grep，它是文本搜索命令，它可以搜索文本内容的关键词。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">grep remcarpediem file # 将 file 文件中的带有 remcarpediem 关键词的行。
+grep -C10 remcarpediem file # 将 file 文件中的带有 remcarpediem 关键词前后10行的内容。
+cat LOG.* | grep &quot;FROM &quot; | grep &quot;WHERE&quot; &gt; b # 将日志中的所有带where条件的sql查找查找出来
+grep -li remcarpediem file # 忽略大小写，并且打印出文件名称
+</code></pre>
+<p>现在大家在回头看一下这段 bash 脚本，是不是大致了解它执行的过程和原理啦。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">files=`find services -name &quot;*.java&quot; -or -name &quot;*.js&quot; | xargs grep -il $keyword` 
+</code></pre></p>
+<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>本文简单介绍了程序员日常工作中可能用到 Linux 命令的三个场景。大家可以根据自己的实际情况，来判断是否需要继续全面详细地学习相关的知识。毕竟只有能运用于实践，给自己工作产生价值的技术才是真技术。学习一项技术，就要坚持学以致用的目的。</p>
+<p><a href="http://remcarpediem.net/2019/06/23/%E7%BC%96%E7%A8%8B%E5%B0%8F%E6%8A%80%E5%B7%A7%E4%B9%8B-IDEA-%E7%9A%84-Live-Template/">编程小技巧之 IDEA 的 Live Template</a></p>
+<p><img src="http://remcarpediem.net/images/logo.png" alt=""></p>
+
+      <h3>关于图片和转载</h3>
+
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
+
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
+
+      <h3>关于评论和留言</h3>
+
+      如果对本文 <a href="http://remcarpediem.net/2019/09/14/编程小技巧之-Linux-文本处理命令/">编程小技巧之 Linux 文本处理命令</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/2019/09/14/编程小技巧之-Linux-文本处理命令/">编程小技巧之 Linux 文本处理命令</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
+    <footer class="post-footer">
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">历小冰's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">历小冰</a></h4>
+        
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> 程序员历小冰</a></span> 
+        </div>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/2019/09/14/编程小技巧之-Linux-文本处理命令/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/2019/09/14/编程小技巧之-Linux-文本处理命令/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/2019/09/14/编程小技巧之-Linux-文本处理命令/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
+      
+<div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script src="/js/md5.min.js"></script>
+<script>
+    const gitalk = new Gitalk({
+    clientID: 'ece2d2cd7c5f768a4c22',
+    clientSecret: '1ad562557353b888b4b622239d45150c5df6d5ee',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: md5("http://remcarpediem.net/2019/09/14/编程小技巧之-Linux-文本处理命令/"),
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
+
+gitalk.render('gitalk-container')
+</script>
+
+    </footer>
+  </article>
+</main>
+<aside class="read-next">
+ 
+    
+    <a class="read-next-story no-cover" href="/2019/08/04/Redis-事件机制详解/">
+      <section class="post">
+        <h2>Redis 事件机制详解</h2>
+        <p>
+            
+              Redis 采用事件驱动机制来处理大量的网络IO。它并没有使用 libevent 或者 libev 这样的成熟开源方案，而是自己实现一个非常简洁的事件驱动库 ae_event。
+Redis中的事件驱动库只关注网络IO，以及定时器。该事件库处理下面两类事件：
+
+文件事件(file  event)：用于处理 Redis 服务器和客户端之间的网络IO。
+时间事件(time  eveat)：Redis 服务器中的一些操作（比如serverCro ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+
+
+  
+</aside>
+
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">程序员历小冰</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
+</footer>
+
+  </div>
+  <script type="text/javascript" src="/js/jquery-2.0.3.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
+
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
+
+<script type="text/javascript">
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
+</script>
+
+
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+</body>
+</html>
