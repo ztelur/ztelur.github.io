@@ -17,17 +17,17 @@
 <meta property="og:site_name" content="程序员历小冰">
 <meta property="og:description" content="&amp;emsp;今天我们来总结学习一下TCP发送报文的相关知识，主要包括发送报文的步骤，MSS，滑动窗口和Nagle算法。 发送报文&amp;emsp;该节是根据陶辉大神的系列文章总结。如下图所示，我们一起来看一下TCP发送报文时操作系统内核都做了那些事情。其中有些概念在接下来的小节中会介绍。 &amp;emsp;首先，用户程序在用户态调用send方法来发送一段较长的数据。然后send函数调用内核态的tcp_send">
 <meta property="og:locale" content="Chinese">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-abc6a2862b36d9f8.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-fbd04adb120e3147.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-eec3479aa2a291d5.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-33ecc45748af436f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-576a32c139b88eaf.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="http://remcarpediem.net/images/19_914/图1.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_914/图2.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_914/图3.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_914/图4.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_914/图5.webp">
 <meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-7d960275042f309d.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:updated_time" content="2019-04-17T03:44:48.000Z">
+<meta property="og:updated_time" content="2019-09-14T13:59:22.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="TCP报文发送的那些事">
 <meta name="twitter:description" content="&amp;emsp;今天我们来总结学习一下TCP发送报文的相关知识，主要包括发送报文的步骤，MSS，滑动窗口和Nagle算法。 发送报文&amp;emsp;该节是根据陶辉大神的系列文章总结。如下图所示，我们一起来看一下TCP发送报文时操作系统内核都做了那些事情。其中有些概念在接下来的小节中会介绍。 &amp;emsp;首先，用户程序在用户态调用send方法来发送一段较长的数据。然后send函数调用内核态的tcp_send">
-<meta name="twitter:image" content="https://upload-images.jianshu.io/upload_images/623378-abc6a2862b36d9f8.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta name="twitter:image" content="http://remcarpediem.net/images/19_914/图1.webp">
   <!-- build:css css/screen.css -->
 
   <link rel="stylesheet" href="/css/screen.css">
@@ -100,9 +100,16 @@
     <section class="post-content" itemprop="description articleBody">
       
 
-      <!--  -->
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2019-09-14T13:59:22.000Z" itemprop="dateModified">
+      2019-09-14
+  </time>
+</section>
+
+       -->
       <p>&emsp;今天我们来总结学习一下TCP发送报文的相关知识，主要包括发送报文的步骤，MSS，滑动窗口和Nagle算法。</p>
-<h3 id="发送报文"><a href="#发送报文" class="headerlink" title="发送报文"></a>发送报文</h3><p>&emsp;该节是根据陶辉大神的系列文章总结。如下图所示，我们一起来看一下TCP发送报文时操作系统内核都做了那些事情。其中有些概念在接下来的小节中会介绍。<br><img src="https://upload-images.jianshu.io/upload_images/623378-abc6a2862b36d9f8.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<h3 id="发送报文"><a href="#发送报文" class="headerlink" title="发送报文"></a>发送报文</h3><p>&emsp;该节是根据陶辉大神的系列文章总结。如下图所示，我们一起来看一下TCP发送报文时操作系统内核都做了那些事情。其中有些概念在接下来的小节中会介绍。<br><img src="/images/19_914/图1.webp" alt=""></p>
 <p>&emsp;首先，用户程序在用户态调用<code>send</code>方法来发送一段较长的数据。然后<code>send</code>函数调用内核态的<code>tcp_sendmsg</code>方法进行处理。</p>
 <p>&emsp;<code>send</code>方法返回成功，内核也不一定真正将IP报文都发送到网络中了，也就是说内核发送报文和<code>send</code>方法是不同步的。所以，内核将用户态内存中的发送数据，拷贝到内核态内存中，不依赖于用户态内存，这样可以使得进程可以快速释放发送数据占用的用户态内存。</p>
 <p>&emsp;在拷贝过程中，内核将待发送数据，按照MSS来划分成多个尽量接近MSS大小的分片，放到这个TCP连接对应的<code>tcp_write_queue</code>发送队列中</p>
@@ -113,7 +120,7 @@
 <p>&emsp;在发送函数处理过程中，Nagle算法、滑动窗口、拥塞窗口都会影响发送操作。</p>
 <h3 id="MTU和MSS"><a href="#MTU和MSS" class="headerlink" title="MTU和MSS"></a>MTU和MSS</h3><p>&emsp;我们都知道TCP/IP架构有五层协议，低层协议的规则会影响到上层协议，比如说数据链路层的最大传输单元MTU和传输层TCP协议的最大报文段长度MSS。</p>
 <p>&emsp;数据链路层协议会对网络分组的长度进行限制，也就是不能超过其规定的MTU，例如以太网限制为1500字节，802.3限制为1492字节。<strong>但是，需要注意的时，现在有些网卡具备自动分包功能，所以也可以传输远大于MTU的帧</strong>。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-fbd04adb120e3147.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="MTU示意图.jpg"></p>
+<p><img src="/images/19_914/图2.webp" alt=""></p>
 <p>&emsp;网络层的IP协议试图发送报文时，若一个报文的长度大于MTU限制，就会被分成若干个小于MTU的报文，每个报文都会有独立的IP头部。IP协议能自动获取所在局域网的MTU值，然后按照这个MTU来分片。IP协议的分片机制对于传输层是透明的，接收方的IP协议会根据收到的多个IP包头部，将发送方IP层分片出的IP包重组为一个消息。</p>
 <p>&emsp;这种IP层的分片效率是很差的，因为首先做了额外的分片操作，然后所有分片都到达后，接收方才能重组成一个包，其中任何一个分片丢失了，都必须重发所有分片。</p>
 <p>&emsp;所以，TCP层为了避免IP层执行数据报分片定义了最大报文段长度MSS。在TCP建立连接时会通知各自期望接收到的MSS的大小。</p>
@@ -123,8 +130,7 @@
 <p>&emsp;除了保证数据必定发送到对端，TCP还要解决包乱序（reordering）和流控的问题。包乱序和流控会涉及滑动窗口和接收报文的out_of_order队列，另外拥塞控制算法也会处理流控，详情请看<a href="https://mp.weixin.qq.com/s?__biz=MzU2MDYwMDMzNQ==&amp;mid=2247483756&amp;idx=1&amp;sn=99c27d03f77989ac6dc9de05d2d1c4df&amp;chksm=fc04c50ccb734c1a77a3cc8839f297914a9f65d33529c801867575208c57035544aa5f06a4de&amp;token=1868391263&amp;lang=zh_CN#rd" target="_blank" rel="noopener">TCP拥塞控制算法简介
 </a>。</p>
 <p>&emsp;TCP头里有一个字段叫Window，又叫Advertised-Window，这个字段是接收端告诉发送端自己还有多少缓冲区可以接收数据。于是发送端就可以根据这个接收端的处理能力来发送数据，否则会导致接收端处理不过来。</p>
-<p>&emsp;我们可以将TCP缓冲区中的数据分为以下四类，并把它们看作一个时间轴</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-eec3479aa2a291d5.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="滑动窗口"></p>
+<p>&emsp;我们可以将TCP缓冲区中的数据分为以下四类，并把它们看作一个时间轴<br><img src="/images/19_914/图3.webp" alt=""></p>
 <ul>
 <li><p>Sent and Acknowledged: 表示已经发送成功并已经被确认的数据，比如图中的前31个字节的数据</p>
 </li>
@@ -141,11 +147,10 @@
 <li>Usable Window :  可用窗口，和Not Sent，Recipient Ready to Receive部分重合</li>
 <li>Send Window:  真正的窗口大小。建立连接时接收方会告知发送方自己能够处理的发送窗口大小，同时在接收过程中也不断的通告可以发送窗口大小，来实时调节。</li>
 </ul>
-<p>&emsp;下面，我们来看一下滑动窗口的滑动。下图是窗口滑动窗口的示意图。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-33ecc45748af436f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>&emsp;下面，我们来看一下滑动窗口的滑动。下图是窗口滑动窗口的示意图。<br><img src="/images/19_914/图4.webp" alt=""></p>
 <p>&emsp;当发送方收到发送数据的确认消息时，会移动发送窗口。比如上图中，接收到36字节的确认，将其之前的5个字节都移除窗口，发出了46-51的字节，将52到56的字节加入到可用窗口。</p>
-<p>&emsp;下面我们来看一下整体的示意图。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-576a32c139b88eaf.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="接受端控制发送端"><br>&emsp;图片来源为tcpipguide.</p>
+<p>&emsp;下面我们来看一下整体的示意图。<br><img src="/images/19_914/图5.webp" alt=""></p>
+<p>&emsp;图片来源为tcpipguide.</p>
 <p>&emsp;Client端窗口的不同颜色的矩形块代表的含义和上边滑动窗口示意图的含义相同。我们只简单看一下第二三四步。接收端发送的TCP报文window为260，表示发送窗口减少100，可以发现黑色矩形缩短了。并且ack为141，所以发送端将140个字节的数据从滑动窗口中移除，从Send But Not Yet Acknowledged变为Sent and Acknowledged，也就是从蓝色变成紫色。然后发送端发送180字节的数据，就有180字节的数据从Not Sent，Recipient Ready to Receive变为Send But Not Yet Acknowledged，也就是从绿色变为蓝色。</p>
 <h3 id="Nagle算法"><a href="#Nagle算法" class="headerlink" title="Nagle算法"></a>Nagle算法</h3><p>&emsp;上述滑动窗口会出现一种Silly Window Syndrome的问题，当接收方来不及取走Receive Windows里的数据，会导致发送方的窗口越来越小。到最后，如果接收方腾出几个字节并告诉发送方现在有几个字节的window，而我们的发送方会义无反顾地发送这几个字节。</p>
 <p>&emsp;只为了发送几个字节，要加上TCP和IP头的40多个字节。这样，效率太低，就像你搬运物品，明明一次可以全部搬完，但是却偏偏一次只搬一个物品，来回搬多次。</p>
