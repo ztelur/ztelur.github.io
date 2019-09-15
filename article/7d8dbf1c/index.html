@@ -23,7 +23,7 @@
 <meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-44407d9b565e50f7.jpeg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
 <meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-2a6a0ff51b95cd29.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
 <meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-7d960275042f309d.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:updated_time" content="2019-03-30T05:33:40.000Z">
+<meta property="og:updated_time" content="2019-09-15T15:43:26.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="超详细的Guava RateLimiter限流原理解析">
 <meta name="twitter:description" content="&amp;emsp;限流是保护高并发系统的三把利器之一，另外两个是缓存和降级。限流在很多场景中用来限制并发和请求量，比如说秒杀抢购，保护自身系统和下游系统不被巨型流量冲垮等。 &amp;emsp;限流的目的是通过对并发访问/请求进行限速或者一个时间窗口内的的请求进行限速来保护系统，一旦达到限制速率则可以拒绝服务或进行流量整形。 &amp;emsp;常用的限流方式和场景有：限制总并发数（比如数据库连接池、线程池）、限制瞬时">
@@ -83,7 +83,7 @@
 <main id="content" class="content" role="main">
   <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
     <header class="post-header">
-      <h1 class="post-title" itemprop="name">超详细的Guava RateLimiter限流原理解析</h1>
+      <h1 class="post-title" itemprop="name">http://remcarpediem.net/article/7d8dbf1c/</h1>
       <section class="post-meta">
   <time datetime="2019-03-30T05:33:07.000Z" itemprop="datePublished" class="post-date">
       2019-03-30
@@ -100,7 +100,14 @@
     <section class="post-content" itemprop="description articleBody">
       
 
-      <!--  -->
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2019-09-15T15:43:26.000Z" itemprop="dateModified">
+      2019-09-15
+  </time>
+</section>
+
+       -->
       <p>&emsp;限流是保护高并发系统的三把利器之一，另外两个是缓存和降级。限流在很多场景中用来限制并发和请求量，比如说秒杀抢购，保护自身系统和下游系统不被巨型流量冲垮等。</p>
 <p>&emsp;限流的目的是通过对并发访问/请求进行限速或者一个时间窗口内的的请求进行限速来保护系统，一旦达到限制速率则可以拒绝服务或进行流量整形。</p>
 <p>&emsp;常用的限流方式和场景有：限制总并发数（比如数据库连接池、线程池）、限制瞬时并发数（如nginx的limit_conn模块，用来限制瞬时并发连接数，Java的Semaphore也可以实现）、限制时间窗口内的平均速率（如Guava的RateLimiter、nginx的limit_req模块，限制每秒的平均速率）；其他还有如限制远程接口调用速率、限制MQ的消费速率。另外还可以根据网络连接数、网络流量、CPU或内存负载等来限流。</p>

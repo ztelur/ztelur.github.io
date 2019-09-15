@@ -21,7 +21,7 @@
 <meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-8433413840b2a94b.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
 <meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-71b68d5e008eca77.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
 <meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-7bd9e13169f41c0f.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:updated_time" content="2019-01-23T15:11:39.000Z">
+<meta property="og:updated_time" content="2019-09-15T15:43:26.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="LongAdder原理完全解析">
 <meta name="twitter:description" content="&amp;emsp;对LongAdder的最初了解是从Coolshell上的一篇文章中获得的，但是一直都没有深入的了解过其实现，只知道它相较于AtomicLong来说，更加适合写多读少的并发情景。今天，我们就研究一下LongAdder的原理，探究一下它如此高效的原因。 基本原理和思想&amp;emsp;Java有很多并发控制机制，比如说以AQS为基础的锁或者以CAS为原理的自旋锁。不了解AQS的朋友可以阅读我之前">
@@ -81,7 +81,7 @@
 <main id="content" class="content" role="main">
   <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
     <header class="post-header">
-      <h1 class="post-title" itemprop="name">LongAdder原理完全解析</h1>
+      <h1 class="post-title" itemprop="name">http://remcarpediem.net/article/d4b1972e/</h1>
       <section class="post-meta">
   <time datetime="2019-01-23T15:10:42.000Z" itemprop="datePublished" class="post-date">
       2019-01-23
@@ -98,7 +98,14 @@
     <section class="post-content" itemprop="description articleBody">
       
 
-      <!--  -->
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2019-09-15T15:43:26.000Z" itemprop="dateModified">
+      2019-09-15
+  </time>
+</section>
+
+       -->
       <p>&emsp;对<code>LongAdder</code>的最初了解是从Coolshell上的一篇文章中获得的，但是一直都没有深入的了解过其实现，只知道它相较于<code>AtomicLong</code>来说，更加适合写多读少的并发情景。今天，我们就研究一下<code>LongAdder</code>的原理，探究一下它如此高效的原因。</p>
 <h3 id="基本原理和思想"><a href="#基本原理和思想" class="headerlink" title="基本原理和思想"></a>基本原理和思想</h3><p>&emsp;Java有很多并发控制机制，比如说以AQS为基础的锁或者以CAS为原理的自旋锁。不了解AQS的朋友可以阅读我之前的<a href="https://mp.weixin.qq.com/s?__biz=MzU2MDYwMDMzNQ==&amp;mid=2247483716&amp;idx=1&amp;sn=22e5160b1fb1068b262d1b0f4fcfc0a0&amp;chksm=fc04c524cb734c327b823acd2cc3ea3ef8620ab2c6c0c1dc1ac6545904f1c3259afd4f2e7450&amp;token=757268630&amp;lang=zh_CN#rd" target="_blank" rel="noopener">AQS源码解析文章</a>。一般来说，CAS适合轻量级的并发操作，也就是并发量并不多，而且等待时间不长的情况，否则就应该使用普通锁，进入阻塞状态，避免CPU空转。</p>
 <p>&emsp;所以，如果你有一个Long类型的值会被多线程修改，那么使用CAS进行并发控制比较好，但是如果你是需要锁住一些资源，然后进行数据库操作，那么还是使用阻塞锁比较好。</p>

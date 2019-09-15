@@ -22,7 +22,7 @@
 <meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-f4a19a6b0e3532de.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
 <meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-fc2a68fc8c8ec78b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
 <meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-6c78b84c7c03cd57.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:updated_time" content="2019-07-28T14:37:30.000Z">
+<meta property="og:updated_time" content="2019-09-15T15:43:26.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Redis AOF 持久化详解">
 <meta name="twitter:description" content="Redis 是一种内存数据库，将数据保存在内存中，读写效率要比传统的将数据保存在磁盘上的数据库要快很多。但是一旦进程退出，Redis 的数据就会丢失。 为了解决这个问题，Redis 提供了 RDB 和 AOF 两种持久化方案，将内存中的数据保存到磁盘中，避免数据丢失。RDB的介绍在这篇文章中《Redis RDB 持久化详解》，今天我们来看一下 AOF 相关的原理。 AOF( append only">
@@ -82,7 +82,7 @@
 <main id="content" class="content" role="main">
   <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
     <header class="post-header">
-      <h1 class="post-title" itemprop="name">Redis AOF 持久化详解</h1>
+      <h1 class="post-title" itemprop="name">http://remcarpediem.net/article/376c55d8/</h1>
       <section class="post-meta">
   <time datetime="2019-07-28T14:36:28.000Z" itemprop="datePublished" class="post-date">
       2019-07-28
@@ -94,7 +94,14 @@
     <section class="post-content" itemprop="description articleBody">
       
 
-      <!--  -->
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2019-09-15T15:43:26.000Z" itemprop="dateModified">
+      2019-09-15
+  </time>
+</section>
+
+       -->
       <p>Redis 是一种内存数据库，将数据保存在内存中，读写效率要比传统的将数据保存在磁盘上的数据库要快很多。但是一旦进程退出，Redis 的数据就会丢失。</p>
 <p>为了解决这个问题，Redis 提供了 RDB 和 AOF 两种持久化方案，将内存中的数据保存到磁盘中，避免数据丢失。RDB的介绍在这篇文章中<a href="https://mp.weixin.qq.com/s/NpUV-7bvXTD3iu0_2aRssQ" target="_blank" rel="noopener">《Redis RDB 持久化详解》</a>，今天我们来看一下 AOF 相关的原理。</p>
 <p>AOF( append only file )持久化以独立日志的方式记录每次写命令，并在 Redis 重启时在重新执行 AOF 文件中的命令以达到恢复数据的目的。AOF 的主要作用是解决数据持久化的实时性。</p>
