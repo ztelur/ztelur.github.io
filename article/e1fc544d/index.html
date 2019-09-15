@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>体验编程之美　饮料供应问题 | 程序员历小冰</title>
+  <meta name="description" content="remcarpediem" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="动态编程，贪婪算法，实际问题的建模过程 现实问题描述  公司水房提供很多种类饮料，已经统计获得大家对每种饮料的满意程度；STC负责给公司提供饮料，每天的总容量为V，每种饮料的单个容量都是2的方幂，比如王老吉，都是2的三次方为8升的；STC的存货也是有限的，这会是每种饮料的购买量上限。统计数据中使用饮料名字，容量，数量，满意度来描述一中饮料，问如何保证最大的满意度啊。 问题建模  我刚看到这道题目的">
+<meta name="keywords" content="算法,动态编程,贪婪算法">
+<meta property="og:type" content="article">
+<meta property="og:title" content="体验编程之美　饮料供应问题">
+<meta property="og:url" content="http://remcarpediem.net/article/e1fc544d/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="动态编程，贪婪算法，实际问题的建模过程 现实问题描述  公司水房提供很多种类饮料，已经统计获得大家对每种饮料的满意程度；STC负责给公司提供饮料，每天的总容量为V，每种饮料的单个容量都是2的方幂，比如王老吉，都是2的三次方为8升的；STC的存货也是有限的，这会是每种饮料的购买量上限。统计数据中使用饮料名字，容量，数量，满意度来描述一中饮料，问如何保证最大的满意度啊。 问题建模  我刚看到这道题目的">
+<meta property="og:locale" content="Chinese">
+<meta property="og:updated_time" content="2018-11-18T13:40:01.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="体验编程之美　饮料供应问题">
+<meta name="twitter:description" content="动态编程，贪婪算法，实际问题的建模过程 现实问题描述  公司水房提供很多种类饮料，已经统计获得大家对每种饮料的满意程度；STC负责给公司提供饮料，每天的总容量为V，每种饮料的单个容量都是2的方幂，比如王老吉，都是2的三次方为8升的；STC的存货也是有限的，这会是每种饮料的购买量上限。统计数据中使用饮料名字，容量，数量，满意度来描述一中饮料，问如何保证最大的满意度啊。 问题建模  我刚看到这道题目的">
+  <!-- build:css css/screen.css -->
+
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
+  
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="程序员历小冰">
+  
+  
+  
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+
+
+<body class="post-template">
+
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home" role="presentation"><a href="/">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios" role="presentation"><a href="/archives">Archives</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
+</div>
+<span class="nav-cover"></span>
+
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
+        
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
+</header>
+
+  
+
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">体验编程之美　饮料供应问题</h1>
+      <section class="post-meta">
+  <time datetime="2015-06-24T05:00:05.000Z" itemprop="datePublished" class="post-date">
+      2015-06-24
+  </time>
+  
+  
+  
+  <a href="/tags/算法/">算法</a> 
+  
+  <a href="/tags/动态编程/">动态编程</a> 
+  
+  <a href="/tags/贪婪算法/">贪婪算法</a>
+  
+  
+</section>
+
+    </header>
+    <section class="post-content" itemprop="description articleBody">
+      
+
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2018-11-18T13:40:01.000Z" itemprop="dateModified">
+      2018-11-18
+  </time>
+</section>
+
+       -->
+      <p>动态编程，贪婪算法，实际问题的建模过程</p>
+<h3 id="现实问题描述"><a href="#现实问题描述" class="headerlink" title="现实问题描述"></a>现实问题描述</h3><p>  公司水房提供很多种类饮料，已经统计获得大家对每种饮料的满意程度；STC负责给公司提供饮料，每天的总容量为V，每种饮料的单个容量都是2的方幂，比如王老吉，都是2的三次方为8升的；STC的存货也是有限的，这会是每种饮料的购买量上限。统计数据中使用饮料名字，容量，数量，满意度来描述一中饮料，问如何保证最大的满意度啊。</p>
+<h3 id="问题建模"><a href="#问题建模" class="headerlink" title="问题建模"></a>问题建模</h3><p>  我刚看到这道题目的时候，其实是很困惑的，完全不知道该如何下手。因为之前刷leetocde算法题目时，每个题目是使用编程域的语言进行描述的，比如：复制一个具有随机指针的链表。而这道题却是一个完全现实问题域描述，这样我们就需要进行建模，将这个实际问题转换为之前比较常见的算法问题。</p>
+<p>   假设ST提供n种饮料，用(Si,Vi,Ci,Hi,Bi) (对应饮料的名字，容量，可能的最大数量，满意度，实际购买量)来标示第i中饮料，其中可能的最大数量指如果仅买这种饮料的可能最大数量，比如对第i种饮料，Ci=V/Vi;</p>
+<p>  基于现实域的描述，我们有以下两个公式：</p>
+<ul>
+<li><p>饮料的总数量 V= (V0<em>B0)+(V1</em>B1)+……….(Vn*Bn);          A</p>
+</li>
+<li><p>总满意度为 H=(H0<em>B0)+(H1</em>B1)+………(Hn*Bn);               B</p>
+</li>
+</ul>
+<p>  那么题目的要求就是，在满足饮料总数量为V的基础上，求解最大的总满意度。</p>
+<h3 id="动态编程"><a href="#动态编程" class="headerlink" title="动态编程"></a>动态编程</h3><p> 对于最优解问题，首先考虑到动态编程啦！用Opt(V’,i)来标示从第i,i+1,……n-1,n种饮料中，计算出总量为V’的方案中满意度之和的最大值。</p>
+<p> 然后我们思考一下最优子结构的推到公式啊。Opt(V’,n)=max{k<em>Hi+Opt(V’-Vi</em>k,i-1)} (k=0,1,2,Ci),简单描述一下就是先将V‘分成两份，一份是Si饮料容量，大小为K<em>Vi；另外一份是其他的饮料的容量，大小为V’-Vi</em>k,其中k表示这种饮料的数量。然后取不同的k值，范围为0到Ci,求最大的满意度。</p>
+<p> 我们来列出动态编程的初始化条件：</p>
+<ul>
+<li><p>Opt(0,0)=0</p>
+</li>
+<li><p>Opt(x,n)=-INF</p>
+</li>
+</ul>
+<h3 id="对动态编程的优化"><a href="#对动态编程的优化" class="headerlink" title="对动态编程的优化"></a>对动态编程的优化</h3><p>  动态编程算法的一个变形是备忘录法，备忘录法也是用一个表格来保存每个子问题的答案，并通过记忆化搜索来避免计算一些不可能到达的状态，简单来说，就是避免重复计算子问题，第一次遇到子问题的时候进行计算，然后保存结果，之后再次遇到时，直接取出结果使用。<br>&emsp;&emsp;动态编程和备忘录法的区别就是：动态编程是自下到上，而备忘录法是自顶向下的，而且备忘录法可以进行多次查询，花费了存储空间，来提高整体查询效率。</p>
+<h3 id="贪婪算法"><a href="#贪婪算法" class="headerlink" title="贪婪算法"></a>贪婪算法</h3><p>&emsp;&emsp;一般来说，如果你发现了最优子结构和重复子问题，就可以使用动态编程了，但是如果你发现了下边这条更加特殊的性质，你就可以使用贪婪算法.<br>&emsp;&emsp;这个特性就是贪心选择性质：我们可以通过局部最优（贪心）选择来构造全局最优，换句话说，当进行选择时，我们直接做出在当前问题中看来最优的选择，而不必考虑子问题的解，这就是贪婪和动态编程的区别，动态编程的每一步选择通常依赖于子问题的解，而贪婪不需要。<br>&emsp;&emsp;回到饮料供应问题，可以设想，将饮料按照满意度大小进行排序，优先最大量供应满意度最大的饮料是否就能得出这个问题的最优解呢？答案是肯定的，我们可以对这性质进行证明。<br>&emsp;&emsp;这篇文章只是分析了饮料供应问题的算法原理，并没有给出具体代码，大家可以自己动手编写一下啊，理论和实践并行啊。</p>
+
+      <h3>关于图片和转载</h3>
+
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
+
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
+
+      <h3>关于评论和留言</h3>
+
+      如果对本文 <a href="http://remcarpediem.net/article/e1fc544d/">体验编程之美　饮料供应问题</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/article/e1fc544d/">体验编程之美　饮料供应问题</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
+    <footer class="post-footer">
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">历小冰's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">历小冰</a></h4>
+        
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> 程序员历小冰</a></span> 
+        </div>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/article/e1fc544d/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/article/e1fc544d/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/article/e1fc544d/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
+      
+<div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script src="/js/md5.min.js"></script>
+<script>
+    const gitalk = new Gitalk({
+    clientID: 'ece2d2cd7c5f768a4c22',
+    clientSecret: '1ad562557353b888b4b622239d45150c5df6d5ee',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: md5("http://remcarpediem.net/article/e1fc544d/"),
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
+
+gitalk.render('gitalk-container')
+</script>
+
+    </footer>
+  </article>
+</main>
+<aside class="read-next">
+ 
+    
+    <a class="read-next-story no-cover" href="/article/207e194a/">
+      <section class="post">
+        <h2>西方文化和精神概述</h2>
+        <p>
+            
+                &emsp;&emsp;自由，契约，宪政，理性，博爱  &emsp;&emsp;有些时候，我总会处于一种莫名的状态中：认定了要去一件事情，却总是在一天一天拖延下去，像是生活有太大的惯性，无法做出改变一样。  &emsp;&emsp;想写下这篇文章很久啦，一直都没有动笔的勇气和时间。说没有勇气可能有点矫情，但只从大学以来，除了“感人至深”的入党申请书之外，无论是笔，或者键盘，我都没有让思想从我指尖流淌出去，固化成文章；说没有时间可能有 ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+
+
+  
+    
+    <a class="read-next-story no-cover" href="/article/273b893d/">
+      <section class="post">
+        <h2>初识Dagger2</h2>
+        <p>
+            
+              
+&emsp;要使用Dagger2，首先要了解的就是控制反转和依赖注入这两个概念。
+
+一、控制反转
+&emsp;在wiki词条中，控制反转如下定义：In software engineering, inversion of control (IoC) describes a design in which custom-written portions of a computer program receive the flow of  ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+</aside>
+
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">程序员历小冰</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
+</footer>
+
+  </div>
+  <script type="text/javascript" src="/js/jquery-2.0.3.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
+
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
+
+<script type="text/javascript">
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
+</script>
+
+
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+</body>
+</html>

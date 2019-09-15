@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>分布式数据缓存中的一致性哈希算法 | 程序员历小冰</title>
+  <meta name="description" content="remcarpediem" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="一致性哈希算法在分布式缓存领域的 MemCache，负载均衡领域的 Nginx 以及各类 RPC 框架中都有广泛的应用，它主要是为了解决传统哈希函数添加哈希表槽位数后要将关键字重新映射的问题。 本文会介绍一致性哈希算法的原理及其实现，并给出其不同哈希函数实现的性能数据对比，探讨Redis 集群的数据分片实现等，文末会给出实现的具体 github 地址。 Memcached 与客户端分布式缓存Mem">
+<meta name="keywords" content="分布式">
+<meta property="og:type" content="article">
+<meta property="og:title" content="分布式数据缓存中的一致性哈希算法">
+<meta property="og:url" content="http://remcarpediem.net/article/bedc2c36/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="一致性哈希算法在分布式缓存领域的 MemCache，负载均衡领域的 Nginx 以及各类 RPC 框架中都有广泛的应用，它主要是为了解决传统哈希函数添加哈希表槽位数后要将关键字重新映射的问题。 本文会介绍一致性哈希算法的原理及其实现，并给出其不同哈希函数实现的性能数据对比，探讨Redis 集群的数据分片实现等，文末会给出实现的具体 github 地址。 Memcached 与客户端分布式缓存Mem">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-183cf3f1164affb6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-270fe87e0cb1f89d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-49ec3d40245a1a5b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-de3689515ccf3171.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-e809f645108f353d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-006a22edbe4c7652.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-9b311dbb2594f78a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-34dfbb3b4b16f409.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-97c3bd968d848717.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:updated_time" content="2019-05-12T10:41:01.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="分布式数据缓存中的一致性哈希算法">
+<meta name="twitter:description" content="一致性哈希算法在分布式缓存领域的 MemCache，负载均衡领域的 Nginx 以及各类 RPC 框架中都有广泛的应用，它主要是为了解决传统哈希函数添加哈希表槽位数后要将关键字重新映射的问题。 本文会介绍一致性哈希算法的原理及其实现，并给出其不同哈希函数实现的性能数据对比，探讨Redis 集群的数据分片实现等，文末会给出实现的具体 github 地址。 Memcached 与客户端分布式缓存Mem">
+<meta name="twitter:image" content="https://upload-images.jianshu.io/upload_images/623378-183cf3f1164affb6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+  <!-- build:css css/screen.css -->
+
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
+  
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="程序员历小冰">
+  
+  
+  
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+
+
+<body class="post-template">
+
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home" role="presentation"><a href="/">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios" role="presentation"><a href="/archives">Archives</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
+</div>
+<span class="nav-cover"></span>
+
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
+        
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
+</header>
+
+  
+
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">分布式数据缓存中的一致性哈希算法</h1>
+      <section class="post-meta">
+  <time datetime="2019-05-12T10:40:32.000Z" itemprop="datePublished" class="post-date">
+      2019-05-12
+  </time>
+  
+  
+  
+  <a href="/tags/分布式/">分布式</a>
+  
+  
+</section>
+
+    </header>
+    <section class="post-content" itemprop="description articleBody">
+      
+
+      <!--  -->
+      <p>一致性哈希算法在分布式缓存领域的 MemCache，负载均衡领域的 Nginx 以及各类 RPC 框架中都有广泛的应用，它主要是为了解决传统哈希函数添加哈希表槽位数后要将关键字重新映射的问题。</p>
+<p>本文会介绍一致性哈希算法的原理及其实现，并给出其不同哈希函数实现的性能数据对比，探讨Redis 集群的数据分片实现等，文末会给出实现的具体 github 地址。</p>
+<h3 id="Memcached-与客户端分布式缓存"><a href="#Memcached-与客户端分布式缓存" class="headerlink" title="Memcached 与客户端分布式缓存"></a>Memcached 与客户端分布式缓存</h3><p>Memcached 是一个高性能的分布式缓存系统，然而服务端没有分布式功能，各个服务器不会相互通信。它的分布式实现依赖于客户端的程序库，这也是 Memcached 的一大特点。比如第三方的 spymemcached 客户端就基于一致性哈希算法实现了其分布式缓存的功能。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-183cf3f1164affb6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>其具体步骤如下:</p>
+<ul>
+<li>向 Memcached 添加数据，首先客户端的算法根据 key 值计算出该 key 对应的服务器。</li>
+<li>服务器选定后，保存缓存数据。</li>
+<li>获取数据时，对于相同的 key ，客户端的算法可以定位到相同的服务器，从而获取数据。</li>
+</ul>
+<p>在这个过程中，客户端的算法首先要保证缓存的数据尽量均匀地分布在各个服务器上，其次是当个别服务器下线或者上线时，会出现数据迁移，应该尽量减少需要迁移的数据量。</p>
+<p>客户端算法是客户端分布式缓存性能优劣的关键。</p>
+<p>普通的哈希表算法一般都是计算出哈希值后，通过取余操作将 key 值映射到不同的服务器上，但是当服务器数量发生变化时，取余操作的除数发生变化，所有 key 所映射的服务器几乎都会改变，这对分布式缓存系统来说是不可以接收的。</p>
+<p>一致性哈希算法能尽可能减少了服务器数量变化所导致的缓存迁移。</p>
+<h3 id="哈希算法"><a href="#哈希算法" class="headerlink" title="哈希算法"></a>哈希算法</h3><p>首先，一致性哈希算法依赖于普通的哈希算法。大多数同学对哈希算法的理解可能都停留在 JDK 的 <code>hashCode</code> 函数上。其实哈希算法有很多种实现，它们在不同方面都各有优劣，针对不同的场景可以使用不同的哈希算法实现。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-270fe87e0cb1f89d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>下面，我们会介绍一下几款比较常见的哈希算法，并且了解一下它们在分布均匀程度，哈希碰撞概率和性能等方面的优劣。</p>
+<p>MD5 算法：全称为 Message-Digest Algorithm 5，用于确保信息传输完整一致。是计算机广泛使用的杂凑算法之一，主流编程语言普遍已有 MD5 实现。MD5 的作用是把大容量信息压缩成一种保密的格式（就是把一个任意长度的字节串变换成定长的16进制数字串）。常见的文件完整性校验就是使用 MD5。</p>
+<p>CRC 算法：全称为 CyclicRedundancyCheck，中文名称为循环冗余校验。它是一类重要的，编码和解码方法简单，检错和纠错能力强的哈希算法，在通信领域广泛地用于实现差错控制。</p>
+<p>MurmurHash 算法：高运算性能，低碰撞率，由 Austin Appleby 创建于 2008 年，现已应用到 Hadoop、libstdc++、nginx、libmemcached 等开源系统。Java 界中 Redis，Memcached，Cassandra，HBase，Lucene和Guava 都在使用它。 </p>
+<p>FNV 算法：全称为 Fowler-Noll-Vo 算法，是以三位发明人 Glenn Fowler，Landon Curt Noll，Phong Vo 的名字来命名的，最早在 1991 年提出。 FNV 能快速 hash 大量数据并保持较小的冲突率，它的高度分散使它适用于 hash 一些非常相近的字符串，比如 URL，hostname，文件名，text 和 IP 地址等。</p>
+<p>Ketama 算法：一致性哈希算法的实现之一，其他的哈希算法有通用的一致性哈希算法实现，只不过是替换了哈希映射函数而已，但 Ketama 是一整套的流程，我们将在后面介绍。</p>
+<h3 id="一致性哈希算法"><a href="#一致性哈希算法" class="headerlink" title="一致性哈希算法"></a>一致性哈希算法</h3><p>下面，我们以分布式缓存场景为例，分析一下一致性哈希算法环的原理。</p>
+<p>首先将缓存服务器（ ip + 端口号）进行哈希，映射成环上的一个节点，计算出缓存数据 key 值的 hash key，同样映射到环上，并顺时针选取最近的一个服务器节点作为该缓存应该存储的服务器。具体实现见后续的章节。</p>
+<p>比如说，当存在 A，B，C，D 四个缓存服务器时，它们及其 key 值为1的缓存数据在一致性哈希环上的位置如下图所示，根据顺时针取最近一个服务器节点的规则，该缓存数据应该存储在服务器 B 上。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-49ec3d40245a1a5b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>当要存储一个 key 值为4的缓存数据时，它在一致性哈希环上的位置如下所示，所以它应该存储在服务器 C 上。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-de3689515ccf3171.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>类似的，key 值为5，6的数据应该存在服务 D 上，key 值为7，8的数据应该存储在服务 A 上。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-e809f645108f353d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>此时，服务器 B 宕机下线，服务器 B 中存储的缓存数据要进行迁移，但由于一致性哈希环的存在，只需要迁移key 值为1的数据，其他的数据的存储服务器不会发生变化。这也是一致性哈希算法比取余映射算法出色的地方。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-006a22edbe4c7652.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>由于服务器 B 下线，key 值为1的数据顺时针最近的服务器是 C ，所以数据存迁移到服务器 C 上。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-9b311dbb2594f78a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>现实情况下，服务器在一致性哈希环上的位置不可能分布的这么均匀，导致了每个节点实际占据环上的区间大小不一。</p>
+<p>这种情况下，可以增加虚节点来解决。通过增加虚节点，使得每个节点在环上所“管辖”的区域更加均匀。这样就既保证了在节点变化时，尽可能小的影响数据分布的变化，而同时又保证了数据分布的均匀。</p>
+<h3 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h3><p>下面我们实现 Memcached 分布式缓存场景下的一致性哈希算法，并给出具体的测试性能数据。该实现借鉴了 kiritomoe 博文中的实现和 spymemcached 客户端代码。具体实现请看我的github，地址为 <a href="https://github.com/ztelur/consistent-hash-algorithm。" target="_blank" rel="noopener">https://github.com/ztelur/consistent-hash-algorithm。</a></p>
+<p><code>NodeLocator</code> 是分布式缓存场景下一致性哈希算法的抽象，它有一个 <code>getPrimary</code> 函数，接收一个缓存数据的 key 值，输出存储该缓存数据的服务器实例。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public interface NodeLocator {
+    MemcachedNode getPrimary(String k);
+}
+</code></pre></p>
+<p>下面是通用的一致性哈希算法的实现，它使用 <code>TreeMap</code> 作为一致性哈希环的数据结构，其 <code>ceilingEntry</code> 函数可以获取环上最近的一个节点。<code>buildConsistentHashRing</code> 函数中包含了构建一致性哈希环的过程，默认加入了 12 个虚拟节点。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public class ConsistentHashNodeLocator implements NodeLocator {
+    private final static int VIRTUAL_NODE_SIZE = 12;
+    private final static String VIRTUAL_NODE_SUFFIX = &quot;-&quot;;
+
+    private volatile TreeMap&lt;Long, MemcachedNode&gt; hashRing;
+    private final HashAlgorithm hashAlg;
+
+    public ConsistentHashNodeLocator(List&lt;MemcachedNode&gt; nodes, HashAlgorithm hashAlg) {
+        this.hashAlg = hashAlg;
+        this.hashRing = buildConsistentHashRing(hashAlg, nodes);
+    }
+
+
+    @Override
+    public MemcachedNode getPrimary(String k) {
+        long hash = hashAlg.hash(k);
+        return getNodeForKey(hashRing, hash);
+    }
+
+    private MemcachedNode getNodeForKey(TreeMap&lt;Long, MemcachedNode&gt; hashRing, long hash) {
+        &#x2F;* 向右找到第一个key *&#x2F;
+        Map.Entry&lt;Long, MemcachedNode&gt; locatedNode = hashRing.ceilingEntry(hash);
+        &#x2F;* 想象成为一个环，超出尾部取出第一个 *&#x2F;
+        if (locatedNode == null) {
+            locatedNode = hashRing.firstEntry();
+        }
+        return locatedNode.getValue();
+    }
+
+    private TreeMap&lt;Long, MemcachedNode&gt; buildConsistentHashRing(HashAlgorithm hashAlgorithm, List&lt;MemcachedNode&gt; nodes) {
+        TreeMap&lt;Long, MemcachedNode&gt; virtualNodeRing = new TreeMap&lt;&gt;();
+        for (MemcachedNode node : nodes) {
+            for (int i = 0; i &lt; VIRTUAL_NODE_SIZE; i++) {
+                &#x2F;&#x2F; 新增虚拟节点的方式如果有影响，也可以抽象出一个由物理节点扩展虚拟节点的类
+                virtualNodeRing.put(hashAlgorithm.hash(node.getSocketAddress().toString() + VIRTUAL_NODE_SUFFIX + i), node);
+            }
+        }
+        return virtualNodeRing;
+    }
+}
+</code></pre>
+<p>在 <code>getPrimary</code> 函数中，首先使用 <code>HashAlgorithm</code> 计算出 key 值对应的哈希值，然后调用 <code>getNodeForKey</code> 函数从 <code>TreeMap</code> 中获取对应的最近的服务器节点实例。</p>
+<p><code>HashAlgorithm</code> 是对哈希算法的抽象，一致性哈希算法可以使用各种普通的哈希算法，比如说 CRC ，MurmurHash 和 FNV 等。下面，我们将会对比各种哈希算法给该实现带来的性能差异性。</p>
+<h3 id="性能测试"><a href="#性能测试" class="headerlink" title="性能测试"></a>性能测试</h3><p>测试数据是评价一个算法好坏的最为真实有效的方法，量化的思维模式一定要有，这也是程序员进阶的法宝之一。我们以下面四个量化的指标对基于不同哈希函数的一致性哈希算法进行评测。</p>
+<ul>
+<li>统计每个服务器节点存储的缓存数量，计算方差和标准差。测量缓存分布均匀情况，我们可以模拟 50000个缓存数据，分配到100 个服务器，测试最后个节点存储缓存数据量的方差和标准差。</li>
+<li><strong>随机</strong>下线10%的服务器，重新分配缓存，统计缓存迁移比率。测量节点上下线的情况，我们可以模拟 50000 个缓存数据，分配到100 个指定服务器，之后<strong>随机</strong>下线 10 个服务器并重新分配这50000个数据，统计缓存分配到不同服务器的比例，也就是迁移比率。</li>
+<li>使用JMH对不同哈希算法的执行效率进行对比。</li>
+</ul>
+<p>具体评测算法如下。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public class NodeLocatorTest {
+
+    &#x2F;**
+     * 测试分布的离散情况
+     *&#x2F;
+    @Test
+    public void testDistribution() {
+        List&lt;MemcachedNode&gt; servers = new ArrayList&lt;&gt;();
+        for (String ip : ips) {
+            servers.add(new MemcachedNode(new InetSocketAddress(ip, 8080)));
+        }
+        &#x2F;&#x2F; 使用不同的DefaultHashAlgorithm进行测试，得出不同的数据
+        NodeLocator nodeLocator = new ConsistentHashNodeLocator(servers, DefaultHashAlgorithm.NATIVE_HASH);
+        &#x2F;&#x2F; 构造 50000 随机请求
+        List&lt;String&gt; keys = new ArrayList&lt;&gt;();
+        for (int i = 0; i &lt; 50000; i++) {
+            keys.add(UUID.randomUUID().toString());
+        }
+        &#x2F;&#x2F; 统计分布
+        AtomicLongMap&lt;MemcachedNode&gt; atomicLongMap = AtomicLongMap.create();
+        for (MemcachedNode server : servers) {
+            atomicLongMap.put(server, 0);
+        }
+        for (String key : keys) {
+            MemcachedNode node = nodeLocator.getPrimary(key);
+            atomicLongMap.getAndIncrement(node);
+        }
+        System.out.println(StatisticsUtil.variance(atomicLongMap.asMap().values().toArray(new Long[]{})));
+        System.out.println(StatisticsUtil.standardDeviation(atomicLongMap.asMap().values().toArray(new Long[]{})));
+
+    }
+
+    &#x2F;**
+     * 测试节点新增删除后的变化程度
+     *&#x2F;
+    @Test
+    public void testNodeAddAndRemove() {
+        List&lt;MemcachedNode&gt; servers = new ArrayList&lt;&gt;();
+        for (String ip : ips) {
+            servers.add(new MemcachedNode(new InetSocketAddress(ip, 8080)));
+        }
+        &#x2F;&#x2F;随机下线10个服务器, 先shuffle，然后选择0到90，简单模仿随机计算。
+        Collections.shuffle(servers);
+        List&lt;MemcachedNode&gt; serverChanged = servers.subList(0, 90);
+        NodeLocator loadBalance = new ConsistentHashNodeLocator(servers, DefaultHashAlgorithm.NATIVE_HASH);
+        NodeLocator changedLoadBalance = new ConsistentHashNodeLocator(serverChanged, DefaultHashAlgorithm.NATIVE_HASH);
+
+        &#x2F;&#x2F; 构造 50000 随机请求
+        List&lt;String&gt; keys = new ArrayList&lt;&gt;();
+        for (int i = 0; i &lt; 50000; i++) {
+            keys.add(UUID.randomUUID().toString());
+        }
+        int count = 0;
+        for (String invocation : keys) {
+            MemcachedNode origin = loadBalance.getPrimary(invocation);
+            MemcachedNode changed = changedLoadBalance.getPrimary(invocation);
+           &#x2F;&#x2F; 统计发生变化的数值
+            if (!origin.getSocketAddress().equals(changed.getSocketAddress())) count++;
+        }
+        System.out.println(count &#x2F; 50000D);
+    }
+    static String[] ips = {...};
+}
+</code></pre></p>
+<p>JMH的测试脚本如下所示。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">@BenchmarkMode(Mode.AverageTime)
+@OutputTimeUnit(TimeUnit.MICROSECONDS)
+@State(Scope.Thread)
+public class JMHBenchmark {
+
+    private NodeLocator nodeLocator;
+    private List&lt;String&gt; keys;
+
+    @Benchmark
+    public void test() {
+        for (String key : keys) {
+            MemcachedNode node = nodeLocator.getPrimary(key);
+        }
+    }
+
+    public static void main(String[] args) throws RunnerException {
+        Options opt = new OptionsBuilder()
+                .include(JMHBenchmark.class.getSimpleName())
+                .forks(1)
+                .warmupIterations(5)
+                .measurementIterations(5)
+                .build();
+        new Runner(opt).run();
+    }
+
+    @Setup
+    public void prepare() {
+        List&lt;MemcachedNode&gt; servers = new ArrayList&lt;&gt;();
+        for (String ip : ips) {
+            servers.add(new MemcachedNode(new InetSocketAddress(ip, 8080)));
+        }
+        nodeLocator = new ConsistentHashNodeLocator(servers, DefaultHashAlgorithm.MURMUR_HASH);
+        &#x2F;&#x2F; 构造 50000 随机请求
+        keys = new ArrayList&lt;&gt;();
+        for (int i = 0; i &lt; 50000; i++) {
+            keys.add(UUID.randomUUID().toString());
+        }
+    }
+
+    @TearDown
+    public void shutdown() {
+    }
+    static String[] ips = {...};
+}
+</code></pre>
+<p>分别测试了 JDK 哈希算法，FNV132 算法，CRC 算法，MurmurHash 算法和Ketama 算法，分别对应 <code>DefaultHashAlgorithm</code> 的 <code>NATIVE_HASH</code>，<code>FNV1_32_HASH</code>，<code>CRC_HASH</code>，<code>MURMUR_HASH</code> 和 <code>KETAMA_HASH</code> 。具体数据如下所示。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-34dfbb3b4b16f409.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="数据表格"></p>
+<h3 id="虚拟槽分区"><a href="#虚拟槽分区" class="headerlink" title="虚拟槽分区"></a>虚拟槽分区</h3><p>有些文章说，Redis 集群并没有使用一致性哈希算法，而是使用虚拟槽分区算法。但是外网（地址见文末）上都说 Redis 使用的虚拟槽分区只是一致性哈希算法的变种，虚拟槽可以允许 Redis 动态扩容。</p>
+<p>或许只有去了解一下Redis的源码才能对这个问题作出准确的回答。请了解的同学积极留言解答，谢谢。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-97c3bd968d848717.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>github 地址： <a href="https://github.com/ztelur/consistent-hash-algorithm" target="_blank" rel="noopener">https://github.com/ztelur/consistent-hash-algorithm</a><br>redis分布式讨论的地址： <a href="https://www.reddit.com/r/redis/comments/4yztxi/which_one_is_better_hash_slot_or_consistent/" target="_blank" rel="noopener">https://www.reddit.com/r/redis/comments/4yztxi/which_one_is_better_hash_slot_or_consistent/</a></p>
+<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
+<li><a href="https://jistol.github.io/software%20engineering/2018/07/07/consistent-hashing-sample/" target="_blank" rel="noopener">https://jistol.github.io/software%20engineering/2018/07/07/consistent-hashing-sample/</a></li>
+<li><a href="https://mp.weixin.qq.com/s/oe3EPu5DxB0bWheBImMsHg" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/oe3EPu5DxB0bWheBImMsHg</a></li>
+</ul>
+
+      <h3>关于图片和转载</h3>
+
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
+
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
+
+      <h3>关于评论和留言</h3>
+
+      如果对本文 <a href="http://remcarpediem.net/article/bedc2c36/">分布式数据缓存中的一致性哈希算法</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/article/bedc2c36/">分布式数据缓存中的一致性哈希算法</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
+    <footer class="post-footer">
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">历小冰's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">历小冰</a></h4>
+        
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> 程序员历小冰</a></span> 
+        </div>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/article/bedc2c36/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/article/bedc2c36/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/article/bedc2c36/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
+      
+<div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script src="/js/md5.min.js"></script>
+<script>
+    const gitalk = new Gitalk({
+    clientID: 'ece2d2cd7c5f768a4c22',
+    clientSecret: '1ad562557353b888b4b622239d45150c5df6d5ee',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: md5("http://remcarpediem.net/article/bedc2c36/"),
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
+
+gitalk.render('gitalk-container')
+</script>
+
+    </footer>
+  </article>
+</main>
+<aside class="read-next">
+ 
+    
+    <a class="read-next-story no-cover" href="/article/5863fc60/">
+      <section class="post">
+        <h2>Guava的布隆过滤器</h2>
+        <p>
+            
+              &emsp;程序世界的算法都要在时间，资源占用甚至正确率等多种因素间进行平衡。同样的问题，所属的量级或场景不同，所用算法也会不同，其中也会涉及很多的trade-off。
+
+If there’s one rule in programming, it’s this: there will always be trade-offs.
+
+你是否真的存在&emsp;今天我们就来探讨如何判断一个值是否存在于已有的集合问题。这类问题在很多场景下都会 ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+
+
+  
+    
+    <a class="read-next-story no-cover" href="/article/fa5c04fa/">
+      <section class="post">
+        <h2>十二张图带你了解 Redis 的数据结构和对象系统</h2>
+        <p>
+            
+              Redis是一个开源的 key-value 存储系统，它使用六种底层数据结构构建了包含字符串对象、列表对象、哈希对象、集合对象和有序集合对象的对象系统。今天我们就通过12张图来全面了解一下它的数据结构和对象系统的实现原理。
+本文的内容如下：
+
+首先介绍六种基础数据结构：动态字符串，链表，字典，跳跃表，整数集合和压缩列表。
+其次介绍 Redis 的对象系统中的字符串对象（String）、列表对象（List）、哈希对象（Hash）、集合对象 ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+</aside>
+
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">程序员历小冰</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
+</footer>
+
+  </div>
+  <script type="text/javascript" src="/js/jquery-2.0.3.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
+
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
+
+<script type="text/javascript">
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
+</script>
+
+
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+</body>
+</html>
