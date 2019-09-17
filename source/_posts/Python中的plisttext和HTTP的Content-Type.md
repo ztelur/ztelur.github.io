@@ -1,9 +1,11 @@
+---
 title: Python中的plisttext和HTTP的Content-Type
-date: 2016-05-28 16:51:37
 tags:
-	- http
+  - http
 categories:
-	- python
+  - python
+abbrlink: '64e12480'
+date: 2016-05-28 16:51:37
 ---
 
 &emsp;这段时间本人在学习`Android Service`相关的内容，临时需要一个可以提供文件上传和下载功能的服务器，于是上网查找了一个简单服务器的python实现代码，本着温顾一下HTTP协议的想法，于是深入研究了一下其中的代码，发现大家对`SimpleHTTPRequestsHandler`中的`self.headers.plisttext.split("=")[1]`语句的含义不是很理解，于是自己查阅了一下python源码定义和相关HTTP协议文档，理解了这段代码的含义。

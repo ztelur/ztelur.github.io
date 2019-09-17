@@ -1,10 +1,11 @@
 ---
 title: TCP/IP详解阅读笔记（一）：TCP协议
-date: 2016-06-09 12:28:33
 tags:
-	- TCP/IP
+  - TCP/IP
 categories:
-	- 网络
+  - 网络
+abbrlink: b849cb4a
+date: 2016-06-09 12:28:33
 ---
 作者： [remcarpediem](http://ztelur.github.io/)
 联系方式：[segmentfault](https://segmentfault.com/u/remcarpediem)，[csdn](http://blog.csdn.net/u012422440)，[简书](http://www.jianshu.com/users/481d9f540fb9/latest_articles)

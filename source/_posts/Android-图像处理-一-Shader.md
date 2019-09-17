@@ -1,11 +1,12 @@
 ---
 title: 'Android 图像处理(一) : Shader'
-date: 2016-08-26 15:09:18
-tags: 
-	- Shader
-	- 图像处理
+tags:
+  - Shader
+  - 图像处理
 categories:
-	- Android
+  - Android
+abbrlink: 321580a2
+date: 2016-08-26 15:09:18
 ---
 
 &emsp;之前一段时间，我都在研究Android自定义View的相关知识，随着逐渐的深入，渐渐了解到了一些Android图像处理的知识，主要是`Bitmap`,`Canvas`,`Shader`,`Matric`,`ColorFilter`和`Xfermode`的使用。所以准备写一系列文章介绍一下这些方面的知识。

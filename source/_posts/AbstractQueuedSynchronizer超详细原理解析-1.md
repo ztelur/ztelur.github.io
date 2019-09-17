@@ -1,7 +1,8 @@
 ---
 title: AbstractQueuedSynchronizer超详细原理解析
-date: 2019-01-24 20:31:40
 tags: 并发
+abbrlink: d2edd1b8
+date: 2019-01-24 20:31:40
 ---
 
 &emsp;今天我们来研究学习一下`AbstractQueuedSynchronizer`类的相关原理，`java.util.concurrent`包中很多类都依赖于这个类所提供队列式同步器，比如说常用的`ReentranLock`，`Semaphore`和`CountDownLatch`等。

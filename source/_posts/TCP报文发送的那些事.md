@@ -1,7 +1,8 @@
 ---
 title: TCP报文发送的那些事
-date: 2019-04-17 11:44:06
 tags: TCP
+abbrlink: 4a70661a
+date: 2019-04-17 11:44:06
 ---
 &emsp;今天我们来总结学习一下TCP发送报文的相关知识，主要包括发送报文的步骤，MSS，滑动窗口和Nagle算法。
 
@@ -105,7 +106,7 @@ tags: TCP
 &emsp;**当对请求的时延非常在意且网络环境非常好的时候（例如同一个机房内），Nagle算法可以关闭**。使用TCP_NODELAY套接字选项就可以关闭Nagle算法
 
 
-![](https://upload-images.jianshu.io/upload_images/623378-7d960275042f309d.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](/images/logo.png)
 
 个人博客: [Remcarpediem](http://remcarpediem.net/2019/03/09/TCP-IP%E7%9A%84%E5%BA%95%E5%B1%82%E9%98%9F%E5%88%97/)
 

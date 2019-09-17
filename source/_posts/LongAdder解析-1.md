@@ -1,8 +1,9 @@
 ---
 title: LongAdder原理完全解析
-date: 2019-01-23 23:10:42
 tags: cas
 category: 并发
+abbrlink: d4b1972e
+date: 2019-01-23 23:10:42
 ---
 
 &emsp;对`LongAdder`的最初了解是从Coolshell上的一篇文章中获得的，但是一直都没有深入的了解过其实现，只知道它相较于`AtomicLong`来说，更加适合写多读少的并发情景。今天，我们就研究一下`LongAdder`的原理，探究一下它如此高效的原因。

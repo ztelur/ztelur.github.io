@@ -1,10 +1,12 @@
+---
 title: OkHttp解析系列-开篇
-date: 2015-11-07 11:55:04
-tags: 
-	- OkHttp
+tags:
+  - OkHttp
 categories:
-	- Android
-	- NetWork
+  - Android
+  - NetWork
+abbrlink: 1f02db9c
+date: 2015-11-07 11:55:04
 ---
 #### 背景
 &emsp;前几天使用`react-native`遇到了底层`okhttp`库`cookie`无法保存的问题，由于自己对http和`okhttp`也不是很了解.所以想开一个系列的博文，借助详细解析`okhttp`的详细解析来梳理一下http相关的知识。

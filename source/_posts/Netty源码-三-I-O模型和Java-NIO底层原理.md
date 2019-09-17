@@ -1,11 +1,12 @@
 ---
 title: 'Netty源码(三):I/O模型和Java NIO底层原理'
-date: 2017-04-02 23:11:13
-tags: 
-	- Netty
-	- epoll
+tags:
+  - Netty
+  - epoll
 categories:
-	- NIO
+  - NIO
+abbrlink: dbc01bc2
+date: 2017-04-02 23:11:13
 ---
  [上一篇文章](http://remcarpediem.com/2017/03/27/Netty%E6%BA%90%E7%A0%81-%E4%BA%8C-Netty%E7%9A%84Channel%E5%92%8CPipeline/)我们主要讲解了Netty的`Channel`和`Pipeline`，了解到不同的`Channel`可以提供基于不同网络协议的通信处理．既然涉及到网络通信，就不得不说一下多线程，同步异步相关的知识了．Netty的网络模型是多线程的`Reactor`模式，所有I/O请求都是异步调用，我们今天就来探讨一下一些基础概念和Java NIO的底层机制．
  为了节约你的时间，本文主要内容如下：

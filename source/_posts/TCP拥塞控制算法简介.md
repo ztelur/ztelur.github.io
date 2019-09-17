@@ -1,8 +1,9 @@
 ---
-title: 'TCP拥塞控制算法简介'
-date: 2019-02-27 23:08:05
+title: TCP拥塞控制算法简介
 tags: TCP
 category: 网络
+abbrlink: 3bdd3fd8
+date: 2019-02-27 23:08:05
 ---
 
 

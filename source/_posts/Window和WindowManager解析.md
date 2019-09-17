@@ -1,11 +1,13 @@
+---
 title: Window和WindowManager解析
-date: 2015-10-28 15:35:51
-tags: 
-	- Android
-	- Window机制
+tags:
+  - Android
+  - Window机制
 categories:
-	- Android
-	- 源码分析
+  - Android
+  - 源码分析
+abbrlink: 8f1b6328
+date: 2015-10-28 15:35:51
 ---
 &emsp;这几天阅读了《Android开发艺术探索》的关于Window和WindowManager的章节,特此写一片博文来整理和总结一下学到的知识.
 &emsp;说到Window,大家都会想到所有的视图,包括Activity,Dialog,Toast,它们实际上都是附加在Window上的,Window是这些视图的管理者.今天我们就来具体将一下这些视图是如何附加在Window上的,Window有是如何管理这些视图的.

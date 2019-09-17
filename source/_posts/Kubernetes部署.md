@@ -1,11 +1,12 @@
 ---
 title: Kubernetes部署
-date: 2017-07-23 15:33:52
-tags: 
-	- docker
-	- kubernetes
+tags:
+  - docker
+  - kubernetes
 categories:
-	- 容器
+  - 容器
+abbrlink: 51083ebf
+date: 2017-07-23 15:33:52
 ---
 
 &emsp;学习完Docker之后，发现了kubernetes这个容器云框架，于是就自己部署来玩玩。大家也可以按照这个[和我一步步部署 kubernetes 集群](和我一步步部署 kubernetes 集群)文章来部署。最近在这里花费了大量的时间，之后希望整理一下相关的原理介绍。

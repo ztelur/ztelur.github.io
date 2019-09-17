@@ -1,12 +1,13 @@
 ---
-title: View的三次measure,两次layout和一次draw
-date: 2016-10-30 16:37:22
+title: 'View的三次measure,两次layout和一次draw'
 tags:
-	- View 
-	- ViewRoot
+  - View
+  - ViewRoot
 categories:
-	- 源码 
-	- 视图
+  - 源码
+  - 视图
+abbrlink: 251abaf9
+date: 2016-10-30 16:37:22
 ---
 
 

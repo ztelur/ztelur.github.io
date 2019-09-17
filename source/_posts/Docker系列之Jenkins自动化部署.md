@@ -1,11 +1,12 @@
 ---
 title: Docker系列之Jenkins自动化部署
-date: 2017-07-02 21:23:35
-tags: 
-	- Docker
-	- Jenkins
+tags:
+  - Docker
+  - Jenkins
 categories:
-	- 运维
+  - 运维
+abbrlink: b4f6f76f
+date: 2017-07-02 21:23:35
 ---
 
  Devops的概念已经火了很久了，我一直想对这方面进行一定的了解；再加上实验室项目环境依赖比较复杂，希望使用Docker来解决，所以最近就好好研究了一波Docker的相关实践和原理。这里整理一下，希望组成一个系列，从实践到原理详细讲解一下Docker的使用。

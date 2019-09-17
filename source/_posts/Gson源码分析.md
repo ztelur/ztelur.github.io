@@ -1,9 +1,11 @@
+---
 title: Gson源码分析
-date: 2015-10-02 16:24:34
-tags: 
-	- GSON
+tags:
+  - GSON
 categories:
-	- Java
+  - Java
+abbrlink: ba92fa77
+date: 2015-10-02 16:24:34
 ---
 &emsp;最近研究了google开源的Json库Gson，在这里进行总结一下，应该会分为3篇博客。第一篇主要讲一下Gson的整个框架吧；第二篇主要总结一下Gson关于反射的部分;最后一篇会总结一下JsonWriter和JsonReader，主要是Json对象的处理啦。
 ### Gson

@@ -1,10 +1,11 @@
 ---
 title: LongAdder解析
-date: 2017-04-21 22:38:05
-tags: 
-	- JUC
+tags:
+  - JUC
 categories:
-	- 并发
+  - 并发
+abbrlink: d29e90d8
+date: 2017-04-21 22:38:05
 ---
 
 ＆emsp;对`LongAdder`的最初了解是从Coolshell上的一篇文章中获得的，但是一直都没有深入的了解过其实现，只知道它相较于`AtomicLong`来说，更加适合读多写少的并发情景。今天，我们就研究一下`LongAdder`的原理，探究一下它如此高效的原因。

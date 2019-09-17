@@ -1,10 +1,11 @@
 ---
 title: Android Span 架构介绍
-date: 2016-08-05 21:48:15
-tags: 
-	- Span
+tags:
+  - Span
 categories:
-	- Android
+  - Android
+abbrlink: 29372fe3
+date: 2016-08-05 21:48:15
 ---
 
 &emsp;前几天在微博上看到一个人评论Android Span机制相当强大，有必要细心研究一下，于是就google了一下，发现了一篇很好的文章[Spans, a Powerful Concept.](http://flavienlaurent.com/blog/2014/01/31/spans/)，然后以这篇文章为基础研究了一下Android Span的用法。于是决定写几篇文章来总结一下。

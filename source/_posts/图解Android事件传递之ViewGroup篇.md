@@ -1,9 +1,11 @@
+---
 title: 图解Android事件传递之ViewGroup篇
-date: 2016-02-11 17:21:20
 tags:
-	- 事件传递
+  - 事件传递
 categories:
-	- Android
+  - Android
+abbrlink: ceec219e
+date: 2016-02-11 17:21:20
 ---
 &emsp;本篇文章主要讲述ViewGroup中关于触摸事件传递的相关逻辑。主要梳理一下`dispatchTouchEvent`函数。
 #### 一些知识点

@@ -1,7 +1,8 @@
 ---
 title: 'MySQL探秘(八):InnoDB的事务'
-date: 2018-12-10 21:45:39
 tags: MySQL
+abbrlink: 6edb90fb
+date: 2018-12-10 21:45:39
 ---
 
 

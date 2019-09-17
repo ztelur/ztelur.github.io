@@ -1,10 +1,11 @@
 ---
 title: 'Spring Boot (一): Spring Boot starter自定义'
-date: 2017-09-10 20:25:35
-tags: 
-	- Spring Boot
+tags:
+  - Spring Boot
 categories:
-	- 后端
+  - 后端
+abbrlink: 81d689c6
+date: 2017-09-10 20:25:35
 ---
 
  前些日子在公司接触了`spring boot`和`spring cloud`,有感于其大大简化了spring的配置过程，十分方便使用者快速构建项目，而且拥有丰富的starter供开发者使用。但是由于其自动化配置的原因，往往导致出现问题，新手无法快速定位问题。这里我就来总结一下spring boot 自定义starter的过程,相信大家看完这篇文章之后，能够对`spring boot starter`的运行原理有了基本的认识。

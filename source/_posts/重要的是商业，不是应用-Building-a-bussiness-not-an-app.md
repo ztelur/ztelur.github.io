@@ -1,10 +1,11 @@
 ---
-title: 重要的是商业，不是应用(Building a bussiness, not an app)
-date: 2016-10-01 16:10:32
-tags: 
-	- 市场 
+title: '重要的是商业，不是应用(Building a bussiness, not an app)'
+tags:
+  - 市场
 categories:
-	- 综合
+  - 综合
+abbrlink: fd3a41af
+date: 2016-10-01 16:10:32
 ---
 > 本文是翻译文章，原文地址如下：[地址](https://stratechery.com/2014/pleco-building-business-just-app/)。转载请表明原文作者地址。
 

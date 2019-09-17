@@ -1,7 +1,8 @@
 ---
 title: 用户日活月活怎么统计 - Redis HyperLogLog 详解
-date: 2019-06-16 22:06:19
 tags: redis
+abbrlink: ec0c40ae
+date: 2019-06-16 22:06:19
 ---
 HyperLogLog 是一种概率数据结构，用来估算数据的基数。数据集可以是网站访客的 IP 地址，E-mail 邮箱或者用户 ID。
 

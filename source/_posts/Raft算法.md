@@ -1,10 +1,11 @@
 ---
 title: Raft算法
-date: 2017-07-25 17:09:09
-tags: 
-	- Raft
+tags:
+  - Raft
 categories:
-	- 分布式
+  - 分布式
+abbrlink: 1df31392
+date: 2017-07-25 17:09:09
 ---
 
  前段时间一直在学习mit的分布式课程[Distributed Systems](http://nil.csail.mit.edu/6.824/2015/index.html)，仔细阅读了raft论文，但是中间又跑去搞docker了，所以一直没有整理raft相关的文章，今天就来总结一下。

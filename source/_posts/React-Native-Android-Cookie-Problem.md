@@ -1,11 +1,13 @@
+---
 title: React Native Android Cookie Problem
-date: 2015-11-04 13:50:31
-tags: 
-	- React Native
-	- Cookie
+tags:
+  - React Native
+  - Cookie
 categories:
-	- Java
-	- JavaScript
+  - Java
+  - JavaScript
+abbrlink: 65079f86
+date: 2015-11-04 13:50:31
 ---
 
 #### 背景

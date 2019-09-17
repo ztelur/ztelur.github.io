@@ -1,10 +1,11 @@
 ---
 title: 分布式一致性算法Paxos
-date: 2017-04-16 14:42:35
-tags: 
-	- 算法
+tags:
+  - 算法
 categories:
-	- 分布式
+  - 分布式
+abbrlink: 5635585c
+date: 2017-04-16 14:42:35
 ---
  最近在学习zookeeper原理的时候了解到了paxos算法,看了几篇文章之后还是感觉有些迷糊,后来看了知行学社的[paxos视频](http://www.tudou.com/programs/view/e8zM8dAL6hM/)才对这个算法有了一定的了解,这里就做一下总结.
 

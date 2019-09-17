@@ -1,11 +1,13 @@
+---
 title: Gson源码分析二
-date: 2015-10-07 15:48:51
-tags: 
-	- 第三方库
-	- 反射
-	- JSON
+tags:
+  - 第三方库
+  - 反射
+  - JSON
 categories:
-	- Java
+  - Java
+abbrlink: a62ad67
+date: 2015-10-07 15:48:51
 ---
 
 &emsp;承接上一篇博文[Gson源码分析](http://blog.csdn.net/u012422440/article/details/48860893)，这篇博文主要总结一下Gson中涉及Java反射逻辑的部分。

@@ -1,5 +1,6 @@
 ---
 title: Guava的布隆过滤器
+abbrlink: 5863fc60
 date: 2019-04-27 13:10:38
 tags:
 ---
@@ -11,7 +12,7 @@ tags:
 
 &emsp;今天我们就来探讨如何判断一个值是否存在于已有的集合问题。这类问题在很多场景下都会遇到，比如说防止缓存击穿，爬虫重复URL检测，字典纠缠和CDN代理缓存等。
 
-![](https://upload-images.jianshu.io/upload_images/623378-376b7d7f0653b3c4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](/images/19_9141/image1.webp)
 
 &emsp;我们以网络爬虫为例。网络间的链接错综复杂，爬虫程序在网络间“爬行”很可能会形成“环”。为了避免形成“环”，程序需要知道已经访问过网站的URL。当程序又遇到一个网站，根据它的URL，怎么判断是否已经访问过呢？
 
@@ -24,8 +25,7 @@ tags:
 &emsp;这种情况下，我们还可以使用`BitSet`，使用哈希函数将URL处理为1bit，存储在BitSet中。但是，哈希函数发生冲突的概率比较高，若要降低冲突概率到1%，就要将`BitSet`的长度设置为URL个数的100倍。
 
 &emsp;但是冲突无法避免，这就带来了误判。理想中的算法总是又准确又快捷，但是现实中往往是“一地鸡毛”。我们真的需要100%的正确率吗？如果需要，时间和空间的开销无法避免；如果能够忍受低概率的错误，就有极大地降低时间和空间的开销的方法。
-
-![](https://upload-images.jianshu.io/upload_images/623378-a2282f81230ce19b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](/images/19_9141/image2.webp)
 
 &emsp;所以，一切都要trade-off。布隆过滤器(Bloom Filter)就是一种具有较低错误率，但是极大节约空间消耗的算法。
 
@@ -46,8 +46,7 @@ tags:
 &emsp;我们就以下面这个例子具体描述使用BloomFilter的场景，以及在此场景下，BloomFilter的优势和劣势。
 
 &emsp;一组元素存在于磁盘中，数据量特别大，应用程序希望在元素不存在的时候尽量不读磁盘，此时，可以在内存中构建这些磁盘数据的BloomFilter，对于一次读数据的情况，分为以下几种情况：
-
-![image.png](https://upload-images.jianshu.io/upload_images/623378-8a7dfa70c1163126.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](/images/19_9141/image3.webp)
 
 &emsp;我们知道HashMap或者Set等数据结构也可以支持上述场景，这里我们就具体比较一下二者的优劣，并给出具体的数据。
 
@@ -74,18 +73,17 @@ tags:
 &emsp;初始状态下，布隆过滤器是一个包含m位的位数组，每一位都置为0。
 
 &emsp;为了表达S={x1, x2,…,xn}这样一个n个元素的集合，Bloom Filter使用k个相互独立的哈希函数，它们分别将集合中的每个元素映射到{1,…,m}的范围中。对任意一个元素x，第i个哈希函数映射的位置hi(x)就会被置为1(1≤i≤k)。注意，如果一个位置多次被置为1，那么只有第一次会起作用，后面几次将没有任何效果。在下图中，k=3，且有两个哈希函数选中同一个位置(从左边数第五位)。
-
-![image.png](https://upload-images.jianshu.io/upload_images/623378-9026a15daa7d9b3c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](/images/19_9141/image4.webp)
 
 &emsp;在判断y是否属于这个集合时，我们对y应用k次哈希函数，如果所有hi(y)的位置都是1(1≤i≤k)，那么我们就认为y是集合中的元素，否则就认为y不是集合中的元素。下图中y1就不是集合中的元素。y2则可能属于这个集合，或者刚好是一个误判。
+![](/images/19_9141/image5.webp)
 
-![image.png](https://upload-images.jianshu.io/upload_images/623378-3e3ca79694f3da9b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
 &emsp;下面我们来看一下具体的例子，哈希函数的数量为3，首先加入1，10两个元素。通过下面两个图，我们可以清晰看到1，10两个元素被三个不同的韩系函数映射到不同的bit上，然后判断3是否在集合中，3映射的3个bit都没有值，所以判断绝对不在集合中。
+![](/images/19_9141/image6.webp)
 
-![示意图-绝对不在](https://upload-images.jianshu.io/upload_images/623378-141df2c6782ee19e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](/images/19_9141/image7.webp)
 
-![示意图-可能在](https://upload-images.jianshu.io/upload_images/623378-c173bcbeab013973.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
 &emsp;关于误判率，实际的使用中，期望能给定一个误判率期望和将要插入的元素数量，能计算出分配多少的存储空间较合适。这涉及很多最优数值计算问题，比如说错误率估计，最优的哈希函数个数和位数组的大小等，相关公式计算感兴趣的同学可以自行百度，重温一下大学的计算微积分时光。
 
@@ -216,8 +214,7 @@ boolean set(long bitIndex) {
 ### 后记
 &emsp;欢迎大家留言和持续关注我。
 
-![image.png](https://upload-images.jianshu.io/upload_images/623378-97c3bd968d848717.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
-
+![](/images/logo.png)
 
 ## 参考
 

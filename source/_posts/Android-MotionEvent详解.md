@@ -1,9 +1,11 @@
+---
 title: Android MotionEvent详解
-date: 2016-03-16 13:54:44
-tags: 
-	- MotionEvent
+tags:
+  - MotionEvent
 categories:
-	- Android
+  - Android
+abbrlink: e89a231a
+date: 2016-03-16 13:54:44
 ---
 &emsp;在前边几篇博文中（[《图解Android事件传递之ViewGroup篇》](http://ztelur.github.io/2016/02/11/%E5%9B%BE%E8%A7%A3Android%E4%BA%8B%E4%BB%B6%E4%BC%A0%E9%80%92%E4%B9%8BViewGroup%E7%AF%87/)，[《图解Android事件传递之View篇》](http://ztelur.github.io/2016/02/04/%E5%9B%BE%E8%A7%A3Android%E4%BA%8B%E4%BB%B6%E4%BC%A0%E9%80%92%E4%B9%8BView%E7%AF%87/)），我们已经了解了android触摸事件传递机制，接着我们再来研究一下与触摸事件传递相关的几个比较重要的类，比如`MotionEvent`。我们今天就来详细说明一下这个类的各方面用法。
 #### 事件坐标的含义

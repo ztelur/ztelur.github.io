@@ -1,7 +1,8 @@
 ---
 title: Redis 事件机制详解
-date: 2019-08-04 18:37:29
 tags: redis
+abbrlink: 1aa2da89
+date: 2019-08-04 18:37:29
 ---
 Redis 采用事件驱动机制来处理大量的网络IO。它并没有使用 libevent 或者 libev 这样的成熟开源方案，而是自己实现一个非常简洁的事件驱动库 ae_event。
 

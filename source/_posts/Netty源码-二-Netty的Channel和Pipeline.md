@@ -1,10 +1,11 @@
 ---
 title: 'Netty源码(二):Netty的Channel和Pipeline'
-date: 2017-03-27 21:38:03
-tags: 
-	- Netty
+tags:
+  - Netty
 categories:
-	- NIO
+  - NIO
+abbrlink: 815dc153
+date: 2017-03-27 21:38:03
 ---
 
  本文主要讲述Netty框架中Channel相关的知识，Netty通过Channel和Pipeline等一些组件提供了所谓的`Universal Communication API`．与`Channel`相关的知识点比较多，本篇文章就主要讲解一下`Channel`和`Pipeline`的事件处理流原理．`Channel`,`EventLoop`和`ChannelFuture`的相关知识下篇文章中再进行讲述．

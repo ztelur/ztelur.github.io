@@ -1,10 +1,12 @@
+---
 title: 初识Dagger2
-date: 2015-09-18 17:34:05
-tags: 
-	- 第三方库
-	- 依赖注入
+tags:
+  - 第三方库
+  - 依赖注入
 categories:
-	- Android
+  - Android
+abbrlink: 273b893d
+date: 2015-09-18 17:34:05
 ---
 >&emsp;要使用Dagger2，首先要了解的就是控制反转和依赖注入这两个概念。
 

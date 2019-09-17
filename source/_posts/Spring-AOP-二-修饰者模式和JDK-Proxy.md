@@ -1,7 +1,8 @@
 ---
 title: Spring AOP(二) 修饰者模式和JDK Proxy
-date: 2019-02-17 13:20:37
 tags: AOP
+abbrlink: 90b14a95
+date: 2019-02-17 13:20:37
 ---
 
 &emsp;在上边一篇[文章](https://mp.weixin.qq.com/s?__biz=MzU2MDYwMDMzNQ==&mid=2247483735&idx=1&sn=2b526949cc4e69c75d1a96268920da68&chksm=fc04c537cb734c21e84076865259243b4165fa00911920a30fe09d3a75b0cfc002fe66e43d05&token=2009122217&lang=zh_CN#rd)中我们介绍了Spring AOP的基本概念，今天我们就来学习一下与AOP实现相关的修饰者模式和Java Proxy相关的原理，为之后源码分析打下基础。

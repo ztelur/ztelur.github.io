@@ -1,10 +1,11 @@
 ---
 title: Python文件系统相关API总结
-date: 2016-07-06 22:50:29
-tags: 
-    - filesystem
+tags:
+  - filesystem
 categories:
-    - Python
+  - Python
+abbrlink: 69b8b4a1
+date: 2016-07-06 22:50:29
 ---
 &emsp;前段时间毕业，然后希望在上研究生之前实习两个月赚点生活费，可是被公司拒掉了，所以只得回家继续苦练内功。我准备利用暑假的时间学习一下python，主要方便以后写一些自动化脚本。
 &emsp;首先，我就开始用python进行文件系统的相关操作，比如文件和文件夹的新添，移动，删除，遍历。在这里总结一下，便于以后查阅。

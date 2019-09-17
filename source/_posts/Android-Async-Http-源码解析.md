@@ -1,11 +1,13 @@
+---
 title: Android-Async-Http 源码解析
-date: 2015-09-27 14:37:49
-tags: 
-	- 第三方库
-	- Http
+tags:
+  - 第三方库
+  - Http
 categories:
-	- Android
-	- Network
+  - Android
+  - Network
+abbrlink: 68b9bfcd
+date: 2015-09-27 14:37:49
 ---
 
 &emsp;前几天去参加一个面试，被问到了一些android 网络方面的知识，发现自己在这个方面还有些不足，需要自我补充一下相关的知识，于是最近找了些开源的网络模块的第三方库来阅读，主要是想深入了解一下http协议和相关的代码框架组织问题。这篇博客就总结一下自己阅读android-async-http的一些体会和学习吧。

@@ -1,9 +1,11 @@
+---
 title: Android视图架构详解
-date: 2016-04-17 14:56:23
-tags: 
-	- View Architecture
+tags:
+  - View Architecture
 categories:
-	- Android
+  - Android
+abbrlink: 1172bb49
+date: 2016-04-17 14:56:23
 ---
 
 作者： [ztelur](http://www.jianshu.com/users/481d9f540fb9/latest_articles)

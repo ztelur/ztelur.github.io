@@ -1,9 +1,11 @@
+---
 title: Property Animation框架详解(一)
-date: 2016-05-09 14:14:19
-tags: 
-	- animation
+tags:
+  - animation
 categories:
-	- Android
+  - Android
+abbrlink: 2f8becff
+date: 2016-05-09 14:14:19
 ---
 
 作者： [ztelur](http://ztelur.github.io/)

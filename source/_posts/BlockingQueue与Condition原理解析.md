@@ -1,10 +1,11 @@
 ---
 title: BlockingQueue与Condition原理解析
-date: 2017-05-03 10:07:45
-tags: 
-	- JUC
+tags:
+  - JUC
 categories:
-	- 并发
+  - 并发
+abbrlink: 815f6f66
+date: 2017-05-03 10:07:45
 ---
  我在前段时间写了一篇关于AQS的[文章](http://remcarpediem.com/2017/04/06/AbstractQueuedSynchronizer%E8%B6%85%E8%AF%A6%E7%BB%86%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90/)，在文章里边我说几乎所有在`JUC`包中的所有多线程相关的类都和`AQS`相关，今天我就在这里总结一下另一个依赖于`AQS`来实现的同步工具类：`BlockingQueue`。我们主要以`ArrayBlockingQueue`为主来分析相关的源码。
 

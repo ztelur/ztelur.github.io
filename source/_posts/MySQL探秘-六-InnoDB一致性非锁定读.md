@@ -1,7 +1,8 @@
 ---
 title: 'MySQL探秘(六):InnoDB一致性非锁定读'
-date: 2018-11-18 21:45:39
 tags: MySQL
+abbrlink: c63e3cd7
+date: 2018-11-18 21:45:39
 ---
 
 &emsp;一致性非锁定读(consistent nonlocking read)是指InnoDB存储引擎通过多版本控制(MVVC)读取当前数据库中行数据的方式。如果读取的行正在执行DELETE或UPDATE操作，这时读取操作不会因此去等待行上锁的释放。相反地，InnoDB会去读取行的一个快照。

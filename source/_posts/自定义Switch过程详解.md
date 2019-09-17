@@ -1,11 +1,12 @@
 ---
 title: 自定义Switch过程详解
-date: 2016-07-15 22:13:49
 tags:
-	- View
-	- Animation
+  - View
+  - Animation
 categories:
-	- Android
+  - Android
+abbrlink: 413b422c
+date: 2016-07-15 22:13:49
 ---
 作者： [remcarpediem](http://ztelur.github.io/)
 联系方式：[segmentfault](https://segmentfault.com/u/remcarpediem)，[csdn](http://blog.csdn.net/u012422440)，[简书](http://www.jianshu.com/users/481d9f540fb9/latest_articles)

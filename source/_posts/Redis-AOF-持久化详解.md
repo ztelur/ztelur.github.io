@@ -1,5 +1,6 @@
 ---
 title: Redis AOF 持久化详解
+abbrlink: 376c55d8
 date: 2019-07-28 22:36:28
 tags:
 ---

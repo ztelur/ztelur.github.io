@@ -1,9 +1,11 @@
+---
 title: Android Scroll详解(三)：Android 绘制过程详解
-date: 2016-04-21 22:09:03
-tags: 
-	- draw
+tags:
+  - draw
 categories:
-	- Android
+  - Android
+abbrlink: '74701e27'
+date: 2016-04-21 22:09:03
 ---
 
 

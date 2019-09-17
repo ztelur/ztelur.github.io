@@ -1,8 +1,9 @@
 ---
 title: 基于Redis和Lua的分布式限流
-date: 2019-04-06 10:51:31
 tags: 限流
 category: 分布式
+abbrlink: ad1b673b
+date: 2019-04-06 10:51:31
 ---
 
 

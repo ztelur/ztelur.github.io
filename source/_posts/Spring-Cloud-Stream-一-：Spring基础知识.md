@@ -1,11 +1,11 @@
 ---
 title: Spring Cloud Stream(一)：Spring基础知识
-date: 2017-10-10 21:51:45
-tags: 
-	- Spring Boot
+tags:
+  - Spring Boot
 categories:
-	- 后端
-    - Spring
+  - 后端 - Spring
+abbrlink: 2317aa7e
+date: 2017-10-10 21:51:45
 ---
 
 &emsp;我研究和阅读`Spring Cloud Stream`源码已经有一个多月了，但是由于自己的Spring基础知识不是很充足，所以导致很多地方都没有融会贯通，并且相关的文章一直无从下手。于是我先整理了当时阅读代码时的知识点记录，算是源码分析之前的基础知识储备吧，整理的有些杂乱，希望大家理解。

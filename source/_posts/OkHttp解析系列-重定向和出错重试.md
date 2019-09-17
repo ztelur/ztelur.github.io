@@ -1,10 +1,12 @@
+---
 title: OkHttp解析系列-重定向和出错重试
-date: 2015-11-18 22:00:10
-tags: 
-	- OkHttp
+tags:
+  - OkHttp
 categories:
-	- Android
-	- NetWork
+  - Android
+  - NetWork
+abbrlink: d647642b
+date: 2015-11-18 22:00:10
 ---
 
 &emps;这是OkHttp系列博文的第一篇，之前写过一篇草稿，介绍OkHttp的整体框架，但是感觉涉及的知识太多，无法在一篇中讲述清楚，所以，之后的博文都只关注某一方面的知识，争取文章短小精悍。

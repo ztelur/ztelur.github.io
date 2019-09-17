@@ -1,10 +1,11 @@
 ---
 title: Android  Span 进阶
-date: 2016-08-08 21:25:54
-tags: 
-	- Span
+tags:
+  - Span
 categories:
-	- Android
+  - Android
+abbrlink: 283058df
+date: 2016-08-08 21:25:54
 ---
 
 &emsp;在上篇文章[《Android Span 架构介绍》](http://blog.csdn.net/u012422440/article/details/52133037)，我们讲述了Android Span的基本概念和用法，这篇文章我们就来扩展一下我们对Android Span的了解，这一定会使你感到惊奇的，惊叹Android Span竟然还能完成这些的效果，让你在Android自定义View和动画方面有更加深刻的理解，可能会帮助你你想出更加简洁的实现方式。

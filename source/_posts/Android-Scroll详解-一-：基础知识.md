@@ -1,9 +1,11 @@
+---
 title: Android Scroll详解(一)：基础知识
-date: 2016-03-27 18:23:06
-tags: 
-	- scroll
+tags:
+  - scroll
 categories:
-	- Android
+  - Android
+abbrlink: 1fc40fc1
+date: 2016-03-27 18:23:06
 ---
 
 &emsp;在前边的文章中，我们已经对Android触摸事件处理有了大致的了解，并且详细探讨了`MotionEvent`的相关用法。对之前文章中的知识还不是很了解的同学，请阅读[《Android MotionEvent详解》](http://ztelur.github.io/2016/03/16/Android-MotionEvent%E8%AF%A6%E8%A7%A3/)

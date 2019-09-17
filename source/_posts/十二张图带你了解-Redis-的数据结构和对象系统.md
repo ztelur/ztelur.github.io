@@ -1,7 +1,8 @@
 ---
 title: 十二张图带你了解 Redis 的数据结构和对象系统
-date: 2019-05-26 16:55:06
 tags: redis
+abbrlink: fa5c04fa
+date: 2019-05-26 16:55:06
 ---
 
 Redis是一个开源的 key-value 存储系统，它使用六种底层数据结构构建了包含字符串对象、列表对象、哈希对象、集合对象和有序集合对象的对象系统。今天我们就通过12张图来全面了解一下它的数据结构和对象系统的实现原理。
@@ -20,7 +21,7 @@ Redis 使用动态字符串 SDS 来表示字符串值。下图展示了一个值
 - alloc: 表示字符串的最大容量（不包含最后多余的那个字节）。
 - flags: 总是占用一个字节。其中的最低3个bit用来表示header的类型。
 - buf: 字符数组。
-![动态字符串示意图](https://upload-images.jianshu.io/upload_images/623378-277bc31a09bfb6d6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![动态字符串示意图](/images/19_917/image1.webp)
 
 SDS 的结构可以减少修改字符串时带来的内存重分配的次数，这依赖于内存预分配和惰性空间释放两大机制。
 
@@ -37,7 +38,7 @@ SDS 的结构可以减少修改字符串时带来的内存重分配的次数，�
 
 链表在 Redis 中的应用非常广泛，比如列表对象的底层实现之一就是链表。除了链表对象外，发布和订阅、慢查询、监视器等功能也用到了链表。
 
-![链表示意图](https://upload-images.jianshu.io/upload_images/623378-3fec855b828bd10c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![链表示意图](/images/19_917/image2.webp)
 
 Redis 的链表是双向链表，示意图如上图所示。链表是最为常见的数据结构，这里就不在细说。
 
@@ -50,7 +51,7 @@ Redis 的链表结构的dup 、 free 和 match 成员属性是用于实现多态
 
 字典被广泛用于实现 Redis 的各种功能，包括键空间和哈希对象。其示意图如下所示。
 
-![字典示意图](https://upload-images.jianshu.io/upload_images/623378-d3ae1d00cb2e906b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![字典示意图](/images/19_917/image2.webp)
 
 
 Redis 使用 MurmurHash2 算法来计算键的哈希值，并且使用链地址法来解决键冲突，被分配到同一个索引的多个键值对会连接成一个单向链表。
@@ -60,7 +61,7 @@ Redis 使用 MurmurHash2 算法来计算键的哈希值，并且使用链地址�
 Redis 使用跳跃表作为有序集合对象的底层实现之一。它以有序的方式在层次化的链表中保存元素， 效率和平衡树媲美 —— 查找、删除、添加等操作都可以在对数期望时间下完成， 并且比起平衡树来说， 跳跃表的实现要简单直观得多。
 
 
-![跳表示意图](https://upload-images.jianshu.io/upload_images/623378-79bb00b75bdd494e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![跳表示意图](/images/19_917/image4.webp)
 
 跳表的示意图如上图所示，这里只简单说一下它的核心思想，并不进行详细的解释。
 
@@ -79,7 +80,7 @@ level 数组就像是不同刻度的尺子。度量长度时，先用大刻度�
 
 整数集合 intset 是集合对象的底层实现之一，当一个集合只包含整数值元素，并且这个集合的元素数量不多时， Redis 就会使用整数集合作为集合对象的底层实现。
 
-![整数集合的示意图](https://upload-images.jianshu.io/upload_images/623378-f75e1a97b4e9da35.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![整数集合的示意图](/images/19_917/image5.webp)
 
 如上图所示，整数集合的 encoding 表示它的类型，有int16_t，int32_t 或者int64_t。其每个元素都是 contents 数组的一个数组项，各个项在数组中按值的大小从小到大有序的排列，并且数组中不包含任何重复项。length 属性就是整数集合包含的元素数量。
 
@@ -88,7 +89,7 @@ level 数组就像是不同刻度的尺子。度量长度时，先用大刻度�
 
 压缩队列 ziplist 是列表对象和哈希对象的底层实现之一。当满足一定条件时，列表对象和哈希对象都会以压缩队列为底层实现。
 
-![压缩队列的示意图](https://upload-images.jianshu.io/upload_images/623378-d64dffc8d7ae8d3d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![压缩队列的示意图](/images/19_917/image6.webp)
 
 压缩队列是 Redis 为了节约内存而开发的，是由一系列特殊编码的连续内存块组成的顺序型数据结构。它的属性值有：
 
@@ -123,14 +124,14 @@ typedef struct redisObject {
 其中 type 是对象类型，包括REDIS_STRING, REDIS_LIST, REDIS_HASH, REDIS_SET 和 REDIS_ZSET。
 
 encoding是指对象使用的数据结构，全集如下。
-![对象的编码](https://upload-images.jianshu.io/upload_images/623378-0c477816021e1edc.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![对象的编码](/images/19_917/image7.webp)
 
 
 #### 字符串对象
 
 我们首先来看字符串对象的实现，如下图所示。
 
-![字符串对象示意图](https://upload-images.jianshu.io/upload_images/623378-e18aef9f74d43d70.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![字符串对象示意图](/images/19_917/image8.webp)
 
 如果一个字符串对象保存的是一个字符串值，并且长度大于32字节，那么该字符串对象将使用 SDS 进行保存，并将对象的编码设置为 raw，如图的上半部分所示。如果字符串的长度小于32字节，那么字符串对象将使用embstr 编码方式来保存。
 
@@ -144,7 +145,7 @@ embstr 只需一次内存分配，而且在同一块连续的内存中，更好�
 
 列表对象的编码可以是 ziplist 或 linkedlist。其示意图如下所示。
 
-![列表对象示意图](https://upload-images.jianshu.io/upload_images/623378-c480d4d410ef8763.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![列表对象示意图](/images/19_917/image9.webp)
 
 当列表对象可以同时满足以下两个条件时，列表对象使用 ziplist 编码：
 
@@ -159,7 +160,7 @@ embstr 只需一次内存分配，而且在同一块连续的内存中，更好�
 
 当哈希对象使用压缩队列作为底层实现时，程序将键值对紧挨着插入到压缩队列中，保存键的节点在前，保存值的节点在后。如下图的上半部分所示，该哈希有两个键值对，分别是 name:Tom 和 age:25。
 
-![哈希对象示意图](https://upload-images.jianshu.io/upload_images/623378-bed5e2e45a8f8e96.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![哈希对象示意图](/images/19_917/image10.webp)
 
 当哈希对象可以同时满足以下两个条件时，哈希对象使用 ziplist 编码:
 - 哈希对象保存的所有键值对的键和值的字符串长度都小于64字节。
@@ -175,7 +176,7 @@ intset 编码的集合对象使用整数集合最为底层实现，所有元素�
 
 而使用 dict 进行编码时，字典的每一个键都是一个字符串对象，每个字符串对象就是一个集合元素，而字典的值全部都被设置为NULL。如下图所示。
 
-![集合对象示意图](https://upload-images.jianshu.io/upload_images/623378-e6acacdc69984b50.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![集合对象示意图](/images/19_917/image11.webp)
 
 当集合对象可以同时满足以下两个条件时，对象使用 intset 编码:
 
@@ -198,7 +199,7 @@ intset 编码的集合对象使用整数集合最为底层实现，所有元素�
 
 跳跃表和字典中的集合元素值对象都是共享的，所以不会额外消耗内存。
 
-![有序集合示意图](https://upload-images.jianshu.io/upload_images/623378-43800404f75a4b64.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![有序集合示意图](/images/19_917/image12.webp)
 
 当有序集合对象可以同时满足以下两个条件时，对象使用 ziplist 编码：
 - 有序集合保存的元素数量少于128个；
@@ -211,7 +212,7 @@ intset 编码的集合对象使用整数集合最为底层实现，所有元素�
 
 Redis 服务器都有多个 Redis 数据库，每个Redis 数据都有自己独立的键值空间。每个 Redis 数据库使用 dict 保存数据库中所有的键值对。
 
-![redis server.jpg](https://upload-images.jianshu.io/upload_images/623378-b693e18cfadcfef2.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![redis server.jpg](/images/19_917/image13.webp)
 
 键空间的键也就是数据库的键，每个键都是一个字符串对象，而值对象可能为字符串对象、列表对象、哈希表对象、集合对象和有序集合对象中的一种对象。
 
@@ -219,4 +220,4 @@ Redis 服务器都有多个 Redis 数据库，每个Redis 数据都有自己独�
 
 通过过期字典，Redis 可以直接判断一个键是否过期，首先查看该键是否存在于过期字典，如果存在，则比较该键的过期时间和当前服务器时间戳，如果大于，则该键过期，否则未过期。
 
-![](https://upload-images.jianshu.io/upload_images/623378-97c3bd968d848717.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](images/logo.png)

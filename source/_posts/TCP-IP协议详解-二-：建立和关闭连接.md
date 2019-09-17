@@ -1,10 +1,11 @@
 ---
 title: TCP/IP协议详解(二)：建立和关闭连接
-date: 2016-06-15 15:15:36
 tags:
-	- TCP/IP
+  - TCP/IP
 categories:
-	- 网络
+  - 网络
+abbrlink: a5f1cf16
+date: 2016-06-15 15:15:36
 ---
 作者： [remcarpediem](http://ztelur.github.io/)
 联系方式：[segmentfault](https://segmentfault.com/u/remcarpediem)，[csdn](http://blog.csdn.net/u012422440)，[简书](http://www.jianshu.com/users/481d9f540fb9/latest_articles)

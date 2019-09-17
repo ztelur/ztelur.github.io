@@ -1,10 +1,11 @@
 ---
 title: 'Netty源码(一):Netty中的Buffer'
-date: 2017-03-22 23:09:21
-tags: 
-	- Netty
+tags:
+  - Netty
 categories:
-	- NIO
+  - NIO
+abbrlink: bf1a30e4
+date: 2017-03-22 23:09:21
 ---
 
  最近我学习了NIO相关的知识,然后发现了Netty这个基于NIO的网络应用框架,于是就研究起Netty框架源码,来好好体会一下网络框架的设计理念和思想.

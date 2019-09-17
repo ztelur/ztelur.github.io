@@ -1,9 +1,11 @@
+---
 title: Android Scroll详解(二)：OverScroller实战
-date: 2016-04-07 22:58:49
-tags: 
-	- scroll
+tags:
+  - scroll
 categories:
-	- Android
+  - Android
+abbrlink: e2cc6893
+date: 2016-04-07 22:58:49
 ---
 作者： [ztelur](http://www.jianshu.com/users/481d9f540fb9/latest_articles)
 联系方式：[segmentfault](https://segmentfault.com/u/remcarpediem)，[csdn](http://blog.csdn.net/u012422440)，[github](http://ztelur.github.io/)

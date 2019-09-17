@@ -1,9 +1,11 @@
+---
 title: Material Design 标注图
-date: 2016-01-01 18:40:33
-tags: 
-	- Material Design
+tags:
+  - Material Design
 categories:
-	- 设计
+  - 设计
+abbrlink: 217ca59f
+date: 2016-01-01 18:40:33
 ---
 
 &emsp;最近发现自己在实现产品需求时,在界面元素的细节部分把握不够准确,经常被leader告知需要微调一下界面元素的各类尺寸.虽然导致这个因素的最重要的原因是我场的设计太懒,不给标注,但是作为一个终端工程师,了解并掌握足够的设计相关的知识还是十分必要的,于是最近就开始研究其google的Material Design设计风格.

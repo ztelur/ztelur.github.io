@@ -1,9 +1,11 @@
+---
 title: Android文件存储位置简述
-date: 2015-12-12 17:11:54
-tags: 
-	- 文件系统
+tags:
+  - 文件系统
 categories:
-	- Android
+  - Android
+abbrlink: b17c24a6
+date: 2015-12-12 17:11:54
 ---
 
 &emsp;最近一段时间,工作和学习方面都比较忙,所以,博客方面有一段时间没有投入时间啦,今天学习了一下android文件存储方面的知识,主要是`Internal Storage`和`External Storage`的相关特性.主要知识来自android的官方文档和其他人的博客.
