@@ -17,17 +17,17 @@
 <meta property="og:site_name" content="程序员历小冰">
 <meta property="og:description" content="&amp;emsp;限流是保护高并发系统的三把利器之一，另外两个是缓存和降级。限流在很多场景中用来限制并发和请求量，比如说秒杀抢购，保护自身系统和下游系统不被巨型流量冲垮等。 &amp;emsp;限流的目的是通过对并发访问/请求进行限速或者一个时间窗口内的的请求进行限速来保护系统，一旦达到限制速率则可以拒绝服务或进行流量整形。 &amp;emsp;常用的限流方式和场景有：限制总并发数（比如数据库连接池、线程池）、限制瞬时">
 <meta property="og:locale" content="Chinese">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-1a91321c15f084d6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-d8ca6373e1fbddae.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-992f9c0b0ab82143.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-44407d9b565e50f7.jpeg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-2a6a0ff51b95cd29.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-7d960275042f309d.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:updated_time" content="2019-09-15T15:43:26.000Z">
+<meta property="og:image" content="http://remcarpediem.net/images/19_923/image1.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_923/image2.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_923/image3.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_923/image4.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_923/image5.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/logo.png">
+<meta property="og:updated_time" content="2019-09-23T14:42:05.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="超详细的Guava RateLimiter限流原理解析">
 <meta name="twitter:description" content="&amp;emsp;限流是保护高并发系统的三把利器之一，另外两个是缓存和降级。限流在很多场景中用来限制并发和请求量，比如说秒杀抢购，保护自身系统和下游系统不被巨型流量冲垮等。 &amp;emsp;限流的目的是通过对并发访问/请求进行限速或者一个时间窗口内的的请求进行限速来保护系统，一旦达到限制速率则可以拒绝服务或进行流量整形。 &amp;emsp;常用的限流方式和场景有：限制总并发数（比如数据库连接池、线程池）、限制瞬时">
-<meta name="twitter:image" content="https://upload-images.jianshu.io/upload_images/623378-1a91321c15f084d6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta name="twitter:image" content="http://remcarpediem.net/images/19_923/image1.webp">
   <!-- build:css css/screen.css -->
 
   <link rel="stylesheet" href="/css/screen.css">
@@ -102,8 +102,8 @@
 
       <!-- 
       <section class="post-updated">
-  Last updated on <time datetime="2019-09-15T15:43:26.000Z" itemprop="dateModified">
-      2019-09-15
+  Last updated on <time datetime="2019-09-23T14:42:05.000Z" itemprop="dateModified">
+      2019-09-23
   </time>
 </section>
 
@@ -113,12 +113,12 @@
 <p>&emsp;常用的限流方式和场景有：限制总并发数（比如数据库连接池、线程池）、限制瞬时并发数（如nginx的limit_conn模块，用来限制瞬时并发连接数，Java的Semaphore也可以实现）、限制时间窗口内的平均速率（如Guava的RateLimiter、nginx的limit_req模块，限制每秒的平均速率）；其他还有如限制远程接口调用速率、限制MQ的消费速率。另外还可以根据网络连接数、网络流量、CPU或内存负载等来限流。</p>
 <p>&emsp;比如说，我们需要限制方法被调用的并发数不能超过100（同一时间并发数），则我们可以用信号量<code>Semaphore</code>实现。可如果我们要限制方法在一段时间内平均被调用次数不超过100，则需要使用<code>RateLimiter</code>。</p>
 <h3 id="限流的基础算法"><a href="#限流的基础算法" class="headerlink" title="限流的基础算法"></a>限流的基础算法</h3><p>&emsp;我们先来讲解一下两个限流相关的基本算法：漏桶算法和令牌桶算法。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-1a91321c15f084d6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="漏桶算法"></p>
+<p><img src="/images/19_923/image1.webp" alt="漏桶算法"></p>
 <p>&emsp;从上图中，我们可以看到，就像一个漏斗一样，进来的水量就好像访问流量一样，而出去的水量就像是我们的系统处理请求一样。当访问流量过大时，这个漏斗中就会积水，如果水太多了就会溢出。</p>
 <p>&emsp;漏桶算法的实现往往依赖于队列，请求到达如果队列未满则直接放入队列，然后有一个处理器按照固定频率从队列头取出请求进行处理。如果请求量大，则会导致队列满，那么新来的请求就会被抛弃。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-d8ca6373e1fbddae.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="漏桶算法示意图"></p>
+<p><img src="/images/19_923/image2.webp" alt="漏桶算法示意图"></p>
 <p>令牌桶算法则是一个存放固定容量令牌的桶，按照固定速率往桶里添加令牌。桶中存放的令牌数有最大上限，超出之后就被丢弃或者拒绝。当流量或者网络请求到达时，每个请求都要获取一个令牌，如果能够获取到，则直接处理，并且令牌桶删除一个令牌。如果获取不同，该请求就要被限流，要么直接丢弃，要么在缓冲区等待。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-992f9c0b0ab82143.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="令牌桶算法示意图"></p>
+<p><img src="/images/19_923/image3.webp" alt="令牌桶算法示意图"></p>
 <p>令牌桶和漏桶对比：</p>
 <ul>
 <li><p>令牌桶是按照固定速率往桶中添加令牌，请求是否被处理需要看桶中令牌是否足够，当令牌数减为零时则拒绝新的请求；漏桶则是按照常量固定速率流出请求，流入请求速率任意，当流入的请求数累积到漏桶容量时，则新流入的请求被拒绝；</p>
@@ -129,7 +129,7 @@
 </li>
 </ul>
 <h3 id="Guava-RateLimiter"><a href="#Guava-RateLimiter" class="headerlink" title="Guava RateLimiter"></a>Guava RateLimiter</h3><p>&emsp;<code>Guava</code>是Java领域优秀的开源项目，它包含了Google在Java项目中使用一些核心库，包含集合(Collections)，缓存(Caching)，并发编程库(Concurrency)，常用注解(Common annotations)，String操作，I/O操作方面的众多非常实用的函数。<br>&emsp;Guava的<code>RateLimiter</code>提供了令牌桶算法实现：平滑突发限流(SmoothBursty)和平滑预热限流(SmoothWarmingUp)实现。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-44407d9b565e50f7.jpeg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="类图"></p>
+<p><img src="/images/19_923/image4.webp" alt="类图"></p>
 <p>&emsp;<code>RateLimiter</code>的类图如上所示，其中<code>RateLimiter</code>是入口类，它提供了两套工厂方法来创建出两个子类。这很符合《Effective Java》中的用静态工厂方法代替构造函数的建议，毕竟该书的作者也正是Guava库的主要维护者，二者配合”食用”更佳。</p>
 
 <!-- Has Prism -->
@@ -347,7 +347,7 @@ double coolDownIntervalMicros() {
 <p>&emsp;比如<code>RateLimiter</code>的<code>stableIntervalMicros</code>为500，也就是1秒发两个令牌，storedPermits为0，nextFreeTicketMicros为155391849<code>57</code>48。线程一acquire(2)，当前时间为155391849<code>62</code>48，首先<code>resync</code>函数计算，(1553918496248 - 1553918495748)/500 = 1，所以当前可获取令牌数为1，但是由于可以预支付，所以nextFreeTicketMicros= nextFreeTicketMicro + 1 * 500 = 155391849<code>67</code>48。线程一无需等待。</p>
 <p>&emsp;紧接着，线程二也来acquire(2)，首先<code>resync</code>函数发现当前时间早于<code>nextFreeTicketMicros</code>，所以无法增加令牌数，所以需要预支付2个令牌，nextFreeTicketMicros= nextFreeTicketMicro + 2 * 500 = 155391849<code>77</code>48。线程二需要等待155391849<code>67</code>48时刻，也就是线程一获取时计算的nextFreeTicketMicros时刻。同样的，线程三获取令牌时也需要等待到线程二计算的nextFreeTicketMicros时刻。</p>
 <h4 id="平滑预热限流-1"><a href="#平滑预热限流-1" class="headerlink" title="平滑预热限流"></a>平滑预热限流</h4><p>&emsp;上述就是平滑突发限流RateLimiter的实现，下面我们来看一下加上预热缓冲期的实现原理。<br>&emsp;<code>SmoothWarmingUp</code>实现预热缓冲的关键在于其分发令牌的速率会随时间和令牌数而改变，速率会先慢后快。表现形式如下图所示，令牌刷新的时间间隔由长逐渐变短。等存储令牌数从maxPermits到达thresholdPermits时，发放令牌的时间价格也由coldInterval降低到了正常的stableInterval。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-2a6a0ff51b95cd29.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p><img src="/images/19_923/image5.webp" alt="image.png"></p>
 <p>&emsp;<code>SmoothWarmingUp</code>的相关代码如下所示，相关的逻辑都写在注释中。<br>
 <!-- Has Prism -->
 <pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; SmoothWarmingUp，等待时间就是计算上图中梯形或者正方形的面积。
@@ -399,7 +399,7 @@ double coolDownIntervalMicros() {
 }
 </code></pre></p>
 <h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp; <code>RateLimiter</code>只能用于单机的限流，如果想要集群限流，则需要引入<code>redis</code>或者阿里开源的<code>sentinel</code>中间件，请大家继续关注。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-7d960275042f309d.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><img src="/images/logo.png" alt=""></p>
 <h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
 <li><a href="https://jinnianshilongnian.iteye.com/blog/2305117" target="_blank" rel="noopener">https://jinnianshilongnian.iteye.com/blog/2305117</a></li>
 <li><a href="https://segmentfault.com/a/1190000012875897" target="_blank" rel="noopener">https://segmentfault.com/a/1190000012875897</a></li>
