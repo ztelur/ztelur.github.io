@@ -17,22 +17,23 @@
 <meta property="og:site_name" content="程序员历小冰">
 <meta property="og:description" content="HyperLogLog 是一种概率数据结构，用来估算数据的基数。数据集可以是网站访客的 IP 地址，E-mail 邮箱或者用户 ID。 基数就是指一个集合中不同值的数目，比如 a, b, c, d 的基数就是 4，a, b, c, d, a 的基数还是 4。虽然 a 出现两次，只会被计算一次。 精确的计算数据集的基数需要消耗大量的内存来存储数据集。在遍历数据集时，判断当前遍历值是否已经存在唯一方法">
 <meta property="og:locale" content="Chinese">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-b8f4e0c89739ef92.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-48360099af56a3e9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-1c42ada50080dfa6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-d926642b9f84c316.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-6cd3ae629b5142fd.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-d926642b9f84c316.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-5f366787334f019a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-71c1052a8c3bb32f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-9e92d13e759592eb.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-32e4c4283591a268.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-bb8763d3980c0377.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:updated_time" content="2019-09-15T15:43:26.000Z">
+<meta property="og:image" content="http://remcarpediem.net/images/image1.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/image2.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/image3.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/image4.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/image5.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/image6.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/image7.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/image8.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/image9.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/image10.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/image11.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/logo.png">
+<meta property="og:updated_time" content="2019-09-26T14:52:19.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="用户日活月活怎么统计 - Redis HyperLogLog 详解">
 <meta name="twitter:description" content="HyperLogLog 是一种概率数据结构，用来估算数据的基数。数据集可以是网站访客的 IP 地址，E-mail 邮箱或者用户 ID。 基数就是指一个集合中不同值的数目，比如 a, b, c, d 的基数就是 4，a, b, c, d, a 的基数还是 4。虽然 a 出现两次，只会被计算一次。 精确的计算数据集的基数需要消耗大量的内存来存储数据集。在遍历数据集时，判断当前遍历值是否已经存在唯一方法">
-<meta name="twitter:image" content="https://upload-images.jianshu.io/upload_images/623378-b8f4e0c89739ef92.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta name="twitter:image" content="http://remcarpediem.net/images/image1.webp">
   <!-- build:css css/screen.css -->
 
   <link rel="stylesheet" href="/css/screen.css">
@@ -107,8 +108,8 @@
 
       <!-- 
       <section class="post-updated">
-  Last updated on <time datetime="2019-09-15T15:43:26.000Z" itemprop="dateModified">
-      2019-09-15
+  Last updated on <time datetime="2019-09-26T14:52:19.000Z" itemprop="dateModified">
+      2019-09-26
   </time>
 </section>
 
@@ -182,21 +183,21 @@ database,type,key,size_in_bytes,encoding,num_elements,len_largest_element,expiry
 0,hash,hashmap,441326740,hashtable,10000000,8,
 </code></pre>
 <p>我们进行了两轮实验，分别插入一万数字和一千万数字，三种数据结构消耗的内存统计如下所示。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-b8f4e0c89739ef92.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="统计图表"></p>
+<p><img src="/images/image1.webp" alt="统计图表"></p>
 <p>从表中可以明显看出，一万数量级时 BitMap 消耗内存最小， 一千万数量级时 HyperLogLog 消耗内存最小，但是总体来看，HyperLogLog 消耗的内存都是 14392 字节，可见 HyperLogLog 在内存消耗方面有自己的独到之处。</p>
 <h3 id="基本原理"><a href="#基本原理" class="headerlink" title="基本原理"></a>基本原理</h3><p>HyperLogLog 是一种概率数据结构，它使用概率算法来统计集合的近似基数。而它算法的最本源则是伯努利过程。</p>
 <p>伯努利过程就是一个抛硬币实验的过程。抛一枚正常硬币，落地可能是正面，也可能是反面，二者的概率都是 1/2 。伯努利过程就是一直抛硬币，直到落地时出现正面位置，并记录下抛掷次数k。比如说，抛一次硬币就出现正面了，此时 k 为 1; 第一次抛硬币是反面，则继续抛，直到第三次才出现正面，此时 k 为 3。</p>
 <p>对于 n 次伯努利过程，我们会得到 n 个出现正面的投掷次数值 $ k_1, k_2 … k_n $, 其中这里的最大值是k_max。</p>
 <p>根据一顿数学推导，我们可以得出一个结论： $2^{k_ max}$ 来作为n的估计值。也就是说你可以根据最大投掷次数近似的推算出进行了几次伯努利过程。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-48360099af56a3e9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="示意图"></p>
+<p><img src="/images/image2.webp" alt="示意图"></p>
 <p>下面，我们就来讲解一下 HyperLogLog 是如何模拟伯努利过程，并最终统计集合基数的。</p>
 <p>HyperLogLog 在添加元素时，会通过Hash函数，将元素转为64位比特串，例如输入5，便转为101(省略前面的0，下同)。这些比特串就类似于一次抛硬币的伯努利过程。比特串中，0 代表了抛硬币落地是反面，1 代表抛硬币落地是正面，如果一个数据最终被转化了 10010000，那么从低位往高位看，我们可以认为，这串比特串可以代表一次伯努利过程，首次出现 1 的位数为5，就是抛了5次才出现正面。</p>
 <p>所以 HyperLogLog 的基本思想是利用集合中数字的比特串第一个 1 出现位置的最大值来预估整体基数，但是这种预估方法存在较大误差，为了改善误差情况，HyperLogLog中引入分桶平均的概念，计算 m 个桶的调和平均值。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-1c42ada50080dfa6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="示意图"></p>
+<p><img src="/images/image3.webp" alt="示意图"></p>
 <p>Redis 中 HyperLogLog 一共分了 2^14 个桶，也就是 16384 个桶。每个桶中是一个 6 bit 的数组，如下图所示。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-d926642b9f84c316.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="桶"></p>
+<p><img src="/images/image4.webp" alt="桶"></p>
 <p>HyperLogLog 将上文所说的 64 位比特串的低 14 位单独拿出，它的值就对应桶的序号，然后将剩下 50 位中第一次出现 1 的位置值设置到桶中。50位中出现1的位置值最大为50，所以每个桶中的 6 位数组正好可以表示该值。</p>
-<p>在设置前，要设置进桶的值是否大于桶中的旧值，如果大于才进行设置，否则不进行设置。示例如下图所示。<br><img src="https://upload-images.jianshu.io/upload_images/623378-6cd3ae629b5142fd.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="示例"></p>
+<p>在设置前，要设置进桶的值是否大于桶中的旧值，如果大于才进行设置，否则不进行设置。示例如下图所示。<br><img src="/images/image5.webp" alt="示例"></p>
 <p>此时为了性能考虑，是不会去统计当前的基数的，而是将 HyperLogLog 头的 card 属性中的标志位置为 1，表示下次进行 pfcount 操作的时候，当前的缓存值已经失效了，需要重新统计缓存值。在后面 pfcount 流程的时候，发现这个标记为失效，就会去重新统计新的基数，放入基数缓存。</p>
 <p>在计算近似基数时，就分别计算每个桶中的值，带入到上文将的 DV 公式中，进行调和平均和结果修正，就能得到估算的基数值。</p>
 <h3 id="Redis-源码分析"><a href="#Redis-源码分析" class="headerlink" title="Redis 源码分析"></a>Redis 源码分析</h3><p>我们首先来看一下 HyperLogLog 对象的定义<br>
@@ -210,30 +211,31 @@ database,type,key,size_in_bytes,encoding,num_elements,len_largest_element,expiry
 };
 </code></pre></p>
 <p>HyperLogLog 对象中的 <code>registers</code> 数组就是桶，它有两种存储结构，分别为密集存储结构和稀疏存储结构，两种结构只涉及存储和桶的表现形式，从中我们可以看到 Redis 对节省内存极致地追求。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-d926642b9f84c316.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="密集存储结构"></p>
+<p><img src="/images/image6.webp" alt="密集存储结构"></p>
 <p>我们先看相对简单的密集存储结构，它也是十分的简单明了，既然要有 2^14 个 6 bit的桶，那么我就真使用足够多的 <code>uint8_t</code> 字节去表示，只是此时会涉及到字节位置和桶的转换，因为字节有 8 位，而桶只需要 6 位。</p>
 <p>所以我们需要将桶的序号转换成对应的字节偏移量 offset_bytes 和其内部的位数偏移量 offset_bits。需要注意的是小端字节序，高位在右侧，需要进行倒转。</p>
 <p>当 offset_bits 小于等于2时，说明一个桶就在该字节内，只需要进行倒转就能得到桶的值。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-5f366787334f019a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="示意图"></p>
+<p><img src="/images/image7.webp" alt="示意图"></p>
 <p>如果 offset_bits 大于 2 ，则说明一个桶分布在两个字节内，此时需要将两个字节的内容都进行倒置，然后再进行拼接得到桶的值，如下图所示。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-71c1052a8c3bb32f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="示意图"></p>
+<p><img src="/images/image8.webp" alt="示意图"></p>
 <p>HyperLogLog 的稀疏存储结构是为了节约内存消耗，它不像密集存储模式一样，真正找了那么多个字节数组来表示2^14 个桶，而是使用特殊的字节结构来表达。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-9e92d13e759592eb.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="示意图"></p>
+<p><img src="/images/image9.webp" alt="示意图"></p>
 <p>Redis 为了方便表达稀疏存储，它将上面三种字节表示形式分别赋予了一条指令。</p>
 <ul>
 <li>ZERO : 一字节，表示连续多少个桶计数为0，前两位为标志00，后6位表示有多少个桶，最大为64。</li>
 <li>XZERO : 两个字节，表示连续多少个桶计数为0，前两位为标志01，后14位表示有多少个桶，最大为16384。</li>
 <li>VAL : 一字节，表示连续多少个桶的计数为多少，前一位为标志1，四位表示连桶内计数，所以最大表示桶的计数为32。后两位表示连续多少个桶。</li>
 </ul>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-32e4c4283591a268.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="示意图"></p>
+<p><img src="/images/image10.webp" alt="示意图"></p>
 <p>所以，一个初始状态的 HyperLogLog 对象只需要2 字节，也就是一个 XZERO 来存储其数据，而不需要消耗12K 内存。当 HyperLogLog 插入了少数元素时，可以只使用少量的 XZERO、VAL 和 ZERO 进行表示，如下图所示。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-bb8763d3980c0377.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="示意图"></p>
+<p><img src="/images/image11.webp" alt="示意图"></p>
 <p>Redis从稀疏存储转换到密集存储的条件是：</p>
 <ul>
 <li>任意一个计数值从 32 变成 33，因为 VAL 指令已经无法容纳，它能表示的计数值最大为 32</li>
 <li>稀疏存储占用的总字节数超过 3000 字节，这个阈值可以通过 hll_sparse_max_bytes 参数进行调整。</li>
 </ul>
 <p>具体 Redis 中的 HyperLogLog 源码由于涉及较多的位运算，这里就不多带大家学习了。大家对 HyperLogLog 有什么更好的理解或者问题都欢迎积极留言。</p>
+<p><img src="/images/logo.png" alt=""></p>
 <h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><p><a href="https://thoughtbot.com/blog/hyperloglogs-in-redis" target="_blank" rel="noopener">https://thoughtbot.com/blog/hyperloglogs-in-redis</a><br><a href="https://juejin.im/post/5c7fe7525188251ba53b0623" target="_blank" rel="noopener">https://juejin.im/post/5c7fe7525188251ba53b0623</a><br><a href="https://juejin.im/post/5bef9c706fb9a049c23204a3" target="_blank" rel="noopener">https://juejin.im/post/5bef9c706fb9a049c23204a3</a></p>
 
       <h3>关于图片和转载</h3>
