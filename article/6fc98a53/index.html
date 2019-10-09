@@ -20,7 +20,7 @@
 <meta property="og:image" content="http://remcarpediem.net/images/19_109/image1.png">
 <meta property="og:image" content="http://remcarpediem.net/images/19_109/image2.png">
 <meta property="og:image" content="http://remcarpediem.net/images/logo.png">
-<meta property="og:updated_time" content="2019-10-09T13:45:13.000Z">
+<meta property="og:updated_time" content="2019-10-09T13:54:16.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Spring Cloud Netflix Feign 基础应用实战">
 <meta name="twitter:description" content="&amp;emsp;微服务是软件系统架构上的一种设计风格，它倡导将一个原本独立的服务系统分成多个小型服务，这些小型服务都在独立的进程中运行，通过各个小型服务之间的协作来实现原本独立系统的所有业务功能。小型服务基于多种跨进程的方式进行通信协作，而在Spring Cloud架构中比较常见的跨进程的方式是RESTful HTTP请求和RPC调用。 &amp;emsp;RPC就是远程过程调用，它是一种通过网络从远程计算机">
@@ -109,7 +109,7 @@
 <p>&emsp;RPC和REST之间的最大差别在于RPC调用可以不依赖HTTP协议，底层直接使用TPC/IP协议进行传输，传输效率相比于REST会有一定的提升。</p>
 <h3 id="Feign简介"><a href="#Feign简介" class="headerlink" title="Feign简介"></a>Feign简介</h3><p>&emsp;<code>Feign</code>是一个声明式RESTful HTTP请求客户端，它使得编写Web服务客户端更加方便和快捷。使用Feign创建一个接口并使用Feign提供的注解修饰该接口，然后就可以使用该接口进行RESTful HTTP请求的发送。<code>Feign</code>还可以集成Ribbon和Eureka来为自己提供负载均衡和断路器的机制。</p>
 <p>&emsp;<code>Feign</code>会将带有注解的函数接口信息转化为网络请求模板，在发送网络请求之前，函数的参数值会以一定的方式设置到这些请求模板中。虽然这样的模式使得<code>Feign</code>只能支持基于文本的网络请求，但是它可以简化网络请求的实现，方便编程人员快速构建自己的网络请求架构。<br><img src="/images/19_109/image2.png" alt="Feign架构示意图"></p>
-<p>&emsp;如图5.2所示，使用<code>Feign</code>的程序的架构一般分为三个部分，分别为服务注册中心，服务提供者和服务消费者。服务提供者向服务注册中心注册自己，然后服务消费者通过<code>Feign</code>发送请求时，<code>Feign</code>会向去服务注册中心获取关于服务提供者的信息，然后再向服务提供者发送网络请求。</p>
+<p>&emsp;如上图所示，使用<code>Feign</code>的程序的架构一般分为三个部分，分别为服务注册中心，服务提供者和服务消费者。服务提供者向服务注册中心注册自己，然后服务消费者通过<code>Feign</code>发送请求时，<code>Feign</code>会向去服务注册中心获取关于服务提供者的信息，然后再向服务提供者发送网络请求。</p>
 <h3 id="代码示例"><a href="#代码示例" class="headerlink" title="代码示例"></a>代码示例</h3><h4 id="服务注册中心"><a href="#服务注册中心" class="headerlink" title="服务注册中心"></a>服务注册中心</h4><p>&emsp;<code>Feign</code>可以配合<code>eureka</code>等服务注册中心同时使用。<code>eureka</code>来作为服务注册中心，为<code>Feign</code>提供关于服务端信息的获取，比如说IP地址。关于<code>eureka</code>的具体使用可以参考第四章中关于<code>eureka</code>的快速入门介绍。</p>
 <h4 id="服务提供者"><a href="#服务提供者" class="headerlink" title="服务提供者"></a>服务提供者</h4><p>&emsp;<code>Spring Cloud Feign</code>是声明式RESTful请求客户端，所以它不会侵入服务提供者程序的实现。也就是说，服务提供者只需要提供Web Service的API接口，至于具体实现既可以是<code>Spring Controler</code>也可以是<code>Jersey</code>。我们只需要确保该服务提供者被注册到服务注册中心上。</p>
 
