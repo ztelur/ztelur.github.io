@@ -9,25 +9,26 @@
   <meta name="HandheldFriendly" content="True" />
   <meta name="MobileOptimized" content="320" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Redis 是一种内存数据库，将数据保存在内存中，读写效率要比传统的将数据保存在磁盘上的数据库要快很多。所以，监控 Redis 的内存消耗并了解 Redis 内存模型对高效并长期稳定使用 Redis 至关重要。  内存使用统计通过 info memory 命令可以获得 Redis 内存相关的指标。较为重要的指标和解释如下所示：属性名 | 属性说明— | —used_memory | Redis 分">
+  <meta name="description" content="Redis 是一种内存数据库，将数据保存在内存中，读写效率要比传统的将数据保存在磁盘上的数据库要快很多。所以，监控 Redis 的内存消耗并了解 Redis 内存模型对高效并长期稳定使用 Redis 至关重要。  内存使用统计通过 info memory 命令可以获得 Redis 内存相关的指标。较为重要的指标和解释如下所示：   当 mem_fragmentation_ratio &amp;gt; 1">
 <meta name="keywords" content="Redis">
 <meta property="og:type" content="article">
 <meta property="og:title" content="一文了解 Redis 内存监控和内存消耗">
 <meta property="og:url" content="http://remcarpediem.net/article/516957d3/index.html">
 <meta property="og:site_name" content="程序员历小冰">
-<meta property="og:description" content="Redis 是一种内存数据库，将数据保存在内存中，读写效率要比传统的将数据保存在磁盘上的数据库要快很多。所以，监控 Redis 的内存消耗并了解 Redis 内存模型对高效并长期稳定使用 Redis 至关重要。  内存使用统计通过 info memory 命令可以获得 Redis 内存相关的指标。较为重要的指标和解释如下所示：属性名 | 属性说明— | —used_memory | Redis 分">
+<meta property="og:description" content="Redis 是一种内存数据库，将数据保存在内存中，读写效率要比传统的将数据保存在磁盘上的数据库要快很多。所以，监控 Redis 的内存消耗并了解 Redis 内存模型对高效并长期稳定使用 Redis 至关重要。  内存使用统计通过 info memory 命令可以获得 Redis 内存相关的指标。较为重要的指标和解释如下所示：   当 mem_fragmentation_ratio &amp;gt; 1">
 <meta property="og:locale" content="Chinese">
 <meta property="og:image" content="http://remcarpediem.net/images/19_1014/image1.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1014/image7.jpg">
 <meta property="og:image" content="http://remcarpediem.net/images/19_1014/image2.png">
 <meta property="og:image" content="http://remcarpediem.net/images/19_1014/image3.png">
 <meta property="og:image" content="http://remcarpediem.net/images/19_1014/image4.png">
 <meta property="og:image" content="http://remcarpediem.net/images/19_1014/image5.png">
 <meta property="og:image" content="http://remcarpediem.net/images/19_1014/image6.png">
 <meta property="og:image" content="http://remcarpediem.net/images/logo.png">
-<meta property="og:updated_time" content="2019-10-15T14:44:11.000Z">
+<meta property="og:updated_time" content="2019-10-15T14:51:15.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="一文了解 Redis 内存监控和内存消耗">
-<meta name="twitter:description" content="Redis 是一种内存数据库，将数据保存在内存中，读写效率要比传统的将数据保存在磁盘上的数据库要快很多。所以，监控 Redis 的内存消耗并了解 Redis 内存模型对高效并长期稳定使用 Redis 至关重要。  内存使用统计通过 info memory 命令可以获得 Redis 内存相关的指标。较为重要的指标和解释如下所示：属性名 | 属性说明— | —used_memory | Redis 分">
+<meta name="twitter:description" content="Redis 是一种内存数据库，将数据保存在内存中，读写效率要比传统的将数据保存在磁盘上的数据库要快很多。所以，监控 Redis 的内存消耗并了解 Redis 内存模型对高效并长期稳定使用 Redis 至关重要。  内存使用统计通过 info memory 命令可以获得 Redis 内存相关的指标。较为重要的指标和解释如下所示：   当 mem_fragmentation_ratio &amp;gt; 1">
 <meta name="twitter:image" content="http://remcarpediem.net/images/19_1014/image1.png">
   <!-- build:css css/screen.css -->
 
@@ -103,7 +104,7 @@
 
       <!-- 
       <section class="post-updated">
-  Last updated on <time datetime="2019-10-15T14:44:11.000Z" itemprop="dateModified">
+  Last updated on <time datetime="2019-10-15T14:51:15.000Z" itemprop="dateModified">
       2019-10-15
   </time>
 </section>
@@ -111,7 +112,8 @@
        -->
       <p>Redis 是一种内存数据库，将数据保存在内存中，读写效率要比传统的将数据保存在磁盘上的数据库要快很多。所以，监控 Redis 的内存消耗并了解 Redis 内存模型对高效并长期稳定使用 Redis 至关重要。</p>
 <p><img src="/images/19_1014/image1.png" alt=""></p>
-<h3 id="内存使用统计"><a href="#内存使用统计" class="headerlink" title="内存使用统计"></a>内存使用统计</h3><p>通过 info memory 命令可以获得 Redis 内存相关的指标。较为重要的指标和解释如下所示：<br>属性名 | 属性说明<br>— | —<br>used_memory | Redis 分配器分配的内存总量，也就是内部存储的所有数据内存占用量<br>used_memory_human |  以可读的格式返回 used_memory<br>used_memory_rss | 从操作系统的角度显示 Redis 进程占用的物理内存总量<br>used_memory_rss_human | used_memory_rss 的用户宜读格式的显示<br>used_memory_peak | 内存使用的最大值，表示 used_memory 的峰值<br>used_memory_peak_human | 以可读的格式返回 used_memory_peak的值<br>used_memory_lua  | Lua 引擎所消耗的内存大小。<br>mem_fragmentation_ratio | used_memory_rss / used_memory 的比值，可以代表内存碎片率<br>maxmemory | Redis 能够使用的最大内存上限，0表示没有限制，以字节为单位。<br>maxmemory_policy | Redis 使用的内存回收策略，可以是 noeviction、allkeys-lru、volatile-lru、allkeys-random、volatile-random 或者 volatile-ttl。默认是noeviction，也就是不会回收。</p>
+<h3 id="内存使用统计"><a href="#内存使用统计" class="headerlink" title="内存使用统计"></a>内存使用统计</h3><p>通过 info memory 命令可以获得 Redis 内存相关的指标。较为重要的指标和解释如下所示：</p>
+<p><img src="/images/19_1014/image7.jpg" alt=""></p>
 <p><img src="/images/19_1014/image2.png" alt=""></p>
 <p>当 mem_fragmentation_ratio &gt; 1 时，说明有部分内存并没有用于数据存储，而是被内存碎片所消耗，如果该值很大，说明碎片率严重。<br>当 mem_fragmentation_ratio &lt; 1 时，这种情况一般出现在操作系统把 Redis 内存交换 (swap) 到硬盘导致，出现这种情况要格外关注，由于硬盘速度远远慢于内存，Redis 性能会变得很差，甚至僵死。</p>
 <p>当 Redis 内存超出可以获得内存时，操作系统会进行 swap，将旧的页写入硬盘。从硬盘读写大概比从内存读写要慢5个数量级。used_memory 指标可以帮助判断 Redis 是否有被swap的风险或者它已经被swap。</p>
