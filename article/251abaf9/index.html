@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>View的三次measure,两次layout和一次draw | 程序员历小冰</title>
+  <meta name="description" content="remcarpediem" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="&amp;emsp;我在《Android视图结构》这篇文章中已经描述了Activity,Window和View在视图架构方面的关系。前天，我突然想到为什么在setContentView中能够调用findViewById函数？View那时不是还没有被加载，测量，布局和绘制啊。然后就搜索了相关的条目，发现findViewById只需要在inflate结束之后就可以。于是，我整理了Activity生命周期和Vi">
+<meta name="keywords" content="View,ViewRoot">
+<meta property="og:type" content="article">
+<meta property="og:title" content="View的三次measure,两次layout和一次draw">
+<meta property="og:url" content="http://remcarpediem.net/article/251abaf9/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="&amp;emsp;我在《Android视图结构》这篇文章中已经描述了Activity,Window和View在视图架构方面的关系。前天，我突然想到为什么在setContentView中能够调用findViewById函数？View那时不是还没有被加载，测量，布局和绘制啊。然后就搜索了相关的条目，发现findViewById只需要在inflate结束之后就可以。于是，我整理了Activity生命周期和Vi">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20161030-111.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20161030-blog-measure1.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20161030-%E7%AC%AC%E4%B8%80%E6%AC%A1.png">
+<meta property="og:updated_time" content="2019-09-15T15:43:26.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="View的三次measure,两次layout和一次draw">
+<meta name="twitter:description" content="&amp;emsp;我在《Android视图结构》这篇文章中已经描述了Activity,Window和View在视图架构方面的关系。前天，我突然想到为什么在setContentView中能够调用findViewById函数？View那时不是还没有被加载，测量，布局和绘制啊。然后就搜索了相关的条目，发现findViewById只需要在inflate结束之后就可以。于是，我整理了Activity生命周期和Vi">
+<meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/20161030-111.png">
+  <!-- build:css css/screen.css -->
+
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
+  
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="程序员历小冰">
+  
+  
+  
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+
+
+<body class="post-template">
+
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home" role="presentation"><a href="/">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios" role="presentation"><a href="/archives">Archives</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
+</div>
+<span class="nav-cover"></span>
+
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
+        
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
+</header>
+
+  
+
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">View的三次measure,两次layout和一次draw</h1>
+      <section class="post-meta">
+  <time datetime="2016-10-30T08:37:22.000Z" itemprop="datePublished" class="post-date">
+      2016-10-30
+  </time>
+  
+  
+  
+  <a href="/tags/View/">View</a> 
+  
+  <a href="/tags/ViewRoot/">ViewRoot</a>
+  
+  
+</section>
+
+    </header>
+    <section class="post-content" itemprop="description articleBody">
+      
+
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2019-09-15T15:43:26.000Z" itemprop="dateModified">
+      2019-09-15
+  </time>
+</section>
+
+       -->
+      <p>&emsp;我在<a href="http://ztelur.github.io/2016/04/17/Android%E8%A7%86%E5%9B%BE%E6%9E%B6%E6%9E%84%E8%AF%A6%E8%A7%A3/" target="_blank" rel="noopener">《Android视图结构》</a>这篇文章中已经描述了<code>Activity</code>,<code>Window</code>和<code>View</code>在视图架构方面的关系。前天，我突然想到为什么在<code>setContentView</code>中能够调用<code>findViewById</code>函数？<code>View</code>那时不是还没有被加载，测量，布局和绘制啊。然后就搜索了相关的条目，发现<code>findViewById</code>只需要在<code>inflate</code>结束之后就可以。于是，我整理了Activity生命周期和View的生命周期的关系，并再次做一下总结。</p>
+<p> 为了节约你的时间，本篇文章的主要内容为：</p>
+<ul>
+<li>Activity的生命周期和它包含的View的生命周期的关系</li>
+<li>Activity初始化时View为什么会三次measure，两次layout但只一次draw？</li>
+<li>ViewRoot的初始化过程</li>
+</ul>
+<h4 id="Activity的生命周期和View的生命周期"><a href="#Activity的生命周期和View的生命周期" class="headerlink" title="Activity的生命周期和View的生命周期"></a>Activity的生命周期和View的生命周期</h4><p> 我通过一个简单的demo来验证<code>Activity</code>生命周期方法和<code>View</code>的生命周期方法的调用先后顺序。请看如下截图<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/20161030-111.png" alt="截图"></p>
+<p>&emsp;在<code>onCreate</code>函数中，我们通常都调用<code>setContentView</code>来设置布局文件，此时Android系统就会读取布局文件,但是视图此时并没有加载到<code>Window</code>上，并且也没有进入自己的生命周期。<br> 只有等到<code>Activity</code>进入resume状态时，它所拥有的<code>View</code>才会加载到<code>Window</code>上，并进行测量，布局和绘制。所以我们会发现相关函数的调用顺序是：</p>
+<ul>
+<li>onResume(Activity)</li>
+<li>onPostResume(Activity)</li>
+<li>onAttachedToWindow(View)</li>
+<li>onMeasure(View)</li>
+<li>onMeasure(View)</li>
+<li>onLayout(View)</li>
+<li>onSizeChanged(View)</li>
+<li>onMeasure(View)</li>
+<li>onLayout(View)</li>
+<li>onDraw(View)</li>
+</ul>
+<p> 大家会发现，为什么<code>onMeasure</code>先调用了两次，然后再调用<code>onLayout</code>函数，最后还有在依次调用<code>onMeasure</code>,<code>onLayout</code>和<code>onDraw</code>函数呢？</p>
+<h4 id="ViewGroup的measure"><a href="#ViewGroup的measure" class="headerlink" title="ViewGroup的measure"></a>ViewGroup的measure</h4><p> 大家应该都知道，有些<code>ViewGroup</code>可能会让自己的子视图测量两次。比如说，父视图先让每个子视图自己测量，使用<code>View.MeasureSpec.UNSPECIFIED</code>，然后在根据每个子视图希望得到的大小不超过父视图的一些限制，就让子视图得到自己希望的大小，否则就用其他尺寸来重新测量子视图。这一类的视图有<code>FrameLayout</code>,<code>RelativeLayout</code>等。<br> 在《Android视图结构》中，我们已经知道Android视图树的根节点是<code>DecorView</code>,而它是<code>FrameLayout</code>的子类，所以就会让其子视图绘制两次，所以<code>onMeasure</code>函数会先被调用两次。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">&#x2F;&#x2F; FrameLayout的onMeasure函数，DecorView的onMeasure会调用这个函数。
+@Override
+protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+    int count = getChildCount();
+    .....
+    for (int i = 0; i &lt; count; i++) {
+        final View child = getChildAt(i);
+        if (mMeasureAllChildren || child.getVisibility() != GONE) {
+            measureChildWithMargins(child, widthMeasureSpec, 0, heightMeasureSpec, 0);
+            ......
+        }
+    }
+    ........
+    count = mMatchParentChildren.size();
+    if (count &gt; 1) {
+        for (int i = 0; i &lt; count; i++) {
+            ........
+            child.measure(childWidthMeasureSpec, childHeightMeasureSpec);
+        }
+    }
+}
+</code></pre>
+<p>&emsp;你以为到了这里就能解释通View初始化时的三次measure,两次layout却只一次draw吗？那你就太天真了！我们都知道，视图结构中不仅仅是<code>DecorView</code>是<code>FrameLayout</code>,还有其他的需要两次measure子视图的<code>ViewGroup</code>,如果每次都导致子视图两次measure,那效率就太低了。所以<code>View</code>的<code>measure</code>函数中有相关的机制来防止这种情况。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">
+public final void measure(int widthMeasureSpec, int heightMeasureSpec) {
+  ......
+  &#x2F;&#x2F; 当FLAG_FORCE_LAYOUT位为１时，就是当前视图请求一次布局操作
+  &#x2F;&#x2F;或者当前当前widthSpec和heightSpec不等于上次调用时传入的参数的时候
+  &#x2F;&#x2F;才进行从新绘制。
+    if (forceLayout || !matchingSize &amp;&amp;
+            (widthMeasureSpec != mOldWidthMeasureSpec ||
+                    heightMeasureSpec != mOldHeightMeasureSpec)) {
+            ......
+            onMeasure(widthMeasureSpec, heightMeasureSpec);
+            ......
+    }
+    ......
+}
+</code></pre>
+<p>&emsp;源码看到这里，我几乎失望的眼泪掉下来！没办法，只能再想其他的方法来分析这个问题。</p>
+<h4 id="断点调试大法好"><a href="#断点调试大法好" class="headerlink" title="断点调试大法好"></a>断点调试大法好</h4><p>&emsp;为了分析函数调用的层级关系，我想到了断点调试法。于是，我果断在<code>onMeasure</code>和<code>onLayout</code>函数中设置了断点，然后进行调试。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20161030-blog-measure1.png" alt="函数调用帧"></p>
+<p>&emsp;在《Android视图架构》一文中，我们知道<code>ViewRoot</code>是<code>DecorView</code>的父视图，虽然它自己并不是一个<code>View</code>，但是它实现了<code>ViewParent</code>的接口，Android正是通过它来实现整个视图系统的初始化工作。而它的<code>performTraversals</code>函数就是视图初始化的关键函数。<br>&emsp;对比两次<code>onMeasure</code>被调用时的函数调用帧，我们可以轻易发现<code>ViewRootImpl</code>的<code>performTraversals</code>函数中直接和间接的调用了两次<code>performMeasure</code>函数，从而导致了<code>View</code>最开始的两次measure过程。<br>&emsp;然后在相同的<code>performTraversals</code>函数中会调用<code>performLayout</code>函数，从而导致<code>View</code>进行一轮layout过程。<br>&emsp;但是为什么这次<code>performTraversals</code>并没有触发<code>View</code>的draw过程呢?反而是<code>View</code>又将重新进行一轮measure,layout过程之后才进行draw。</p>
+<h4 id="两次performTraversals"><a href="#两次performTraversals" class="headerlink" title="两次performTraversals"></a>两次performTraversals</h4><p>&emsp;通过断点调试，我们发现在<code>View</code>初始化的过程中，系统调用了两次<code>performTraversals</code>函数，第一次<code>performTraversals</code>函数导致了View的前两次的<code>onMeasure</code>函数调用和第一次的<code>onLayout</code>函数调用。后一次的<code>performTraversals</code>函数导致了最后的<code>onMeasure</code>,<code>onLayout</code>,和<code>onDraw</code>函数的调用。但是，第二次<code>performTraversals</code>为什么会被触发呢？我们研究一下其源码就可知道。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">
+private void performTraversals() {
+    ......
+    boolean newSurface = false;
+    &#x2F;&#x2F;TODO:决定是否让newSurface为true,导致后边是否让performDraw无法被调用，而是重新scheduleTraversals
+    if (!hadSurface) {
+        if (mSurface.isValid()) {
+            &#x2F;&#x2F; If we are creating a new surface, then we need to
+            &#x2F;&#x2F; completely redraw it.  Also, when we get to the
+            &#x2F;&#x2F; point of drawing it we will hold off and schedule
+            &#x2F;&#x2F; a new traversal instead.  This is so we can tell the
+            &#x2F;&#x2F; window manager about all of the windows being displayed
+            &#x2F;&#x2F; before actually drawing them, so it can display then
+            &#x2F;&#x2F; all at once.
+            newSurface = true;
+                    .....
+        }
+    }
+            ......
+    if (!cancelDraw &amp;&amp; !newSurface) {
+        if (!skipDraw || mReportNextDraw) {
+            ......
+            performDraw();
+        }
+    } else {
+        if (viewVisibility == View.VISIBLE) {
+            &#x2F;&#x2F; Try again
+            scheduleTraversals();
+        } else if (mPendingTransitions != null &amp;&amp; mPendingTransitions.size() &gt; 0) {
+            for (int i = 0; i &lt; mPendingTransitions.size(); ++i) {
+                mPendingTransitions.get(i).endChangingAnimations();
+            }
+            mPendingTransitions.clear();
+        }
+    }
+    ......
+}
+</code></pre>
+<p>&emsp;由源代码可以看出，当<code>newSurface</code>为真时，<code>performTraversals</code>函数并不会调用<code>performDraw</code>函数，而是调用<code>scheduleTraversals</code>函数，从而再次调用一次<code>performTraversals</code>函数，从而再次进行一次测量，布局和绘制过程。<br>&emsp;我们由断点调试可以轻易看到，第一次<code>performTraversals</code>时的<code>newSurface</code>为真，而第二次时是假。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20161030-%E7%AC%AC%E4%B8%80%E6%AC%A1.png" alt="断点调试截图"></p>
+<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>&emsp;虽然我已经通过源码得知View初始化时measure三次，layout两次，draw一次的原因，但是Android系统设计时，为什么要将整个初始化过程设计成这样？我却还没有明白，为什么当<code>Surface</code>为新的时候，要推迟绘制，重新进行一轮初始化，这些可能都要涉及到<code>Surface</code>的相关内容，我之后要继续学习相关内容！</p>
+
+      <h3>关于图片和转载</h3>
+
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
+
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
+
+      <h3>关于评论和留言</h3>
+
+      如果对本文 <a href="http://remcarpediem.net/article/251abaf9/">View的三次measure,两次layout和一次draw</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/article/251abaf9/">View的三次measure,两次layout和一次draw</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
+    <footer class="post-footer">
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">历小冰's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">历小冰</a></h4>
+        
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> 程序员历小冰</a></span> 
+        </div>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/article/251abaf9/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/article/251abaf9/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/article/251abaf9/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
+      
+<div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script src="/js/md5.min.js"></script>
+<script>
+    const gitalk = new Gitalk({
+    clientID: 'ece2d2cd7c5f768a4c22',
+    clientSecret: '1ad562557353b888b4b622239d45150c5df6d5ee',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: md5("http://remcarpediem.net/article/251abaf9/"),
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
+
+gitalk.render('gitalk-container')
+</script>
+
+    </footer>
+  </article>
+</main>
+<aside class="read-next">
+ 
+    
+    <a class="read-next-story no-cover" href="http://remcarpediem.net/article/fd3a41af/">
+      <section class="post">
+        <h2>重要的是商业，不是应用(Building a bussiness, not an app)</h2>
+        <p>
+            
+              
+本文是翻译文章，原文地址如下：地址。转载请表明原文作者地址。
+
+&emsp;导读：两个例子：Unread是很流行的RSS app，开发者每个月赚1750刀，还不如去找份工作；Pleco是给老外学汉语的app，界面不算精致，但赚的盆满钵满
+&emsp;过去几周来独立开发者对应用商店的焦虑之潮再次袭来，并且比以往来的更加猛烈。导致这次焦虑之潮的主要原因有：手游金卡戴珊:好莱坞今年收入将要达到两亿美元；与之相反的是Brent Simmos在 ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+
+
+  
+    
+    <a class="read-next-story no-cover" href="http://remcarpediem.net/article/e21717d9/">
+      <section class="post">
+        <h2>Android性能优化(一):TraceView</h2>
+        <p>
+            
+              &emsp;最近，我准备好好研究一下Android性能优化方面的相关知识，准备从应用流畅度开始，边看《移动App性能评测与优化》边自己实践，希望可以补足一下自己在优化这方面的空白。&emsp;工欲善其事必先利其器，我先学习了TraceView这个大神器的使用方法。下面就来总结一下。&emsp;为了节省你的时间，本文主要内容如下：
+
+TraceView两种使用方法
+TraceView各项数据的含义
+
+TraceView使用方法&emsp; ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+</aside>
+
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">程序员历小冰</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
+</footer>
+
+  </div>
+  <script type="text/javascript" src="/js/jquery-2.0.3.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
+
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
+
+<script type="text/javascript">
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
+</script>
+
+
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+</body>
+</html>

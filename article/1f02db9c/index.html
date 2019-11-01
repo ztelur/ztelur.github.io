@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>OkHttp解析系列-开篇 | 程序员历小冰</title>
+  <meta name="description" content="remcarpediem" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="背景&amp;emsp;前几天使用react-native遇到了底层okhttp库cookie无法保存的问题，由于自己对http和okhttp也不是很了解.所以想开一个系列的博文，借助详细解析okhttp的详细解析来梳理一下http相关的知识。 Okhttp&amp;emsp;Okhttp是很火而且效率很好的一个android的网络库，被很多app或者开源库使用或者集成，比如react-native,官网地址如下">
+<meta name="keywords" content="OkHttp">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OkHttp解析系列-开篇">
+<meta property="og:url" content="http://remcarpediem.net/article/1f02db9c/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="背景&amp;emsp;前几天使用react-native遇到了底层okhttp库cookie无法保存的问题，由于自己对http和okhttp也不是很了解.所以想开一个系列的博文，借助详细解析okhttp的详细解析来梳理一下http相关的知识。 Okhttp&amp;emsp;Okhttp是很火而且效率很好的一个android的网络库，被很多app或者开源库使用或者集成，比如react-native,官网地址如下">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://7xjsjy.com1.z0.glb.clouddn.com/okhttpOkHttp%E5%8D%9A%E5%AE%A2.jpg">
+<meta property="og:updated_time" content="2019-09-15T15:43:26.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="OkHttp解析系列-开篇">
+<meta name="twitter:description" content="背景&amp;emsp;前几天使用react-native遇到了底层okhttp库cookie无法保存的问题，由于自己对http和okhttp也不是很了解.所以想开一个系列的博文，借助详细解析okhttp的详细解析来梳理一下http相关的知识。 Okhttp&amp;emsp;Okhttp是很火而且效率很好的一个android的网络库，被很多app或者开源库使用或者集成，比如react-native,官网地址如下">
+<meta name="twitter:image" content="http://7xjsjy.com1.z0.glb.clouddn.com/okhttpOkHttp%E5%8D%9A%E5%AE%A2.jpg">
+  <!-- build:css css/screen.css -->
+
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
+  
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="程序员历小冰">
+  
+  
+  
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+
+
+<body class="post-template">
+
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home" role="presentation"><a href="/">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios" role="presentation"><a href="/archives">Archives</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
+</div>
+<span class="nav-cover"></span>
+
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
+        
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
+</header>
+
+  
+
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">OkHttp解析系列-开篇</h1>
+      <section class="post-meta">
+  <time datetime="2015-11-07T03:55:04.000Z" itemprop="datePublished" class="post-date">
+      2015-11-07
+  </time>
+  
+  
+  
+  <a href="/tags/OkHttp/">OkHttp</a>
+  
+  
+</section>
+
+    </header>
+    <section class="post-content" itemprop="description articleBody">
+      
+
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2019-09-15T15:43:26.000Z" itemprop="dateModified">
+      2019-09-15
+  </time>
+</section>
+
+       -->
+      <h4 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h4><p>&emsp;前几天使用<code>react-native</code>遇到了底层<code>okhttp</code>库<code>cookie</code>无法保存的问题，由于自己对http和<code>okhttp</code>也不是很了解.所以想开一个系列的博文，借助详细解析<code>okhttp</code>的详细解析来梳理一下http相关的知识。</p>
+<h4 id="Okhttp"><a href="#Okhttp" class="headerlink" title="Okhttp"></a>Okhttp</h4><p>&emsp;<code>Okhttp</code>是很火而且效率很好的一个android的网络库，被很多app或者开源库使用或者集成，比如<code>react-native</code>,官网地址如下<a href="http://square.github.io/okhttp/" target="_blank" rel="noopener">戳我</a>.</p>
+<h4 id="UML类图"><a href="#UML类图" class="headerlink" title="UML类图"></a>UML类图</h4><p>&emsp;事先声明，我画的这张UML类图不够标准，正方形的虚线边框是我自己添加上去的，只是逻辑上或者概念上的分类，标示这些类大致是属于哪个模块的，而且也没有添加各个类之间的依赖关系。之所以使用这张图，主要是希望表面<code>okhttp</code>代码的不同模块吧。也算为以后的博客进行内容区分。<br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/okhttpOkHttp%E5%8D%9A%E5%AE%A2.jpg" alt="enter image description here"></p>
+<h4 id="Okhttp模块"><a href="#Okhttp模块" class="headerlink" title="Okhttp模块"></a>Okhttp模块</h4><p>&emsp;之后的博客，就会按照上图的不同模块来进行，首先是<code>OkHttp</code>的主要框架模块，然后是请求和响应相关的模块，然后是关于http机制的模块，最后是关于http报文格式的模块。现在计划是如此，可能在博文之间会添加一些http知识。就这么愉快的决定啦。</p>
+
+      <h3>关于图片和转载</h3>
+
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
+
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
+
+      <h3>关于评论和留言</h3>
+
+      如果对本文 <a href="http://remcarpediem.net/article/1f02db9c/">OkHttp解析系列-开篇</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/article/1f02db9c/">OkHttp解析系列-开篇</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
+    <footer class="post-footer">
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">历小冰's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">历小冰</a></h4>
+        
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> 程序员历小冰</a></span> 
+        </div>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/article/1f02db9c/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/article/1f02db9c/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/article/1f02db9c/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
+      
+<div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script src="/js/md5.min.js"></script>
+<script>
+    const gitalk = new Gitalk({
+    clientID: 'ece2d2cd7c5f768a4c22',
+    clientSecret: '1ad562557353b888b4b622239d45150c5df6d5ee',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: md5("http://remcarpediem.net/article/1f02db9c/"),
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
+
+gitalk.render('gitalk-container')
+</script>
+
+    </footer>
+  </article>
+</main>
+<aside class="read-next">
+ 
+    
+    <a class="read-next-story no-cover" href="http://remcarpediem.net/article/65079f86/">
+      <section class="post">
+        <h2>React Native Android Cookie Problem</h2>
+        <p>
+            
+              背景&emsp;最近使用react native 来写一个公司内部使用的app，使用fetch去登陆，发现在android平台上无法获取cookie，iOS平台上却可以。即使是response.headers.get()也获得不了相关信息。于是上网google并且阅读源码，终于找到了问题出现的原因和解决方案。
+问题原因&emsp;我们查看native react的fetch.js的代码，发现它的底层是使用XmlHttpRequest来实 ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+
+
+  
+    
+    <a class="read-next-story no-cover" href="http://remcarpediem.net/article/d647642b/">
+      <section class="post">
+        <h2>OkHttp解析系列-重定向和出错重试</h2>
+        <p>
+            
+              &emps;这是OkHttp系列博文的第一篇，之前写过一篇草稿，介绍OkHttp的整体框架，但是感觉涉及的知识太多，无法在一篇中讲述清楚，所以，之后的博文都只关注某一方面的知识，争取文章短小精悍。&emsp;今天主要研究一下OkHttp发送Http请求过程中的重定向和出错重试，主要涉及的源码文件有Call.java``HttpEngine.java。&emsp;我们今天研究Call的Response getResponse(Reques ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+</aside>
+
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">程序员历小冰</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
+</footer>
+
+  </div>
+  <script type="text/javascript" src="/js/jquery-2.0.3.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
+
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
+
+<script type="text/javascript">
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
+</script>
+
+
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+</body>
+</html>

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>Android 图像处理(一) : Shader | 程序员历小冰</title>
+  <meta name="description" content="remcarpediem" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="&amp;emsp;之前一段时间，我都在研究Android自定义View的相关知识，随着逐渐的深入，渐渐了解到了一些Android图像处理的知识，主要是Bitmap,Canvas,Shader,Matric,ColorFilter和Xfermode的使用。所以准备写一系列文章介绍一下这些方面的知识。 图像处理相关概念介绍&amp;emsp;要想了解Shader的概念，首先要了解Android图像处理中几个比较重要">
+<meta name="keywords" content="Shader,图像处理">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Android 图像处理(一) : Shader">
+<meta property="og:url" content="http://remcarpediem.net/article/321580a2/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="&amp;emsp;之前一段时间，我都在研究Android自定义View的相关知识，随着逐渐的深入，渐渐了解到了一些Android图像处理的知识，主要是Bitmap,Canvas,Shader,Matric,ColorFilter和Xfermode的使用。所以准备写一系列文章介绍一下这些方面的知识。 图像处理相关概念介绍&amp;emsp;要想了解Shader的概念，首先要了解Android图像处理中几个比较重要">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-img.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-clamp.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-mirror.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-repeta.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-clammirror.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-linegradient1.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-linegradient2.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-linegradient5.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-linegrandient6.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-sweepgradient.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-radialgradient.png">
+<meta property="og:updated_time" content="2019-09-15T15:43:26.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Android 图像处理(一) : Shader">
+<meta name="twitter:description" content="&amp;emsp;之前一段时间，我都在研究Android自定义View的相关知识，随着逐渐的深入，渐渐了解到了一些Android图像处理的知识，主要是Bitmap,Canvas,Shader,Matric,ColorFilter和Xfermode的使用。所以准备写一系列文章介绍一下这些方面的知识。 图像处理相关概念介绍&amp;emsp;要想了解Shader的概念，首先要了解Android图像处理中几个比较重要">
+<meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-img.png">
+  <!-- build:css css/screen.css -->
+
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
+  
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="程序员历小冰">
+  
+  
+  
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+
+
+<body class="post-template">
+
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home" role="presentation"><a href="/">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios" role="presentation"><a href="/archives">Archives</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
+</div>
+<span class="nav-cover"></span>
+
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
+        
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
+</header>
+
+  
+
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">Android 图像处理(一) : Shader</h1>
+      <section class="post-meta">
+  <time datetime="2016-08-26T07:09:18.000Z" itemprop="datePublished" class="post-date">
+      2016-08-26
+  </time>
+  
+  
+  
+  <a href="/tags/Shader/">Shader</a> 
+  
+  <a href="/tags/图像处理/">图像处理</a>
+  
+  
+</section>
+
+    </header>
+    <section class="post-content" itemprop="description articleBody">
+      
+
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2019-09-15T15:43:26.000Z" itemprop="dateModified">
+      2019-09-15
+  </time>
+</section>
+
+       -->
+      <p>&emsp;之前一段时间，我都在研究Android自定义View的相关知识，随着逐渐的深入，渐渐了解到了一些Android图像处理的知识，主要是<code>Bitmap</code>,<code>Canvas</code>,<code>Shader</code>,<code>Matric</code>,<code>ColorFilter</code>和<code>Xfermode</code>的使用。所以准备写一系列文章介绍一下这些方面的知识。</p>
+<h4 id="图像处理相关概念介绍"><a href="#图像处理相关概念介绍" class="headerlink" title="图像处理相关概念介绍"></a>图像处理相关概念介绍</h4><p>&emsp;要想了解Shader的概念，首先要了解Android图像处理中几个比较重要的概念：bitmap,canvas,drawing primitive,paint。需要注意的是，上述四个词并不指android中的类，而是四个概念。<br>&emsp;bitmap指画布。画家画图时都需要一块画布，然后才会在画布上绘制各种形状和颜色，Android中的<code>Bitmap</code>就有画布的功能。比如下面这段代码。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">
+    static Bitmap makeSrc(int w,int h) {
+            Bitmap bm = Bitmap.createBitmap(w,h, Bitmap.Config.ARGB_8888);
+            Canvas c = new Canvas(bm);
+            Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+    
+            p.setColor(0xFF66AAFF);
+            c.drawRect(100,100,100,100,p);
+            return bm;
+
+}
+</code></pre></p>
+<p>&emsp;Bitmap这里就充当一个画布的作用，之后Canvas的操作都是在这个Bitmap画布进行绘制。<br>&emsp;canvas是绘制操作的集合，你可以把它理解成画家的手，通过它你可以在画布上绘制各种图像和颜色。相应的在Android的<code>Canvas</code>类中就封装了绘制相关的各种操作，比如<code>drawXXX</code>系列。<br>&emsp;drawing primitive指绘制实体或者原始内容，比如画家绘画时可能会画一个苹果，也可能只是绘制一些线段，矩形等。这些都是绘制实体。在Android中，<code>Path</code>,<code>Rect</code>,<code>Text</code>,<code>Bitmap</code>都可以充当drawing primitive的角色，因为你都可以把它们绘制到画布上。你也可以这样理解，<code>Canvas</code>中的<code>drawXXX</code>系列函数中的XXX都是指drawing primitive。<br>&emsp;paint就是指画家的神奇画笔啦。Android中的<code>Paint</code>类就充当这个角色，我们可以通过<code>Paint</code>来配置画笔的颜色，粗细，纹理等。我们系列文章主要讲解的<code>Shader</code>,<code>ColorFilter</code>,<code>Xfermode</code>三个类都和<code>Paint</code>直接相关。</p>
+<h4 id="Shader概念介绍"><a href="#Shader概念介绍" class="headerlink" title="Shader概念介绍"></a>Shader概念介绍</h4><p>&emsp;Shader,也就是所谓的着色器。它应用于计算机图形学领域，指一组提供计算机图像资源在执行绘制任务时使用的指令，<strong>用于计算图像的颜色和明暗</strong>。从技术角度来看，着色器是渲染器的一部分，它负责计算目标的颜色。以我的理解，<code>Paint</code>就是渲染器，<code>Paint.setShader</code>这个函数展示了着色器和渲染器之间的关系。下面这段代码显示了<code>Shader</code>的使用方式。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">
+    String text = &quot;Shader&quot;;
+    Bitmap bitmap = BitmapFactory.decodeResource(getResources(),R.drawable.photo);
+    BitmapShader bitmapShader = new BitmapShader(bitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+    Paint paint = new Paint();
+    paint.setShader(bitmapShader);
+    paint.setTextSize(100);
+    paint.setStrokeWidth(50);
+    canvas.drawText(text,0,text.length(),150,400,paint);
+</code></pre></p>
+<p>&emsp;上边的代码片段使用了<code>BitmapShader</code>，也就是说使用图片上相应位置的颜色进行着色。就相当于使用这个图片作为背景，字体颜色是透明色，字体在(150,400)位置进行绘制，字体最终显示的颜色就是图片中相应位置的颜色。<br>&emsp;<code>Shader.TileMode</code>是指平铺模式，一共有三种类型：<code>CLAMP</code>,<code>MIRROR</code>,<code>REPEAT</code>。构造函数中后两个参数分别规定了当绘制实体的x或ｙ轴范围超过一定范围时(比如<code>BitmapShader</code>中<code>Bitmap</code>的大小，<code>LinearGradient</code>中构造函数传入的x,y值)，着色器填充的行为。我们以<code>BitmapShader</code>为例，来讲述三种模式的区别。原图如下所示，来自于<a href="http://www.cnblogs.com/tianzhijiexian/p/4298660.html" target="_blank" rel="noopener">这个博客</a>。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-img.png" alt="使用的bitmap原图"></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">
+    Bitmap bitmap = BitmapFactory.decodeResource(getResources(),R.drawable.img);
+    BitmapShader bitmapShader = new BitmapShader(bitmap, Shader.TileMode.XXX, Shader.TileMode.XXXX);
+    Paint paint = new Paint();
+    paint.setShader(bitmapShader);
+    canvas.drawColor(Color.GRAY);
+    canvas.drawRect(0,0,800,800,paint);
+</code></pre>
+<p>&emsp;<code>Shader.TileMode.CLAMP</code>是边缘拉伸模式，它会拉伸边缘的一个像素来填充其他区域。效果图如下所示，我们可以看到，超出bitmap大小的范围都被图片边缘的颜色所填充。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-clamp.png" alt="clamp效果图"></p>
+<p>&emsp;<code>Shader.TileMode.MIRROR</code>是镜像模式，也就是说它通过镜像变化来填充其他区域。需要注意的是，<strong>TileMode是先处理y轴方向的操作，然后在进行x轴方向的操作。也就是说先进行y轴方向的镜像操作，然后在进行x轴方向上的镜像操作</strong>。不过我觉得好像先进行哪个方向上的操作并没有什么区别，最终效果是一样的。其效果图如下所示:<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-mirror.png" alt="mirror效果图"><br>&emsp;<code>Shader.TileMode.REPEAT</code>是重复模式，通过复制来填充其他区域<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-repeta.png" alt="repeat效果图"><br>&emsp;你也可以对x,y轴使用不同的<code>TileMode</code>,可以得到不同的效果。<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-clammirror.png" alt="clamp+mirro效果图"></p>
+<h3 id="Shader类型介绍"><a href="#Shader类型介绍" class="headerlink" title="Shader类型介绍"></a>Shader类型介绍</h3><p>&emsp;<code>BitmapShader</code>的用法很简单，上边的实例中也有用到，所以我们就不再详细介绍它了。</p>
+<h4 id="LinearGradient"><a href="#LinearGradient" class="headerlink" title="LinearGradient"></a>LinearGradient</h4><p>&emsp;<code>LinearGradient</code>是颜色线性渐变的着色器。它有两个构造函数：<br>&emsp;双色渐变的构造函数是</p>
+<blockquote>
+<p><code>public LinearGradient (float x0, float y0, float x1, float y1, int color0, int color1, Shader.TileMode tile)</code></p>
+</blockquote>
+<p>&emsp;参数中,（x0,y0）表示渐变的起点，（x1,y1）表示渐变的终点坐标，这两点都是相对于屏幕坐标系。color0,color1分别表示起点的颜色和终点的颜色。不同于<code>BitmapShader</code>需要x,y轴两个平铺模式参数，<code>LinearGradient</code>只需要一个<code>TileMode</code>，表示<strong>从(x0,y0)到(x1,y1)方向上的平铺模式</strong>。<br><code>LinearGradient</code>的平铺效果可能比较难以理解，需要大家多做几次实验才能明白。<br>&emsp;下图是200<em>200的由红色到黄色的线性渐变效果着色器绘制200</em>200的矩形的效果图,着色器的<code>TileMode</code>为<code>MIRROR</code>:<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-linegradient1.png" alt="linegradient1"><br>&emsp;下图是上述的着色器绘制400*400的效果图,我们可以看到二者的区别，在屏幕坐标轴的(200,200)方向(第二张图中的黑色线段所代表的方向)上颜色是先从红色到黄色，超过(200,200)这个点之后，由于设置平铺模式为<code>MIRROR</code>所以颜色就又从黄色逐渐变成了红色。这个对角线外上的点的颜色是和其在对角线上(-200,200)方向上的投影点的颜色相同，也就是第二张图中蓝色直线上点的颜色都是相同的。<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-linegradient2.png" alt="linegradient2"><br><img src="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-linegradient5.png" alt="linegradient5"></p>
+<p>&emsp;多色渐变的构造函数是</p>
+<blockquote>
+<p><code>public LinearGradient (float x0, float y0, float x1, float y1, int[] colors, float[] positions, Shader.TileMode tile)</code><br>&emsp;多色渐变的构造函数中，我们可以传入多个颜色，和每个颜色的占比。而且当positions参数传入null时，代表颜色是均匀的填充整个渐变区域的，显得比较柔和。<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-linegrandient6.png" alt="linegradient6"></p>
+</blockquote>
+<h4 id="SweepGradient"><a href="#SweepGradient" class="headerlink" title="SweepGradient"></a>SweepGradient</h4><p>&emsp;<code>SweepGradient</code>是梯度渐变，也称为扫描式渐变，效果有点类似与雷达扫描效果。它也有两个构造方法，分别为两色渐变和多色渐变，二者的区别和之前介绍的<code>LinearGradient</code>的构造函数类似，我们这里就只介绍双色渐变的构造函数：</p>
+<blockquote>
+<p><code>public SweepGradient(float cx, float cy, int color0, int color1)</code><br>&emsp;在构造函数的参数中，(cx,cy)表示渐变效果的中心点，也就是雷达扫描的圆点。color0和color1表示渐变的起点色和终点色。颜色渐变是顺时针的，从中心点的x轴正方形开始。需要注意的是，这里构造函数并不需要<code>TileMode</code>,因为梯度渐变的边界相当于无限大的。<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-sweepgradient.png" alt="sweepgradient"></p>
+<h4 id="RadialGradient"><a href="#RadialGradient" class="headerlink" title="RadialGradient"></a>RadialGradient</h4><p>&emsp;<code>RadialGradient</code>是径向渐变，径向渐变就是从圆的中心点向四周渐变的特效，你可以把它想象成一个圆，从圆点到圆周沿着半径有颜色的渐变效果。它也有两个构造函数，我们只介绍双色渐变的构造函数。<br><code>public RadialGradient(float centerX, float centerY, float radius,
+            int centerColor, int edgeColor, TileMode tileMode)</code></p>
+</blockquote>
+<p>&emsp;在构造函数的参数中，(centerX,centerY)表示径向渐变中的圆点，radius表示圆的半径长度，centerColor表示圆点颜色，edgeColor表示圆周颜色，titleMode表示平铺模式，<strong>它的作用方向是沿着半径方向</strong>。下图就是一个有红色到黄色的径向渐变，平铺模式为CLAMP,所以超出圆周的范围的点的颜色就都是圆周的颜色黄色。<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-radialgradient.png" alt="radialsweep"></p>
+<h4 id="ComposeShader"><a href="#ComposeShader" class="headerlink" title="ComposeShader"></a>ComposeShader</h4><p>&emsp;<code>ComposeShader</code>用来组合不同的Shader,可以将两个不同的Shader组合在一起，它有两个构造函数:<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">ComposeShader (Shader shaderA, Shader shaderB, Xfermode mode)  
+ComposeShader (Shader shaderA, Shader shaderB, PorterDuff.Mode mode)  
+</code></pre></p>
+<p>&emsp;二者的区别就是一个使用PorterDuff的模式，另一个可以使用所有的Xfermode。这两个混合模式我们在之后的文章中将会详细讲到。</p>
+<h4 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h4><p>&emsp;这里只是简单介绍了一下Shader的概念和基本用法，之后会多加一些实际使用的情况，希望大家持续关注。</p>
+
+      <h3>关于图片和转载</h3>
+
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
+
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
+
+      <h3>关于评论和留言</h3>
+
+      如果对本文 <a href="http://remcarpediem.net/article/321580a2/">Android 图像处理(一) : Shader</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/article/321580a2/">Android 图像处理(一) : Shader</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
+    <footer class="post-footer">
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">历小冰's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">历小冰</a></h4>
+        
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> 程序员历小冰</a></span> 
+        </div>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/article/321580a2/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/article/321580a2/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/article/321580a2/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
+      
+<div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script src="/js/md5.min.js"></script>
+<script>
+    const gitalk = new Gitalk({
+    clientID: 'ece2d2cd7c5f768a4c22',
+    clientSecret: '1ad562557353b888b4b622239d45150c5df6d5ee',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: md5("http://remcarpediem.net/article/321580a2/"),
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
+
+gitalk.render('gitalk-container')
+</script>
+
+    </footer>
+  </article>
+</main>
+<aside class="read-next">
+ 
+    
+    <a class="read-next-story no-cover" href="http://remcarpediem.net/article/283058df/">
+      <section class="post">
+        <h2>Android  Span 进阶</h2>
+        <p>
+            
+              &emsp;在上篇文章《Android Span 架构介绍》，我们讲述了Android Span的基本概念和用法，这篇文章我们就来扩展一下我们对Android Span的了解，这一定会使你感到惊奇的，惊叹Android Span竟然还能完成这些的效果，让你在Android自定义View和动画方面有更加深刻的理解，可能会帮助你你想出更加简洁的实现方式。&emsp;本篇文章主要讲述一下两个方面的内容:
+
+自定义Android Span
+使用 ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+
+
+  
+    
+    <a class="read-next-story no-cover" href="http://remcarpediem.net/article/fd3a41af/">
+      <section class="post">
+        <h2>重要的是商业，不是应用(Building a bussiness, not an app)</h2>
+        <p>
+            
+              
+本文是翻译文章，原文地址如下：地址。转载请表明原文作者地址。
+
+&emsp;导读：两个例子：Unread是很流行的RSS app，开发者每个月赚1750刀，还不如去找份工作；Pleco是给老外学汉语的app，界面不算精致，但赚的盆满钵满
+&emsp;过去几周来独立开发者对应用商店的焦虑之潮再次袭来，并且比以往来的更加猛烈。导致这次焦虑之潮的主要原因有：手游金卡戴珊:好莱坞今年收入将要达到两亿美元；与之相反的是Brent Simmos在 ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+</aside>
+
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">程序员历小冰</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
+</footer>
+
+  </div>
+  <script type="text/javascript" src="/js/jquery-2.0.3.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
+
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
+
+<script type="text/javascript">
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
+</script>
+
+
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+</body>
+</html>

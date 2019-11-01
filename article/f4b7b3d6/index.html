@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>由一场奇怪海战引发的软件设计思考 | 程序员历小冰</title>
+  <meta name="description" content="remcarpediem" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="前几天看到了一个博客，推荐了《公理设计》一书，还有其相关的文档以及[视频]。简单了解了一下，增深了一些对软件设计的理解，特此也推荐给大家。 公理设计理论将设计建立在科学公理、定理和推论的基础上，由麻省理工学院教授 Nam. P. Suh 领导的研究小组于 1978 年提出，适用于各种类别的设计活动。软件设计当然也属于一类工程设计过程，下面我们就来看一下两者的关联。 奇怪的海战首先从1862年11月">
+<meta name="keywords" content="软件设计">
+<meta property="og:type" content="article">
+<meta property="og:title" content="由一场奇怪海战引发的软件设计思考">
+<meta property="og:url" content="http://remcarpediem.net/article/f4b7b3d6/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="前几天看到了一个博客，推荐了《公理设计》一书，还有其相关的文档以及[视频]。简单了解了一下，增深了一些对软件设计的理解，特此也推荐给大家。 公理设计理论将设计建立在科学公理、定理和推论的基础上，由麻省理工学院教授 Nam. P. Suh 领导的研究小组于 1978 年提出，适用于各种类别的设计活动。软件设计当然也属于一类工程设计过程，下面我们就来看一下两者的关联。 奇怪的海战首先从1862年11月">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-b1a4554e5b9543ae.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-27e545dc2fe69975.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-c72eff7cb733bc19.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-28034c34314c4534.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-a845ec268530e7c4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-22457580827031c3.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:updated_time" content="2019-11-01T14:47:36.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="由一场奇怪海战引发的软件设计思考">
+<meta name="twitter:description" content="前几天看到了一个博客，推荐了《公理设计》一书，还有其相关的文档以及[视频]。简单了解了一下，增深了一些对软件设计的理解，特此也推荐给大家。 公理设计理论将设计建立在科学公理、定理和推论的基础上，由麻省理工学院教授 Nam. P. Suh 领导的研究小组于 1978 年提出，适用于各种类别的设计活动。软件设计当然也属于一类工程设计过程，下面我们就来看一下两者的关联。 奇怪的海战首先从1862年11月">
+<meta name="twitter:image" content="https://upload-images.jianshu.io/upload_images/623378-b1a4554e5b9543ae.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+  <!-- build:css css/screen.css -->
+
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
+  
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="程序员历小冰">
+  
+  
+  
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+
+
+<body class="post-template">
+
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home" role="presentation"><a href="/">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios" role="presentation"><a href="/archives">Archives</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
+</div>
+<span class="nav-cover"></span>
+
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
+        
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
+</header>
+
+  
+
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">由一场奇怪海战引发的软件设计思考</h1>
+      <section class="post-meta">
+  <time datetime="2019-11-01T14:46:16.000Z" itemprop="datePublished" class="post-date">
+      2019-11-01
+  </time>
+  
+  
+  
+  <a href="/tags/软件设计/">软件设计</a>
+  
+  
+</section>
+
+    </header>
+    <section class="post-content" itemprop="description articleBody">
+      
+
+      <!--  -->
+      <p>前几天看到了一个博客，推荐了《公理设计》一书，还有其相关的<a href="http://blog.sciencenet.cn/home.php?mod=attachment&amp;id=40989" target="_blank" rel="noopener">文档</a>以及[视频]。简单了解了一下，增深了一些对软件设计的理解，特此也推荐给大家。</p>
+<p>公理设计理论将设计建立在科学公理、定理和推论的基础上，由麻省理工学院教授 Nam. P. Suh 领导的研究小组于 1978 年提出，适用于各种类别的设计活动。软件设计当然也属于一类工程设计过程，下面我们就来看一下两者的关联。</p>
+<h3 id="奇怪的海战"><a href="#奇怪的海战" class="headerlink" title="奇怪的海战"></a>奇怪的海战</h3><p>首先从1862年11月13日的一场海战讲起。这场海战“标志着蒸汽动力铁甲舰新时代的到来。为了便于理解，我这里对舰船名称进行了修改，想了解的朋友可以百度 U.S.S. Monitor battles C.S.S. Virginia.</p>
+<p>南方叛军的大大号战舰，体型庞大，非常凶悍。已经击沉了两艘联邦军舰。北方政府军派出了小小号，一艘非常小，火力也小多的军舰。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-b1a4554e5b9543ae.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>大大号顾名思义，它船体特别的大，但是都是固定炮塔，两侧和首尾有很多门炮。而小小号虽然小，却有一个可以旋转的炮台。</p>
+<p>一条战舰需要满足两个功能：调整航行方向和调整炮击方向。</p>
+<p>对于大大号，这两个功能需求是耦合 couple 的，要改变炮击方向，就需要将船只转向。而对于小小号，这两个功能需求则是解耦合 decouple 的，航行方向与炮击方向无关，炮击方向可以独立调整。</p>
+<p>于是小小号一直尽量守在大大号的射击死角攻击，而大大号虽然火力猛烈则必须不断绕开，于是就不断绕圈。这两条船打了4个小时，大大号不得不撤退了，小小号获得了胜利。</p>
+<p>由此可见功能之间的解耦是否重要，它增加了便捷性和灵活性。</p>
+<h3 id="工科生最爱的映射矩阵"><a href="#工科生最爱的映射矩阵" class="headerlink" title="工科生最爱的映射矩阵"></a>工科生最爱的映射矩阵</h3><p><img src="https://upload-images.jianshu.io/upload_images/623378-27e545dc2fe69975.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>书中介绍了四个域（Domain）：</p>
+<ul>
+<li>CNs：Customer Needs，客户域，就是客户描述的一大堆自然语言也说不清楚的事情，什么高端大气上档次之类的东西。</li>
+<li>FRs：Functional Requirements，功能域，从 CNs 域到 FRs 域的变换，就是把客户漫无边际的需求翻译成一些可定量的参数，比如战舰控制系统的 FR 是控制航行方向和控制开炮方向。</li>
+<li>DPs：Design Parameters，设计参数，或者叫物理域，实现 FRs 的物理参数，比如航向控制器和炮塔控制器。</li>
+<li>PVs：Process Variables，过程变量，或者叫过程域，是描述实现功能过程中涉及的过程变量。</li>
+</ul>
+<p>相邻域之间的映射，可以看成目标（做什么？）和手段（怎样做？）之间的对应关系。设计过程是相邻域中特征向量之间映射和转换过程。</p>
+<p>例如，用户域元素映射到功能域的过程，实际上是将用户需求转变成产品功能要素的过程，即产品规划；功能域向物理域的映射过程是产品的设计过程；从物理域到过程域的映射则可看成“加工产品”的过程。</p>
+<p>其中最为重要的是FRs（功能需求）到DPs（设计参数）的映射，这也是我们软件开发过程中最长接触的步骤，需求文档有了，如何进行代码设计并实现。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-c72eff7cb733bc19.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>书中以矩阵向量的方式讲述了 FRs (功能需求) 和 DPs (设计参数) 的映射关系，也就是上图中由 A 变量组成的矩阵代表着 FPs 到 DPs 的映射。不同的矩阵代表着不同的映射关系，其实我们不需要关心矩阵各个位置的具体值如何计算，只需简化的了解如果 FP 和 DP 有关联，则矩阵相应位置上的值为1，否则为0。</p>
+<p>比如说小小号上的情况，有两个功能需要：FR1（调整航向）和FR2（调整开炮方向）；以及两个设计参数：DP1（船舵）和DP2（旋转炮塔）<br><img src="https://upload-images.jianshu.io/upload_images/623378-28034c34314c4534.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>其中转动船舵的时候，船会转向，所以A11这里是X，同时船身上的炮塔也跟着船一起转向，所以也影响开炮方向FR2，因此A21也是X。 而在旋转炮塔的时候，不影响船的航行方向，所以A12这里是0。</p>
+<h3 id="好的设计？"><a href="#好的设计？" class="headerlink" title="好的设计？"></a>好的设计？</h3><p>所以，基于上边这个映射矩阵，好的设计应该有两个特点：</p>
+<ul>
+<li>首先FRs（功能需求）的数量N，应当等于DPs (设计参数）的数量M。</li>
+<li>每一个FR（功能需求）与且只与一个DP（设计参数）相互关联。</li>
+</ul>
+<p>也就是说映射矩阵是一个对角矩阵，对角线上有值，其他位置都是0。《程序员修炼之道》中也提及了类似的思想，也就是正交性一节。那一节的提示是消除无关事务之间的影响，正好和这里映射矩阵是对角矩阵不谋而合。当映射举证是对角矩阵时，说明 FR 和 DP 一一对应，不会有交叉影响。当某一个 FR也就是需求发生变更时，只需要修改一个DP。</p>
+<p>当然对角矩阵属于比较理想的情况，书中也罗列了一些其他类型的映射矩阵。<br><img src="https://upload-images.jianshu.io/upload_images/623378-a845ec268530e7c4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>其中最差的情况是 FRs（功能需求）的数量N，小于 DPs(设计参数）的数量M。也就是大大号中的情景：它有两个功能需求，FR1 调整航向<br>和FR2 调整开炮方向，但只有一个DP1 船舵。所以它的映射矩阵如下图所示。<br><img src="https://upload-images.jianshu.io/upload_images/623378-22457580827031c3.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>书中还继续讲解了矩阵分解的知识，也就是对应了需求功能点细分到软件详细设计细分等部分的内容，有兴趣的小伙伴可以自己去看看。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>所以书中最后给出两个公里：</p>
+<ul>
+<li>独立公理（功能独立性公理)</li>
+<li>信息公理（信息量最少公理）</li>
+</ul>
+<p>这不正是软件设计中经常提及的松耦合和高内聚嘛。模块相互独立互不影响就是松耦合，最小化信息量就是不对外暴露过多信息，也就是高内聚或者信息隐藏。</p>
+
+      <h3>关于图片和转载</h3>
+
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
+
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
+
+      <h3>关于评论和留言</h3>
+
+      如果对本文 <a href="http://remcarpediem.net/article/f4b7b3d6/">由一场奇怪海战引发的软件设计思考</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/article/f4b7b3d6/">由一场奇怪海战引发的软件设计思考</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
+    <footer class="post-footer">
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">历小冰's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">历小冰</a></h4>
+        
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> 程序员历小冰</a></span> 
+        </div>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/article/f4b7b3d6/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/article/f4b7b3d6/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/article/f4b7b3d6/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
+      
+<div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script src="/js/md5.min.js"></script>
+<script>
+    const gitalk = new Gitalk({
+    clientID: 'ece2d2cd7c5f768a4c22',
+    clientSecret: '1ad562557353b888b4b622239d45150c5df6d5ee',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: md5("http://remcarpediem.net/article/f4b7b3d6/"),
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
+
+gitalk.render('gitalk-container')
+</script>
+
+    </footer>
+  </article>
+</main>
+<aside class="read-next">
+ 
+    
+    <a class="read-next-story no-cover" href="http://remcarpediem.net/article/e66f8da0/">
+      <section class="post">
+        <h2>详解 Redis 内存管理机制和实现</h2>
+        <p>
+            
+              Redis是一个基于内存的键值数据库，其内存管理是非常重要的。本文内存管理的内容包括：过期键的懒性删除和过期删除以及内存溢出控制策略。
+最大内存限制Redis使用 maxmemory 参数限制最大可用内存，默认值为0，表示无限制。限制内存的目的主要 有： 
+
+用于缓存场景，当超出内存上限 maxmemory 时使用 LRU 等删除策略释放空间。 
+防止所用内存超过服务器物理内存。因为 Redis 默认情况下是会尽可能多使用服务器的内存， ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+
+
+  
+</aside>
+
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">程序员历小冰</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
+</footer>
+
+  </div>
+  <script type="text/javascript" src="/js/jquery-2.0.3.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
+
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
+
+<script type="text/javascript">
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
+</script>
+
+
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>React Native Android Cookie Problem | 程序员历小冰</title>
+  <meta name="description" content="remcarpediem" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="背景&amp;emsp;最近使用react native 来写一个公司内部使用的app，使用fetch去登陆，发现在android平台上无法获取cookie，iOS平台上却可以。即使是response.headers.get()也获得不了相关信息。于是上网google并且阅读源码，终于找到了问题出现的原因和解决方案。 问题原因&amp;emsp;我们查看native react的fetch.js的代码，发现它的底">
+<meta name="keywords" content="React Native,Cookie">
+<meta property="og:type" content="article">
+<meta property="og:title" content="React Native Android Cookie Problem">
+<meta property="og:url" content="http://remcarpediem.net/article/65079f86/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="背景&amp;emsp;最近使用react native 来写一个公司内部使用的app，使用fetch去登陆，发现在android平台上无法获取cookie，iOS平台上却可以。即使是response.headers.get()也获得不了相关信息。于是上网google并且阅读源码，终于找到了问题出现的原因和解决方案。 问题原因&amp;emsp;我们查看native react的fetch.js的代码，发现它的底">
+<meta property="og:locale" content="Chinese">
+<meta property="og:updated_time" content="2019-09-15T15:43:26.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="React Native Android Cookie Problem">
+<meta name="twitter:description" content="背景&amp;emsp;最近使用react native 来写一个公司内部使用的app，使用fetch去登陆，发现在android平台上无法获取cookie，iOS平台上却可以。即使是response.headers.get()也获得不了相关信息。于是上网google并且阅读源码，终于找到了问题出现的原因和解决方案。 问题原因&amp;emsp;我们查看native react的fetch.js的代码，发现它的底">
+  <!-- build:css css/screen.css -->
+
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
+  
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="程序员历小冰">
+  
+  
+  
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+
+
+<body class="post-template">
+
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home" role="presentation"><a href="/">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios" role="presentation"><a href="/archives">Archives</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
+</div>
+<span class="nav-cover"></span>
+
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
+        
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
+</header>
+
+  
+
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">React Native Android Cookie Problem</h1>
+      <section class="post-meta">
+  <time datetime="2015-11-04T05:50:31.000Z" itemprop="datePublished" class="post-date">
+      2015-11-04
+  </time>
+  
+  
+  
+  <a href="/tags/React-Native/">React Native</a> 
+  
+  <a href="/tags/Cookie/">Cookie</a>
+  
+  
+</section>
+
+    </header>
+    <section class="post-content" itemprop="description articleBody">
+      
+
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2019-09-15T15:43:26.000Z" itemprop="dateModified">
+      2019-09-15
+  </time>
+</section>
+
+       -->
+      <h4 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h4><p>&emsp;最近使用react native 来写一个公司内部使用的app，使用<code>fetch</code>去登陆，发现在android平台上无法获取cookie，iOS平台上却可以。即使是<code>response.headers.get()</code>也获得不了相关信息。于是上网google并且阅读源码，终于找到了问题出现的原因和解决方案。</p>
+<h4 id="问题原因"><a href="#问题原因" class="headerlink" title="问题原因"></a>问题原因</h4><p>&emsp;我们查看<code>native react</code>的<code>fetch.js</code>的代码，发现它的底层是使用<code>XmlHttpRequest</code>来实现的，然后再次找到’XmlHttpRequest’的相关源码，发现了三个文件<code>XMLHttpRequest.android.js</code>,<code>XMLHttpRequest.ios.js</code>和<code>XMLHttpRequestBase.js</code>。我们主要研究了android相关的文件。<br>&emsp;先看’XMLHttpRequest.android.js’。它继承了<code>XMLHttpRequestBase</code><br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-javascript">class XMLHttpRequest extends XMLHttpRequestBase {
+
+  _requestId: ?number;
+
+  constructor() {
+    super();
+    this._requestId = null;
+  }
+
+  sendImpl(method: ?string, url: ?string, headers: Object, data: any): void {
+    var body;
+    if (typeof data === &#39;string&#39;) {
+      body = {string: data};
+    } else if (data instanceof FormData) {
+      body = {
+        formData: data.getParts().map((part) =&gt; {
+          part.headers = convertHeadersMapToArray(part.headers);
+          return part;
+        }),
+      };
+    } else {
+      body = data;
+    }
+    &#x2F;&#x2F;RCTNetWorking是android的native module，使用okhttp实现，我们之后会看到相关的代码
+    this._requestId = RCTNetworking.sendRequest(
+      method,
+      url,
+      convertHeadersMapToArray(headers),
+      body,
+      this.callback.bind(this)&#x2F;&#x2F;这里是调用native module的回调，具体callback实现在XMLHttpRequestBase中。
+    );
+  }
+
+  abortImpl(): void {
+    this._requestId &amp;&amp; RCTNetworking.abortRequest(this._requestId);
+  }
+}
+</code></pre></p>
+<p>&emsp;通过源码，我们可以了解，<code>XMLHttpRequest</code>就是通过Android Native Module 来发送网络请求的，然后会回调到<code>callback</code>函数中。我们接下来看看一下<code>callback</code>函数.<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-javascript">  callback(status: number, responseHeaders: ?Object, responseText: string): void {
+    if (this._aborted) {
+      return;
+    }
+    this.status = status;
+    this.setResponseHeaders(responseHeaders || {});
+    this.responseText = responseText;
+    this.setReadyState(this.DONE);
+  }
+</code></pre></p>
+<p>&emsp;这里我们发现<code>callback</code>回调有三个参数,<code>status</code>,<code>responseHeaders</code>和<code>responseText</code>,那么为什么在外层的<code>fetch</code>会拿不到<code>header</code>中的<code>cookie</code>呢？这里就需要研究android native module的实现啦。<br>&emsp;<code>RCTNetworking</code>对应的java文件为<code>NetworkingModule.java</code>，找到这个文件，直接看<code>sendRequest</code>函数。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">@ReactMethod
+public void sendRequest(
+    String method,
+    String url,
+    int requestId,
+    ReadableArray headers,
+    ReadableMap data,
+    final Callback callback) {
+   
+  &#x2F;&#x2F;....... 无关代码省略
+  mClient.newCall(requestBuilder.build()).enqueue(
+      new com.squareup.okhttp.Callback() {
+        @Override
+        public void onFailure(Request request, IOException e) {
+          if (mShuttingDown) {
+            return;
+          }
+          callback.invoke(0, null, e.getMessage());
+        }
+
+        @Override
+        public void onResponse(Response response) throws IOException {
+          if (mShuttingDown) {
+            return;
+          }
+          &#x2F;&#x2F; TODO(5472580) handle headers properly
+          String responseBody;
+          try {
+            
+            responseBody = response.body().string();
+          } catch (IOException e) {
+            &#x2F;&#x2F; The stream has been cancelled or closed, nothing we can do
+            &#x2F;&#x2F;这里是重点，我们发现第二个参数本该传递header,但是现在确实传的null，导致上层的js代码无法获得header!!!!
+            callback.invoke(0, null, e.getMessage());
+            return;
+          }
+          callback.invoke(response.code(), null, responseBody);
+        }
+      });
+}
+</code></pre></p>
+<p>####解决方案<br>&emsp;在<code>fetch</code>或者<code>XMLHttpRequest</code>拿不到头部信息的问题找到了，那么如何让react native android实现cookie呢？<br>&emsp;方案有两套，一是：<code>callback.invoke</code>时把头部信息传递上去，让js层去做cookie的相关逻辑；二是:给<code>Okhttp</code>添加<code>CookieHandler</code>让<code>Okhttp</code>自己管理<code>Cookie</code>。<br>&emsp;第二套方案是我在github上看到的<a href="https://github.com/facebook/react-native/pull/3723/files" target="_blank" rel="noopener">github相关讨论和code</a>，相关代码在github上已经被merge到master上去啦，相信不久之后，新版本的<code>React Native Android</code>就可以把这个坑填上啦。</p>
+
+      <h3>关于图片和转载</h3>
+
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
+
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
+
+      <h3>关于评论和留言</h3>
+
+      如果对本文 <a href="http://remcarpediem.net/article/65079f86/">React Native Android Cookie Problem</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/article/65079f86/">React Native Android Cookie Problem</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
+    <footer class="post-footer">
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">历小冰's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">历小冰</a></h4>
+        
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> 程序员历小冰</a></span> 
+        </div>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/article/65079f86/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/article/65079f86/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/article/65079f86/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
+      
+<div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script src="/js/md5.min.js"></script>
+<script>
+    const gitalk = new Gitalk({
+    clientID: 'ece2d2cd7c5f768a4c22',
+    clientSecret: '1ad562557353b888b4b622239d45150c5df6d5ee',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: md5("http://remcarpediem.net/article/65079f86/"),
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
+
+gitalk.render('gitalk-container')
+</script>
+
+    </footer>
+  </article>
+</main>
+<aside class="read-next">
+ 
+    
+    <a class="read-next-story no-cover" href="http://remcarpediem.net/article/8f1b6328/">
+      <section class="post">
+        <h2>Window和WindowManager解析</h2>
+        <p>
+            
+              &emsp;这几天阅读了《Android开发艺术探索》的关于Window和WindowManager的章节,特此写一片博文来整理和总结一下学到的知识.&emsp;说到Window,大家都会想到所有的视图,包括Activity,Dialog,Toast,它们实际上都是附加在Window上的,Window是这些视图的管理者.今天我们就来具体将一下这些视图是如何附加在Window上的,Window有是如何管理这些视图的.
+Window的属性和 ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+
+
+  
+    
+    <a class="read-next-story no-cover" href="http://remcarpediem.net/article/1f02db9c/">
+      <section class="post">
+        <h2>OkHttp解析系列-开篇</h2>
+        <p>
+            
+              背景&emsp;前几天使用react-native遇到了底层okhttp库cookie无法保存的问题，由于自己对http和okhttp也不是很了解.所以想开一个系列的博文，借助详细解析okhttp的详细解析来梳理一下http相关的知识。
+Okhttp&emsp;Okhttp是很火而且效率很好的一个android的网络库，被很多app或者开源库使用或者集成，比如react-native,官网地址如下戳我.
+UML类图&emsp;事先声明， ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+</aside>
+
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">程序员历小冰</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
+</footer>
+
+  </div>
+  <script type="text/javascript" src="/js/jquery-2.0.3.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
+
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
+
+<script type="text/javascript">
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
+</script>
+
+
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+</body>
+</html>

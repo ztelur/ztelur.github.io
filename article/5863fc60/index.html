@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>Guava的布隆过滤器 | 程序员历小冰</title>
+  <meta name="description" content="remcarpediem" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="&amp;emsp;程序世界的算法都要在时间，资源占用甚至正确率等多种因素间进行平衡。同样的问题，所属的量级或场景不同，所用算法也会不同，其中也会涉及很多的trade-off。  If there’s one rule in programming, it’s this: there will always be trade-offs.  你是否真的存在&amp;emsp;今天我们就来探讨如何判断一个值是否存在于">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Guava的布隆过滤器">
+<meta property="og:url" content="http://remcarpediem.net/article/5863fc60/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="&amp;emsp;程序世界的算法都要在时间，资源占用甚至正确率等多种因素间进行平衡。同样的问题，所属的量级或场景不同，所用算法也会不同，其中也会涉及很多的trade-off。  If there’s one rule in programming, it’s this: there will always be trade-offs.  你是否真的存在&amp;emsp;今天我们就来探讨如何判断一个值是否存在于">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://remcarpediem.net/images/19_9141/image1.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_9141/image2.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_9141/image3.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_9141/image4.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_9141/image5.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_9141/image6.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_9141/image7.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/logo.png">
+<meta property="og:updated_time" content="2019-09-15T15:43:26.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Guava的布隆过滤器">
+<meta name="twitter:description" content="&amp;emsp;程序世界的算法都要在时间，资源占用甚至正确率等多种因素间进行平衡。同样的问题，所属的量级或场景不同，所用算法也会不同，其中也会涉及很多的trade-off。  If there’s one rule in programming, it’s this: there will always be trade-offs.  你是否真的存在&amp;emsp;今天我们就来探讨如何判断一个值是否存在于">
+<meta name="twitter:image" content="http://remcarpediem.net/images/19_9141/image1.webp">
+  <!-- build:css css/screen.css -->
+
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
+  
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="程序员历小冰">
+  
+  
+  
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+
+
+<body class="post-template">
+
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home" role="presentation"><a href="/">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios" role="presentation"><a href="/archives">Archives</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
+</div>
+<span class="nav-cover"></span>
+
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
+        
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
+</header>
+
+  
+
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">Guava的布隆过滤器</h1>
+      <section class="post-meta">
+  <time datetime="2019-04-27T05:10:38.000Z" itemprop="datePublished" class="post-date">
+      2019-04-27
+  </time>
+  
+</section>
+
+    </header>
+    <section class="post-content" itemprop="description articleBody">
+      
+
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2019-09-15T15:43:26.000Z" itemprop="dateModified">
+      2019-09-15
+  </time>
+</section>
+
+       -->
+      <p>&emsp;程序世界的算法都要在时间，资源占用甚至正确率等多种因素间进行平衡。同样的问题，所属的量级或场景不同，所用算法也会不同，其中也会涉及很多的trade-off。</p>
+<blockquote>
+<p>If there’s one rule in programming, it’s this: there will always be trade-offs.</p>
+</blockquote>
+<h3 id="你是否真的存在"><a href="#你是否真的存在" class="headerlink" title="你是否真的存在"></a>你是否真的存在</h3><p>&emsp;今天我们就来探讨如何判断一个值是否存在于已有的集合问题。这类问题在很多场景下都会遇到，比如说防止缓存击穿，爬虫重复URL检测，字典纠缠和CDN代理缓存等。</p>
+<p><img src="/images/19_9141/image1.webp" alt=""></p>
+<p>&emsp;我们以网络爬虫为例。网络间的链接错综复杂，爬虫程序在网络间“爬行”很可能会形成“环”。为了避免形成“环”，程序需要知道已经访问过网站的URL。当程序又遇到一个网站，根据它的URL，怎么判断是否已经访问过呢？</p>
+<p>&emsp;第一个想法就是将已有URL放置在<code>HashSet</code>中，然后利用<code>HashSet</code>的特性进行判断。它只花费O(1)的时间。但是，该方法消耗的内存空间很大，就算只有1亿个URL，每个URL只算50个字符，就需要大约5GB内存。</p>
+<p>&emsp;如何减少内存占用呢？URL可能太长，我们使用MD5等单向哈希处理后再存到HashSet中吧，处理后的字段只有128Bit，这样可以节省大量的空间。我们的网络爬虫程序又可以继续执行了。</p>
+<p>&emsp;但是好景不长，网络世界浩瀚如海，URL的数量急速增加，以128bit的大小进行存储也要占据大量的内存。</p>
+<p>&emsp;这种情况下，我们还可以使用<code>BitSet</code>，使用哈希函数将URL处理为1bit，存储在BitSet中。但是，哈希函数发生冲突的概率比较高，若要降低冲突概率到1%，就要将<code>BitSet</code>的长度设置为URL个数的100倍。</p>
+<p>&emsp;但是冲突无法避免，这就带来了误判。理想中的算法总是又准确又快捷，但是现实中往往是“一地鸡毛”。我们真的需要100%的正确率吗？如果需要，时间和空间的开销无法避免；如果能够忍受低概率的错误，就有极大地降低时间和空间的开销的方法。<br><img src="/images/19_9141/image2.webp" alt=""></p>
+<p>&emsp;所以，一切都要trade-off。布隆过滤器(Bloom Filter)就是一种具有较低错误率，但是极大节约空间消耗的算法。</p>
+<h3 id="布隆过滤器"><a href="#布隆过滤器" class="headerlink" title="布隆过滤器"></a>布隆过滤器</h3><p>&emsp;Bloom Filter是一种空间效率很高的随机数据结构，它利用位数组很简洁地表示一个集合，并能判断一个元素是否属于这个集合。Bloom Filter的这种高效是有一定代价的：在判断一个元素是否属于某个集合时，有可能会把不属于这个集合的元素误认为属于这个集合(false positive)。因此，Bloom Filter不适合那些“零错误”的应用场合。而在能容忍低错误率的应用场合下，Bloom Filter通过极少的错误换取了存储空间的极大节省。</p>
+<blockquote>
+<p>A Bloom filter is a space-efficient probabilistic data structure, conceived by Burton Howard Bloom in 1970, that is used to test whether an element is a member of a set. False positive matches are possible, but false negatives are not, thus a Bloom filter has a 100% recall rate. In other words, a query returns either “possibly in set” or “definitely not in set”.</p>
+</blockquote>
+<p>&emsp;上述描述引自维基百科，特点总结为如下：</p>
+<ul>
+<li>空间效率高的概率型数据结构，用来检查一个元素是否在一个集合中。</li>
+<li>对于一个元素检测是否存在的调用，BloomFilter会告诉调用者两个结果之一：可能存在或者一定不存在。</li>
+</ul>
+<p>&emsp;布隆过滤器的使用场景很多，除了上文说的网络爬虫，还有处理缓存击穿和避免磁盘读取等。Goole Bigtable，Apache HBase和Postgresql等都使用了布隆过滤器。</p>
+<p>&emsp;我们就以下面这个例子具体描述使用BloomFilter的场景，以及在此场景下，BloomFilter的优势和劣势。</p>
+<p>&emsp;一组元素存在于磁盘中，数据量特别大，应用程序希望在元素不存在的时候尽量不读磁盘，此时，可以在内存中构建这些磁盘数据的BloomFilter，对于一次读数据的情况，分为以下几种情况：<br><img src="/images/19_9141/image3.webp" alt=""></p>
+<p>&emsp;我们知道HashMap或者Set等数据结构也可以支持上述场景，这里我们就具体比较一下二者的优劣，并给出具体的数据。</p>
+<p>&emsp;<strong>精确度量十分重要</strong>，对于算法的性能，我们不能只是简单的感官上比较，要进行具体的计算和性能测试。找到不同算法之间的平衡点，根据平衡点和现实情况来决定使用哪种算法。就像Redis一样，它对象在不同情况下使用不同的数据结构，比如说列表对象的内置结构可以为<code>ziplist</code>或者<code>linkedlist</code>，在不同的场景下使用不同的数据结构。</p>
+<p>&emsp;请求的元素不在磁盘中，如果BloomFilter返回不存在，那么应用不需要走读盘逻辑，假设此概率为P1。如果BloomFilter返回可能存在，那么属于误判情况，假设此概率为P2。请求的元素在磁盘中，BloomFilter返回存在，假设此概率为P3。</p>
+<p>&emsp;如果使用<code>HashMap</code>等数据结构，情况如下：</p>
+<ul>
+<li>请求的数据不在磁盘中，应用不走读盘逻辑，此概率为P1+P2</li>
+<li>请求的元素在磁盘中，应用走读盘逻辑，此概率为P3</li>
+</ul>
+<p>&emsp;假设应用不读盘逻辑的开销为C1，走读盘逻辑的开销为C2，那么，BloomFilter和hashmap的开销分别为</p>
+<ul>
+<li>Cost(BloomFilter) = P1 <em> C1 + (P2 + P3) </em> C2</li>
+<li>Cost(HashMap) = (P1 + P2) <em> C1 + P3 </em> C2;</li>
+<li>Delta = Cost(BloomFilter) - Cost(HashMap)<pre><code>= P2 * (C2 - C1)
+</code></pre></li>
+</ul>
+<p>&emsp;因此，BloomFilter相当于以增加P2 * (C2 - C1)的时间开销，来获得相对于<code>HashMap</code>而言更少的空间开销。</p>
+<p>&emsp;既然P2是影响BloomFilter性能开销的主要因素，那么BloomFilter设计时如何降低概率P2(即误判率false positive probability)呢？，接下来的BloomFilter的原理将回答这个问题。</p>
+<h3 id="原理解析"><a href="#原理解析" class="headerlink" title="原理解析"></a>原理解析</h3><p>&emsp;初始状态下，布隆过滤器是一个包含m位的位数组，每一位都置为0。</p>
+<p>&emsp;为了表达S={x1, x2,…,xn}这样一个n个元素的集合，Bloom Filter使用k个相互独立的哈希函数，它们分别将集合中的每个元素映射到{1,…,m}的范围中。对任意一个元素x，第i个哈希函数映射的位置hi(x)就会被置为1(1≤i≤k)。注意，如果一个位置多次被置为1，那么只有第一次会起作用，后面几次将没有任何效果。在下图中，k=3，且有两个哈希函数选中同一个位置(从左边数第五位)。<br><img src="/images/19_9141/image4.webp" alt=""></p>
+<p>&emsp;在判断y是否属于这个集合时，我们对y应用k次哈希函数，如果所有hi(y)的位置都是1(1≤i≤k)，那么我们就认为y是集合中的元素，否则就认为y不是集合中的元素。下图中y1就不是集合中的元素。y2则可能属于这个集合，或者刚好是一个误判。<br><img src="/images/19_9141/image5.webp" alt=""></p>
+<p>&emsp;下面我们来看一下具体的例子，哈希函数的数量为3，首先加入1，10两个元素。通过下面两个图，我们可以清晰看到1，10两个元素被三个不同的韩系函数映射到不同的bit上，然后判断3是否在集合中，3映射的3个bit都没有值，所以判断绝对不在集合中。<br><img src="/images/19_9141/image6.webp" alt=""></p>
+<p><img src="/images/19_9141/image7.webp" alt=""></p>
+<p>&emsp;关于误判率，实际的使用中，期望能给定一个误判率期望和将要插入的元素数量，能计算出分配多少的存储空间较合适。这涉及很多最优数值计算问题，比如说错误率估计，最优的哈希函数个数和位数组的大小等，相关公式计算感兴趣的同学可以自行百度，重温一下大学的计算微积分时光。</p>
+<h3 id="Guava的布隆过滤器"><a href="#Guava的布隆过滤器" class="headerlink" title="Guava的布隆过滤器"></a>Guava的布隆过滤器</h3><p>&emsp;这就又要提起我们的Guava了，它是Google开源的Java包，提供了很多常用的功能，比如说我们之前总结的<a href="https://mp.weixin.qq.com/s?__biz=MzU2MDYwMDMzNQ==&amp;mid=2247483781&amp;idx=1&amp;sn=05a2de89cf9b2185292708bcb4431d09&amp;chksm=fc04c5e5cb734cf32b0ea6bc85f58e2b9ddfa78586dd06246089aec01335ab0e205b7d5df08d&amp;token=948342140&amp;lang=zh_CN#rd" target="_blank" rel="noopener">超详细的Guava RateLimiter限流原理解析
+</a>。</p>
+<p>&emsp;Guava中，布隆过滤器的实现主要涉及到2个类，<code>BloomFilter</code>和<code>BloomFilterStrategies</code>，首先来看一下<code>BloomFilter</code>的成员变量。需要注意的是不同Guava版本的<code>BloomFilter</code>实现不同。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike"> &#x2F;** guava实现的以CAS方式设置每个bit位的bit数组 *&#x2F;
+  private final LockFreeBitArray bits;
+  &#x2F;** hash函数的个数 *&#x2F;
+  private final int numHashFunctions;
+  &#x2F;** guava中将对象转换为byte的通道 *&#x2F;
+  private final Funnel&lt;? super T&gt; funnel;
+  &#x2F;**
+   * 将byte转换为n个bit的策略，也是bloomfilter hash映射的具体实现
+   *&#x2F;
+  private final Strategy strategy;
+</code></pre>
+<p>&emsp;这是它的4个成员变量:</p>
+<ul>
+<li><code>LockFreeBitArray</code>是定义在<code>BloomFilterStrategies</code>中的内部类，封装了布隆过滤器底层bit数组的操作。</li>
+<li><code>numHashFunctions</code>表示哈希函数的个数。</li>
+<li><code>Funnel</code>，它和<code>PrimitiveSink</code>配套使用，能将任意类型的对象转化成Java基本数据类型，默认用<code>java.nio.ByteBuffer</code>实现，最终均转化为byte数组。</li>
+<li><code>Strategy</code>是定义在<code>BloomFilter</code>类内部的接口，代码如下，主要有2个方法，<code>put</code>和<code>mightContain</code>。</li>
+</ul>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">interface Strategy extends java.io.Serializable {
+    &#x2F;** 设置元素 *&#x2F;
+    &lt;T&gt; boolean put(T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits);
+    &#x2F;** 判断元素是否存在*&#x2F;
+    &lt;T&gt; boolean mightContain(
+    T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits);
+    .....
+}
+</code></pre>
+<p>&emsp;创建布隆过滤器，<code>BloomFilter</code>并没有公有的构造函数，只有一个私有构造函数，而对外它提供了5个重载的<code>create</code>方法，在缺省情况下误判率设定为3%，采用<code>BloomFilterStrategies.MURMUR128_MITZ_64</code>的实现。</p>
+<p>&emsp;<code>BloomFilterStrategies.MURMUR128_MITZ_64</code>是<code>Strategy</code>的两个实现之一，Guava以枚举的方式提供这两个实现，这也是《Effective Java》书中推荐的提供对象的方法之一。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">enum BloomFilterStrategies implements BloomFilter.Strategy {
+    MURMUR128_MITZ_32() {&#x2F;&#x2F;....}
+    MURMUR128_MITZ_64() {&#x2F;&#x2F;....}
+}
+</code></pre>
+<p>&emsp;二者对应了32位哈希映射函数，和64位哈希映射函数，后者使用了murmur3 hash生成的所有128位，具有更大的空间，不过原理是相通的，我们选择相对简单的<code>MURMUR128_MITZ_32</code>来分析。</p>
+<p>&emsp;先来看一下它的<code>put</code>方法，它用两个hash函数来模拟多个hash函数的情况，这是布隆过滤器的一种优化。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public &lt;T&gt; boolean put(
+    T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits) {
+    long bitSize = bits.bitSize();
+    &#x2F;&#x2F; 先利用murmur3 hash对输入的funnel计算得到128位的哈希值，funnel现将object转换为byte数组，
+    &#x2F;&#x2F; 然后在使用哈希函数转换为long
+    long hash64 = Hashing.murmur3_128().hashObject(object, funnel).asLong();
+    &#x2F;&#x2F; 根据hash值的高低位算出hash1和hash2
+    int hash1 = (int) hash64;
+    int hash2 = (int) (hash64 &gt;&gt;&gt; 32);
+
+    boolean bitsChanged = false;
+    &#x2F;&#x2F; 循环体内采用了2个函数模拟其他函数的思想,相当于每次累加hash2
+    for (int i = 1; i &lt;= numHashFunctions; i++) {
+    int combinedHash = hash1 + (i * hash2);
+    &#x2F;&#x2F; 如果是负数就变为正数
+    if (combinedHash &lt; 0) {
+        combinedHash = ~combinedHash;
+    }
+    &#x2F;&#x2F; 通过基于bitSize取模的方式获取bit数组中的索引，然后调用set函数设置。
+    bitsChanged |= bits.set(combinedHash % bitSize);
+    }
+    return bitsChanged;
+}
+</code></pre></p>
+<p>&emsp;在<code>put</code>方法中，先是将索引位置上的二进制置为1，然后用<code>bitsChanged</code>记录插入结果，如果返回true表明没有重复插入成功，而<code>mightContain</code>方法则是将索引位置上的数值取出，并判断是否为0，只要其中出现一个0，那么立即判断为不存在。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public &lt;T&gt; boolean mightContain(
+    T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits) {
+    long bitSize = bits.bitSize();
+    long hash64 = Hashing.murmur3_128().hashObject(object, funnel).asLong();
+    int hash1 = (int) hash64;
+    int hash2 = (int) (hash64 &gt;&gt;&gt; 32);
+
+    for (int i = 1; i &lt;= numHashFunctions; i++) {
+    int combinedHash = hash1 + (i * hash2);
+    &#x2F;&#x2F; Flip all the bits if it&#39;s negative (guaranteed positive number)
+    if (combinedHash &lt; 0) {
+        combinedHash = ~combinedHash;
+    }
+    &#x2F;&#x2F; 和put的区别就在这里，从set转换为get，来判断是否存在
+    if (!bits.get(combinedHash % bitSize)) {
+        return false;
+    }
+    }
+    return true;
+}
+</code></pre></p>
+<p>&emsp;<code>Guava</code>为了提供效率，自己实现了<code>LockFreeBitArray</code>来提供bit数组的无锁设置和读取。我们只来看一下它的<code>put</code>函数。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">boolean set(long bitIndex) {
+    if (get(bitIndex)) {
+    return false;
+    }
+
+    int longIndex = (int) (bitIndex &gt;&gt;&gt; LONG_ADDRESSABLE_BITS);
+    long mask = 1L &lt;&lt; bitIndex; &#x2F;&#x2F; only cares about low 6 bits of bitIndex
+
+    long oldValue;
+    long newValue;
+    &#x2F;&#x2F; 经典的CAS自旋重试机制
+    do {
+    oldValue = data.get(longIndex);
+    newValue = oldValue | mask;
+    if (oldValue == newValue) {
+        return false;
+    }
+    } while (!data.compareAndSet(longIndex, oldValue, newValue));
+
+    bitCount.increment();
+    return true;
+}
+</code></pre>
+<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;欢迎大家留言和持续关注我。</p>
+<p><img src="/images/logo.png" alt=""></p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
+<li><a href="http://pages.cs.wisc.edu/~cao/papers/summary-cache/node8.html" target="_blank" rel="noopener">http://pages.cs.wisc.edu/~cao/papers/summary-cache/node8.html</a></li>
+<li><a href="http://oserror.com/backend/bloomfilter/" target="_blank" rel="noopener">http://oserror.com/backend/bloomfilter/</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Bloom_filter" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Bloom_filter</a></li>
+<li><a href="https://blog.medium.com/what-are-bloom-filters-1ec2a50c68ff" target="_blank" rel="noopener">https://blog.medium.com/what-are-bloom-filters-1ec2a50c68ff</a></li>
+<li><a href="https://juejin.im/post/5c9442ae5188252d77392241" target="_blank" rel="noopener">https://juejin.im/post/5c9442ae5188252d77392241</a></li>
+<li>演示网站 <a href="https://www.jasondavies.com/bloomfilter/?spm=a2c4e.11153940.blogcont683602.11.21181fe6hVAGjH" target="_blank" rel="noopener">https://www.jasondavies.com/bloomfilter/?spm=a2c4e.11153940.blogcont683602.11.21181fe6hVAGjH</a></li>
+</ul>
+
+      <h3>关于图片和转载</h3>
+
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
+
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
+
+      <h3>关于评论和留言</h3>
+
+      如果对本文 <a href="http://remcarpediem.net/article/5863fc60/">Guava的布隆过滤器</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/article/5863fc60/">Guava的布隆过滤器</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
+    <footer class="post-footer">
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">历小冰's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">历小冰</a></h4>
+        
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> 程序员历小冰</a></span> 
+        </div>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/article/5863fc60/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/article/5863fc60/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/article/5863fc60/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
+      
+<div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script src="/js/md5.min.js"></script>
+<script>
+    const gitalk = new Gitalk({
+    clientID: 'ece2d2cd7c5f768a4c22',
+    clientSecret: '1ad562557353b888b4b622239d45150c5df6d5ee',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: md5("http://remcarpediem.net/article/5863fc60/"),
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
+
+gitalk.render('gitalk-container')
+</script>
+
+    </footer>
+  </article>
+</main>
+<aside class="read-next">
+ 
+    
+    <a class="read-next-story no-cover" href="http://remcarpediem.net/article/4a70661a/">
+      <section class="post">
+        <h2>TCP报文发送的那些事</h2>
+        <p>
+            
+              &emsp;今天我们来总结学习一下TCP发送报文的相关知识，主要包括发送报文的步骤，MSS，滑动窗口和Nagle算法。
+发送报文&emsp;该节是根据陶辉大神的系列文章总结。如下图所示，我们一起来看一下TCP发送报文时操作系统内核都做了那些事情。其中有些概念在接下来的小节中会介绍。
+&emsp;首先，用户程序在用户态调用send方法来发送一段较长的数据。然后send函数调用内核态的tcp_sendmsg方法进行处理。
+&emsp;sen ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+
+
+  
+    
+    <a class="read-next-story no-cover" href="http://remcarpediem.net/article/bedc2c36/">
+      <section class="post">
+        <h2>分布式数据缓存中的一致性哈希算法</h2>
+        <p>
+            
+              一致性哈希算法在分布式缓存领域的 MemCache，负载均衡领域的 Nginx 以及各类 RPC 框架中都有广泛的应用，它主要是为了解决传统哈希函数添加哈希表槽位数后要将关键字重新映射的问题。
+本文会介绍一致性哈希算法的原理及其实现，并给出其不同哈希函数实现的性能数据对比，探讨Redis 集群的数据分片实现等，文末会给出实现的具体 github 地址。
+Memcached 与客户端分布式缓存Memcached 是一个高性能的分布式缓存系 ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+</aside>
+
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">程序员历小冰</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
+</footer>
+
+  </div>
+  <script type="text/javascript" src="/js/jquery-2.0.3.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
+
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
+
+<script type="text/javascript">
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
+</script>
+
+
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+</body>
+</html>

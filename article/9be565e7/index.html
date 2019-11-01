@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>《Redis设计和实现》读书笔记1-简单动态字符串 | 程序员历小冰</title>
+  <meta name="description" content="remcarpediem" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="&amp;emsp;临近过年，我离开了实习了4个多月的扇贝。临走前，导师赠送给我一本《Redis设计和实现》，于是心血来潮，想读一读这本书，然后仿照书中介绍的原理实现一个小型的数据库。这是redis系列的第一篇博文，希望我可以坚持下去，不要虎头蛇尾。 简单动态字符串&amp;emsp;我们都知道Redis是由纯c代码编写而成的，而c语言中的原生字符串有很多的缺陷，不利于大型工程的使用。于是Redis的作者便自己实">
+<meta name="keywords" content="string">
+<meta property="og:type" content="article">
+<meta property="og:title" content="《Redis设计和实现》读书笔记1-简单动态字符串">
+<meta property="og:url" content="http://remcarpediem.net/article/9be565e7/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="&amp;emsp;临近过年，我离开了实习了4个多月的扇贝。临走前，导师赠送给我一本《Redis设计和实现》，于是心血来潮，想读一读这本书，然后仿照书中介绍的原理实现一个小型的数据库。这是redis系列的第一篇博文，希望我可以坚持下去，不要虎头蛇尾。 简单动态字符串&amp;emsp;我们都知道Redis是由纯c代码编写而成的，而c语言中的原生字符串有很多的缺陷，不利于大型工程的使用。于是Redis的作者便自己实">
+<meta property="og:locale" content="Chinese">
+<meta property="og:updated_time" content="2019-09-15T15:43:26.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="《Redis设计和实现》读书笔记1-简单动态字符串">
+<meta name="twitter:description" content="&amp;emsp;临近过年，我离开了实习了4个多月的扇贝。临走前，导师赠送给我一本《Redis设计和实现》，于是心血来潮，想读一读这本书，然后仿照书中介绍的原理实现一个小型的数据库。这是redis系列的第一篇博文，希望我可以坚持下去，不要虎头蛇尾。 简单动态字符串&amp;emsp;我们都知道Redis是由纯c代码编写而成的，而c语言中的原生字符串有很多的缺陷，不利于大型工程的使用。于是Redis的作者便自己实">
+  <!-- build:css css/screen.css -->
+
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
+  
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="程序员历小冰">
+  
+  
+  
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+
+
+<body class="post-template">
+
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home" role="presentation"><a href="/">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios" role="presentation"><a href="/archives">Archives</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
+</div>
+<span class="nav-cover"></span>
+
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
+        
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
+</header>
+
+  
+
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">《Redis设计和实现》读书笔记1-简单动态字符串</h1>
+      <section class="post-meta">
+  <time datetime="2016-02-02T14:38:59.000Z" itemprop="datePublished" class="post-date">
+      2016-02-02
+  </time>
+  
+  
+  
+  <a href="/tags/string/">string</a>
+  
+  
+</section>
+
+    </header>
+    <section class="post-content" itemprop="description articleBody">
+      
+
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2019-09-15T15:43:26.000Z" itemprop="dateModified">
+      2019-09-15
+  </time>
+</section>
+
+       -->
+      <p>&emsp;临近过年，我离开了实习了4个多月的扇贝。临走前，导师赠送给我一本《Redis设计和实现》，于是心血来潮，想读一读这本书，然后仿照书中介绍的原理实现一个小型的数据库。这是redis系列的第一篇博文，希望我可以坚持下去，不要虎头蛇尾。</p>
+<h4 id="简单动态字符串"><a href="#简单动态字符串" class="headerlink" title="简单动态字符串"></a>简单动态字符串</h4><p>&emsp;我们都知道Redis是由纯c代码编写而成的，而c语言中的原生字符串有很多的缺陷，不利于大型工程的使用。于是Redis的作者便自己实现一套字符串数据结构，就是sds.h/sdshdr结构。</p>
+<h4 id="SDS的定义"><a href="#SDS的定义" class="headerlink" title="SDS的定义"></a>SDS的定义</h4>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-c">struct sdshdr {
+  &#x2F;&#x2F; 记录sdshdr中数组已经使用的数量
+  int len;
+  &#x2F;&#x2F; 记录sdshdr中数组未使用的数量
+  int free;
+  char buf[];
+};
+</code></pre>
+<p>&emsp;<code>sdshdr</code>的定义如代码所示，其中<code>buf</code>属性为一个char类型的数组，数组的前五个字节分别保存着’R’,’e’,’d’,’i’,’s’五个字符，最后一个字符则保存则空字符串’\0’。之所以在数组尾部保存空字符，是为了可以使用一些c语言的字符串函数库中的函数。</p>
+<h4 id="SDS与c字符串的区别"><a href="#SDS与c字符串的区别" class="headerlink" title="SDS与c字符串的区别"></a>SDS与c字符串的区别</h4><h5 id="常数时间内获得字符串长度"><a href="#常数时间内获得字符串长度" class="headerlink" title="常数时间内获得字符串长度"></a>常数时间内获得字符串长度</h5><p>&emsp;我们都知道，在c中，字符串就是一个末尾有一个’\0’的一维数组，它并不记录本身的长度。所以，每次想要获取其长度时，都需要遍历整个数组，时间复杂度就为O(n)；而SDS因为本身就有<code>len</code>这个字段，并且在SDS被修改时，会自动改变<code>len</code>字段，所以获得字符串长度的时间复杂度为O(1).</p>
+<h5 id="杜绝缓冲区溢出"><a href="#杜绝缓冲区溢出" class="headerlink" title="杜绝缓冲区溢出"></a>杜绝缓冲区溢出</h5><p>&emsp;因为c的字符串没有任何安全保证，当我们使用<code>strcat</code>函数来拼接字符串时，如果目标字符串没有被分配足够空间的话，就会造成缓冲区溢出。而在SDS中，当然是每次修改都会进行缓冲区溢出检测，所以不会出现类似问题。</p>
+<h5 id="减少修改字符串时带来的内存重新分配次数"><a href="#减少修改字符串时带来的内存重新分配次数" class="headerlink" title="减少修改字符串时带来的内存重新分配次数"></a>减少修改字符串时带来的内存重新分配次数</h5><p>&emsp;这一条应该是使用SDS最大的优势所在啦。因为c语言中的字符串都是无法修改的，所以每次拼接或者裁剪字符串都会导致新的字符串数据结构的生成，从而需要新的内存分配或者释放部分内存。由于内存分配很消耗时间，所以使用c语言的字符串会导致数据库性能低下。<br>&emsp;而SDS会通过空间预分配和惰性空间释放来减少内存分配或者释放的次数。<br>&emsp;内存预分配是指每次需要对SDS进行空间扩展时，程序不仅分配SDS所必须要的空间，还会额外分配一些空间，将其大小赋值给’free’属性。如果需要分配的大小为n，额外分配的空间为e，总共分配空间为t,那么(默认单位为字节)<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">  e = n &lt; 1MB ? n:1MB
+  t = n &lt; 1MB ? n + n + 1 ? n + 1MB + 1
+</code></pre></p>
+<p>&emsp;这样的话，下次再进行字符串拼接时，额外的空间就会被使用上，从而避免额外的一次内存分配。<br>&emsp;而惰性内存回收则是指裁剪字符串时，释放出来的额外空间并不会立刻被回收，而是继续保存，只是修改<code>len</code>和’free’属性，等到字符串再次被修改时使用。</p>
+<h5 id="二进制安全"><a href="#二进制安全" class="headerlink" title="二进制安全"></a>二进制安全</h5><p>&emsp;由于c语言字符串以’\0’来判断字符串的结束，所以无法保存一些图片，音频，视频这些可能写入’\0’的二进制数据。</p>
+<h4 id="后续"><a href="#后续" class="headerlink" title="后续"></a>后续</h4><p>&emsp;书里的内容很简单，希望自己也可以实现一个简单的string类型吧，不过不清楚java中String对象的实现欧，以后可以了解一下。</p>
+
+      <h3>关于图片和转载</h3>
+
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
+
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
+
+      <h3>关于评论和留言</h3>
+
+      如果对本文 <a href="http://remcarpediem.net/article/9be565e7/">《Redis设计和实现》读书笔记1-简单动态字符串</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/article/9be565e7/">《Redis设计和实现》读书笔记1-简单动态字符串</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
+    <footer class="post-footer">
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">历小冰's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">历小冰</a></h4>
+        
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> 程序员历小冰</a></span> 
+        </div>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/article/9be565e7/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/article/9be565e7/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/article/9be565e7/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
+      
+<div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script src="/js/md5.min.js"></script>
+<script>
+    const gitalk = new Gitalk({
+    clientID: 'ece2d2cd7c5f768a4c22',
+    clientSecret: '1ad562557353b888b4b622239d45150c5df6d5ee',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: md5("http://remcarpediem.net/article/9be565e7/"),
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
+
+gitalk.render('gitalk-container')
+</script>
+
+    </footer>
+  </article>
+</main>
+<aside class="read-next">
+ 
+    
+    <a class="read-next-story no-cover" href="http://remcarpediem.net/article/f1b0f003/">
+      <section class="post">
+        <h2>师者的教导</h2>
+        <p>
+            
+              &emsp;最近一段时间,我一边在扇贝实习,一边跟着学校里的导师进行本科毕业设计.在公司里,mentor言传身教的教导我写出更简洁和具有统一风格的代码;在学校里,导师耳提面命的教导我如何一步一步的进行科研论设计.虽然很忙碌,但是却收获很多.
+做好本职工作是否足够好?&emsp;扇贝公司是一个小厂,没有测试,设计给出的设计图和标注也不时会有些问题.我之前对此也有点不满,认为不给出标注或者色值会拖延开发进度,有时为了调整一个界面的margi ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+
+
+  
+    
+    <a class="read-next-story no-cover" href="http://remcarpediem.net/article/1fdadf09/">
+      <section class="post">
+        <h2>图解Android事件传递之View篇</h2>
+        <p>
+            
+              &emsp;最近放假在家里闲着，想好好研究一下android的事件传递机制。于是便抓来View,ViewGroup这些类的源代码来看；有很多疑惑，又在网上找到了几篇比较好的介绍事件传递机制的文章阅读了一番。然后想着最好把学习到的知识输出一遍，画成视图，写下这篇博文。&emsp;除了图片，我还在源码上进行了注释，提交到了github上去。我的github
+View的dispatchTouchEvent
+View的onTouchEvent
+ ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+</aside>
+
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">程序员历小冰</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
+</footer>
+
+  </div>
+  <script type="text/javascript" src="/js/jquery-2.0.3.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
+
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
+
+<script type="text/javascript">
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
+</script>
+
+
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+</body>
+</html>

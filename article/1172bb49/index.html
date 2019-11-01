@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>Android视图架构详解 | 程序员历小冰</title>
+  <meta name="description" content="remcarpediem" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="作者： ztelur联系方式：segmentfault，csdn，github  本文仅供个人学习，不用于任何形式商业目的，转载请注明原作者、文章来源，链接，版权归原文作者所有。  &amp;emsp;最近一直在研究View的绘制相关的机制，发现需要补充一下Android View Architecture的相关知识，所以就特地研究了一下这方面的代码，写成本篇文章&amp;emsp;为了节约你的时间，本篇文章内容">
+<meta name="keywords" content="View Architecture">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Android视图架构详解">
+<meta property="og:url" content="http://remcarpediem.net/article/1172bb49/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="作者： ztelur联系方式：segmentfault，csdn，github  本文仅供个人学习，不用于任何形式商业目的，转载请注明原作者、文章来源，链接，版权归原文作者所有。  &amp;emsp;最近一直在研究View的绘制相关的机制，发现需要补充一下Android View Architecture的相关知识，所以就特地研究了一下这方面的代码，写成本篇文章&amp;emsp;为了节约你的时间，本篇文章内容">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2016417-view-View%20Architecutre%E7%B1%BB%E5%9B%BE.jpg">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2016417-view-%E8%A7%86%E5%9B%BE%E5%85%B3%E7%B3%BB%E5%9B%BE.png">
+<meta property="og:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2016417-view-View%E6%A0%91%E7%8A%B6%E7%BB%93%E6%9E%84%E5%9B%BE.png">
+<meta property="og:updated_time" content="2019-09-15T15:43:26.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Android视图架构详解">
+<meta name="twitter:description" content="作者： ztelur联系方式：segmentfault，csdn，github  本文仅供个人学习，不用于任何形式商业目的，转载请注明原作者、文章来源，链接，版权归原文作者所有。  &amp;emsp;最近一直在研究View的绘制相关的机制，发现需要补充一下Android View Architecture的相关知识，所以就特地研究了一下这方面的代码，写成本篇文章&amp;emsp;为了节约你的时间，本篇文章内容">
+<meta name="twitter:image" content="http://7xrxif.com1.z0.glb.clouddn.com/2016417-view-View%20Architecutre%E7%B1%BB%E5%9B%BE.jpg">
+  <!-- build:css css/screen.css -->
+
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
+  
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="程序员历小冰">
+  
+  
+  
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+
+
+<body class="post-template">
+
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home" role="presentation"><a href="/">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios" role="presentation"><a href="/archives">Archives</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
+</div>
+<span class="nav-cover"></span>
+
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
+        
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
+</header>
+
+  
+
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">Android视图架构详解</h1>
+      <section class="post-meta">
+  <time datetime="2016-04-17T06:56:23.000Z" itemprop="datePublished" class="post-date">
+      2016-04-17
+  </time>
+  
+  
+  
+  <a href="/tags/View-Architecture/">View Architecture</a>
+  
+  
+</section>
+
+    </header>
+    <section class="post-content" itemprop="description articleBody">
+      
+
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2019-09-15T15:43:26.000Z" itemprop="dateModified">
+      2019-09-15
+  </time>
+</section>
+
+       -->
+      <p>作者： <a href="http://www.jianshu.com/users/481d9f540fb9/latest_articles" target="_blank" rel="noopener">ztelur</a><br>联系方式：<a href="https://segmentfault.com/u/remcarpediem" target="_blank" rel="noopener">segmentfault</a>，<a href="http://blog.csdn.net/u012422440" target="_blank" rel="noopener">csdn</a>，<a href="http://ztelur.github.io/" target="_blank" rel="noopener">github</a></p>
+<blockquote>
+<p>本文仅供个人学习，不用于任何形式商业目的，转载请注明原作者、文章来源，链接，版权归原文作者所有。</p>
+</blockquote>
+<p>&emsp;最近一直在研究<code>View</code>的绘制相关的机制，发现需要补充一下Android View Architecture的相关知识，所以就特地研究了一下这方面的代码，写成本篇文章<br>&emsp;为了节约你的时间，本篇文章内容大致如下:</p>
+<ul>
+<li><code>Activity</code>，<code>DecorView</code>，<code>PhoneWindow</code>和<code>ViewRoot</code>的作用和相关关系</li>
+</ul>
+<h3 id="Android-View-Architecture"><a href="#Android-View-Architecture" class="headerlink" title="Android View Architecture"></a>Android View Architecture</h3><p>&emsp;先来几张图，大致展现一下Android 视图架构的大概。</p>
+<blockquote>
+<p>感谢网友提醒，泛化和实现这两种关系的箭头画反啦。以后要仔细学一遍UML了，平时经常画，如果有错误可真是闹笑话啊。</p>
+</blockquote>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2016417-view-View%20Architecutre%E7%B1%BB%E5%9B%BE.jpg" alt="View Architecutre类图"></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2016417-view-%E8%A7%86%E5%9B%BE%E5%85%B3%E7%B3%BB%E5%9B%BE.png" alt="视图关系图.png"></p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2016417-view-View%E6%A0%91%E7%8A%B6%E7%BB%93%E6%9E%84%E5%9B%BE.png" alt="View树状结构图.png"></p>
+<h3 id="Activity和Window"><a href="#Activity和Window" class="headerlink" title="Activity和Window"></a>Activity和Window</h3><p>&emsp;总所周知,Activity并不负责视图控制，它只是控制生命周期和处理事件，真正控制视图的是<code>Window</code>。一个Activity包含了一个Window，Window才是真正代表一个窗口，也就是说Activity可以没有Window，那就相当于是Service了。在<code>ActivityThread</code>中也有控制<code>Service</code>的相关函数或许正好印证了这一点。<br>&emsp;<code>Activity</code>和<code>Window</code>的第一次邂逅是在<code>ActivityThread</code>调用<code>Activity</code>的<code>attach()</code>函数时。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">&#x2F;&#x2F;[window]:通过PolicyManager创建window,实现callback函数,所以,当window接收到
+&#x2F;&#x2F;外界状态改变时,会调用activity的方法,
+final void attach(Context context, ActivityThread aThread,
+        Instrumentation instr, IBinder token, int ident,
+        Application application, Intent intent, ActivityInfo info,
+        CharSequence title, Activity parent, String id,
+        NonConfigurationInstances lastNonConfigurationInstances,
+        Configuration config, String referrer, IVoiceInteractor voiceInteractor) {
+    ....
+    mWindow = PolicyManager.makeNewWindow(this);
+    &#x2F;&#x2F;当window接收系统发送给它的IO输入事件时,例如键盘和触摸屏事件,就可以转发给相应的Activity
+    mWindow.setCallback(this);
+    .....
+    &#x2F;&#x2F;设置本地窗口管理器
+    mWindow.setWindowManager(
+            (WindowManager)context.getSystemService(Context.WINDOW_SERVICE),
+            mToken, mComponent.flattenToString(),
+            (info.flags &amp; ActivityInfo.FLAG_HARDWARE_ACCELERATED) != 0);
+    .....
+}
+</code></pre></p>
+<p>&emsp;在<code>attach()</code>中，新建一个<code>Window</code>实例作为自己的成员变量，它的类型为<code>PhoneWindow</code>,这是抽象类<code>Window</code>的一个子类。然后设置<code>mWindow</code>的<code>WindowManager</code>。</p>
+<h3 id="Window-Activity和DecorView"><a href="#Window-Activity和DecorView" class="headerlink" title="Window,Activity和DecorView"></a>Window,Activity和DecorView</h3><p>&emsp;<code>DecorView</code>是<code>FrameLayout</code>的子类，它可以被认为是Android视图树的根节点视图。<code>DecorView</code>作为顶级View，一般情况下它内部包含一个竖直方向的<code>LinearLayout</code>，在这个LinearLayout里面有上下两个部分（具体情况和Android版本及主体有关），上面的是标题栏，下面的是内容栏。在Activity中通过setContentView所设置的布局文件其实就是被加到内容栏之中的，而内容栏的id是content，在代码中可以通过ViewGroup content = （ViewGroup)findViewById(R.android.id.content)来得到content对应的layout。<br>&emsp;<code>Window</code>中有几个视图相关的比较重要的成员变量如下所示:</p>
+<ul>
+<li><code>mDecor</code>:<code>DecorView</code>的实例，标示<code>Window</code>内部的顶级视图</li>
+<li><code>mContentParent</code>:<code>setContetView</code>所设置的布局文件就加到这个视图中</li>
+<li><code>mContentRoot</code>:是<code>DecorView</code>的唯一子视图，内部包含<code>mContentParent</code>,标题栏和状态栏。</li>
+</ul>
+<p>&emsp;Activity中不仅持有一个<code>Window</code>实例，还有一个类型为<code>View</code>的<code>mDecor</code>实例。这个实例和<code>Window</code>中的<code>mDecor</code>实例有什么关系呢？它又是什么时候被创建的呢？<br>&emsp;二者其实指向同一个对象，这个对象是在<code>Activity</code>调用<code>setContentView</code>时创建的。我们都知道<code>Activity</code>的<code>setContentView</code>实际上是调用了<code>Window</code>的<code>setContentView</code>方法。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">@Override
+public void setContentView(int layoutResID) {
+    if (mContentParent == null) { &#x2F;&#x2F;[window]如何没有DecorView,那么就新建一个
+        installDecor(); &#x2F;&#x2F;[window]
+    } else if (!hasFeature(FEATURE_CONTENT_TRANSITIONS)) {
+        mContentParent.removeAllViews();
+    }
+    ....
+    &#x2F;&#x2F;[window]第二步,将layout添加到mContentParent
+    mLayoutInflater.inflate(layoutResID, mContentParent);
+    .....
+}
+</code></pre></p>
+<p>&emsp;代码很清楚的显示了布局文件的视图是添加到<code>mContentParent</code>中，而且<code>Window</code>通过<code>installDecor</code>来新建<code>DecorView</code>。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">&#x2F;&#x2F;[window]创建一个decorView
+private void installDecor() {
+    if (mDecor == null) {
+        mDecor = generateDecor(); &#x2F;&#x2F;直接new出一个DecorView返回
+        ....
+    }
+    if (mContentParent == null) {
+        &#x2F;&#x2F;[window] 这一步也是很重要的.
+        mContentParent = generateLayout(mDecor); &#x2F;&#x2F;mContentParent是setContentVIew的关键啊
+        .....
+    }
+    ....
+}
+protected ViewGroup generateLayout(DecorView decor) {
+    &#x2F;&#x2F; Apply data from current theme.
+    .......
+    &#x2F;&#x2F;[window] 根据不同的style生成不同的decorview啊
+    View in = mLayoutInflater.inflate(layoutResource, null);
+    &#x2F;&#x2F; 加入到deco中,所以应该是其第一个child
+    decor.addView(in, new ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT));
+    mContentRoot = (ViewGroup) in; &#x2F;&#x2F;给DecorView的第一个child是mContentView
+    &#x2F;&#x2F; 这是获得所谓的content 
+    ViewGroup contentParent = (ViewGroup)findViewById(ID_ANDROID_CONTENT);
+    }
+    .....
+    return contentParent;
+}
+</code></pre></p>
+<p>&emsp;从上述的代码中，我们可以清楚的看到<code>mDecor</code>和<code>mContentParent</code>和<code>mContentRoot</code>的关系。<br>&emsp;那么，<code>Activity</code>中的<code>mDecor</code>是何时被赋值的？我们如何确定它和<code>Widnow</code>中的<code>mDecor</code>指向同一个对象呢？我们可以查看<code>ActivityThread</code>的<code>handleResumeActivity</code>函数，它负责处理<code>Activity</code>的<code>resume</code>阶段。在这个函数中，Android直接将<code>Window</code>中的<code>DecorView</code>实例赋值给<code>Activity</code>。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">final Activity a = r.activity;
+r.window = r.activity.getWindow();
+View decor = r.window.getDecorView();
+decor.setVisibility(View.INVISIBLE);
+ViewManager wm = a.getWindowManager();
+WindowManager.LayoutParams l = r.window.getAttributes();
+a.mDecor = decor;
+</code></pre></p>
+<h3 id="Window，DecorView-和-ViewRoot"><a href="#Window，DecorView-和-ViewRoot" class="headerlink" title="Window，DecorView 和 ViewRoot"></a>Window，DecorView 和 ViewRoot</h3><p>&emsp;<code>ViewRoot</code>对应<code>ViewRootImpl</code>类，它是连接<code>WindowManagerService</code>和<code>DecorView</code>的纽带，View的三大流程(测量（measure），布局（layout），绘制（draw）)均通过ViewRoot来完成。<code>ViewRoot</code>并不属于View树的一份子。从源码实现上来看，它既非View的子类，也非View的父类，但是，它实现了<code>ViewParent</code>接口，这让它可以作为<code>View</code>的名义上的父视图。<code>RootView</code>继承了<code>Handler</code>类，可以接收事件并分发，Android的所有触屏事件、按键事件、界面刷新等事件都是通过ViewRoot进行分发的。<strong>ViewRoot可以被理解为“View树的管理者”——它有一个mView成员变量，它指向的对象和上文中<code>Window</code>和<code>Activity</code>的<code>mDecor</code>指向的对象是同一个对象</strong>。</p>
+<p>&emsp;我们来先看一下<code>ViewRoot</code>的创建过程。由于<code>ViewRoot</code>作为<code>WindowMangerService</code>和<code>DecorView</code>的纽带，只有在<code>WindowManager</code>将持有<code>DecorView</code>的<code>Window</code>添加进窗口管理器才创建。我们可以查看<code>WindowMangerGlobal</code>中的<code>addView</code>函数。对<code>WindowManager</code>不太熟悉的同学可以参考<a href="http://ztelur.github.io/2015/10/28/Window%E5%92%8CWindowManager%E8%A7%A3%E6%9E%90/" target="_blank" rel="noopener">《Window和WindowManager解析》</a><br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">public void addView(View view, ViewGroup.LayoutParams params,
+        Display display, Window parentWindow) {
+        &#x2F;&#x2F; 创建ViewRootImpl,然后将下述对象添加到列表中
+    ....
+    root = new ViewRootImpl(view.getContext(), display);
+
+    view.setLayoutParams(wparams);
+
+    mViews.add(view);
+    mRoots.add(root);
+    mParams.add(wparams);
+    ....
+    try {
+        &#x2F;&#x2F; 添加啦!!!!!!!!这是通过ViewRootImpl的setView来完成，这个View就是DecorView实例
+        root.setView(view, wparams, panelParentView);
+    } catch (RuntimeException e) {
+      ....
+    }
+    ....
+}
+</code></pre></p>
+<p>&emsp;那么，<code>Window</code>是什么时候被添加到<code>WindowManager</code>中的呢？我们回到<code>ActivityThread</code>的<code>handleResumeActivity</code>函数。我们都知道Activity的resume阶段就是要显示到屏幕上的阶段，在Activity也就是<code>DecorView</code>将要显示到屏幕时，系统才会调用<code>addView</code>方法。<br>&emsp;我们在<code>handleResumeActivity</code>函数中找到了下面一段代码,它调用了<code>Activity</code>的<code>makeVisible()</code>函数。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">&#x2F;&#x2F; ActivityThread
+r.activity.makeVisible();
+
+&#x2F;&#x2F;Activity
+    &#x2F;&#x2F;[windows] DecorView正式添加并显示
+    void makeVisible() {
+        if (!mWindowAdded) {
+            ViewManager wm = getWindowManager();
+            wm.addView(mDecor, getWindow().getAttributes());
+            mWindowAdded = true;
+        }
+        mDecor.setVisibility(View.VISIBLE);
+    }
+</code></pre></p>
+<p>&emsp;我们通过源代码发现，正式在<code>makeVisible</code>函数中，系统进行了<code>Window</code>的添加。</p>
+<p>引用<br><a href="http://wiki.jikexueyuan.com/project/deep-android-v1/surface.html" target="_blank" rel="noopener">http://wiki.jikexueyuan.com/project/deep-android-v1/surface.html</a><br><a href="http://blog.csdn.net/guxiao1201/article/details/41744107" target="_blank" rel="noopener">http://blog.csdn.net/guxiao1201/article/details/41744107</a><br><a href="http://forlan.iteye.com/blog/2269381" target="_blank" rel="noopener">http://forlan.iteye.com/blog/2269381</a></p>
+
+      <h3>关于图片和转载</h3>
+
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
+
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
+
+      <h3>关于评论和留言</h3>
+
+      如果对本文 <a href="http://remcarpediem.net/article/1172bb49/">Android视图架构详解</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/article/1172bb49/">Android视图架构详解</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
+    <footer class="post-footer">
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">历小冰's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">历小冰</a></h4>
+        
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> 程序员历小冰</a></span> 
+        </div>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/article/1172bb49/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/article/1172bb49/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/article/1172bb49/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
+      
+<div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script src="/js/md5.min.js"></script>
+<script>
+    const gitalk = new Gitalk({
+    clientID: 'ece2d2cd7c5f768a4c22',
+    clientSecret: '1ad562557353b888b4b622239d45150c5df6d5ee',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: md5("http://remcarpediem.net/article/1172bb49/"),
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
+
+gitalk.render('gitalk-container')
+</script>
+
+    </footer>
+  </article>
+</main>
+<aside class="read-next">
+ 
+    
+    <a class="read-next-story no-cover" href="http://remcarpediem.net/article/e2cc6893/">
+      <section class="post">
+        <h2>Android Scroll详解(二)：OverScroller实战</h2>
+        <p>
+            
+              作者： ztelur联系方式：segmentfault，csdn，github
+
+本文仅供个人学习，不用于任何形式商业目的，转载请注明原作者、文章来源，链接，版权归原文作者所有。
+
+&emsp;本文是android滚动相关的系列文章的第二篇，主要总结一下使用手势相关的代码逻辑。主要是单点拖动，多点拖动，fling和OveScroll的实现。每个手势都会有代码片段。&emsp;对android滚动相关的知识还不太了解的同学可以先阅读一下文 ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+
+
+  
+    
+    <a class="read-next-story no-cover" href="http://remcarpediem.net/article/74701e27/">
+      <section class="post">
+        <h2>Android Scroll详解(三)：Android 绘制过程详解</h2>
+        <p>
+            
+              作者： ztelur联系方式：segmentfault，csdn，github
+
+本文转载请注明原作者、文章来源，链接，版权归原文作者所有。
+
+&emsp;本篇为Android Scroll系列文章的最后一篇，主要讲解Android视图绘制机制，由于本系列文章内容都是视图滚动相关的，所以，本篇从视图内容滚动的视角来梳理视图绘制过程。&emsp;如果没有看过本系列之前文章或者不太了解相关的知识，请大家阅读一下一下的文章：
+
+Android ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+</aside>
+
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">程序员历小冰</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
+</footer>
+
+  </div>
+  <script type="text/javascript" src="/js/jquery-2.0.3.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
+
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
+
+<script type="text/javascript">
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
+</script>
+
+
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+</body>
+</html>
