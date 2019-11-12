@@ -17,14 +17,14 @@
 <meta property="og:site_name" content="程序员历小冰">
 <meta property="og:description" content="Redis 是一种内存数据库，将数据保存在内存中，读写效率要比传统的将数据保存在磁盘上的数据库要快很多。但是 Redis 也会发生延迟时，这是就需要我们对其产生原因有深刻的了解，以便于快速排查问题，解决 Redis的延迟问题 一条命令执行过程在本文场景下，延迟 (latency) 是指从客户端发送命令到客户端接收到命令返回值的时间间隔。所以我们先来看一下 Redis 一条命令执行的步骤，其中每个步">
 <meta property="og:locale" content="Chinese">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-d36c5c7b276e645c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-9b141e1f1e1d2615.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-0e832b9256d6459c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:updated_time" content="2019-11-10T15:23:07.000Z">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1112/image1.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1112/image2.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1112/image3.webp">
+<meta property="og:updated_time" content="2019-11-12T13:00:45.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="当 Redis 发生高延迟时，到底发生了什么">
 <meta name="twitter:description" content="Redis 是一种内存数据库，将数据保存在内存中，读写效率要比传统的将数据保存在磁盘上的数据库要快很多。但是 Redis 也会发生延迟时，这是就需要我们对其产生原因有深刻的了解，以便于快速排查问题，解决 Redis的延迟问题 一条命令执行过程在本文场景下，延迟 (latency) 是指从客户端发送命令到客户端接收到命令返回值的时间间隔。所以我们先来看一下 Redis 一条命令执行的步骤，其中每个步">
-<meta name="twitter:image" content="https://upload-images.jianshu.io/upload_images/623378-d36c5c7b276e645c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta name="twitter:image" content="http://remcarpediem.net/images/19_1112/image1.webp">
   <!-- build:css css/screen.css -->
 
   <link rel="stylesheet" href="/css/screen.css">
@@ -97,14 +97,21 @@
     <section class="post-content" itemprop="description articleBody">
       
 
-      <!--  -->
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2019-11-12T13:00:45.000Z" itemprop="dateModified">
+      2019-11-12
+  </time>
+</section>
+
+       -->
       <p>Redis 是一种内存数据库，将数据保存在内存中，读写效率要比传统的将数据保存在磁盘上的数据库要快很多。但是 Redis 也会发生延迟时，这是就需要我们对其产生原因有深刻的了解，以便于快速排查问题，解决 Redis的延迟问题</p>
 <h3 id="一条命令执行过程"><a href="#一条命令执行过程" class="headerlink" title="一条命令执行过程"></a>一条命令执行过程</h3><p>在本文场景下，延迟 (latency) 是指从客户端发送命令到客户端接收到命令返回值的时间间隔。所以我们先来看一下 Redis 一条命令执行的步骤，其中每个步骤出问题都可能导致高延迟。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-d36c5c7b276e645c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><img src="/images/19_1112/image1.webp" alt=""></p>
 <p>上图是 Redis 客户端发送一条命令的执行过程示意图，绿色的是执行步骤，而蓝色的则是可能出现的导致高延迟的原因。</p>
 <p>网络连接限制、网络传输速率和CPU性能等是所有服务端都可能产生的性能问题。但是 Redis 有自己独有的可能导致高延迟的问题：命令或者数据结构误用、持久化阻塞和内存交换。</p>
 <p>而且更为致命的是，Redis 采用单线程和事件驱动的机制来处理网络请求，分别有对应的连接应答处理器，命令请求处理器和命令回复处理器来处理客户端的网络请求事件，处理完一个事件就继续处理队列中的下一个。一条命令处理出现了高延迟会影响接下来处于排队状态的其他命令。有关 Redis 事件处理机制的可以参考<a href="http://remcarpediem.net/article/1aa2da89/">本篇文章</a>。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-9b141e1f1e1d2615.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><img src="/images/19_1112/image2.webp" alt=""></p>
 <p>对于高延迟，Redis 原生提供慢查询统计功能，执行 slowlog get {n} 命令可以获取最近的 n 条慢查询命令，默认对于执行超过10毫秒(可配置)的命令都会记录到一个定长队列中，线上实例建议设置为1毫秒便于及时发现毫秒级以上的命令。<br>
 <!-- Has Prism -->
 <pre class="line-numbers" style=""><code class="language-clike"># 超过 slowlog-log-slower-than 阈值的命令都会被记录到慢查询队列中
@@ -158,7 +165,7 @@ Biggest   hash found &#39;idx:的&#39; has 196 fields
 </code></pre>
 <h4 id="持久化阻塞"><a href="#持久化阻塞" class="headerlink" title="持久化阻塞"></a>持久化阻塞</h4><p>对于开启了持久化功能的Redis节点，需要排查是否是持久化导致的阻 塞。持久化引起主线程阻塞的操作主要有：fork 阻塞、AOF刷盘阻塞。</p>
 <p>fork 操作发生在 RDB 和 AOF 重写时，Redis 主线程调用 fork 操作产生共享内存的子进程，由子进程完成对应的持久化工作。如果 fork 操作本身耗时过长，必然会导致主线程的阻塞。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-0e832b9256d6459c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><img src="/images/19_1112/image3.webp" alt=""></p>
 <p>Redis 执行 fork 操作产生的子进程内存占用量表现为与父进程相同，理论上需要一倍的物理内存来完成相应的操作。但是 Linux 具有写时复制技术 (copy-on-write)，父子进程会共享相同的物理内存页，当父进程处理写请求时会对需要修改的页复制出一份副本完成写操作，而子进程依然读取 fork 时整个父进程的内存快照。所以，一般来说，fork 不会消耗过多时间。</p>
 <p>可以执行<code>info stats</code>命令获取到 latest_fork_usec 指标，表示 Redis 最近一次 fork 操作耗时，如果耗时很大，比如超过1秒，则需要做出优化调整。</p>
 
