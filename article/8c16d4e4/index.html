@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>Java 数据持久化系列之JDBC | 程序员历小冰</title>
+  <meta name="description" content="remcarpediem" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="前段时间小冰在工作中遇到了一系列关于数据持久化的问题，在排查问题时发现自己对 Java 后端的数据持久化框架的原理都不太了解，只有不断试错，因此走了很多弯路。于是下定决心，集中精力学习了持久化相关框架的原理和实现，总结出这个系列。  上图是我根据相关源码和网上资料总结的有关 Java 数据持久化的架构图(只代表本人想法，如有问题，欢迎留言指出)。最下层就是今天要讲的 JDBC，上一层是数据库连接池">
+<meta name="keywords" content="persistent">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java 数据持久化系列之JDBC">
+<meta property="og:url" content="http://remcarpediem.net/article/8c16d4e4/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="前段时间小冰在工作中遇到了一系列关于数据持久化的问题，在排查问题时发现自己对 Java 后端的数据持久化框架的原理都不太了解，只有不断试错，因此走了很多弯路。于是下定决心，集中精力学习了持久化相关框架的原理和实现，总结出这个系列。  上图是我根据相关源码和网上资料总结的有关 Java 数据持久化的架构图(只代表本人想法，如有问题，欢迎留言指出)。最下层就是今天要讲的 JDBC，上一层是数据库连接池">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://remcarpediem.net/article/8c16d4e4/images/19_1125/image1.webp">
+<meta property="og:image" content="http://remcarpediem.net/article/8c16d4e4/images/19_1125/image2.webp">
+<meta property="og:image" content="http://remcarpediem.net/article/8c16d4e4/images/19_1125/image3.webp">
+<meta property="og:image" content="http://remcarpediem.net/article/8c16d4e4/images/19_1125/image4.webp">
+<meta property="og:image" content="http://remcarpediem.net/article/8c16d4e4/images/19_1125/image5.webp">
+<meta property="og:image" content="http://remcarpediem.net/article/8c16d4e4/images/19_1125/image6.webp">
+<meta property="og:image" content="http://remcarpediem.net/article/8c16d4e4/images/logo.png">
+<meta property="og:updated_time" content="2019-11-25T14:18:59.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Java 数据持久化系列之JDBC">
+<meta name="twitter:description" content="前段时间小冰在工作中遇到了一系列关于数据持久化的问题，在排查问题时发现自己对 Java 后端的数据持久化框架的原理都不太了解，只有不断试错，因此走了很多弯路。于是下定决心，集中精力学习了持久化相关框架的原理和实现，总结出这个系列。  上图是我根据相关源码和网上资料总结的有关 Java 数据持久化的架构图(只代表本人想法，如有问题，欢迎留言指出)。最下层就是今天要讲的 JDBC，上一层是数据库连接池">
+<meta name="twitter:image" content="http://remcarpediem.net/article/8c16d4e4/images/19_1125/image1.webp">
+  <!-- build:css css/screen.css -->
+
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
+  
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="程序员历小冰">
+  
+  
+  
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+
+
+<body class="post-template">
+
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home" role="presentation"><a href="/">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios" role="presentation"><a href="/archives">Archives</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
+</div>
+<span class="nav-cover"></span>
+
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
+        
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
+</header>
+
+  
+
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">Java 数据持久化系列之JDBC</h1>
+      <section class="post-meta">
+  <time datetime="2019-11-25T14:16:34.000Z" itemprop="datePublished" class="post-date">
+      2019-11-25
+  </time>
+  
+  
+  
+  <a href="/tags/persistent/">persistent</a>
+  
+  
+</section>
+
+    </header>
+    <section class="post-content" itemprop="description articleBody">
+      
+
+      <!--  -->
+      <p>前段时间小冰在工作中遇到了一系列关于数据持久化的问题，在排查问题时发现自己对 Java 后端的数据持久化框架的原理都不太了解，只有不断试错，因此走了很多弯路。于是下定决心，集中精力学习了持久化相关框架的原理和实现，总结出这个系列。</p>
+<p><img src="images/19_1125/image1.webp" alt=""></p>
+<p>上图是我根据相关源码和网上资料总结的有关 Java 数据持久化的架构图(只代表本人想法，如有问题，欢迎留言指出)。最下层就是今天要讲的 JDBC，上一层是数据库连接池层，包括 HikariCP 和 Druid等；再上一层是分库分表中间件，比如说 ShardingJDBC；再向上是对象关系映射层，也就是 ORM，包括 Mybatis 和 JPA；最上边是 Spring 的事务管理。</p>
+<p>本系列的文章会依次讲解图中各个开源框架的基础使用，然后描述其原理和代码实现，最后会着重分析它们之间是如何相互集成和配合的。</p>
+<p>废话不多说，我们先来看 JDBC。</p>
+<h3 id="JDBC-定义"><a href="#JDBC-定义" class="headerlink" title="JDBC 定义"></a>JDBC 定义</h3><p>JDBC是Java Database Connectivity的简称，它定义了一套访问数据库的规范和接口。但它自身不参与数据库访问的实现。因此对于目前存在的数据库（譬如Mysql、Oracle）来说，要么数据库制造商本身提供这些规范与接口的实现，要么社区提供这些实现。</p>
+<p><img src="images/19_1125/image2.webp" alt=""></p>
+<p>如上图所示，Java 程序只依赖于 JDBC API，通过 DriverManager 来获取驱动，并且针对不同的数据库可以使用不同的驱动。这是典型的桥接的设计模式，把抽象 Abstraction 与行为实现Implementation 分离开来，从而可以保持各部分的独立性以及应对他们的功能扩展。</p>
+<h3 id="JDBC-基础代码示例"><a href="#JDBC-基础代码示例" class="headerlink" title="JDBC 基础代码示例"></a>JDBC 基础代码示例</h3><p>单纯使用 JDBC 的代码逻辑十分简单，我们就以最为常用的MySQL 为例，展示一下使用 JDBC 来建立数据库连接、执行查询语句和遍历结果的过程。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public static void connectionTest(){
+
+    Connection connection = null;
+    Statement statement = null;
+    ResultSet resultSet = null;
+
+    try {
+        &#x2F;&#x2F; 1. 加载并注册 MySQL 的驱动
+        Class.forName(&quot;com.mysql.cj.jdbc.Driver&quot;).newInstance();
+
+        &#x2F;&#x2F; 2. 根据特定的数据库连接URL，返回与此URL的所匹配的数据库驱动对象
+        Driver driver = DriverManager.getDriver(URL);
+        &#x2F;&#x2F; 3. 传入参数，比如说用户名和密码
+        Properties props = new Properties();
+        props.put(&quot;user&quot;, USER_NAME);
+        props.put(&quot;password&quot;, PASSWORD);
+
+        &#x2F;&#x2F; 4. 使用数据库驱动创建数据库连接 Connection
+        connection = driver.connect(URL, props);
+
+        &#x2F;&#x2F; 5. 从数据库连接 connection 中获得 Statement 对象
+        statement = connection.createStatement();
+        &#x2F;&#x2F; 6. 执行 sql 语句，返回结果
+        resultSet = statement.executeQuery(&quot;select * from activity&quot;);
+        &#x2F;&#x2F; 7. 处理结果，取出数据
+        while(resultSet.next())
+        {
+            System.out.println(resultSet.getString(2));
+        }
+
+        .....
+    }finally{
+        &#x2F;&#x2F; 8.关闭链接，释放资源  按照JDBC的规范，使用完成后管理链接，
+        &#x2F;&#x2F; 释放资源，释放顺序应该是： ResultSet -&gt;Statement -&gt;Connection
+        resultSet.close();
+        statement.close();
+        connection.close();
+    }
+}
+</code></pre>
+<p>代码中有详细的注释描述每一步的过程，相信大家也都对这段代码十分熟悉。</p>
+<p>唯一要提醒的是使用完之后的资源释放顺序。按照 JDBC 规范，应该依次释放 ResultSet，Statement 和 Connection。当然这只是规范，很多开源框架都没有严格的执行，但是 HikariCP却严格准守了，它可以带来很多优势，这些会在之后的文章中讲解。</p>
+<p><img src="images/19_1125/image3.webp" alt=""></p>
+<p>上图是 JDBC 中核心的 5 个类或者接口的关系，它们分别是 DriverManager、Driver、Connection、Statement 和 ResultSet。</p>
+<p>DriverManager 负责管理数据库驱动程序，根据 URL 获取与之匹配的 Driver 具体实现。Driver 则负责处理与具体数据库的通信细节，根据 URL 创建数据库连接 Connection。</p>
+<p>Connection 表示与数据库的一个连接会话，可以和数据库进行数据交互。Statement 是需要执行的 SQL 语句或者存储过程语句对应的实体，可以执行对应的 SQL 语句。ResultSet 则是 Statement 执行后获得的结果集对象，可以使用迭代器从中遍历数据。</p>
+<p>不同数据库的驱动都会实现各自的 Driver、Connection、Statement 和 ResultSet。而更为重要的是，众多数据库连接池和分库分表框架也都是实现了自己的 Connection、Statement 和 ResultSet，比如说 HikariCP、Druid 和 ShardingJDBC。我们接下来会经常看到它们的身影。</p>
+<p><img src="images/19_1125/image4.webp" alt=""></p>
+<p>接下来，我们依次看一下这几个类及其涉及的操作的原理和源码实现。</p>
+<h3 id="载入-Driver-实现"><a href="#载入-Driver-实现" class="headerlink" title="载入 Driver 实现"></a>载入 Driver 实现</h3><p>可以直接使用 Class#forName的方式来载入驱动实现，或者在 JDBC 4.0 后则基于 SPI 机制来导入驱动实现，通过在 META-INF/services/java.sql.Driver 文件中指定实现类的方式来导入驱动实现，下面我们就来看一下两种方式的实现原理。</p>
+<p>Class#forName 作用是要求 JVM 查找并加载指定的类，如果在类中有静态初始化器的话，JVM 会执行该类的静态代码段。加载具体 Driver 实现时，就会执行 Driver 中的静态代码段，将该 Driver 实现注册到 DriverManager 中。我们来看一下 MySQL 对应 Driver 的具体代码。它就是直接调用了 DriverManager的 registerDriver 方法将自己注册到其维护的驱动列表中。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public class Driver extends NonRegisteringDriver implements java.sql.Driver {
+    public Driver() throws SQLException {
+    }
+
+    static {
+        &#x2F;&#x2F; 直接调用 DriverManager的 registerDriver 将自己注册到其中
+        DriverManager.registerDriver(new Driver());
+    }
+}
+</code></pre>
+<p>SPI 机制使用 ServiceLoader 类来提供服务发现机制，动态地为某个接口寻找服务实现。当服务的提供者提供了服务接口的一种实现之后，必须根据 SPI 约定在 META-INF/services 目录下创建一个以服务接口命名的文件，在该文件中写入实现该服务接口的具体实现类。当服务调用 ServiceLoader 的 load 方法的时候，ServiceLoader 能够通过约定的目录找到指定的文件，并装载实例化，完成服务的发现。</p>
+<p>DriverManager 中的 loadInitialDrivers 方法会使用 ServiceLoader 的 load 方法加载目前项目路径下的所有 Driver 实现。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public class DriverManager {
+    &#x2F;&#x2F; 程序中已经注册的Driver具体实现信息列表。registerDriver类就是将Driver加入到这个列表
+    private final static CopyOnWriteArrayList&lt;DriverInfo&gt; registeredDrivers = new CopyOnWriteArrayList&lt;&gt;();
+    &#x2F;&#x2F; 使用ServiceLoader 加载具体的jdbc driver实现
+    static {
+        loadInitialDrivers();
+    }
+    private static void loadInitialDrivers() {
+        &#x2F;&#x2F; 省略了异常处理
+        &#x2F;&#x2F; 获得系统属性 jdbc.drivers 配置的值
+        String drivers = AccessController.doPrivileged(new PrivilegedAction&lt;String&gt;() {
+            public String run() {
+                return System.getProperty(&quot;jdbc.drivers&quot;);
+            }
+        });
+
+        AccessController.doPrivileged(new PrivilegedAction&lt;Void&gt;() {
+            public Void run() {
+
+                ServiceLoader&lt;Driver&gt; loadedDrivers = ServiceLoader.load(Driver.class);
+                Iterator&lt;Driver&gt; driversIterator = loadedDrivers.iterator();
+                &#x2F;&#x2F; 通过 ServiceLoader 获取到Driver的具体实现类，然后加载这些类，会调用其静态代码块
+                while(driversIterator.hasNext()) {
+                    driversIterator.next();
+                }
+                return null;
+            }
+        });
+
+        String[] driversList = drivers.split(&quot;:&quot;);
+        &#x2F;&#x2F; for 循环加载系统属性中的Driver类。
+        for (String aDriver : driversList) {
+            println(&quot;DriverManager.Initialize: loading &quot; + aDriver);
+            Class.forName(aDriver, true,
+                    ClassLoader.getSystemClassLoader());
+        }
+    }
+}
+</code></pre>
+<p>比如说，项目引用了 MySQL 的 jar包 mysql-connector-java，在这个 jar 包的 META-INF/services 文件夹下有一个叫 java.sql.Driver 的文件，文件的内容为 com.mysql.cj.jdbc.Driver。而 ServiceLoader 的 load 方法找到这个文件夹下的文件，读取文件的内容，然后加载出文件内容所指定的 Driver 实现。而正如之前所分析的，这个 Driver 类被加载时，会调用 DriverManager 的 registerDriver 方法，从而完成了驱动的加载。</p>
+<h3 id="Connection、Statement-和-ResultSet"><a href="#Connection、Statement-和-ResultSet" class="headerlink" title="Connection、Statement 和 ResultSet"></a>Connection、Statement 和 ResultSet</h3><p>当程序加载完具体驱动实现后，接下来就是建立与数据库的连接，执行 SQL 语句并且处理返回结果了，其过程如下图所示。</p>
+<p><img src="images/19_1125/image5.webp" alt=""></p>
+<h4 id="建立-Connection"><a href="#建立-Connection" class="headerlink" title="建立 Connection"></a>建立 Connection</h4><p>创建 Connection 连接对象，可以使用 Driver 的 connect 方法，也可以使用 DriverManager 提供的 getConnection 方法，此方法通过 url 自动匹配对应的驱动 Driver 实例，然后还是调用对应的 connect 方法返回 Connection 对象实例。</p>
+<p>建立 Connection 会涉及到与数据库进行网络请求等大量费时的操作，为了提升性能，往往都会引入数据库连接池，也就是说复用 Connection，免去每次都创建 Connection 所消耗的时间和系统资源。</p>
+<p>Connection 默认情况下，对于创建的 Statement 执行的 SQL 语句都是自动提交事务的，即在 Statement 语句执行完后，自动执行 commit 操作，将事务提交，结果影响到物理数据库。为了满足更好地事务控制需求，我们也可以手动地控制事务，手动地在Statement 的 SQL 语句执行后进行 commit 或者rollback。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">connection = driver.connect(URL, props);
+&#x2F;&#x2F; 将自动提交关闭
+connection.setAutoCommit(false);
+
+statement = connection.createStatement();
+statement.execute(&quot;INSERT INTO activity (activity_id, activity_name, product_id, start_time, end_time, total, status, sec_speed, buy_limit, buy_rate) VALUES (1, &#39;香蕉大甩卖&#39;, 1, 530871061, 530872061, 20, 0, 1, 1, 0.20);&quot;);
+&#x2F;&#x2F; 执行后手动 commit
+statement.getConnection().commit();
+</code></pre>
+<h3 id="Statement"><a href="#Statement" class="headerlink" title="Statement"></a>Statement</h3><p>Statement 的功能在于根据传入的 SQL 语句，将传入 SQL 经过整理组合成数据库能够识别的执行语句(对于静态的 SQL 语句，不需要整理组合；而对于预编译SQL 语句和批量语句，则需要整理)，然后传递 SQL 请求，之后会得到返回的结果。对于查询 SQL，结果会以 ResultSet 的形式返回。</p>
+<p>当你创建了一个 Statement 对象之后，你可以用它的三个执行方法的任一方法来执行 SQL 语句。</p>
+<ul>
+<li>boolean execute(String SQL) : 如果 ResultSet 对象可以被检索，则返回的布尔值为 true ，否则返回 false 。当你需要使用真正的动态 SQL 时，可以使用这个方法来执行 SQL DDL 语句。</li>
+<li>int executeUpdate(String SQL) : 返回执行 SQL 语句影响的行的数目。使用该方法来执行 SQL 语句，是希望得到一些受影响的行的数目，例如，INSERT，UPDATE 或 DELETE 语句。</li>
+<li>ResultSet executeQuery(String SQL) : 返回一个 ResultSet 对象。当你希望得到一个结果集时使用该方法，就像你使用一个 SELECT 语句。</li>
+</ul>
+<p>对于不同类型的 SQL 语句，Statement 有不同的接口与其对应。</p>
+<p><img src="images/19_1125/image6.webp" alt=""></p>
+<table>
+<thead>
+<tr>
+<th>接口</th>
+<th>介绍  </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Statement</td>
+<td>适合运行静态 SQL 语句，不接受动态参数</td>
+</tr>
+<tr>
+<td>PreparedStatement</td>
+<td>计划多次使用并且预先编译的 SQL 语句，接口需要传入额外的参数</td>
+</tr>
+<tr>
+<td>CallableStatement</td>
+<td>用于访问数据库存储过程</td>
+</tr>
+</tbody>
+</table>
+<p>Statement 主要用于执行静态SQL语句，即内容固定不变的SQL语句。Statement每执行一次都要对传入的SQL语句编译一次，效率较差。而 PreparedStatement则解决了这个问题，它会对 SQL 进行预编译，提高了执行效率。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">PreparedStatement pstmt = null;
+    try {
+        String SQL = &quot;Update activity SET activity_name = ? WHERE activity_id = ?&quot;;
+        pstmt = connection.prepareStatement(SQL);
+        pstmt.setString(1, &quot;测试&quot;);
+        pstmt.setInt(2, 1);
+        pstmt.executeUpdate();
+    }
+    catch (SQLException e) {
+    }
+    finally {
+        pstmt.close();
+    }
+}
+</code></pre>
+<p>除此之外， PreparedStatement 还可以预防 SQL 注入，因为 PreparedStatement 不允许在插入参数时改变 SQL 语句的逻辑结构。</p>
+<p>PreparedStatement 传入任何数据不会和原 SQL 语句发生匹配关系，无需对输入的数据做过滤。如果用户将”or 1 = 1”传入赋值给占位符，下述SQL 语句将无法执行：select * from t where username = ? and password = ?。</p>
+<h3 id="ResultSet"><a href="#ResultSet" class="headerlink" title="ResultSet"></a>ResultSet</h3><p>当 Statement 查询 SQL 执行后，会得到 ResultSet 对象，ResultSet 对象是 SQL语句查询的结果集合。ResultSet 对从数据库返回的结果进行了封装，使用迭代器的模式可以逐条取出结果集中的记录。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">while(resultSet.next()) {
+    System.out.println(resultSet.getString(2));
+}
+</code></pre>
+<p>ResultSet 一般也建议使用完毕直接 close 掉，但是需要注意的是关闭 ResultSet 对象不关闭其持有的 Blob、Clob 或 NClob 对象。 Blob、Clob 或 NClob 对象在它们被创建的的事务期间会一直持有效，除非其 free 函数被调用。</p>
+<p><img src="images/logo.png" alt=""></p>
+<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
+<li><a href="https://blog.csdn.net/wl044090432/article/details/60768342" target="_blank" rel="noopener">https://blog.csdn.net/wl044090432/article/details/60768342</a></li>
+<li><a href="https://blog.csdn.net/luanlouis/article/details/29850811" target="_blank" rel="noopener">https://blog.csdn.net/luanlouis/article/details/29850811</a></li>
+</ul>
+
+      <h3>关于图片和转载</h3>
+
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
+
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
+
+      <h3>关于评论和留言</h3>
+
+      如果对本文 <a href="http://remcarpediem.net/article/8c16d4e4/">Java 数据持久化系列之JDBC</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/article/8c16d4e4/">Java 数据持久化系列之JDBC</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
+    <footer class="post-footer">
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">历小冰's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">历小冰</a></h4>
+        
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> 程序员历小冰</a></span> 
+        </div>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/article/8c16d4e4/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/article/8c16d4e4/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/article/8c16d4e4/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
+      
+<div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script src="/js/md5.min.js"></script>
+<script>
+    const gitalk = new Gitalk({
+    clientID: 'ece2d2cd7c5f768a4c22',
+    clientSecret: '1ad562557353b888b4b622239d45150c5df6d5ee',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: md5("http://remcarpediem.net/article/8c16d4e4/"),
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
+
+gitalk.render('gitalk-container')
+</script>
+
+    </footer>
+  </article>
+</main>
+<aside class="read-next">
+ 
+    
+    <a class="read-next-story no-cover" href="http://remcarpediem.net/article/ef4e619/">
+      <section class="post">
+        <h2>当 Redis 发生高延迟时，到底发生了什么</h2>
+        <p>
+            
+              Redis 是一种内存数据库，将数据保存在内存中，读写效率要比传统的将数据保存在磁盘上的数据库要快很多。但是 Redis 也会发生延迟时，这是就需要我们对其产生原因有深刻的了解，以便于快速排查问题，解决 Redis的延迟问题
+一条命令执行过程在本文场景下，延迟 (latency) 是指从客户端发送命令到客户端接收到命令返回值的时间间隔。所以我们先来看一下 Redis 一条命令执行的步骤，其中每个步骤出问题都可能导致高延迟。
+
+上图是 R ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+
+
+  
+</aside>
+
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">程序员历小冰</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
+</footer>
+
+  </div>
+  <script type="text/javascript" src="/js/jquery-2.0.3.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
+
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
+
+<script type="text/javascript">
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
+</script>
+
+
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+</body>
+</html>
