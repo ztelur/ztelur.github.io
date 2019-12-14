@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html prefix="og: http://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <title>Redis 命令执行过程(下) | 程序员历小冰</title>
+  <meta name="description" content="remcarpediem" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="在上一篇文章中《Redis 命令执行过程(上)》中，我们首先了解 Redis 命令执行的整体流程，然后细致分析了从 Redis 启动到建立 socket 连接，再到读取 socket 数据到输入缓冲区，解析命令，执行命令等过程的原理和实现细节。接下来，我们来具体看一下 set 和 get 命令的实现细节和如何将命令结果通过输出缓冲区和 socket 发送给 Redis 客户端。  set 和 ge">
+<meta name="keywords" content="redis">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis 命令执行过程(下)">
+<meta property="og:url" content="http://remcarpediem.net/article/1dd72ef8/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="在上一篇文章中《Redis 命令执行过程(上)》中，我们首先了解 Redis 命令执行的整体流程，然后细致分析了从 Redis 启动到建立 socket 连接，再到读取 socket 数据到输入缓冲区，解析命令，执行命令等过程的原理和实现细节。接下来，我们来具体看一下 set 和 get 命令的实现细节和如何将命令结果通过输出缓冲区和 socket 发送给 Redis 客户端。  set 和 ge">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-3382e9a6c6e87de9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-f04cbe73ab976bbe.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-6e2aaeffc0c6d420.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-a9410399842442b6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-d64b7b187d0f809c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-d626dd72a76d79c6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-289642734e6eb81b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:updated_time" content="2019-12-11T15:09:51.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Redis 命令执行过程(下)">
+<meta name="twitter:description" content="在上一篇文章中《Redis 命令执行过程(上)》中，我们首先了解 Redis 命令执行的整体流程，然后细致分析了从 Redis 启动到建立 socket 连接，再到读取 socket 数据到输入缓冲区，解析命令，执行命令等过程的原理和实现细节。接下来，我们来具体看一下 set 和 get 命令的实现细节和如何将命令结果通过输出缓冲区和 socket 发送给 Redis 客户端。  set 和 ge">
+<meta name="twitter:image" content="https://upload-images.jianshu.io/upload_images/623378-3382e9a6c6e87de9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+  <!-- build:css css/screen.css -->
+
+  <link rel="stylesheet" href="/css/screen.css">
+  <link rel="stylesheet" href="/css/prism.css">
+  
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  
+  <!-- endbuild -->
+  
+  <!-- build:css fancybox/jquery.fancybox.css -->
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+  <!-- endbuild -->
+  
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+  <meta name="generator" content="程序员历小冰">
+  
+  
+  
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+
+
+<body class="post-template">
+
+  <div class="nav">
+  <h3 class="nav-title">Home</h3>
+  <a href="#" class="nav-close">
+    <span class="hidden">Close</span>
+  </a>
+  <ul>
+    <li class="nav-home" role="presentation"><a href="/">Home</a></li>
+    <!-- <li class="nav-about {% if page.current == 'about' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}about">About</a></li>
+    <li class="nav-author {% if page.current == 'author' %} nav-current{% endif %}" role="presentation"><a href="{{ site.baseurl }}author/casper">Author</a></li> -->
+    <li class="nav-ios" role="presentation"><a href="/archives">Archives</a></li>
+  </ul>
+  <a class="subscribe-button icon-feed" href="{{ site.baseurl }}feed.xml">Subscribe</a>
+</div>
+<span class="nav-cover"></span>
+
+  <div class="site-wrapper">
+  <header class="main-header post-head no-cover">
+    <nav class="main-nav  clearfix">
+        
+        <a class="back-button icon-arrow-left" href="/">Home</a>
+        <!-- <a class="subscribe-button icon-feed" href="/atom.xml">Subscribe</a> -->
+        <a class="menu-button icon-menu" href="#"><span class="word">Menu</span></a>
+    </nav>
+    
+    <a class="scroll-down icon-arrow-left" href="#content" data-offset="-45"><span class="hidden">Scroll Down</span></a>
+</header>
+
+  
+
+<main id="content" class="content" role="main">
+  <article class="post" itemprop="blogPost" itemscope="itemscope" itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+      <h1 class="post-title" itemprop="name">Redis 命令执行过程(下)</h1>
+      <section class="post-meta">
+  <time datetime="2019-12-11T15:09:14.000Z" itemprop="datePublished" class="post-date">
+      2019-12-11
+  </time>
+  
+  
+  
+  <a href="/tags/redis/">redis</a>
+  
+  
+</section>
+
+    </header>
+    <section class="post-content" itemprop="description articleBody">
+      
+
+      <!--  -->
+      <p>在上一篇文章中<a href="http://remcarpediem.net/article/4cc1fb9/">《Redis 命令执行过程(上)》</a>中，我们首先了解 Redis 命令执行的整体流程，然后细致分析了从 Redis 启动到建立 socket 连接，再到读取 socket 数据到输入缓冲区，解析命令，执行命令等过程的原理和实现细节。接下来，我们来具体看一下 set 和 get 命令的实现细节和如何将命令结果通过输出缓冲区和 socket 发送给 Redis 客户端。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-3382e9a6c6e87de9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<h3 id="set-和-get-命令具体实现"><a href="#set-和-get-命令具体实现" class="headerlink" title="set 和 get 命令具体实现"></a>set 和 get 命令具体实现</h3><p>前文讲到 processCommand 方法会从输入缓冲区中解析出对应的 redisCommand，然后调用 call 方法执行解析出来的 redisCommand的 proc 方法。不同命令的的 proc 方法是不同的，比如说名为 set 的 redisCommand 的 proc 是 setCommand 方法，而 get 的则是 getCommand 方法。通过这种形式，实际上实现在Java 中特别常见的多态策略。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-c">void call(client *c, int flags) {
+    ....
+    c-&gt;cmd-&gt;proc(c);
+    ....
+}
+&#x2F;&#x2F; redisCommand结构体
+struct redisCommand {
+    char *name;
+    &#x2F;&#x2F; 对应方法的函数范式
+    redisCommandProc *proc;
+    .... &#x2F;&#x2F; 其他定义
+};
+&#x2F;&#x2F; 使用 typedef 定义的别名
+typedef void redisCommandProc(client *c);
+&#x2F;&#x2F; 不同的命令，调用不同的方法。
+struct redisCommand redisCommandTable[] = {
+    {&quot;get&quot;,getCommand,2,&quot;rF&quot;,0,NULL,1,1,1,0,0},
+    {&quot;set&quot;,setCommand,-3,&quot;wm&quot;,0,NULL,1,1,1,0,0},
+    {&quot;hmset&quot;,hsetCommand,-4,&quot;wmF&quot;,0,NULL,1,1,1,0,0},
+    .... &#x2F;&#x2F; 所有的 redis 命令都有
+}
+</code></pre>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-f04cbe73ab976bbe.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>setCommand 会判断set命令是否携带了nx、xx、ex或者px等可选参数，然后调用setGenericCommand命令。我们直接来看 setGenericCommand 方法。</p>
+<p>setGenericCommand 方法的处理逻辑如下所示：</p>
+<ul>
+<li>首先判断 set 的类型是 set_nx 还是 set_xx，如果是 nx 并且 key 已经存在则直接返回；如果是 xx 并且 key 不存在则直接返回。</li>
+<li>调用 setKey 方法将键值添加到对应的 Redis 数据库中。</li>
+<li>如果有过期时间，则调用 setExpire 将设置过期时间</li>
+<li>进行键空间通知</li>
+<li>返回对应的值给客户端。</li>
+</ul>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-c">&#x2F;&#x2F; t_string.c 
+void setGenericCommand(client *c, int flags, robj *key, robj *val, robj *expire, int unit, robj *ok_reply, robj *abort_reply) {
+    long long milliseconds = 0; 
+    &#x2F;**
+     * 设置了过期时间；expire是robj类型，获取整数值
+     *&#x2F;
+    if (expire) {
+        if (getLongLongFromObjectOrReply(c, expire, &amp;milliseconds, NULL) != C_OK)
+            return;
+        if (milliseconds &lt;= 0) {
+            addReplyErrorFormat(c,&quot;invalid expire time in %s&quot;,c-&gt;cmd-&gt;name);
+            return;
+        }
+        if (unit == UNIT_SECONDS) milliseconds *= 1000;
+    }
+    &#x2F;**
+     * NX，key存在时直接返回；XX，key不存在时直接返回
+     * lookupKeyWrite 是在对应的数据库中寻找键值是否存在
+     *&#x2F;
+    if ((flags &amp; OBJ_SET_NX &amp;&amp; lookupKeyWrite(c-&gt;db,key) != NULL) ||
+        (flags &amp; OBJ_SET_XX &amp;&amp; lookupKeyWrite(c-&gt;db,key) == NULL))
+    {
+        addReply(c, abort_reply ? abort_reply : shared.nullbulk);
+        return;
+    }
+    &#x2F;**
+     * 添加到数据字典
+     *&#x2F;
+    setKey(c-&gt;db,key,val);
+    server.dirty++;
+    &#x2F;**
+     * 过期时间添加到过期字典
+     *&#x2F;
+    if (expire) setExpire(c,c-&gt;db,key,mstime()+milliseconds);
+    &#x2F;**
+     * 键空间通知
+     *&#x2F;
+    notifyKeyspaceEvent(NOTIFY_STRING,&quot;set&quot;,key,c-&gt;db-&gt;id);
+    if (expire) notifyKeyspaceEvent(NOTIFY_GENERIC,
+        &quot;expire&quot;,key,c-&gt;db-&gt;id);
+    &#x2F;**
+     * 返回值，addReply 在 get 命令时再具体讲解
+     *&#x2F;
+    addReply(c, ok_reply ? ok_reply : shared.ok);
+}
+</code></pre>
+<p>具体 setKey 和 setExpire 的方法实现我们这里就不细讲，其实就是将键值添加到db的 dict 数据哈希表中，将键和过期时间添加到 expires 哈希表中，如下图所示。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-6e2aaeffc0c6d420.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>接下来看 getCommand 的具体实现，同样的，它底层会调用 getGenericCommand 方法。</p>
+<p>getGenericCommand 方法会调用 lookupKeyReadOrReply 来从 dict 数据哈希表中查找对应的 key值。如果找不到，则直接返回 C_OK；如果找到了，则根据值的类型，调用 addReply 或者 addReplyBulk 方法将值添加到输出缓冲区中。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">int getGenericCommand(client *c) {
+    robj *o;
+    &#x2F;&#x2F; 调用 lookupKeyReadOrReply 从数据字典中查找对应的键
+    if ((o = lookupKeyReadOrReply(c,c-&gt;argv[1],shared.nullbulk)) == NULL)
+        return C_OK;
+    &#x2F;&#x2F; 如果是string类型，调用 addReply 单行返回。如果是其他对象类型，则调用 addReplyBulk
+    if (o-&gt;type != OBJ_STRING) {
+        addReply(c,shared.wrongtypeerr);
+        return C_ERR;
+    } else {
+        addReplyBulk(c,o);
+        return C_OK;
+    }
+}
+</code></pre>
+<p>lookupKeyReadWithFlags 会从 redisDb 中查找对应的键值对，它首先会调用 expireIfNeeded判断键是否过期并且需要删除，如果为过期，则调用 lookupKey 方法从 dict 哈希表中查找并返回。具体解释可以看代码中的详细注释</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-c">&#x2F;*
+ * 查找key的读操作，如果key找不到或者已经逻辑上过期返回 NULL，有一些副作用
+ *   1 如果key到达过期时间，它会被设备为过期，并且删除
+ *   2 更新key的最近访问时间
+ *   3 更新全局缓存击中概率
+ * flags 有两个值: LOOKUP_NONE 一般都是这个；LOOKUP_NOTOUCH 不修改最近访问时间
+ *&#x2F;
+robj *lookupKeyReadWithFlags(redisDb *db, robj *key, int flags) { &#x2F;&#x2F; db.c
+    robj *val;
+    &#x2F;&#x2F; 检查键是否过期
+    if (expireIfNeeded(db,key) == 1) {
+        .... &#x2F;&#x2F; master和 slave 对这种情况的特殊处理
+    }
+    &#x2F;&#x2F; 查找键值字典
+    val = lookupKey(db,key,flags);
+    &#x2F;&#x2F; 更新全局缓存命中率
+    if (val == NULL)
+        server.stat_keyspace_misses++;
+    else
+        server.stat_keyspace_hits++;
+    return val;
+}
+</code></pre>
+<p> Redis 在调用查找键值系列方法前都会先调用 expireIfNeeded 来判断键是否过期，然后根据 Redis 是否配置了懒删除来进行同步删除或者异步删除。关于键删除的细节可以查看<a href="http://remcarpediem.net/article/e66f8da0/">《详解 Redis 内存管理机制和实现》</a>一文。</p>
+<p>在判断键释放过期的逻辑中有两个特殊情况：</p>
+<ul>
+<li>如果当前 Redis 是主从结构中的从实例，则只判断键是否过期，不直接对键进行删除，而是要等待主实例发送过来的删除命令后再进行删除。如果当前 Redis 是主实例，则调用 propagateExpire 来传播过期指令。</li>
+<li>如果当前正在进行 Lua 脚本执行，因为其原子性和事务性，整个执行过期中时间都按照其开始执行的那一刻计算，也就是说lua执行时未过期的键，在它整个执行过程中也都不会过期。</li>
+</ul>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-a9410399842442b6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;*
+ * 在调用 lookupKey*系列方法前调用该方法。
+ * 如果是slave：
+ *  slave 并不主动过期删除key，但是返回值仍然会返回键已经被删除。
+ *  master 如果key过期了，会主动删除过期键，并且触发 AOF 和同步操作。
+ * 返回值为0表示键仍然有效，否则返回1
+ *&#x2F;
+int expireIfNeeded(redisDb *db, robj *key) { &#x2F;&#x2F; db.c
+    &#x2F;&#x2F; 获取键的过期时间
+    mstime_t when = getExpire(db,key);
+    mstime_t now;
+
+    if (when &lt; 0) return 0;
+
+    &#x2F;*
+     * 如果当前是在执行lua脚本，根据其原子性，整个执行过期中时间都按照其开始执行的那一刻计算
+     * 也就是说lua执行时未过期的键，在它整个执行过程中也都不会过期。
+     *&#x2F; 
+    now = server.lua_caller ? server.lua_time_start : mstime();
+
+    &#x2F;&#x2F; slave 直接返回键是否过期
+    if (server.masterhost != NULL) return now &gt; when;
+    &#x2F;&#x2F; master时，键未过期直接返回
+    if (now &lt;= when) return 0;
+
+    &#x2F;&#x2F; 键过期，删除键
+    server.stat_expiredkeys++;
+    &#x2F;&#x2F; 触发命令传播
+    propagateExpire(db,key,server.lazyfree_lazy_expire);
+    &#x2F;&#x2F; 和键空间事件
+    notifyKeyspaceEvent(NOTIFY_EXPIRED,
+        &quot;expired&quot;,key,db-&gt;id);
+    &#x2F;&#x2F; 根据是否懒删除，调用不同的函数 
+    return server.lazyfree_lazy_expire ? dbAsyncDelete(db,key) :
+                                         dbSyncDelete(db,key);
+}
+</code></pre>
+<p>lookupKey 方法则是通过 dictFind 方法从 redisDb 的 dict 哈希表中查找键值，如果能找到，则根据 redis 的 maxmemory_policy 策略来判断是更新 lru 的最近访问时间，还是调用 updateFU 方法更新其他指标，这些指标可以在后续内存不足时对键值进行回收。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">robj *lookupKey(redisDb *db, robj *key, int flags) {
+    &#x2F;&#x2F; dictFind 根据 key 获取字典的entry
+    dictEntry *de = dictFind(db-&gt;dict,key-&gt;ptr);
+    if (de) {
+        &#x2F;&#x2F; 获取 value
+        robj *val = dictGetVal(de);
+        &#x2F;&#x2F; 当处于 rdb aof 子进程复制阶段或者 flags 不是 LOOKUP_NOTOUCH
+        if (server.rdb_child_pid == -1 &amp;&amp;
+            server.aof_child_pid == -1 &amp;&amp;
+            !(flags &amp; LOOKUP_NOTOUCH))
+        {
+            &#x2F;&#x2F; 如果是 MAXMEMORY_FLAG_LFU 则进行相应操作
+            if (server.maxmemory_policy &amp; MAXMEMORY_FLAG_LFU) {
+                updateLFU(val);
+            } else {
+                &#x2F;&#x2F; 更新最近访问时间
+                val-&gt;lru = LRU_CLOCK();
+            }
+        }
+        return val;
+    } else {
+        return NULL;
+    }
+}
+</code></pre>
+<h3 id="将命令结果写入输出缓冲区"><a href="#将命令结果写入输出缓冲区" class="headerlink" title="将命令结果写入输出缓冲区"></a>将命令结果写入输出缓冲区</h3><p>在所有的 redisCommand 执行的最后，一般都会调用 addReply 方法进行结果返回，我们的分析也来到了 Redis 命令执行的返回数据阶段。</p>
+<p>addReply 方法做了两件事情：</p>
+<ul>
+<li>prepareClientToWrite 判断是否需要返回数据，并且将当前 client 添加到等待写返回数据队列中。</li>
+<li>调用 _addReplyToBuffer 和 _addReplyObjectToList 方法将返回值写入到输出缓冲区中，等待写入 socekt。</li>
+</ul>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-c">void addReply(client *c, robj *obj) {
+    if (prepareClientToWrite(c) != C_OK) return;
+    if (sdsEncodedObject(obj)) {
+        &#x2F;&#x2F; 需要将响应内容添加到output buffer中。总体思路是，先尝试向固定buffer添加，添加失败的话，在尝试添加到响应链表
+        if (_addReplyToBuffer(c,obj-&gt;ptr,sdslen(obj-&gt;ptr)) != C_OK)
+            _addReplyObjectToList(c,obj);
+    } else if (obj-&gt;encoding == OBJ_ENCODING_INT) {
+        .... &#x2F;&#x2F; 特殊情况的优化
+    } else {
+        serverPanic(&quot;Wrong obj-&gt;encoding in addReply()&quot;);
+    }
+}
+</code></pre>
+<p>prepareClientToWrite 首先判断了当前 client是否需要返回数据：</p>
+<ul>
+<li>Lua 脚本执行的 client 则需要返回值；</li>
+<li>如果客户端发送来 REPLY OFF 或者 SKIP 命令，则不需要返回值；</li>
+<li>如果是主从复制时的主实例 client，则不需要返回值；</li>
+<li>当前是在 AOF loading 状态的假 client，则不需要返回值。</li>
+</ul>
+<p>接着如果这个 client 还未处于延迟等待写入 (CLIENT_PENDING_WRITE)的状态，则将其设置为该状态，并将其加入到 Redis 的等待写入返回值客户端队列中，也就是 clients_pending_write队列。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-c">int prepareClientToWrite(client *c) {
+    &#x2F;&#x2F; 如果是 lua client 则直接OK
+    if (c-&gt;flags &amp; (CLIENT_LUA|CLIENT_MODULE)) return C_OK;
+    &#x2F;&#x2F; 客户端发来过 REPLY OFF 或者 SKIP 命令，不需要发送返回值
+    if (c-&gt;flags &amp; (CLIENT_REPLY_OFF|CLIENT_REPLY_SKIP)) return C_ERR;
+
+    &#x2F;&#x2F; master 作为client 向 slave 发送命令，不需要接收返回值
+    if ((c-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;
+        !(c-&gt;flags &amp; CLIENT_MASTER_FORCE_REPLY)) return C_ERR;
+    &#x2F;&#x2F; AOF loading 时的假client 不需要返回值
+    if (c-&gt;fd &lt;= 0) return C_ERR; 
+
+    &#x2F;&#x2F; 将client加入到等待写入返回值队列中，下次事件周期会进行返回值写入。
+    if (!clientHasPendingReplies(c) &amp;&amp;
+        !(c-&gt;flags &amp; CLIENT_PENDING_WRITE) &amp;&amp;
+        (c-&gt;replstate == REPL_STATE_NONE ||
+         (c-&gt;replstate == SLAVE_STATE_ONLINE &amp;&amp; !c-&gt;repl_put_online_on_ack)))
+    {
+        &#x2F;&#x2F; 设置标志位并且将client加入到 clients_pending_write 队列中
+        c-&gt;flags |= CLIENT_PENDING_WRITE;
+        listAddNodeHead(server.clients_pending_write,c);
+    }
+    &#x2F;&#x2F; 表示已经在排队，进行返回数据
+    return C_OK;
+}
+</code></pre>
+<p>Redis 将存储等待返回的响应数据的空间，也就是输出缓冲区分成两部分，一个固定大小的 buffer 和一个响应内容数据的链表。在链表为空并且 buffer 有足够空间时，则将响应添加到 buffer 中。如果 buffer 满了则创建一个节点追加到链表上。_addReplyToBuffer 和 _addReplyObjectToList 就是分别向这两个空间写数据的方法。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-d64b7b187d0f809c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>固定buffer和响应链表，整体上构成了一个队列。这么组织的好处是，既可以节省内存，不需一开始预先分配大块内存，并且可以避免频繁分配、回收内存。</p>
+<p>上面就是响应内容写入输出缓冲区的过程，下面看一下将数据从输出缓冲区写入 socket 的过程。</p>
+<p>prepareClientToWrite 函数，将客户端加入到了Redis 的等待写入返回值客户端队列中，也就是 clients_pending_write 队列。请求处理的事件处理逻辑就结束了，等待 Redis 下一次事件循环处理时，将响应从输出缓冲区写入到 socket 中。</p>
+<h3 id="将命令返回值从输出缓冲区写入-socket"><a href="#将命令返回值从输出缓冲区写入-socket" class="headerlink" title="将命令返回值从输出缓冲区写入 socket"></a>将命令返回值从输出缓冲区写入 socket</h3><p>在 <a href="http://remcarpediem.net/article/1aa2da89/">《Redis 事件机制详解》</a><br>一文中我们知道，Redis 在两次事件循环之间会调用 beforeSleep 方法处理一些事情，而对 clients_pending_write 列表的处理就在其中。</p>
+<p>下面的 aeMain 方法就是 Redis 事件循环的主逻辑，可以看到每次循环时都会调用 beforesleep 方法。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-c">void aeMain(aeEventLoop *eventLoop) { &#x2F;&#x2F; ae.c
+    eventLoop-&gt;stop = 0;
+    while (!eventLoop-&gt;stop) {
+        &#x2F;* 如果有需要在事件处理前执行的函数，那么执行它 *&#x2F;
+        if (eventLoop-&gt;beforesleep != NULL)
+            eventLoop-&gt;beforesleep(eventLoop);
+        &#x2F;* 开始处理事件*&#x2F;
+        aeProcessEvents(eventLoop, AE_ALL_EVENTS|AE_CALL_AFTER_SLEEP);
+    }
+}
+</code></pre></p>
+<p>beforeSleep 函数会调用 handleClientsWithPendingWrites 函数来处理 clients_pending_write 列表。</p>
+<p>handleClientsWithPendingWrites 方法会遍历 clients_pending_write 列表，对于每个 client 都会先调用 writeToClient 方法来尝试将返回数据从输出缓存区写入到 socekt中，如果还未写完，则只能调用 aeCreateFileEvent 方法来注册一个写数据事件处理器 sendReplyToClient，等待 Redis 事件机制的再次调用。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-d626dd72a76d79c6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>这样的好处时对于返回数据较少的客户端，不需要麻烦的注册写数据事件，等待事件触发再写数据到 socket，而是在下一次事件循环周期就直接将数据写到 socket中，加快了数据返回的响应速度。</p>
+<p>但是从这里也会发现，如果 clients_pending_write 队列过长，则处理时间也会很久，阻塞正常的事件响应处理，导致 Redis 后续命令延时增加。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-c">&#x2F;&#x2F; 直接将返回值写到client的输出缓冲区中，不需要进行系统调用，也不需要注册写事件处理器
+int handleClientsWithPendingWrites(void) {
+    listIter li;
+    listNode *ln;
+    &#x2F;&#x2F; 获取系统延迟写队列的长度
+    int processed = listLength(server.clients_pending_write);
+
+    listRewind(server.clients_pending_write,&amp;li);
+    &#x2F;&#x2F; 依次处理
+    while((ln = listNext(&amp;li))) {
+        client *c = listNodeValue(ln);
+        c-&gt;flags &amp;= ~CLIENT_PENDING_WRITE;
+        listDelNode(server.clients_pending_write,ln);
+
+        &#x2F;&#x2F; 将缓冲值写入client的socket中，如果写完，则跳过之后的操作。
+        if (writeToClient(c-&gt;fd,c,0) == C_ERR) continue;
+
+        &#x2F;&#x2F; 还有数据未写入，只能注册写事件处理器了
+        if (clientHasPendingReplies(c)) {
+            int ae_flags = AE_WRITABLE;
+            if (server.aof_state == AOF_ON &amp;&amp;
+                server.aof_fsync == AOF_FSYNC_ALWAYS)
+            {
+                ae_flags |= AE_BARRIER;
+            }
+            &#x2F;&#x2F; 注册写事件处理器 sendReplyToClient，等待执行
+            if (aeCreateFileEvent(server.el, c-&gt;fd, ae_flags,
+                sendReplyToClient, c) == AE_ERR)
+            {
+                    freeClientAsync(c);
+            }
+        }
+    }
+    return processed;
+}
+</code></pre>
+<p>sendReplyToClient 方法其实也会调用 writeToClient 方法，该方法就是将输出缓冲区中的 buf 和 reply 列表中的数据都尽可能多的写入到对应的 socket中。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-c">&#x2F;&#x2F; 将输出缓冲区中的数据写入socket，如果还有数据未处理则返回C_OK
+int writeToClient(int fd, client *c, int handler_installed) {
+    ssize_t nwritten = 0, totwritten = 0;
+    size_t objlen;
+    sds o;
+    &#x2F;&#x2F; 仍然有数据未写入
+    while(clientHasPendingReplies(c)) {
+        &#x2F;&#x2F; 如果缓冲区有数据
+        if (c-&gt;bufpos &gt; 0) {
+            &#x2F;&#x2F; 写入到 fd 代表的 socket 中
+            nwritten = write(fd,c-&gt;buf+c-&gt;sentlen,c-&gt;bufpos-c-&gt;sentlen);
+            if (nwritten &lt;= 0) break;
+            c-&gt;sentlen += nwritten;
+            &#x2F;&#x2F; 统计本次一共输出了多少子节
+            totwritten += nwritten;
+
+            &#x2F;&#x2F; buffer中的数据已经发送，则重置标志位，让响应的后续数据写入buffer
+            if ((int)c-&gt;sentlen == c-&gt;bufpos) {
+                c-&gt;bufpos = 0;
+                c-&gt;sentlen = 0;
+            }
+        } else {
+            &#x2F;&#x2F; 缓冲区没有数据，从reply队列中拿
+            o = listNodeValue(listFirst(c-&gt;reply));
+            objlen = sdslen(o);
+
+            if (objlen == 0) {
+                listDelNode(c-&gt;reply,listFirst(c-&gt;reply));
+                continue;
+            }
+            &#x2F;&#x2F; 将队列中的数据写入 socket
+            nwritten = write(fd, o + c-&gt;sentlen, objlen - c-&gt;sentlen);
+            if (nwritten &lt;= 0) break;
+            c-&gt;sentlen += nwritten;
+            totwritten += nwritten;
+            &#x2F;&#x2F; 如果写入成功，则删除队列
+            if (c-&gt;sentlen == objlen) {
+                listDelNode(c-&gt;reply,listFirst(c-&gt;reply));
+                c-&gt;sentlen = 0;
+                c-&gt;reply_bytes -= objlen;
+                if (listLength(c-&gt;reply) == 0)
+                    serverAssert(c-&gt;reply_bytes == 0);
+            }
+        }
+        &#x2F;&#x2F; 如果输出的字节数量已经超过NET_MAX_WRITES_PER_EVENT限制，break
+        if (totwritten &gt; NET_MAX_WRITES_PER_EVENT &amp;&amp;
+            (server.maxmemory == 0 ||
+             zmalloc_used_memory() &lt; server.maxmemory) &amp;&amp;
+            !(c-&gt;flags &amp; CLIENT_SLAVE)) break;
+    }
+    server.stat_net_output_bytes += totwritten;
+    if (nwritten == -1) {
+        if (errno == EAGAIN) {
+            nwritten = 0;
+        } else {
+            serverLog(LL_VERBOSE,
+                &quot;Error writing to client: %s&quot;, strerror(errno));
+            freeClient(c);
+            return C_ERR;
+        }
+    }
+    if (!clientHasPendingReplies(c)) {
+        c-&gt;sentlen = 0;
+        &#x2F;&#x2F;如果内容已经全部输出，删除事件处理器
+        if (handler_installed) aeDeleteFileEvent(server.el,c-&gt;fd,AE_WRITABLE);
+        &#x2F;&#x2F; 数据全部返回，则关闭client和连接
+        if (c-&gt;flags &amp; CLIENT_CLOSE_AFTER_REPLY) {
+            freeClient(c);
+            return C_ERR;
+        }
+    }
+    return C_OK;
+}
+</code></pre>
+<p><a href="[http://remcarpediem.net/article/1aa2da89/](http://remcarpediem.net/article/1aa2da89/">个人博客地址，欢迎查看</a>)<br><img src="https://upload-images.jianshu.io/upload_images/623378-289642734e6eb81b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+
+      <h3>关于图片和转载</h3>
+
+      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png"></a><br>本作品采用<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可。
+
+      转载时请注明原文链接，图片在使用时请保留图片中的全部内容，可适当缩放并在引用处附上图片所在的文章链接。
+
+      <h3>关于评论和留言</h3>
+
+      如果对本文 <a href="http://remcarpediem.net/article/1dd72ef8/">Redis 命令执行过程(下)</a> 的内容有疑问，请在下面的评论系统中留言，谢谢。
+
+      <blockquote>
+        <p>原文链接：<a href="http://remcarpediem.net/article/1dd72ef8/">Redis 命令执行过程(下)</a></p>
+
+        <p>Follow: <a href="https://github.com/ztelur">Ztelur · GitHub</a></p>
+      </blockquote>
+
+    </section>
+    <footer class="post-footer">
+     
+        <figure class="author-image">
+          <a class="img" href="https://github.com/ztelur" style="background-image: url(https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1543337069412&di=609213db44c3240a091b26f82707da85&imgtype=0&src=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Farchive%2F65b2fd9d9a84c14f4a712ed0d71b0fbb67dcbf2d.jpg)"><span class="hidden">历小冰's Picture</span></a>
+        </figure>
+     
+      <section class="author">
+        <h4><a href="https://github.com/ztelur">历小冰</a></h4>
+        
+        <p> 君子不器</p>
+         
+        <div class="author-meta">
+          <span class="author-location icon-location"> NanJing</span> 
+          <span class="author-link icon-link"><a href="http://remcarpediem.net"> 程序员历小冰</a></span> 
+        </div>
+</section>
+      <!--<section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://remcarpediem.net/article/1dd72ef8/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://remcarpediem.net/article/1dd72ef8/" onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://remcarpediem.net/article/1dd72ef8/" onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>-->
+      
+<div id="gitalk-container"></div>
+<link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script src="/js/md5.min.js"></script>
+<script>
+    const gitalk = new Gitalk({
+    clientID: 'ece2d2cd7c5f768a4c22',
+    clientSecret: '1ad562557353b888b4b622239d45150c5df6d5ee',
+    repo: 'blog-comments',
+    owner: 'ztelur',
+    admin: ['ztelur'],
+    // labels: ['Gitalk', 'gitment'].concat(["{{ page.tags | join: '","'}}"]),
+    // id: location.origin + location.pathname,
+    id: md5("http://remcarpediem.net/article/1dd72ef8/"),
+    // facebook-like distraction free mode
+    distractionFreeMode: false
+});
+
+gitalk.render('gitalk-container')
+</script>
+
+    </footer>
+  </article>
+</main>
+<aside class="read-next">
+ 
+    
+    <a class="read-next-story no-cover" href="http://remcarpediem.net/article/4cc1fb9/">
+      <section class="post">
+        <h2>Redis 命令执行过程(上)</h2>
+        <p>
+            
+              今天我们来了解一下 Redis 命令执行的过程。在之前的文章中《当 Redis 发生高延迟时，到底发生了什么》我们曾简单的描述了一条命令的执行过程，本篇文章展示深入说明一下，加深读者对 Redis 的了解。
+如下图所示，一条命令执行完成并且返回数据一共涉及三部分，第一步是建立连接阶段，响应了socket的建立，并且创建了client对象；第二步是处理阶段，从socket读取数据到输入缓冲区，然后解析并获得命令，执行命令并将返回值存储到输 ......
+            
+          </p>
+      </section>
+    </a>
+    
+  
+
+
+  
+</aside>
+
+
+  <footer class="site-footer clearfix">
+ <section class="copyright"><a href="/">程序员历小冰</a> &copy; 2015 &bull; All rights reserved.</section>
+ <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/"> Hexo</a></section>
+</footer>
+
+  </div>
+  <script type="text/javascript" src="/js/jquery-2.0.3.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/jquery-2.0.3.min.js"><\/script>')</script>
+
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/prism.js"></script>
+<script type="text/javascript" src="/js/toc.js"></script>
+
+<script type="text/javascript">
+(function($){
+  var $postContent = $(".post-content");
+  $postContent.fitVids();
+})(jQuery);
+</script>
+
+<script type="text/javascript" src="/js/index.js"></script>
+
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+  (function($){
+    var wrapAll = function(q) {
+      $(q).each( function() {
+        var $img = $(this),
+            href = $img.attr('src');
+        $img.wrap('<a rel="fancybox" href="' + href + '" title="' + $img.attr('alt') + '" class="link"></a>');
+      });
+    };
+    wrapAll('.post-content img');
+    wrapAll('.post-excerpt img');
+    $('[rel="fancybox"]').fancybox();
+  })(jQuery);
+</script>
+
+
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+
+</body>
+</html>
