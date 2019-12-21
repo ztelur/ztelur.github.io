@@ -17,18 +17,18 @@ date: 2019-03-30 13:33:07
 
 &emsp;我们先来讲解一下两个限流相关的基本算法：漏桶算法和令牌桶算法。
 
-![漏桶算法](https://upload-images.jianshu.io/upload_images/623378-1a91321c15f084d6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![漏桶算法](/images/19_923/image1.webp)
 
 &emsp;从上图中，我们可以看到，就像一个漏斗一样，进来的水量就好像访问流量一样，而出去的水量就像是我们的系统处理请求一样。当访问流量过大时，这个漏斗中就会积水，如果水太多了就会溢出。
 
 &emsp;漏桶算法的实现往往依赖于队列，请求到达如果队列未满则直接放入队列，然后有一个处理器按照固定频率从队列头取出请求进行处理。如果请求量大，则会导致队列满，那么新来的请求就会被抛弃。
 
-![漏桶算法示意图](https://upload-images.jianshu.io/upload_images/623378-d8ca6373e1fbddae.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![漏桶算法示意图](/images/19_923/image2.webp)
 
 
 令牌桶算法则是一个存放固定容量令牌的桶，按照固定速率往桶里添加令牌。桶中存放的令牌数有最大上限，超出之后就被丢弃或者拒绝。当流量或者网络请求到达时，每个请求都要获取一个令牌，如果能够获取到，则直接处理，并且令牌桶删除一个令牌。如果获取不同，该请求就要被限流，要么直接丢弃，要么在缓冲区等待。
 
-![令牌桶算法示意图](https://upload-images.jianshu.io/upload_images/623378-992f9c0b0ab82143.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![令牌桶算法示意图](/images/19_923/image3.webp)
 
 
 令牌桶和漏桶对比：
@@ -46,7 +46,7 @@ date: 2019-03-30 13:33:07
 &emsp;Guava的`RateLimiter`提供了令牌桶算法实现：平滑突发限流(SmoothBursty)和平滑预热限流(SmoothWarmingUp)实现。
 
 
-![类图](https://upload-images.jianshu.io/upload_images/623378-44407d9b565e50f7.jpeg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![类图](/images/19_923/image4.webp)
 
 &emsp;`RateLimiter`的类图如上所示，其中`RateLimiter`是入口类，它提供了两套工厂方法来创建出两个子类。这很符合《Effective Java》中的用静态工厂方法代替构造函数的建议，毕竟该书的作者也正是Guava库的主要维护者，二者配合"食用"更佳。
 
@@ -289,7 +289,7 @@ double coolDownIntervalMicros() {
 &emsp;上述就是平滑突发限流RateLimiter的实现，下面我们来看一下加上预热缓冲期的实现原理。
 &emsp;`SmoothWarmingUp`实现预热缓冲的关键在于其分发令牌的速率会随时间和令牌数而改变，速率会先慢后快。表现形式如下图所示，令牌刷新的时间间隔由长逐渐变短。等存储令牌数从maxPermits到达thresholdPermits时，发放令牌的时间价格也由coldInterval降低到了正常的stableInterval。
 
-![image.png](https://upload-images.jianshu.io/upload_images/623378-2a6a0ff51b95cd29.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![image.png](/images/19_923/image5.webp)
 
 &emsp;`SmoothWarmingUp`的相关代码如下所示，相关的逻辑都写在注释中。
 ```
@@ -345,7 +345,7 @@ double coolDownIntervalMicros() {
 ### 后记
 &emsp; `RateLimiter`只能用于单机的限流，如果想要集群限流，则需要引入`redis`或者阿里开源的`sentinel`中间件，请大家继续关注。
 
-![](https://upload-images.jianshu.io/upload_images/623378-7d960275042f309d.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](/images/logo.png)
 
 
 ### 参考

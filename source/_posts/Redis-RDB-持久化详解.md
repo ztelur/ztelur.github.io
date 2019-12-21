@@ -51,7 +51,7 @@ Redis 服务器周期操作函数 `serverCron` 默认每个 100 毫秒就会执�
 本文中的源码来自 Redis 4.0 ，RDB持久化过程的相关源码都在 rdb.c 文件中。其中大概的流程如下图所示。
 
 
-![image.png](https://upload-images.jianshu.io/upload_images/623378-cc013bacdf6daf20.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+[](/images/19_1221/4_image1.png)
 
 上图表明了三种触发 RDB 持久化的手段之间的整体关系。通过 `serverCron` 自动触发的 RDB 相当于直接调用了 bgsave 指令的流程进行处理。而 bgsave 的处理流程启动子进程后，调用了 save 指令的处理流程。
 
@@ -59,7 +59,7 @@ Redis 服务器周期操作函数 `serverCron` 默认每个 100 毫秒就会执�
  
 ### 自动触发 RDB 持久化
 
-![](https://upload-images.jianshu.io/upload_images/623378-ed2f8d6095a0976f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+[](/images/19_1221/4_image2.png)
 
 如上图所示，`redisServer` 结构体的`save_params`指向拥有三个值的数组，该数组的值与 redis.conf 文件中 save 配置项一一对应。分别是 `save 900 1`、`save 300 10` 和 `save 60 10000`。`dirty` 记录着有多少键值发生变化，`lastsave`记录着上次 RDB 持久化的时间。
 
@@ -110,7 +110,7 @@ int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
 
 执行 bgsave 指令时，Redis 会先触发 `bgsaveCommand` 进行当前状态检查，然后才会调用`rdbSaveBackground`，其中的逻辑如下图所示。
 
-![示意图](https://upload-images.jianshu.io/upload_images/623378-ca8e0411371013b8.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+[](/images/19_1221/4_image3.png)
 
 
 `rdbSaveBackground` 函数中最主要的工作就是调用 `fork` 命令生成子流程，然后在子流程中执行 `rdbSave`函数，也就是 save 指令最终会触发的函数。
@@ -219,7 +219,7 @@ int rdbSave(char *filename, rdbSaveInfo *rsi) {
 
 `rdbSaveRio` 会将 Redis 内存中的数据以相对紧凑的格式写入到文件中，其文件格式的示意图如下所示。
 
-![](https://upload-images.jianshu.io/upload_images/623378-ee4aa3f1cdfd5f65.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+[](/images/19_1221/4_image4.png)
 
 `rdbSaveRio`函数的写入大致流程如下：
 
@@ -323,7 +323,7 @@ int rdbSaveKeyValuePair(rio *rdb, robj *key, robj *val, long long expiretime)
 ```
 根据键的不同类型写入不同格式，各种键值的类型和格式如下所示。
 
-![](https://upload-images.jianshu.io/upload_images/623378-9337bcd51d556022.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+[](/images/19_1221/4_image5.png)
 
 Redis 有庞大的对象和数据结构体系，它使用六种底层数据结构构建了包含字符串对象、列表对象、哈希对象、集合对象和有序集合对象的对象系统。感兴趣的同学可以参考 [《十二张图带你了解 Redis 的数据结构和对象系统》](https://mp.weixin.qq.com/s/gQnuynv6XPD_aeIBQBeI2Q)一文。
 
@@ -357,6 +357,6 @@ ssize_t rdbSaveObject(rio *rdb, robj *o) {
 }
 ```
 
-![](https://upload-images.jianshu.io/upload_images/623378-289642734e6eb81b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+[](/images/logo.png)
 
 

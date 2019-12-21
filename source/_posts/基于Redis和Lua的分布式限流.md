@@ -24,7 +24,7 @@ date: 2019-04-06 10:51:31
 &emsp;集群限流由于会面对相比单机更大的流量冲击，所以一般不会进行线程等待，而是直接进行丢弃，因为如果让拿不到令牌的线程进行睡眠，会导致大量的线程堆积，线程持有的资源也不会释放，反而容易拖垮服务器。
 
 ### Redis和Lua
-![redis和lua](https://upload-images.jianshu.io/upload_images/623378-d5998d8f9e9ffebd.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+[](/images/19_1221/6_image1.webp)
 
 &emsp;分布式限流本质上是一个集群并发问题，Redis单进程单线程的特性，天然可以解决分布式集群的并发问题。所以很多分布式限流都基于Redis，比如说Spring Cloud的网关组件Gateway。
 
@@ -88,7 +88,7 @@ keep alive: 1
 > 以上lua脚本的性能大概是zadd的70%-80%，但是在可接受的范围内，在生产环境可以使用。负载大概是zadd的1.5-2倍，网络流量相差不大，IO是zadd的3倍，可能是开启了AOF，执行了三次操作。
 
 ### Spring Cloud Gateway的限流实现
-![Spring Cloud](https://upload-images.jianshu.io/upload_images/623378-2aba7e8ececc8639.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+[](/images/19_1221/6_image2.webp)
 
 &emsp;`Gateway`是微服务架构`Spring Cloud`的网关组件，它基于Redis和Lua实现了令牌桶算法的限流功能，下面我们就来看一下它的原理和细节吧。
 
@@ -180,8 +180,7 @@ return { allowed_num, new_tokens }
 
 &emsp;接下来我们回来学习阿里开源的分布式限流组件`sentinel`，希望大家持续关注。
 
-![](https://upload-images.jianshu.io/upload_images/623378-7d960275042f309d.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
-
+[](/images/logo.png)
 
 
 ### 参考

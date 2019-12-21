@@ -98,7 +98,7 @@ database,type,key,size_in_bytes,encoding,num_elements,len_largest_element,expiry
 
 我们进行了两轮实验，分别插入一万数字和一千万数字，三种数据结构消耗的内存统计如下所示。
 
-![统计图表](https://upload-images.jianshu.io/upload_images/623378-b8f4e0c89739ef92.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![统计图表](/images/19_926/image1.webp)
 
 从表中可以明显看出，一万数量级时 BitMap 消耗内存最小， 一千万数量级时 HyperLogLog 消耗内存最小，但是总体来看，HyperLogLog 消耗的内存都是 14392 字节，可见 HyperLogLog 在内存消耗方面有自己的独到之处。
 
@@ -113,7 +113,7 @@ HyperLogLog 是一种概率数据结构，它使用概率算法来统计集合�
 
 根据一顿数学推导，我们可以得出一个结论： $2^{k_ max}$ 来作为n的估计值。也就是说你可以根据最大投掷次数近似的推算出进行了几次伯努利过程。
 
-![示意图](https://upload-images.jianshu.io/upload_images/623378-48360099af56a3e9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![示意图](/images/19_926/image2.webp)
 
 
 下面，我们就来讲解一下 HyperLogLog 是如何模拟伯努利过程，并最终统计集合基数的。
@@ -123,17 +123,17 @@ HyperLogLog 在添加元素时，会通过Hash函数，将元素转为64位比�
 
 所以 HyperLogLog 的基本思想是利用集合中数字的比特串第一个 1 出现位置的最大值来预估整体基数，但是这种预估方法存在较大误差，为了改善误差情况，HyperLogLog中引入分桶平均的概念，计算 m 个桶的调和平均值。
 
-![示意图](https://upload-images.jianshu.io/upload_images/623378-1c42ada50080dfa6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![示意图](/images/19_926/image3.webp)
 
 
 Redis 中 HyperLogLog 一共分了 2^14 个桶，也就是 16384 个桶。每个桶中是一个 6 bit 的数组，如下图所示。
 
-![桶](https://upload-images.jianshu.io/upload_images/623378-d926642b9f84c316.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![桶](/images/19_926/image4.webp)
 
 HyperLogLog 将上文所说的 64 位比特串的低 14 位单独拿出，它的值就对应桶的序号，然后将剩下 50 位中第一次出现 1 的位置值设置到桶中。50位中出现1的位置值最大为50，所以每个桶中的 6 位数组正好可以表示该值。
 
 在设置前，要设置进桶的值是否大于桶中的旧值，如果大于才进行设置，否则不进行设置。示例如下图所示。
-![示例](https://upload-images.jianshu.io/upload_images/623378-6cd3ae629b5142fd.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![示例](/images/19_926/image5.webp)
 
 此时为了性能考虑，是不会去统计当前的基数的，而是将 HyperLogLog 头的 card 属性中的标志位置为 1，表示下次进行 pfcount 操作的时候，当前的缓存值已经失效了，需要重新统计缓存值。在后面 pfcount 流程的时候，发现这个标记为失效，就会去重新统计新的基数，放入基数缓存。
 
@@ -154,7 +154,7 @@ struct hllhdr {
 HyperLogLog 对象中的 `registers` 数组就是桶，它有两种存储结构，分别为密集存储结构和稀疏存储结构，两种结构只涉及存储和桶的表现形式，从中我们可以看到 Redis 对节省内存极致地追求。
 
 
-![密集存储结构](https://upload-images.jianshu.io/upload_images/623378-d926642b9f84c316.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![密集存储结构](/images/19_926/image6.webp)
 
 我们先看相对简单的密集存储结构，它也是十分的简单明了，既然要有 2^14 个 6 bit的桶，那么我就真使用足够多的 `uint8_t` 字节去表示，只是此时会涉及到字节位置和桶的转换，因为字节有 8 位，而桶只需要 6 位。
 
@@ -162,17 +162,17 @@ HyperLogLog 对象中的 `registers` 数组就是桶，它有两种存储结构�
 
 当 offset_bits 小于等于2时，说明一个桶就在该字节内，只需要进行倒转就能得到桶的值。
 
-![示意图](https://upload-images.jianshu.io/upload_images/623378-5f366787334f019a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![示意图](/images/19_926/image7.webp)
 
 如果 offset_bits 大于 2 ，则说明一个桶分布在两个字节内，此时需要将两个字节的内容都进行倒置，然后再进行拼接得到桶的值，如下图所示。
 
-![示意图](https://upload-images.jianshu.io/upload_images/623378-71c1052a8c3bb32f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![示意图](/images/19_926/image8.webp)
 
 
 
 HyperLogLog 的稀疏存储结构是为了节约内存消耗，它不像密集存储模式一样，真正找了那么多个字节数组来表示2^14 个桶，而是使用特殊的字节结构来表达。
 
-![示意图](https://upload-images.jianshu.io/upload_images/623378-9e92d13e759592eb.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![示意图](/images/19_926/image9.webp)
 
 Redis 为了方便表达稀疏存储，它将上面三种字节表示形式分别赋予了一条指令。
 
@@ -181,12 +181,12 @@ Redis 为了方便表达稀疏存储，它将上面三种字节表示形式分�
 - VAL : 一字节，表示连续多少个桶的计数为多少，前一位为标志1，四位表示连桶内计数，所以最大表示桶的计数为32。后两位表示连续多少个桶。
 
 
-![示意图](https://upload-images.jianshu.io/upload_images/623378-32e4c4283591a268.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![示意图](/images/19_926/image10.webp)
 
 
 所以，一个初始状态的 HyperLogLog 对象只需要2 字节，也就是一个 XZERO 来存储其数据，而不需要消耗12K 内存。当 HyperLogLog 插入了少数元素时，可以只使用少量的 XZERO、VAL 和 ZERO 进行表示，如下图所示。
 
-![示意图](https://upload-images.jianshu.io/upload_images/623378-bb8763d3980c0377.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![示意图](/images/19_926/image11.webp)
 
 Redis从稀疏存储转换到密集存储的条件是：
 - 任意一个计数值从 32 变成 33，因为 VAL 指令已经无法容纳，它能表示的计数值最大为 32
@@ -195,6 +195,8 @@ Redis从稀疏存储转换到密集存储的条件是：
 
 具体 Redis 中的 HyperLogLog 源码由于涉及较多的位运算，这里就不多带大家学习了。大家对 HyperLogLog 有什么更好的理解或者问题都欢迎积极留言。
 
+
+![](/images/logo.png)
 
 ### 参考
 [https://thoughtbot.com/blog/hyperloglogs-in-redis](https://thoughtbot.com/blog/hyperloglogs-in-redis)
