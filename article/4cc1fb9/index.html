@@ -17,19 +17,19 @@
 <meta property="og:site_name" content="程序员历小冰">
 <meta property="og:description" content="今天我们来了解一下 Redis 命令执行的过程。在之前的文章中《当 Redis 发生高延迟时，到底发生了什么》我们曾简单的描述了一条命令的执行过程，本篇文章展示深入说明一下，加深读者对 Redis 的了解。 如下图所示，一条命令执行完成并且返回数据一共涉及三部分，第一步是建立连接阶段，响应了socket的建立，并且创建了client对象；第二步是处理阶段，从socket读取数据到输入缓冲区，然后解">
 <meta property="og:locale" content="Chinese">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-3382e9a6c6e87de9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-d97b5f7ff48886d1.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-5c5cdde477ede729.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-35e7e07c1147c632.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-7e02531c0ccdd7c5.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-4cc0e25e42707a9d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-35bbc19c7d233405.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-289642734e6eb81b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:updated_time" content="2019-12-09T14:27:47.000Z">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/1_image1.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/2_image1.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/2_image2.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/2_image3.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/2_image4.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/2_image5.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/2_image6.png">
+<meta property="og:image" content="http://remcarpediem.net/images/logo.png">
+<meta property="og:updated_time" content="2019-12-21T12:37:01.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Redis 命令执行过程(上)">
 <meta name="twitter:description" content="今天我们来了解一下 Redis 命令执行的过程。在之前的文章中《当 Redis 发生高延迟时，到底发生了什么》我们曾简单的描述了一条命令的执行过程，本篇文章展示深入说明一下，加深读者对 Redis 的了解。 如下图所示，一条命令执行完成并且返回数据一共涉及三部分，第一步是建立连接阶段，响应了socket的建立，并且创建了client对象；第二步是处理阶段，从socket读取数据到输入缓冲区，然后解">
-<meta name="twitter:image" content="https://upload-images.jianshu.io/upload_images/623378-3382e9a6c6e87de9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta name="twitter:image" content="http://remcarpediem.net/images/19_1221/1_image1.png">
   <!-- build:css css/screen.css -->
 
   <link rel="stylesheet" href="/css/screen.css">
@@ -102,16 +102,24 @@
     <section class="post-content" itemprop="description articleBody">
       
 
-      <!--  -->
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2019-12-21T12:37:01.000Z" itemprop="dateModified">
+      2019-12-21
+  </time>
+</section>
+
+       -->
       <p>今天我们来了解一下 Redis 命令执行的过程。在之前的文章中<a href="http://remcarpediem.net/article/ef4e619/">《当 Redis 发生高延迟时，到底发生了什么》</a>我们曾简单的描述了一条命令的执行过程，本篇文章展示深入说明一下，加深读者对 Redis 的了解。</p>
-<p>如下图所示，一条命令执行完成并且返回数据一共涉及三部分，第一步是建立连接阶段，响应了socket的建立，并且创建了client对象；第二步是处理阶段，从socket读取数据到输入缓冲区，然后解析并获得命令，执行命令并将返回值存储到输出缓冲区中；第三步是数据返回阶段，将返回值从输出缓冲区写到socket中，返回给客户端，最后关闭client。<br><img src="https://upload-images.jianshu.io/upload_images/623378-3382e9a6c6e87de9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>如下图所示，一条命令执行完成并且返回数据一共涉及三部分，第一步是建立连接阶段，响应了socket的建立，并且创建了client对象；第二步是处理阶段，从socket读取数据到输入缓冲区，然后解析并获得命令，执行命令并将返回值存储到输出缓冲区中；第三步是数据返回阶段，将返回值从输出缓冲区写到socket中，返回给客户端，最后关闭client。</p>
+<p><img src="/images/19_1221/1_image1.png" alt=""></p>
 <p>这三个阶段之间是通过事件机制串联了，在 Redis 启动阶段首先要注册socket连接建立事件处理器：</p>
 <ul>
 <li>当客户端发来建立socket的连接的请求时，对应的处理器方法会被执行，建立连接阶段的相关处理就会进行，然后注册socket读取事件处理器</li>
 <li>当客户端发来命令时，读取事件处理器方法会被执行，对应处理阶段的相关逻辑都会被执行，然后注册socket写事件处理器</li>
 <li>当写事件处理器被执行时，就是将返回值写回到socket中。</li>
 </ul>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-d97b5f7ff48886d1.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><img src="/images/19_1221/2_image1.png" alt=""></p>
 <p>接下来，我们分别来看一下各个步骤的具体原理和代码实现。</p>
 <h3 id="启动时监听socket"><a href="#启动时监听socket" class="headerlink" title="启动时监听socket"></a>启动时监听socket</h3><p>Redis 服务器启动时，会调用 initServer 方法，首先会建立 Redis 自己的事件机制 eventLoop，然后在其上注册周期时间事件处理器，最后在所监听的 socket 上<br>创建文件事件处理器，监听 socket 建立连接的事件，其处理函数为 acceptTcpHandler。<br>
 <!-- Has Prism -->
@@ -150,7 +158,7 @@
 }
 </code></pre></p>
 <p>在《Redis 事件机制详解》一文中，我们曾详细介绍过 Redis 的事件机制，可以说，Redis 命令执行过程中都是由事件机制协调管理的，也就是 initServer 方法中生成的 aeEventLoop。当socket发生对应的事件时，aeEventLoop 对调用已经注册的对应的事件处理器。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-5c5cdde477ede729.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><img src="/images/19_1221/2_image2.png" alt=""></p>
 <h3 id="建立连接和Client"><a href="#建立连接和Client" class="headerlink" title="建立连接和Client"></a>建立连接和Client</h3><p>当客户端向 Redis 建立 socket时，aeEventLoop 会调用 acceptTcpHandler 处理函数，服务器会为每个链接创建一个 Client 对象，并创建相应文件事件来监听socket的可读事件，并指定事件处理函数。</p>
 <p>acceptTcpHandler 函数会首先调用 <code>anetTcpAccept</code>方法，它底层会调用 socket 的 accept 方法，也就是接受客户端来的建立连接请求，然后调用 <code>acceptCommonHandler</code>方法，继续后续的逻辑处理。<br>
 <!-- Has Prism -->
@@ -200,7 +208,7 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
 <li>从客户端用于主从复制，主节点会为每个从节点单独建立一条连接用于命令复制</li>
 <li>订阅客户端用于发布订阅功能</li>
 </ul>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-35e7e07c1147c632.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><img src="/images/19_1221/2_image3.png" alt=""></p>
 <p>createClient 方法除了创建 client 结构体并设置其属性值外，还会对 socket进行配置并注册读事件处理器</p>
 <p>设置 socket 为 非阻塞 socket、设置 NO_DELAY 和 SO_KEEPALIVE标志位来关闭 Nagle 算法并且启动 socket 存活检查机制。</p>
 <p>设置读事件处理器，当客户端通过 socket 发送来数据后，Redis 会调用 readQueryFromClient 方法。</p>
@@ -241,7 +249,7 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
 <p>client 的属性中有很多属性，比如后边会看到的输入缓冲区 querybuf 和输出缓冲区 buf，这里因为代码过长做了省略，感兴趣的同学可以自行阅读源码。</p>
 <h3 id="读取socket数据到输入缓冲区"><a href="#读取socket数据到输入缓冲区" class="headerlink" title="读取socket数据到输入缓冲区"></a>读取socket数据到输入缓冲区</h3><p>readQueryFromClient 方法会调用 read 方法从 socket 中读取数据到输入缓冲区中，然后判断其大小是否大于系统设置的 client_max_querybuf_len，如果大于，则向 Redis返回错误信息，并关闭 client。</p>
 <p>将数据读取到输入缓冲区后，readQueryFromClient 方法会根据 client 的类型来做不同的处理，如果是普通类型，则直接调用 processInputBuffer 来处理；如果是主从客户端，还需要将命令同步到自己的从服务器中。也就是说，Redis实例将主实例传来的命令执行后，继续将命令同步给自己的从实例。</p>
-<p> <img src="https://upload-images.jianshu.io/upload_images/623378-7e02531c0ccdd7c5.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><img src="/images/19_1221/2_image4.png" alt=""></p>
 
 <!-- Has Prism -->
 <pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 处理从client中读取客户端的输入缓冲区内容。
@@ -524,7 +532,7 @@ struct redisCommand redisCommandTable[] = {
 }
 </code></pre>
 <p>call 方法是 Redis 中执行命令的通用方法，它会处理通用的执行命令的前置和后续操作。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-4cc0e25e42707a9d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><img src="/images/19_1221/2_image5.png" alt=""></p>
 <ul>
 <li>如果有监视器 monitor，则需要将命令发送给监视器。</li>
 <li>调用 redisCommand 的proc 方法，执行对应具体的命令逻辑。</li>
@@ -532,7 +540,7 @@ struct redisCommand redisCommandTable[] = {
 <li>如果开启了 CMD_CALL_STATS，则需要记录一些统计信息</li>
 <li>如果开启了 CMD_CALL_PROPAGATE，则当 dirty大于0时，需要调用 propagate 方法来进行命令传播。</li>
 </ul>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-35bbc19c7d233405.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><img src="/images/19_1221/2_image6.png" alt=""></p>
 <p>命令传播就是将命令写入 repl-backlog-buffer 缓冲中，并发送给各个从服务器中。</p>
 
 <!-- Has Prism -->
@@ -604,7 +612,7 @@ void call(client *c, int flags) {
 }
 </code></pre>
 <p>由于文章篇幅问题，本篇文章就先讲到这里，后半部分在接下来的文章中进行讲解，欢迎大家继续关注。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-289642734e6eb81b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><img src="/images/logo.png" alt=""></p>
 
       <h3>关于图片和转载</h3>
 

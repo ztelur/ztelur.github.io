@@ -17,20 +17,10 @@
 <meta property="og:site_name" content="程序员历小冰">
 <meta property="og:description" content="一致性哈希算法在分布式缓存领域的 MemCache，负载均衡领域的 Nginx 以及各类 RPC 框架中都有广泛的应用，它主要是为了解决传统哈希函数添加哈希表槽位数后要将关键字重新映射的问题。 本文会介绍一致性哈希算法的原理及其实现，并给出其不同哈希函数实现的性能数据对比，探讨Redis 集群的数据分片实现等，文末会给出实现的具体 github 地址。 Memcached 与客户端分布式缓存Mem">
 <meta property="og:locale" content="Chinese">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-183cf3f1164affb6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-270fe87e0cb1f89d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-49ec3d40245a1a5b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-de3689515ccf3171.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-e809f645108f353d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-006a22edbe4c7652.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-9b311dbb2594f78a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-34dfbb3b4b16f409.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-97c3bd968d848717.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:updated_time" content="2019-09-15T15:43:26.000Z">
+<meta property="og:updated_time" content="2019-12-21T12:54:08.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="分布式数据缓存中的一致性哈希算法">
 <meta name="twitter:description" content="一致性哈希算法在分布式缓存领域的 MemCache，负载均衡领域的 Nginx 以及各类 RPC 框架中都有广泛的应用，它主要是为了解决传统哈希函数添加哈希表槽位数后要将关键字重新映射的问题。 本文会介绍一致性哈希算法的原理及其实现，并给出其不同哈希函数实现的性能数据对比，探讨Redis 集群的数据分片实现等，文末会给出实现的具体 github 地址。 Memcached 与客户端分布式缓存Mem">
-<meta name="twitter:image" content="https://upload-images.jianshu.io/upload_images/623378-183cf3f1164affb6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
   <!-- build:css css/screen.css -->
 
   <link rel="stylesheet" href="/css/screen.css">
@@ -105,8 +95,8 @@
 
       <!-- 
       <section class="post-updated">
-  Last updated on <time datetime="2019-09-15T15:43:26.000Z" itemprop="dateModified">
-      2019-09-15
+  Last updated on <time datetime="2019-12-21T12:54:08.000Z" itemprop="dateModified">
+      2019-12-21
   </time>
 </section>
 
@@ -114,7 +104,7 @@
       <p>一致性哈希算法在分布式缓存领域的 MemCache，负载均衡领域的 Nginx 以及各类 RPC 框架中都有广泛的应用，它主要是为了解决传统哈希函数添加哈希表槽位数后要将关键字重新映射的问题。</p>
 <p>本文会介绍一致性哈希算法的原理及其实现，并给出其不同哈希函数实现的性能数据对比，探讨Redis 集群的数据分片实现等，文末会给出实现的具体 github 地址。</p>
 <h3 id="Memcached-与客户端分布式缓存"><a href="#Memcached-与客户端分布式缓存" class="headerlink" title="Memcached 与客户端分布式缓存"></a>Memcached 与客户端分布式缓存</h3><p>Memcached 是一个高性能的分布式缓存系统，然而服务端没有分布式功能，各个服务器不会相互通信。它的分布式实现依赖于客户端的程序库，这也是 Memcached 的一大特点。比如第三方的 spymemcached 客户端就基于一致性哈希算法实现了其分布式缓存的功能。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-183cf3f1164affb6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><a href="/images/19_1221/5_image1.webp"></a></p>
 <p>其具体步骤如下:</p>
 <ul>
 <li>向 Memcached 添加数据，首先客户端的算法根据 key 值计算出该 key 对应的服务器。</li>
@@ -126,7 +116,7 @@
 <p>普通的哈希表算法一般都是计算出哈希值后，通过取余操作将 key 值映射到不同的服务器上，但是当服务器数量发生变化时，取余操作的除数发生变化，所有 key 所映射的服务器几乎都会改变，这对分布式缓存系统来说是不可以接收的。</p>
 <p>一致性哈希算法能尽可能减少了服务器数量变化所导致的缓存迁移。</p>
 <h3 id="哈希算法"><a href="#哈希算法" class="headerlink" title="哈希算法"></a>哈希算法</h3><p>首先，一致性哈希算法依赖于普通的哈希算法。大多数同学对哈希算法的理解可能都停留在 JDK 的 <code>hashCode</code> 函数上。其实哈希算法有很多种实现，它们在不同方面都各有优劣，针对不同的场景可以使用不同的哈希算法实现。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-270fe87e0cb1f89d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><a href="/images/19_1221/5_image2.webp"></a></p>
 <p>下面，我们会介绍一下几款比较常见的哈希算法，并且了解一下它们在分布均匀程度，哈希碰撞概率和性能等方面的优劣。</p>
 <p>MD5 算法：全称为 Message-Digest Algorithm 5，用于确保信息传输完整一致。是计算机广泛使用的杂凑算法之一，主流编程语言普遍已有 MD5 实现。MD5 的作用是把大容量信息压缩成一种保密的格式（就是把一个任意长度的字节串变换成定长的16进制数字串）。常见的文件完整性校验就是使用 MD5。</p>
 <p>CRC 算法：全称为 CyclicRedundancyCheck，中文名称为循环冗余校验。它是一类重要的，编码和解码方法简单，检错和纠错能力强的哈希算法，在通信领域广泛地用于实现差错控制。</p>
@@ -136,15 +126,15 @@
 <h3 id="一致性哈希算法"><a href="#一致性哈希算法" class="headerlink" title="一致性哈希算法"></a>一致性哈希算法</h3><p>下面，我们以分布式缓存场景为例，分析一下一致性哈希算法环的原理。</p>
 <p>首先将缓存服务器（ ip + 端口号）进行哈希，映射成环上的一个节点，计算出缓存数据 key 值的 hash key，同样映射到环上，并顺时针选取最近的一个服务器节点作为该缓存应该存储的服务器。具体实现见后续的章节。</p>
 <p>比如说，当存在 A，B，C，D 四个缓存服务器时，它们及其 key 值为1的缓存数据在一致性哈希环上的位置如下图所示，根据顺时针取最近一个服务器节点的规则，该缓存数据应该存储在服务器 B 上。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-49ec3d40245a1a5b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><a href="/images/19_1221/5_image3.webp"></a></p>
 <p>当要存储一个 key 值为4的缓存数据时，它在一致性哈希环上的位置如下所示，所以它应该存储在服务器 C 上。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-de3689515ccf3171.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><a href="/images/19_1221/5_image4.webp"></a></p>
 <p>类似的，key 值为5，6的数据应该存在服务 D 上，key 值为7，8的数据应该存储在服务 A 上。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-e809f645108f353d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><a href="/images/19_1221/5_image5.webp"></a></p>
 <p>此时，服务器 B 宕机下线，服务器 B 中存储的缓存数据要进行迁移，但由于一致性哈希环的存在，只需要迁移key 值为1的数据，其他的数据的存储服务器不会发生变化。这也是一致性哈希算法比取余映射算法出色的地方。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-006a22edbe4c7652.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><a href="/images/19_1221/5_image6.webp"></a></p>
 <p>由于服务器 B 下线，key 值为1的数据顺时针最近的服务器是 C ，所以数据存迁移到服务器 C 上。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-9b311dbb2594f78a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><a href="/images/19_1221/5_image7.webp"></a></p>
 <p>现实情况下，服务器在一致性哈希环上的位置不可能分布的这么均匀，导致了每个节点实际占据环上的区间大小不一。</p>
 <p>这种情况下，可以增加虚节点来解决。通过增加虚节点，使得每个节点在环上所“管辖”的区域更加均匀。这样就既保证了在节点变化时，尽可能小的影响数据分布的变化，而同时又保证了数据分布的均匀。</p>
 <h3 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h3><p>下面我们实现 Memcached 分布式缓存场景下的一致性哈希算法，并给出具体的测试性能数据。该实现借鉴了 kiritomoe 博文中的实现和 spymemcached 客户端代码。具体实现请看我的github，地址为 <a href="https://github.com/ztelur/consistent-hash-algorithm。" target="_blank" rel="noopener">https://github.com/ztelur/consistent-hash-algorithm。</a></p>
@@ -321,10 +311,10 @@ public class JMHBenchmark {
 }
 </code></pre>
 <p>分别测试了 JDK 哈希算法，FNV132 算法，CRC 算法，MurmurHash 算法和Ketama 算法，分别对应 <code>DefaultHashAlgorithm</code> 的 <code>NATIVE_HASH</code>，<code>FNV1_32_HASH</code>，<code>CRC_HASH</code>，<code>MURMUR_HASH</code> 和 <code>KETAMA_HASH</code> 。具体数据如下所示。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-34dfbb3b4b16f409.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="数据表格"></p>
+<p><a href="/images/19_1221/5_image8.webp"></a></p>
 <h3 id="虚拟槽分区"><a href="#虚拟槽分区" class="headerlink" title="虚拟槽分区"></a>虚拟槽分区</h3><p>有些文章说，Redis 集群并没有使用一致性哈希算法，而是使用虚拟槽分区算法。但是外网（地址见文末）上都说 Redis 使用的虚拟槽分区只是一致性哈希算法的变种，虚拟槽可以允许 Redis 动态扩容。</p>
 <p>或许只有去了解一下Redis的源码才能对这个问题作出准确的回答。请了解的同学积极留言解答，谢谢。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-97c3bd968d848717.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p><a href="/images/logo.png"></a></p>
 <p>github 地址： <a href="https://github.com/ztelur/consistent-hash-algorithm" target="_blank" rel="noopener">https://github.com/ztelur/consistent-hash-algorithm</a><br>redis分布式讨论的地址： <a href="https://www.reddit.com/r/redis/comments/4yztxi/which_one_is_better_hash_slot_or_consistent/" target="_blank" rel="noopener">https://www.reddit.com/r/redis/comments/4yztxi/which_one_is_better_hash_slot_or_consistent/</a></p>
 <h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
 <li><a href="https://jistol.github.io/software%20engineering/2018/07/07/consistent-hashing-sample/" target="_blank" rel="noopener">https://jistol.github.io/software%20engineering/2018/07/07/consistent-hashing-sample/</a></li>

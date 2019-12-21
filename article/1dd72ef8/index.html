@@ -17,18 +17,18 @@
 <meta property="og:site_name" content="程序员历小冰">
 <meta property="og:description" content="在上一篇文章中《Redis 命令执行过程(上)》中，我们首先了解 Redis 命令执行的整体流程，然后细致分析了从 Redis 启动到建立 socket 连接，再到读取 socket 数据到输入缓冲区，解析命令，执行命令等过程的原理和实现细节。接下来，我们来具体看一下 set 和 get 命令的实现细节和如何将命令结果通过输出缓冲区和 socket 发送给 Redis 客户端。  set 和 ge">
 <meta property="og:locale" content="Chinese">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-3382e9a6c6e87de9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-f04cbe73ab976bbe.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-6e2aaeffc0c6d420.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-a9410399842442b6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-d64b7b187d0f809c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-d626dd72a76d79c6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-289642734e6eb81b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:updated_time" content="2019-12-11T15:09:51.000Z">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/1_image1.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/1_image2.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/1_image3.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/1_image4.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/1_image5.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/1_image6.png">
+<meta property="og:image" content="http://remcarpediem.net/images/logo.png">
+<meta property="og:updated_time" content="2019-12-21T12:34:08.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Redis 命令执行过程(下)">
 <meta name="twitter:description" content="在上一篇文章中《Redis 命令执行过程(上)》中，我们首先了解 Redis 命令执行的整体流程，然后细致分析了从 Redis 启动到建立 socket 连接，再到读取 socket 数据到输入缓冲区，解析命令，执行命令等过程的原理和实现细节。接下来，我们来具体看一下 set 和 get 命令的实现细节和如何将命令结果通过输出缓冲区和 socket 发送给 Redis 客户端。  set 和 ge">
-<meta name="twitter:image" content="https://upload-images.jianshu.io/upload_images/623378-3382e9a6c6e87de9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta name="twitter:image" content="http://remcarpediem.net/images/19_1221/1_image1.png">
   <!-- build:css css/screen.css -->
 
   <link rel="stylesheet" href="/css/screen.css">
@@ -101,9 +101,16 @@
     <section class="post-content" itemprop="description articleBody">
       
 
-      <!--  -->
+      <!-- 
+      <section class="post-updated">
+  Last updated on <time datetime="2019-12-21T12:34:08.000Z" itemprop="dateModified">
+      2019-12-21
+  </time>
+</section>
+
+       -->
       <p>在上一篇文章中<a href="http://remcarpediem.net/article/4cc1fb9/">《Redis 命令执行过程(上)》</a>中，我们首先了解 Redis 命令执行的整体流程，然后细致分析了从 Redis 启动到建立 socket 连接，再到读取 socket 数据到输入缓冲区，解析命令，执行命令等过程的原理和实现细节。接下来，我们来具体看一下 set 和 get 命令的实现细节和如何将命令结果通过输出缓冲区和 socket 发送给 Redis 客户端。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-3382e9a6c6e87de9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><img src="/images/19_1221/1_image1.png" alt=""></p>
 <h3 id="set-和-get-命令具体实现"><a href="#set-和-get-命令具体实现" class="headerlink" title="set 和 get 命令具体实现"></a>set 和 get 命令具体实现</h3><p>前文讲到 processCommand 方法会从输入缓冲区中解析出对应的 redisCommand，然后调用 call 方法执行解析出来的 redisCommand的 proc 方法。不同命令的的 proc 方法是不同的，比如说名为 set 的 redisCommand 的 proc 是 setCommand 方法，而 get 的则是 getCommand 方法。通过这种形式，实际上实现在Java 中特别常见的多态策略。</p>
 
 <!-- Has Prism -->
@@ -129,7 +136,7 @@ struct redisCommand redisCommandTable[] = {
     .... &#x2F;&#x2F; 所有的 redis 命令都有
 }
 </code></pre>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-f04cbe73ab976bbe.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><img src="/images/19_1221/1_image2.png" alt=""></p>
 <p>setCommand 会判断set命令是否携带了nx、xx、ex或者px等可选参数，然后调用setGenericCommand命令。我们直接来看 setGenericCommand 方法。</p>
 <p>setGenericCommand 方法的处理逻辑如下所示：</p>
 <ul>
@@ -188,7 +195,7 @@ void setGenericCommand(client *c, int flags, robj *key, robj *val, robj *expire,
 }
 </code></pre>
 <p>具体 setKey 和 setExpire 的方法实现我们这里就不细讲，其实就是将键值添加到db的 dict 数据哈希表中，将键和过期时间添加到 expires 哈希表中，如下图所示。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-6e2aaeffc0c6d420.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><img src="/images/19_1221/1_image3.png" alt=""></p>
 <p>接下来看 getCommand 的具体实现，同样的，它底层会调用 getGenericCommand 方法。</p>
 <p>getGenericCommand 方法会调用 lookupKeyReadOrReply 来从 dict 数据哈希表中查找对应的 key值。如果找不到，则直接返回 C_OK；如果找到了，则根据值的类型，调用 addReply 或者 addReplyBulk 方法将值添加到输出缓冲区中。</p>
 
@@ -240,7 +247,7 @@ robj *lookupKeyReadWithFlags(redisDb *db, robj *key, int flags) { &#x2F;&#x2F; d
 <li>如果当前 Redis 是主从结构中的从实例，则只判断键是否过期，不直接对键进行删除，而是要等待主实例发送过来的删除命令后再进行删除。如果当前 Redis 是主实例，则调用 propagateExpire 来传播过期指令。</li>
 <li>如果当前正在进行 Lua 脚本执行，因为其原子性和事务性，整个执行过期中时间都按照其开始执行的那一刻计算，也就是说lua执行时未过期的键，在它整个执行过程中也都不会过期。</li>
 </ul>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-a9410399842442b6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><img src="/images/19_1221/1_image4.png" alt=""></p>
 
 <!-- Has Prism -->
 <pre class="line-numbers" style=""><code class="language-clike">&#x2F;*
@@ -366,7 +373,7 @@ int expireIfNeeded(redisDb *db, robj *key) { &#x2F;&#x2F; db.c
 }
 </code></pre>
 <p>Redis 将存储等待返回的响应数据的空间，也就是输出缓冲区分成两部分，一个固定大小的 buffer 和一个响应内容数据的链表。在链表为空并且 buffer 有足够空间时，则将响应添加到 buffer 中。如果 buffer 满了则创建一个节点追加到链表上。_addReplyToBuffer 和 _addReplyObjectToList 就是分别向这两个空间写数据的方法。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-d64b7b187d0f809c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p><img src="/images/19_1221/1_image5.png" alt=""></p>
 <p>固定buffer和响应链表，整体上构成了一个队列。这么组织的好处是，既可以节省内存，不需一开始预先分配大块内存，并且可以避免频繁分配、回收内存。</p>
 <p>上面就是响应内容写入输出缓冲区的过程，下面看一下将数据从输出缓冲区写入 socket 的过程。</p>
 <p>prepareClientToWrite 函数，将客户端加入到了Redis 的等待写入返回值客户端队列中，也就是 clients_pending_write 队列。请求处理的事件处理逻辑就结束了，等待 Redis 下一次事件循环处理时，将响应从输出缓冲区写入到 socket 中。</p>
@@ -386,7 +393,7 @@ int expireIfNeeded(redisDb *db, robj *key) { &#x2F;&#x2F; db.c
 </code></pre></p>
 <p>beforeSleep 函数会调用 handleClientsWithPendingWrites 函数来处理 clients_pending_write 列表。</p>
 <p>handleClientsWithPendingWrites 方法会遍历 clients_pending_write 列表，对于每个 client 都会先调用 writeToClient 方法来尝试将返回数据从输出缓存区写入到 socekt中，如果还未写完，则只能调用 aeCreateFileEvent 方法来注册一个写数据事件处理器 sendReplyToClient，等待 Redis 事件机制的再次调用。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-d626dd72a76d79c6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><img src="/images/19_1221/1_image6.png" alt=""></p>
 <p>这样的好处时对于返回数据较少的客户端，不需要麻烦的注册写数据事件，等待事件触发再写数据到 socket，而是在下一次事件循环周期就直接将数据写到 socket中，加快了数据返回的响应速度。</p>
 <p>但是从这里也会发现，如果 clients_pending_write 队列过长，则处理时间也会很久，阻塞正常的事件响应处理，导致 Redis 后续命令延时增加。</p>
 
@@ -504,7 +511,7 @@ int writeToClient(int fd, client *c, int handler_installed) {
     return C_OK;
 }
 </code></pre>
-<p><a href="[http://remcarpediem.net/article/1aa2da89/](http://remcarpediem.net/article/1aa2da89/">个人博客地址，欢迎查看</a>)<br><img src="https://upload-images.jianshu.io/upload_images/623378-289642734e6eb81b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><a href="[http://remcarpediem.net/article/1aa2da89/](http://remcarpediem.net/article/1aa2da89/">个人博客地址，欢迎查看</a>)<br><img src="/images/logo.png" alt=""></p>
 
       <h3>关于图片和转载</h3>
 

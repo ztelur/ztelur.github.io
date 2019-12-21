@@ -17,17 +17,10 @@
 <meta property="og:site_name" content="程序员历小冰">
 <meta property="og:description" content="Redis 是一种内存数据库，将数据保存在内存中，读写效率要比传统的将数据保存在磁盘上的数据库要快很多。但是一旦进程退出，Redis 的数据就会丢失。 为了解决这个问题，Redis 提供了 RDB 和 AOF 两种持久化方案，将内存中的数据保存到磁盘中，避免数据丢失。 antirez 在《Redis 持久化解密》一文中说，一般来说有三种常见的策略来进行持久化操作，防止数据损坏：  方法1 是数据库">
 <meta property="og:locale" content="Chinese">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-cc013bacdf6daf20.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-ed2f8d6095a0976f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-ca8e0411371013b8.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-ee4aa3f1cdfd5f65.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-9337bcd51d556022.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-289642734e6eb81b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:updated_time" content="2019-09-15T15:43:26.000Z">
+<meta property="og:updated_time" content="2019-12-21T12:49:02.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Redis RDB 持久化详解">
 <meta name="twitter:description" content="Redis 是一种内存数据库，将数据保存在内存中，读写效率要比传统的将数据保存在磁盘上的数据库要快很多。但是一旦进程退出，Redis 的数据就会丢失。 为了解决这个问题，Redis 提供了 RDB 和 AOF 两种持久化方案，将内存中的数据保存到磁盘中，避免数据丢失。 antirez 在《Redis 持久化解密》一文中说，一般来说有三种常见的策略来进行持久化操作，防止数据损坏：  方法1 是数据库">
-<meta name="twitter:image" content="https://upload-images.jianshu.io/upload_images/623378-cc013bacdf6daf20.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
   <!-- build:css css/screen.css -->
 
   <link rel="stylesheet" href="/css/screen.css">
@@ -102,8 +95,8 @@
 
       <!-- 
       <section class="post-updated">
-  Last updated on <time datetime="2019-09-15T15:43:26.000Z" itemprop="dateModified">
-      2019-09-15
+  Last updated on <time datetime="2019-12-21T12:49:02.000Z" itemprop="dateModified">
+      2019-12-21
   </time>
 </section>
 
@@ -138,10 +131,10 @@ save 60 10000 # 表示60 秒内如果至少有 10000 个 key 的值变化，则�
 <p>首先，持久化保存的文件内容结构必须是紧凑的，特别对于数据库来说，需要持久化的数据量十分大，需要保证持久化文件不至于占用太多存储。<br>其次，进行持久化时，中间件应该还可以快速地响应用户请求，持久化的操作应该尽量少影响中间件的其他功能。<br>最后，毕竟持久化会消耗性能，如何在性能和数据安全性之间做出平衡，如何灵活配置触发持久化操作。</p>
 <p>接下来我们将带着这些问题，到源码中寻求答案。</p>
 <p>本文中的源码来自 Redis 4.0 ，RDB持久化过程的相关源码都在 rdb.c 文件中。其中大概的流程如下图所示。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-cc013bacdf6daf20.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p><a href="/images/19_1221/4_image1.png"></a></p>
 <p>上图表明了三种触发 RDB 持久化的手段之间的整体关系。通过 <code>serverCron</code> 自动触发的 RDB 相当于直接调用了 bgsave 指令的流程进行处理。而 bgsave 的处理流程启动子进程后，调用了 save 指令的处理流程。</p>
 <p>下面我们从 <code>serverCron</code> 自动触发逻辑开始研究。</p>
-<h3 id="自动触发-RDB-持久化"><a href="#自动触发-RDB-持久化" class="headerlink" title="自动触发 RDB 持久化"></a>自动触发 RDB 持久化</h3><p><img src="https://upload-images.jianshu.io/upload_images/623378-ed2f8d6095a0976f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<h3 id="自动触发-RDB-持久化"><a href="#自动触发-RDB-持久化" class="headerlink" title="自动触发 RDB 持久化"></a>自动触发 RDB 持久化</h3><p><a href="/images/19_1221/4_image2.png"></a></p>
 <p>如上图所示，<code>redisServer</code> 结构体的<code>save_params</code>指向拥有三个值的数组，该数组的值与 redis.conf 文件中 save 配置项一一对应。分别是 <code>save 900 1</code>、<code>save 300 10</code> 和 <code>save 60 10000</code>。<code>dirty</code> 记录着有多少键值发生变化，<code>lastsave</code>记录着上次 RDB 持久化的时间。</p>
 <p>而 <code>serverCron</code> 函数就是遍历该数组的值，检查当前 Redis 状态是否符合触发 RDB 持久化的条件，比如说距离上次 RDB 持久化过去了 900 秒并且有至少一条数据发生变更。</p>
 
@@ -185,7 +178,7 @@ save 60 10000 # 表示60 秒内如果至少有 10000 个 key 的值变化，则�
 </code></pre>
 <p>如果符合触发 RDB 持久化的条件，<code>serverCron</code>会调用<code>rdbSaveBackground</code>函数，也就是 bgsave 指令会触发的函数。</p>
 <h3 id="子进程后台执行-RDB-持久化"><a href="#子进程后台执行-RDB-持久化" class="headerlink" title="子进程后台执行 RDB 持久化"></a>子进程后台执行 RDB 持久化</h3><p>执行 bgsave 指令时，Redis 会先触发 <code>bgsaveCommand</code> 进行当前状态检查，然后才会调用<code>rdbSaveBackground</code>，其中的逻辑如下图所示。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-ca8e0411371013b8.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="示意图"></p>
+<p><a href="/images/19_1221/4_image3.png"></a></p>
 <p><code>rdbSaveBackground</code> 函数中最主要的工作就是调用 <code>fork</code> 命令生成子流程，然后在子流程中执行 <code>rdbSave</code>函数，也就是 save 指令最终会触发的函数。<br>
 <!-- Has Prism -->
 <pre class="line-numbers" style=""><code class="language-clike">int rdbSaveBackground(char *filename, rdbSaveInfo *rsi) {
@@ -281,7 +274,7 @@ save 60 10000 # 表示60 秒内如果至少有 10000 个 key 的值变化，则�
 <p>这里要简单说一下 <code>fflush</code>和<code>fsync</code>的区别。它们俩都是用于刷缓存，但是所属的层次不同。<code>fflush</code>函数用于 <code>FILE*</code> 指针上，将缓存数据从应用层缓存刷新到内核中，而<code>fsync</code> 函数则更加底层，作用于文件描述符，用于将内核缓存刷新到物理设备上。</p>
 <p>关于 Linux IO 的具体原理可以参考<a href="https://mp.weixin.qq.com/s/3mKxTH2pfXFpDvvJnDtgEQ" target="_blank" rel="noopener">《聊聊Linux IO》</a></p>
 <h4 id="内存数据到-RDB-文件"><a href="#内存数据到-RDB-文件" class="headerlink" title="内存数据到 RDB 文件"></a>内存数据到 RDB 文件</h4><p><code>rdbSaveRio</code> 会将 Redis 内存中的数据以相对紧凑的格式写入到文件中，其文件格式的示意图如下所示。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-ee4aa3f1cdfd5f65.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><a href="/images/19_1221/4_image4.png"></a></p>
 <p><code>rdbSaveRio</code>函数的写入大致流程如下：</p>
 <ul>
 <li><p>先写入 REDIS 魔法值，然后是 RDB 文件的版本( rdb_version )，额外辅助信息 ( aux )。辅助信息中包含了 Redis 的版本，内存占用和复制库( repl-id )和偏移量( repl-offset )等。</p>
@@ -385,7 +378,7 @@ save 60 10000 # 表示60 秒内如果至少有 10000 个 key 的值变化，则�
 }
 </code></pre>
 <p>根据键的不同类型写入不同格式，各种键值的类型和格式如下所示。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-9337bcd51d556022.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><a href="/images/19_1221/4_image5.png"></a></p>
 <p>Redis 有庞大的对象和数据结构体系，它使用六种底层数据结构构建了包含字符串对象、列表对象、哈希对象、集合对象和有序集合对象的对象系统。感兴趣的同学可以参考 <a href="https://mp.weixin.qq.com/s/gQnuynv6XPD_aeIBQBeI2Q" target="_blank" rel="noopener">《十二张图带你了解 Redis 的数据结构和对象系统》</a>一文。</p>
 <p>不同的数据结构进行 RDB 持久化的格式都不同。我们今天只看一下集合对象是如何持久化的。<br>
 <!-- Has Prism -->
@@ -416,7 +409,7 @@ save 60 10000 # 表示60 秒内如果至少有 10000 个 key 的值变化，则�
     return nwritten;
 }
 </code></pre></p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-289642734e6eb81b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p><a href="/images/logo.png"></a></p>
 
       <h3>关于图片和转载</h3>
 
