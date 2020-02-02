@@ -1,6 +1,7 @@
 ---
 title: 十二张图带你了解 Redis 的数据结构和对象系统
 tags: redis
+category: Redis
 abbrlink: fa5c04fa
 date: 2019-05-26 16:55:06
 ---

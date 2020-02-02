@@ -1,11 +1,7 @@
 ---
 title: Android-Async-Http 源码解析
-tags:
-  - 第三方库
-  - Http
 categories:
   - Android
-  - Network
 abbrlink: 68b9bfcd
 date: 2015-09-27 14:37:49
 ---

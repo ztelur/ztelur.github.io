@@ -4,8 +4,7 @@ tags:
   - React Native
   - Cookie
 categories:
-  - Java
-  - JavaScript
+  - Android
 abbrlink: 65079f86
 date: 2015-11-04 13:50:31
 ---

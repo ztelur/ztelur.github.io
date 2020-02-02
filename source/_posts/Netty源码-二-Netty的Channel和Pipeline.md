@@ -3,7 +3,7 @@ title: 'Netty源码(二):Netty的Channel和Pipeline'
 tags:
   - Netty
 categories:
-  - NIO
+  - Netty
 abbrlink: 815dc153
 date: 2017-03-27 21:38:03
 ---

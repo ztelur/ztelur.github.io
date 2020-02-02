@@ -4,7 +4,7 @@ tags:
   - Netty
   - epoll
 categories:
-  - NIO
+  - Netty
 abbrlink: dbc01bc2
 date: 2017-04-02 23:11:13
 ---

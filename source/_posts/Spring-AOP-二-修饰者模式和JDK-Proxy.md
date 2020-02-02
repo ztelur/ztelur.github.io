@@ -1,6 +1,7 @@
 ---
 title: Spring AOP(二) 修饰者模式和JDK Proxy
 tags: AOP
+category: Spring
 abbrlink: 90b14a95
 date: 2019-02-17 13:20:37
 ---

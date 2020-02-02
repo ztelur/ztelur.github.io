@@ -1,6 +1,7 @@
 ---
 title: 详解 Redis 内存管理机制和实现
 tags: redis
+category: Redis
 abbrlink: e66f8da0
 date: 2019-10-26 22:46:39
 ---

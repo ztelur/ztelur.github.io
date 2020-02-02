@@ -1,6 +1,6 @@
 ---
 title: Redis 复制过程详解
-tags: redis
+category: Redis
 abbrlink: eb2e63e2
 date: 2019-09-18 21:46:54
 ---

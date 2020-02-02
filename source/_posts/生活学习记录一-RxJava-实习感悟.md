@@ -4,7 +4,6 @@ tags:
   - RxJava
   - 实习
 categories:
-  - Java
   - 杂记
 abbrlink: 30f5a57f
 date: 2015-10-17 17:54:47

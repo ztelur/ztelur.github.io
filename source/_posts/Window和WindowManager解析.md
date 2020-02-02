@@ -5,7 +5,6 @@ tags:
   - Window机制
 categories:
   - Android
-  - 源码分析
 abbrlink: 8f1b6328
 date: 2015-10-28 15:35:51
 ---

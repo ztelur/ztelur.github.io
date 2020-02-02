@@ -3,7 +3,7 @@ title: Python中的plisttext和HTTP的Content-Type
 tags:
   - http
 categories:
-  - python
+  - Python
 abbrlink: '64e12480'
 date: 2016-05-28 16:51:37
 ---

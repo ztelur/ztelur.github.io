@@ -3,7 +3,7 @@ title: SICP 习题2.6之丘奇数
 tags:
   - SICP
 categories:
-  - 函数式编程
+  - SICP
 abbrlink: b367660b
 date: 2016-05-01 19:34:38
 ---

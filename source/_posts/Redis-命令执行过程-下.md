@@ -1,6 +1,6 @@
 ---
 title: Redis 命令执行过程(下)
-tags: redis
+category: Redis
 abbrlink: 1dd72ef8
 date: 2019-12-11 23:09:14
 ---

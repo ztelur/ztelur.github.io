@@ -1,10 +1,9 @@
 ---
 title: 《Redis设计和实现》读书笔记1-简单动态字符串
 tags:
-  - string
-categories:
-  - c
   - 数据结构
+categories:
+  - Redis
 abbrlink: 9be565e7
 date: 2016-02-02 22:38:59
 ---

@@ -3,7 +3,7 @@ title: 'Netty源码(一):Netty中的Buffer'
 tags:
   - Netty
 categories:
-  - NIO
+  - Netty
 abbrlink: bf1a30e4
 date: 2017-03-22 23:09:21
 ---

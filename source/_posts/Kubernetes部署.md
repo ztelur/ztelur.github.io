@@ -4,7 +4,7 @@ tags:
   - docker
   - kubernetes
 categories:
-  - 容器
+  - docker
 abbrlink: 51083ebf
 date: 2017-07-23 15:33:52
 ---

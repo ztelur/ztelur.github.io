@@ -3,7 +3,7 @@ title: 'Android性能优化(一):TraceView'
 tags:
   - 工具
 categories:
-  - Android性能
+  - Android
 abbrlink: e21717d9
 date: 2016-12-31 16:18:03
 ---

@@ -2,8 +2,7 @@
 title: 'Spring Boot (一): Spring Boot starter自定义'
 tags:
   - Spring Boot
-categories:
-  - 后端
+category: Spring
 abbrlink: 81d689c6
 date: 2017-09-10 20:25:35
 ---

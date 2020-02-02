@@ -1,6 +1,7 @@
 ---
 title: Spring AOP(一) AOP基本概念
 tags: AOP
+category: Spring
 abbrlink: 69e55fe0
 date: 2019-02-08 19:15:32
 ---

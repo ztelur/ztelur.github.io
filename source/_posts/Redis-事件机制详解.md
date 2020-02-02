@@ -1,6 +1,6 @@
 ---
 title: Redis 事件机制详解
-tags: redis
+category: Redis
 abbrlink: 1aa2da89
 date: 2019-08-04 18:37:29
 ---

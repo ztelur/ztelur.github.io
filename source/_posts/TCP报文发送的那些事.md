@@ -1,6 +1,8 @@
 ---
 title: TCP报文发送的那些事
 tags: TCP
+categories:
+  - 网络
 abbrlink: 4a70661a
 date: 2019-04-17 11:44:06
 ---

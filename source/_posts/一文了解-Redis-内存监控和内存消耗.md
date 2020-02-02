@@ -1,6 +1,6 @@
 ---
 title: 一文了解 Redis 内存监控和内存消耗
-tags: Redis
+category: Redis
 abbrlink: 516957d3
 date: 2019-10-14 21:06:41
 ---

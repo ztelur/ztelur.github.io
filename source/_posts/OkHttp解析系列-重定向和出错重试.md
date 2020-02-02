@@ -4,7 +4,6 @@ tags:
   - OkHttp
 categories:
   - Android
-  - NetWork
 abbrlink: d647642b
 date: 2015-11-18 22:00:10
 ---

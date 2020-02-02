@@ -2,7 +2,7 @@
 title: Redis AOF 持久化详解
 abbrlink: 376c55d8
 date: 2019-07-28 22:36:28
-tags:
+category: Redis
 ---
 
 Redis 是一种内存数据库，将数据保存在内存中，读写效率要比传统的将数据保存在磁盘上的数据库要快很多。但是一旦进程退出，Redis 的数据就会丢失。
@@ -22,7 +22,7 @@ antirez 在《Redis 持久化解密》一文中讲述了 RDB 和 AOF 各自的�
 
 ### AOF 持久化的实现
 
-[](/images/19_1221/3_image1.png)
+![](/images/19_1221/3_image1.png)
 
 如上图所示，AOF 持久化功能的实现可以分为命令追加( append )、文件写入( write )、文件同步( sync )、文件重写(rewrite)和重启加载(load)。其流程如下：
 - 所有的写命令会追加到 AOF 缓冲中。
@@ -58,7 +58,7 @@ Linux 系统下 `write` 操作会触发延迟写( delayed write )机制。Linux 
 
 有关 Linux 的I/O和各个系统调用的作用如下图所示。具体内容可以查看[《聊聊 Linux I/O》](https://mp.weixin.qq.com/s/3mKxTH2pfXFpDvvJnDtgEQ)一文。
 
-[](/images/19_1221/3_image2.png)
+![](/images/19_1221/3_image2.png)
 
 
 
@@ -66,7 +66,7 @@ Linux 系统下 `write` 操作会触发延迟写( delayed write )机制。Linux 
 
 AOF 文件里边包含了重建 Redis 数据所需的所有写命令，所以 Redis 只要读入并重新执行一遍 AOF 文件里边保存的写命令，就可以还原 Redis 关闭之前的状态。
 
-[](/images/19_1221/3_image3.png)
+![](/images/19_1221/3_image3.png)
 
 Redis 读取 AOF 文件并且还原数据库状态的详细步骤如下：
 
@@ -85,7 +85,7 @@ Redis 读取 AOF 文件并且还原数据库状态的详细步骤如下：
 
 为了解决 AOF 文件体积膨胀的问题，Redis 提供了 AOF 文件重写( rewrite) 功能。通过该功能，Redis 可以创建一个新的 AOF 文件来替代现有的 AOF 文件。新旧两个 AOF 文件所保存的 Redis 状态相同，但是新的 AOF 文件不会包含任何浪费空间的荣誉命令，所以新 AOF 文件的体积通常比旧 AOF 文件的体积要小得很多。
 
-[](/images/19_1221/3_image4.png)
+![](/images/19_1221/3_image4.png)
 
 
 如上图所示，重写前要记录名为`list`的键的状态，AOF 文件要保存五条命令，而重写后，则只需要保存一条命令。
@@ -113,7 +113,7 @@ AOF 重写函数会进行大量的写入操作，调用该函数的线程将被�
 
 为此，Redis 设置了一个 AOF 重写缓冲区，这个缓冲区在服务器创建子进程之后开始使用，当 Redis 执行完一个写命令之后，它会同时将这个写命令发送给 AOF 缓冲区和 AOF 重写缓冲区。
 
-[](/images/19_1221/3_image5.png)
+![](/images/19_1221/3_image5.png)
 
 当子进程完成 AOF 重写工作之后，它会向父进程发送一个信号，父进程在接收到该信号之后，会调用一个信号处理函数，并执行以下工作：
 
@@ -123,7 +123,7 @@ AOF 重写函数会进行大量的写入操作，调用该函数的线程将被�
 
 在整个 AOF 后台重写过程中，只有信号处理函数执行时会对 Redis 主进程造成阻塞，在其他时候，AOF 后台重写都不会阻塞主进程。
 
-[](/images/19_1221/3_image6.png)
+![](/images/19_1221/3_image6.png)
 
 ### 后记
 后续将会继续学习 Redis 复制和集群相关的知识，希望大家持久关注。

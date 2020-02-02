@@ -1,6 +1,7 @@
 ---
 title: Spring Cloud Netflix Feign 基础应用实战
 tags: spring-cloud
+category: Spring
 abbrlink: 6fc98a53
 date: 2019-10-09 21:40:45
 ---

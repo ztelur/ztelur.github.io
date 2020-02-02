@@ -2,8 +2,7 @@
 title: Spring Cloud Stream(一)：Spring基础知识
 tags:
   - Spring Boot
-categories:
-  - 后端 - Spring
+category: Spring
 abbrlink: 2317aa7e
 date: 2017-10-10 21:51:45
 ---

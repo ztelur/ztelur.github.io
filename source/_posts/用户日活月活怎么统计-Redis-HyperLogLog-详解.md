@@ -1,6 +1,7 @@
 ---
 title: 用户日活月活怎么统计 - Redis HyperLogLog 详解
 tags: redis
+category: Redis
 abbrlink: ec0c40ae
 date: 2019-06-16 22:06:19
 ---

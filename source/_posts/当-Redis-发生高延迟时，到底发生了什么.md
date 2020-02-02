@@ -1,6 +1,6 @@
 ---
 title: 当 Redis 发生高延迟时，到底发生了什么
-tags: redis
+category: Redis
 abbrlink: ef4e619
 date: 2019-11-10 23:22:19
 ---

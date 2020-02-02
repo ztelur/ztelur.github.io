@@ -3,7 +3,7 @@ title: '重要的是商业，不是应用(Building a bussiness, not an app)'
 tags:
   - 市场
 categories:
-  - 综合
+  - 杂记
 abbrlink: fd3a41af
 date: 2016-10-01 16:10:32
 ---

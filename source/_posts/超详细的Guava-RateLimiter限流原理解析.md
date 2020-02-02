@@ -1,6 +1,7 @@
 ---
 title: 超详细的Guava RateLimiter限流原理解析
 tags: 限流
+category: Redis
 abbrlink: 7d8dbf1c
 date: 2019-03-30 13:33:07
 ---

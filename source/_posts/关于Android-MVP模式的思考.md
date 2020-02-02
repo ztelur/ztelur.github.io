@@ -3,7 +3,7 @@ title: 关于Android MVP模式的思考
 tags:
   - 框架
 categories:
-  - 思考
+  - Android
 abbrlink: eca06a79
 date: 2017-03-12 17:09:22
 ---

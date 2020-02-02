@@ -4,8 +4,7 @@ tags:
   - View
   - ViewRoot
 categories:
-  - 源码
-  - 视图
+  - Android
 abbrlink: 251abaf9
 date: 2016-10-30 16:37:22
 ---

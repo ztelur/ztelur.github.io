@@ -1,6 +1,6 @@
 ---
 title: 'MySQL探秘(六):InnoDB一致性非锁定读'
-tags: MySQL
+category: MySQL
 abbrlink: c63e3cd7
 date: 2018-11-18 21:45:39
 ---

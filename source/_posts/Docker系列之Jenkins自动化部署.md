@@ -4,7 +4,7 @@ tags:
   - Docker
   - Jenkins
 categories:
-  - 运维
+  - docker
 abbrlink: b4f6f76f
 date: 2017-07-02 21:23:35
 ---
