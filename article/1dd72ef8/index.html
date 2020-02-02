@@ -47,18 +47,27 @@
     
     
     
-        <script type="text/javascript">
-(function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
-(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-ga('create', 'UA-118574570-1', 'auto');
-ga('send', 'pageview');
-
+    
+    
+        <script>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
 </script>
-    
-    
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
     
 
 
@@ -102,7 +111,7 @@ ga('send', 'pageview');
             <div id="search-form-wrap">
 
     <form class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
         <button type="submit" class="search-form-submit"></button>
     </form>
     <div class="ins-search">
@@ -121,10 +130,10 @@ ga('send', 'pageview');
 (function (window) {
     var INSIGHT_CONFIG = {
         TRANSLATION: {
-            POSTS: 'Entradas',
+            POSTS: 'Posts',
             PAGES: 'Pages',
-            CATEGORIES: 'Categorias',
-            TAGS: 'Etiquetas',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
             UNTITLED: '(Untitled)',
         },
         ROOT_URL: '/',
@@ -157,7 +166,7 @@ ga('send', 'pageview');
                 <td>
                     
     <div class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
     </div>
 
                 </td>
@@ -183,11 +192,11 @@ ga('send', 'pageview');
         <div class="article-info profile-block">
             <div class="article-info-block">
                 90
-                <span>Entradas</span>
+                <span>posts</span>
             </div>
             <div class="article-info-block">
                 61
-                <span>Etiquetas</span>
+                <span>tags</span>
             </div>
         </div>
         
@@ -263,30 +272,7 @@ ga('send', 'pageview');
             <p>在上一篇文章中<a href="http://remcarpediem.net/article/4cc1fb9/">《Redis 命令执行过程(上)》</a>中，我们首先了解 Redis 命令执行的整体流程，然后细致分析了从 Redis 启动到建立 socket 连接，再到读取 socket 数据到输入缓冲区，解析命令，执行命令等过程的原理和实现细节。接下来，我们来具体看一下 set 和 get 命令的实现细节和如何将命令结果通过输出缓冲区和 socket 发送给 Redis 客户端。</p>
 <p><img src="/images/19_1221/1_image1.png" alt=""></p>
 <h3 id="set-和-get-命令具体实现"><a href="#set-和-get-命令具体实现" class="headerlink" title="set 和 get 命令具体实现"></a>set 和 get 命令具体实现</h3><p>前文讲到 processCommand 方法会从输入缓冲区中解析出对应的 redisCommand，然后调用 call 方法执行解析出来的 redisCommand的 proc 方法。不同命令的的 proc 方法是不同的，比如说名为 set 的 redisCommand 的 proc 是 setCommand 方法，而 get 的则是 getCommand 方法。通过这种形式，实际上实现在Java 中特别常见的多态策略。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">void call(client *c, int flags) {
-    ....
-    c-&gt;cmd-&gt;proc(c);
-    ....
-}
-&#x2F;&#x2F; redisCommand结构体
-struct redisCommand {
-    char *name;
-    &#x2F;&#x2F; 对应方法的函数范式
-    redisCommandProc *proc;
-    .... &#x2F;&#x2F; 其他定义
-};
-&#x2F;&#x2F; 使用 typedef 定义的别名
-typedef void redisCommandProc(client *c);
-&#x2F;&#x2F; 不同的命令，调用不同的方法。
-struct redisCommand redisCommandTable[] = {
-    {&quot;get&quot;,getCommand,2,&quot;rF&quot;,0,NULL,1,1,1,0,0},
-    {&quot;set&quot;,setCommand,-3,&quot;wm&quot;,0,NULL,1,1,1,0,0},
-    {&quot;hmset&quot;,hsetCommand,-4,&quot;wmF&quot;,0,NULL,1,1,1,0,0},
-    .... &#x2F;&#x2F; 所有的 redis 命令都有
-}
-</code></pre>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">call</span><span class="params">(client *c, <span class="keyword">int</span> flags)</span> </span>&#123;</span><br><span class="line">    ....</span><br><span class="line">    c-&gt;cmd-&gt;proc(c);</span><br><span class="line">    ....</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// redisCommand结构体</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">redisCommand</span> &#123;</span></span><br><span class="line">    <span class="keyword">char</span> *name;</span><br><span class="line">    <span class="comment">// 对应方法的函数范式</span></span><br><span class="line">    redisCommandProc *proc;</span><br><span class="line">    .... <span class="comment">// 其他定义</span></span><br><span class="line">&#125;;</span><br><span class="line"><span class="comment">// 使用 typedef 定义的别名</span></span><br><span class="line"><span class="function"><span class="keyword">typedef</span> <span class="keyword">void</span> <span class="title">redisCommandProc</span><span class="params">(client *c)</span></span>;</span><br><span class="line"><span class="comment">// 不同的命令，调用不同的方法。</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">redisCommand</span> <span class="title">redisCommandTable</span>[] = &#123;</span></span><br><span class="line">    &#123;<span class="string">"get"</span>,getCommand,<span class="number">2</span>,<span class="string">"rF"</span>,<span class="number">0</span>,<span class="literal">NULL</span>,<span class="number">1</span>,<span class="number">1</span>,<span class="number">1</span>,<span class="number">0</span>,<span class="number">0</span>&#125;,</span><br><span class="line">    &#123;<span class="string">"set"</span>,setCommand,<span class="number">-3</span>,<span class="string">"wm"</span>,<span class="number">0</span>,<span class="literal">NULL</span>,<span class="number">1</span>,<span class="number">1</span>,<span class="number">1</span>,<span class="number">0</span>,<span class="number">0</span>&#125;,</span><br><span class="line">    &#123;<span class="string">"hmset"</span>,hsetCommand,<span class="number">-4</span>,<span class="string">"wmF"</span>,<span class="number">0</span>,<span class="literal">NULL</span>,<span class="number">1</span>,<span class="number">1</span>,<span class="number">1</span>,<span class="number">0</span>,<span class="number">0</span>&#125;,</span><br><span class="line">    .... <span class="comment">// 所有的 redis 命令都有</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p><img src="/images/19_1221/1_image2.png" alt=""></p>
 <p>setCommand 会判断set命令是否携带了nx、xx、ex或者px等可选参数，然后调用setGenericCommand命令。我们直接来看 setGenericCommand 方法。</p>
 <p>setGenericCommand 方法的处理逻辑如下所示：</p>
@@ -297,101 +283,14 @@ struct redisCommand redisCommandTable[] = {
 <li>进行键空间通知</li>
 <li>返回对应的值给客户端。</li>
 </ul>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">&#x2F;&#x2F; t_string.c 
-void setGenericCommand(client *c, int flags, robj *key, robj *val, robj *expire, int unit, robj *ok_reply, robj *abort_reply) {
-    long long milliseconds = 0; 
-    &#x2F;**
-     * 设置了过期时间；expire是robj类型，获取整数值
-     *&#x2F;
-    if (expire) {
-        if (getLongLongFromObjectOrReply(c, expire, &amp;milliseconds, NULL) != C_OK)
-            return;
-        if (milliseconds &lt;= 0) {
-            addReplyErrorFormat(c,&quot;invalid expire time in %s&quot;,c-&gt;cmd-&gt;name);
-            return;
-        }
-        if (unit == UNIT_SECONDS) milliseconds *= 1000;
-    }
-    &#x2F;**
-     * NX，key存在时直接返回；XX，key不存在时直接返回
-     * lookupKeyWrite 是在对应的数据库中寻找键值是否存在
-     *&#x2F;
-    if ((flags &amp; OBJ_SET_NX &amp;&amp; lookupKeyWrite(c-&gt;db,key) != NULL) ||
-        (flags &amp; OBJ_SET_XX &amp;&amp; lookupKeyWrite(c-&gt;db,key) == NULL))
-    {
-        addReply(c, abort_reply ? abort_reply : shared.nullbulk);
-        return;
-    }
-    &#x2F;**
-     * 添加到数据字典
-     *&#x2F;
-    setKey(c-&gt;db,key,val);
-    server.dirty++;
-    &#x2F;**
-     * 过期时间添加到过期字典
-     *&#x2F;
-    if (expire) setExpire(c,c-&gt;db,key,mstime()+milliseconds);
-    &#x2F;**
-     * 键空间通知
-     *&#x2F;
-    notifyKeyspaceEvent(NOTIFY_STRING,&quot;set&quot;,key,c-&gt;db-&gt;id);
-    if (expire) notifyKeyspaceEvent(NOTIFY_GENERIC,
-        &quot;expire&quot;,key,c-&gt;db-&gt;id);
-    &#x2F;**
-     * 返回值，addReply 在 get 命令时再具体讲解
-     *&#x2F;
-    addReply(c, ok_reply ? ok_reply : shared.ok);
-}
-</code></pre>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// t_string.c </span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">setGenericCommand</span><span class="params">(client *c, <span class="keyword">int</span> flags, robj *key, robj *val, robj *expire, <span class="keyword">int</span> unit, robj *ok_reply, robj *abort_reply)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> milliseconds = <span class="number">0</span>; </span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 设置了过期时间；expire是robj类型，获取整数值</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> (expire) &#123;</span><br><span class="line">        <span class="keyword">if</span> (getLongLongFromObjectOrReply(c, expire, &amp;milliseconds, <span class="literal">NULL</span>) != C_OK)</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        <span class="keyword">if</span> (milliseconds &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">            addReplyErrorFormat(c,<span class="string">"invalid expire time in %s"</span>,c-&gt;cmd-&gt;name);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (unit == UNIT_SECONDS) milliseconds *= <span class="number">1000</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * NX，key存在时直接返回；XX，key不存在时直接返回</span></span><br><span class="line"><span class="comment">     * lookupKeyWrite 是在对应的数据库中寻找键值是否存在</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> ((flags &amp; OBJ_SET_NX &amp;&amp; lookupKeyWrite(c-&gt;db,key) != <span class="literal">NULL</span>) ||</span><br><span class="line">        (flags &amp; OBJ_SET_XX &amp;&amp; lookupKeyWrite(c-&gt;db,key) == <span class="literal">NULL</span>))</span><br><span class="line">    &#123;</span><br><span class="line">        addReply(c, abort_reply ? abort_reply : shared.nullbulk);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 添加到数据字典</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    setKey(c-&gt;db,key,val);</span><br><span class="line">    server.dirty++;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 过期时间添加到过期字典</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> (expire) setExpire(c,c-&gt;db,key,mstime()+milliseconds);</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 键空间通知</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    notifyKeyspaceEvent(NOTIFY_STRING,<span class="string">"set"</span>,key,c-&gt;db-&gt;id);</span><br><span class="line">    <span class="keyword">if</span> (expire) notifyKeyspaceEvent(NOTIFY_GENERIC,</span><br><span class="line">        <span class="string">"expire"</span>,key,c-&gt;db-&gt;id);</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 返回值，addReply 在 get 命令时再具体讲解</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    addReply(c, ok_reply ? ok_reply : shared.ok);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>具体 setKey 和 setExpire 的方法实现我们这里就不细讲，其实就是将键值添加到db的 dict 数据哈希表中，将键和过期时间添加到 expires 哈希表中，如下图所示。</p>
 <p><img src="/images/19_1221/1_image3.png" alt=""></p>
 <p>接下来看 getCommand 的具体实现，同样的，它底层会调用 getGenericCommand 方法。</p>
 <p>getGenericCommand 方法会调用 lookupKeyReadOrReply 来从 dict 数据哈希表中查找对应的 key值。如果找不到，则直接返回 C_OK；如果找到了，则根据值的类型，调用 addReply 或者 addReplyBulk 方法将值添加到输出缓冲区中。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">int getGenericCommand(client *c) {
-    robj *o;
-    &#x2F;&#x2F; 调用 lookupKeyReadOrReply 从数据字典中查找对应的键
-    if ((o = lookupKeyReadOrReply(c,c-&gt;argv[1],shared.nullbulk)) == NULL)
-        return C_OK;
-    &#x2F;&#x2F; 如果是string类型，调用 addReply 单行返回。如果是其他对象类型，则调用 addReplyBulk
-    if (o-&gt;type != OBJ_STRING) {
-        addReply(c,shared.wrongtypeerr);
-        return C_ERR;
-    } else {
-        addReplyBulk(c,o);
-        return C_OK;
-    }
-}
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">int getGenericCommand(client *c) &#123;</span><br><span class="line">    robj *o;</span><br><span class="line">    // 调用 lookupKeyReadOrReply 从数据字典中查找对应的键</span><br><span class="line">    if ((o = lookupKeyReadOrReply(c,c-&gt;argv[1],shared.nullbulk)) == NULL)</span><br><span class="line">        return C_OK;</span><br><span class="line">    // 如果是string类型，调用 addReply 单行返回。如果是其他对象类型，则调用 addReplyBulk</span><br><span class="line">    if (o-&gt;type != OBJ_STRING) &#123;</span><br><span class="line">        addReply(c,shared.wrongtypeerr);</span><br><span class="line">        return C_ERR;</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        addReplyBulk(c,o);</span><br><span class="line">        return C_OK;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>lookupKeyReadWithFlags 会从 redisDb 中查找对应的键值对，它首先会调用 expireIfNeeded判断键是否过期并且需要删除，如果为过期，则调用 lookupKey 方法从 dict 哈希表中查找并返回。具体解释可以看代码中的详细注释</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">&#x2F;*
- * 查找key的读操作，如果key找不到或者已经逻辑上过期返回 NULL，有一些副作用
- *   1 如果key到达过期时间，它会被设备为过期，并且删除
- *   2 更新key的最近访问时间
- *   3 更新全局缓存击中概率
- * flags 有两个值: LOOKUP_NONE 一般都是这个；LOOKUP_NOTOUCH 不修改最近访问时间
- *&#x2F;
-robj *lookupKeyReadWithFlags(redisDb *db, robj *key, int flags) { &#x2F;&#x2F; db.c
-    robj *val;
-    &#x2F;&#x2F; 检查键是否过期
-    if (expireIfNeeded(db,key) == 1) {
-        .... &#x2F;&#x2F; master和 slave 对这种情况的特殊处理
-    }
-    &#x2F;&#x2F; 查找键值字典
-    val = lookupKey(db,key,flags);
-    &#x2F;&#x2F; 更新全局缓存命中率
-    if (val == NULL)
-        server.stat_keyspace_misses++;
-    else
-        server.stat_keyspace_hits++;
-    return val;
-}
-</code></pre>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 查找key的读操作，如果key找不到或者已经逻辑上过期返回 NULL，有一些副作用</span></span><br><span class="line"><span class="comment"> *   1 如果key到达过期时间，它会被设备为过期，并且删除</span></span><br><span class="line"><span class="comment"> *   2 更新key的最近访问时间</span></span><br><span class="line"><span class="comment"> *   3 更新全局缓存击中概率</span></span><br><span class="line"><span class="comment"> * flags 有两个值: LOOKUP_NONE 一般都是这个；LOOKUP_NOTOUCH 不修改最近访问时间</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function">robj *<span class="title">lookupKeyReadWithFlags</span><span class="params">(redisDb *db, robj *key, <span class="keyword">int</span> flags)</span> </span>&#123; <span class="comment">// db.c</span></span><br><span class="line">    robj *val;</span><br><span class="line">    <span class="comment">// 检查键是否过期</span></span><br><span class="line">    <span class="keyword">if</span> (expireIfNeeded(db,key) == <span class="number">1</span>) &#123;</span><br><span class="line">        .... <span class="comment">// master和 slave 对这种情况的特殊处理</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 查找键值字典</span></span><br><span class="line">    val = lookupKey(db,key,flags);</span><br><span class="line">    <span class="comment">// 更新全局缓存命中率</span></span><br><span class="line">    <span class="keyword">if</span> (val == <span class="literal">NULL</span>)</span><br><span class="line">        server.stat_keyspace_misses++;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        server.stat_keyspace_hits++;</span><br><span class="line">    <span class="keyword">return</span> val;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p> Redis 在调用查找键值系列方法前都会先调用 expireIfNeeded 来判断键是否过期，然后根据 Redis 是否配置了懒删除来进行同步删除或者异步删除。关于键删除的细节可以查看<a href="http://remcarpediem.net/article/e66f8da0/">《详解 Redis 内存管理机制和实现》</a>一文。</p>
 <p>在判断键释放过期的逻辑中有两个特殊情况：</p>
 <ul>
@@ -399,94 +298,16 @@ robj *lookupKeyReadWithFlags(redisDb *db, robj *key, int flags) { &#x2F;&#x2F; d
 <li>如果当前正在进行 Lua 脚本执行，因为其原子性和事务性，整个执行过期中时间都按照其开始执行的那一刻计算，也就是说lua执行时未过期的键，在它整个执行过程中也都不会过期。</li>
 </ul>
 <p><img src="/images/19_1221/1_image4.png" alt=""></p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&#x2F;*
- * 在调用 lookupKey*系列方法前调用该方法。
- * 如果是slave：
- *  slave 并不主动过期删除key，但是返回值仍然会返回键已经被删除。
- *  master 如果key过期了，会主动删除过期键，并且触发 AOF 和同步操作。
- * 返回值为0表示键仍然有效，否则返回1
- *&#x2F;
-int expireIfNeeded(redisDb *db, robj *key) { &#x2F;&#x2F; db.c
-    &#x2F;&#x2F; 获取键的过期时间
-    mstime_t when = getExpire(db,key);
-    mstime_t now;
-
-    if (when &lt; 0) return 0;
-
-    &#x2F;*
-     * 如果当前是在执行lua脚本，根据其原子性，整个执行过期中时间都按照其开始执行的那一刻计算
-     * 也就是说lua执行时未过期的键，在它整个执行过程中也都不会过期。
-     *&#x2F; 
-    now = server.lua_caller ? server.lua_time_start : mstime();
-
-    &#x2F;&#x2F; slave 直接返回键是否过期
-    if (server.masterhost != NULL) return now &gt; when;
-    &#x2F;&#x2F; master时，键未过期直接返回
-    if (now &lt;= when) return 0;
-
-    &#x2F;&#x2F; 键过期，删除键
-    server.stat_expiredkeys++;
-    &#x2F;&#x2F; 触发命令传播
-    propagateExpire(db,key,server.lazyfree_lazy_expire);
-    &#x2F;&#x2F; 和键空间事件
-    notifyKeyspaceEvent(NOTIFY_EXPIRED,
-        &quot;expired&quot;,key,db-&gt;id);
-    &#x2F;&#x2F; 根据是否懒删除，调用不同的函数 
-    return server.lazyfree_lazy_expire ? dbAsyncDelete(db,key) :
-                                         dbSyncDelete(db,key);
-}
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">/*</span><br><span class="line"> * 在调用 lookupKey*系列方法前调用该方法。</span><br><span class="line"> * 如果是slave：</span><br><span class="line"> *  slave 并不主动过期删除key，但是返回值仍然会返回键已经被删除。</span><br><span class="line"> *  master 如果key过期了，会主动删除过期键，并且触发 AOF 和同步操作。</span><br><span class="line"> * 返回值为0表示键仍然有效，否则返回1</span><br><span class="line"> */</span><br><span class="line">int expireIfNeeded(redisDb *db, robj *key) &#123; // db.c</span><br><span class="line">    // 获取键的过期时间</span><br><span class="line">    mstime_t when = getExpire(db,key);</span><br><span class="line">    mstime_t now;</span><br><span class="line"></span><br><span class="line">    if (when &lt; 0) return 0;</span><br><span class="line"></span><br><span class="line">    /*</span><br><span class="line">     * 如果当前是在执行lua脚本，根据其原子性，整个执行过期中时间都按照其开始执行的那一刻计算</span><br><span class="line">     * 也就是说lua执行时未过期的键，在它整个执行过程中也都不会过期。</span><br><span class="line">     */ </span><br><span class="line">    now = server.lua_caller ? server.lua_time_start : mstime();</span><br><span class="line"></span><br><span class="line">    // slave 直接返回键是否过期</span><br><span class="line">    if (server.masterhost != NULL) return now &gt; when;</span><br><span class="line">    // master时，键未过期直接返回</span><br><span class="line">    if (now &lt;= when) return 0;</span><br><span class="line"></span><br><span class="line">    // 键过期，删除键</span><br><span class="line">    server.stat_expiredkeys++;</span><br><span class="line">    // 触发命令传播</span><br><span class="line">    propagateExpire(db,key,server.lazyfree_lazy_expire);</span><br><span class="line">    // 和键空间事件</span><br><span class="line">    notifyKeyspaceEvent(NOTIFY_EXPIRED,</span><br><span class="line">        &quot;expired&quot;,key,db-&gt;id);</span><br><span class="line">    // 根据是否懒删除，调用不同的函数 </span><br><span class="line">    return server.lazyfree_lazy_expire ? dbAsyncDelete(db,key) :</span><br><span class="line">                                         dbSyncDelete(db,key);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>lookupKey 方法则是通过 dictFind 方法从 redisDb 的 dict 哈希表中查找键值，如果能找到，则根据 redis 的 maxmemory_policy 策略来判断是更新 lru 的最近访问时间，还是调用 updateFU 方法更新其他指标，这些指标可以在后续内存不足时对键值进行回收。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">robj *lookupKey(redisDb *db, robj *key, int flags) {
-    &#x2F;&#x2F; dictFind 根据 key 获取字典的entry
-    dictEntry *de = dictFind(db-&gt;dict,key-&gt;ptr);
-    if (de) {
-        &#x2F;&#x2F; 获取 value
-        robj *val = dictGetVal(de);
-        &#x2F;&#x2F; 当处于 rdb aof 子进程复制阶段或者 flags 不是 LOOKUP_NOTOUCH
-        if (server.rdb_child_pid == -1 &amp;&amp;
-            server.aof_child_pid == -1 &amp;&amp;
-            !(flags &amp; LOOKUP_NOTOUCH))
-        {
-            &#x2F;&#x2F; 如果是 MAXMEMORY_FLAG_LFU 则进行相应操作
-            if (server.maxmemory_policy &amp; MAXMEMORY_FLAG_LFU) {
-                updateLFU(val);
-            } else {
-                &#x2F;&#x2F; 更新最近访问时间
-                val-&gt;lru = LRU_CLOCK();
-            }
-        }
-        return val;
-    } else {
-        return NULL;
-    }
-}
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">robj *lookupKey(redisDb *db, robj *key, int flags) &#123;</span><br><span class="line">    // dictFind 根据 key 获取字典的entry</span><br><span class="line">    dictEntry *de = dictFind(db-&gt;dict,key-&gt;ptr);</span><br><span class="line">    if (de) &#123;</span><br><span class="line">        // 获取 value</span><br><span class="line">        robj *val = dictGetVal(de);</span><br><span class="line">        // 当处于 rdb aof 子进程复制阶段或者 flags 不是 LOOKUP_NOTOUCH</span><br><span class="line">        if (server.rdb_child_pid == -1 &amp;&amp;</span><br><span class="line">            server.aof_child_pid == -1 &amp;&amp;</span><br><span class="line">            !(flags &amp; LOOKUP_NOTOUCH))</span><br><span class="line">        &#123;</span><br><span class="line">            // 如果是 MAXMEMORY_FLAG_LFU 则进行相应操作</span><br><span class="line">            if (server.maxmemory_policy &amp; MAXMEMORY_FLAG_LFU) &#123;</span><br><span class="line">                updateLFU(val);</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                // 更新最近访问时间</span><br><span class="line">                val-&gt;lru = LRU_CLOCK();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        return val;</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        return NULL;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <h3 id="将命令结果写入输出缓冲区"><a href="#将命令结果写入输出缓冲区" class="headerlink" title="将命令结果写入输出缓冲区"></a>将命令结果写入输出缓冲区</h3><p>在所有的 redisCommand 执行的最后，一般都会调用 addReply 方法进行结果返回，我们的分析也来到了 Redis 命令执行的返回数据阶段。</p>
 <p>addReply 方法做了两件事情：</p>
 <ul>
 <li>prepareClientToWrite 判断是否需要返回数据，并且将当前 client 添加到等待写返回数据队列中。</li>
 <li>调用 _addReplyToBuffer 和 _addReplyObjectToList 方法将返回值写入到输出缓冲区中，等待写入 socekt。</li>
 </ul>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">void addReply(client *c, robj *obj) {
-    if (prepareClientToWrite(c) != C_OK) return;
-    if (sdsEncodedObject(obj)) {
-        &#x2F;&#x2F; 需要将响应内容添加到output buffer中。总体思路是，先尝试向固定buffer添加，添加失败的话，在尝试添加到响应链表
-        if (_addReplyToBuffer(c,obj-&gt;ptr,sdslen(obj-&gt;ptr)) != C_OK)
-            _addReplyObjectToList(c,obj);
-    } else if (obj-&gt;encoding == OBJ_ENCODING_INT) {
-        .... &#x2F;&#x2F; 特殊情况的优化
-    } else {
-        serverPanic(&quot;Wrong obj-&gt;encoding in addReply()&quot;);
-    }
-}
-</code></pre>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">addReply</span><span class="params">(client *c, robj *obj)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (prepareClientToWrite(c) != C_OK) <span class="keyword">return</span>;</span><br><span class="line">    <span class="keyword">if</span> (sdsEncodedObject(obj)) &#123;</span><br><span class="line">        <span class="comment">// 需要将响应内容添加到output buffer中。总体思路是，先尝试向固定buffer添加，添加失败的话，在尝试添加到响应链表</span></span><br><span class="line">        <span class="keyword">if</span> (_addReplyToBuffer(c,obj-&gt;ptr,sdslen(obj-&gt;ptr)) != C_OK)</span><br><span class="line">            _addReplyObjectToList(c,obj);</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (obj-&gt;encoding == OBJ_ENCODING_INT) &#123;</span><br><span class="line">        .... <span class="comment">// 特殊情况的优化</span></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        serverPanic(<span class="string">"Wrong obj-&gt;encoding in addReply()"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>prepareClientToWrite 首先判断了当前 client是否需要返回数据：</p>
 <ul>
 <li>Lua 脚本执行的 client 则需要返回值；</li>
@@ -495,173 +316,22 @@ int expireIfNeeded(redisDb *db, robj *key) { &#x2F;&#x2F; db.c
 <li>当前是在 AOF loading 状态的假 client，则不需要返回值。</li>
 </ul>
 <p>接着如果这个 client 还未处于延迟等待写入 (CLIENT_PENDING_WRITE)的状态，则将其设置为该状态，并将其加入到 Redis 的等待写入返回值客户端队列中，也就是 clients_pending_write队列。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">int prepareClientToWrite(client *c) {
-    &#x2F;&#x2F; 如果是 lua client 则直接OK
-    if (c-&gt;flags &amp; (CLIENT_LUA|CLIENT_MODULE)) return C_OK;
-    &#x2F;&#x2F; 客户端发来过 REPLY OFF 或者 SKIP 命令，不需要发送返回值
-    if (c-&gt;flags &amp; (CLIENT_REPLY_OFF|CLIENT_REPLY_SKIP)) return C_ERR;
-
-    &#x2F;&#x2F; master 作为client 向 slave 发送命令，不需要接收返回值
-    if ((c-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;
-        !(c-&gt;flags &amp; CLIENT_MASTER_FORCE_REPLY)) return C_ERR;
-    &#x2F;&#x2F; AOF loading 时的假client 不需要返回值
-    if (c-&gt;fd &lt;= 0) return C_ERR; 
-
-    &#x2F;&#x2F; 将client加入到等待写入返回值队列中，下次事件周期会进行返回值写入。
-    if (!clientHasPendingReplies(c) &amp;&amp;
-        !(c-&gt;flags &amp; CLIENT_PENDING_WRITE) &amp;&amp;
-        (c-&gt;replstate == REPL_STATE_NONE ||
-         (c-&gt;replstate == SLAVE_STATE_ONLINE &amp;&amp; !c-&gt;repl_put_online_on_ack)))
-    {
-        &#x2F;&#x2F; 设置标志位并且将client加入到 clients_pending_write 队列中
-        c-&gt;flags |= CLIENT_PENDING_WRITE;
-        listAddNodeHead(server.clients_pending_write,c);
-    }
-    &#x2F;&#x2F; 表示已经在排队，进行返回数据
-    return C_OK;
-}
-</code></pre>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">prepareClientToWrite</span><span class="params">(client *c)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 如果是 lua client 则直接OK</span></span><br><span class="line">    <span class="keyword">if</span> (c-&gt;flags &amp; (CLIENT_LUA|CLIENT_MODULE)) <span class="keyword">return</span> C_OK;</span><br><span class="line">    <span class="comment">// 客户端发来过 REPLY OFF 或者 SKIP 命令，不需要发送返回值</span></span><br><span class="line">    <span class="keyword">if</span> (c-&gt;flags &amp; (CLIENT_REPLY_OFF|CLIENT_REPLY_SKIP)) <span class="keyword">return</span> C_ERR;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// master 作为client 向 slave 发送命令，不需要接收返回值</span></span><br><span class="line">    <span class="keyword">if</span> ((c-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;</span><br><span class="line">        !(c-&gt;flags &amp; CLIENT_MASTER_FORCE_REPLY)) <span class="keyword">return</span> C_ERR;</span><br><span class="line">    <span class="comment">// AOF loading 时的假client 不需要返回值</span></span><br><span class="line">    <span class="keyword">if</span> (c-&gt;fd &lt;= <span class="number">0</span>) <span class="keyword">return</span> C_ERR; </span><br><span class="line"></span><br><span class="line">    <span class="comment">// 将client加入到等待写入返回值队列中，下次事件周期会进行返回值写入。</span></span><br><span class="line">    <span class="keyword">if</span> (!clientHasPendingReplies(c) &amp;&amp;</span><br><span class="line">        !(c-&gt;flags &amp; CLIENT_PENDING_WRITE) &amp;&amp;</span><br><span class="line">        (c-&gt;replstate == REPL_STATE_NONE ||</span><br><span class="line">         (c-&gt;replstate == SLAVE_STATE_ONLINE &amp;&amp; !c-&gt;repl_put_online_on_ack)))</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// 设置标志位并且将client加入到 clients_pending_write 队列中</span></span><br><span class="line">        c-&gt;flags |= CLIENT_PENDING_WRITE;</span><br><span class="line">        listAddNodeHead(server.clients_pending_write,c);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 表示已经在排队，进行返回数据</span></span><br><span class="line">    <span class="keyword">return</span> C_OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>Redis 将存储等待返回的响应数据的空间，也就是输出缓冲区分成两部分，一个固定大小的 buffer 和一个响应内容数据的链表。在链表为空并且 buffer 有足够空间时，则将响应添加到 buffer 中。如果 buffer 满了则创建一个节点追加到链表上。_addReplyToBuffer 和 _addReplyObjectToList 就是分别向这两个空间写数据的方法。</p>
 <p><img src="/images/19_1221/1_image5.png" alt=""></p>
 <p>固定buffer和响应链表，整体上构成了一个队列。这么组织的好处是，既可以节省内存，不需一开始预先分配大块内存，并且可以避免频繁分配、回收内存。</p>
 <p>上面就是响应内容写入输出缓冲区的过程，下面看一下将数据从输出缓冲区写入 socket 的过程。</p>
 <p>prepareClientToWrite 函数，将客户端加入到了Redis 的等待写入返回值客户端队列中，也就是 clients_pending_write 队列。请求处理的事件处理逻辑就结束了，等待 Redis 下一次事件循环处理时，将响应从输出缓冲区写入到 socket 中。</p>
 <h3 id="将命令返回值从输出缓冲区写入-socket"><a href="#将命令返回值从输出缓冲区写入-socket" class="headerlink" title="将命令返回值从输出缓冲区写入 socket"></a>将命令返回值从输出缓冲区写入 socket</h3><p>在 <a href="http://remcarpediem.net/article/1aa2da89/">《Redis 事件机制详解》</a><br>一文中我们知道，Redis 在两次事件循环之间会调用 beforeSleep 方法处理一些事情，而对 clients_pending_write 列表的处理就在其中。</p>
-<p>下面的 aeMain 方法就是 Redis 事件循环的主逻辑，可以看到每次循环时都会调用 beforesleep 方法。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">void aeMain(aeEventLoop *eventLoop) { &#x2F;&#x2F; ae.c
-    eventLoop-&gt;stop = 0;
-    while (!eventLoop-&gt;stop) {
-        &#x2F;* 如果有需要在事件处理前执行的函数，那么执行它 *&#x2F;
-        if (eventLoop-&gt;beforesleep != NULL)
-            eventLoop-&gt;beforesleep(eventLoop);
-        &#x2F;* 开始处理事件*&#x2F;
-        aeProcessEvents(eventLoop, AE_ALL_EVENTS|AE_CALL_AFTER_SLEEP);
-    }
-}
-</code></pre></p>
+<p>下面的 aeMain 方法就是 Redis 事件循环的主逻辑，可以看到每次循环时都会调用 beforesleep 方法。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">aeMain</span><span class="params">(aeEventLoop *eventLoop)</span> </span>&#123; <span class="comment">// ae.c</span></span><br><span class="line">    eventLoop-&gt;stop = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">while</span> (!eventLoop-&gt;stop) &#123;</span><br><span class="line">        <span class="comment">/* 如果有需要在事件处理前执行的函数，那么执行它 */</span></span><br><span class="line">        <span class="keyword">if</span> (eventLoop-&gt;beforesleep != <span class="literal">NULL</span>)</span><br><span class="line">            eventLoop-&gt;beforesleep(eventLoop);</span><br><span class="line">        <span class="comment">/* 开始处理事件*/</span></span><br><span class="line">        aeProcessEvents(eventLoop, AE_ALL_EVENTS|AE_CALL_AFTER_SLEEP);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>beforeSleep 函数会调用 handleClientsWithPendingWrites 函数来处理 clients_pending_write 列表。</p>
 <p>handleClientsWithPendingWrites 方法会遍历 clients_pending_write 列表，对于每个 client 都会先调用 writeToClient 方法来尝试将返回数据从输出缓存区写入到 socekt中，如果还未写完，则只能调用 aeCreateFileEvent 方法来注册一个写数据事件处理器 sendReplyToClient，等待 Redis 事件机制的再次调用。</p>
 <p><img src="/images/19_1221/1_image6.png" alt=""></p>
 <p>这样的好处时对于返回数据较少的客户端，不需要麻烦的注册写数据事件，等待事件触发再写数据到 socket，而是在下一次事件循环周期就直接将数据写到 socket中，加快了数据返回的响应速度。</p>
 <p>但是从这里也会发现，如果 clients_pending_write 队列过长，则处理时间也会很久，阻塞正常的事件响应处理，导致 Redis 后续命令延时增加。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">&#x2F;&#x2F; 直接将返回值写到client的输出缓冲区中，不需要进行系统调用，也不需要注册写事件处理器
-int handleClientsWithPendingWrites(void) {
-    listIter li;
-    listNode *ln;
-    &#x2F;&#x2F; 获取系统延迟写队列的长度
-    int processed = listLength(server.clients_pending_write);
-
-    listRewind(server.clients_pending_write,&amp;li);
-    &#x2F;&#x2F; 依次处理
-    while((ln = listNext(&amp;li))) {
-        client *c = listNodeValue(ln);
-        c-&gt;flags &amp;= ~CLIENT_PENDING_WRITE;
-        listDelNode(server.clients_pending_write,ln);
-
-        &#x2F;&#x2F; 将缓冲值写入client的socket中，如果写完，则跳过之后的操作。
-        if (writeToClient(c-&gt;fd,c,0) == C_ERR) continue;
-
-        &#x2F;&#x2F; 还有数据未写入，只能注册写事件处理器了
-        if (clientHasPendingReplies(c)) {
-            int ae_flags = AE_WRITABLE;
-            if (server.aof_state == AOF_ON &amp;&amp;
-                server.aof_fsync == AOF_FSYNC_ALWAYS)
-            {
-                ae_flags |= AE_BARRIER;
-            }
-            &#x2F;&#x2F; 注册写事件处理器 sendReplyToClient，等待执行
-            if (aeCreateFileEvent(server.el, c-&gt;fd, ae_flags,
-                sendReplyToClient, c) == AE_ERR)
-            {
-                    freeClientAsync(c);
-            }
-        }
-    }
-    return processed;
-}
-</code></pre>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 直接将返回值写到client的输出缓冲区中，不需要进行系统调用，也不需要注册写事件处理器</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">handleClientsWithPendingWrites</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    listIter li;</span><br><span class="line">    listNode *ln;</span><br><span class="line">    <span class="comment">// 获取系统延迟写队列的长度</span></span><br><span class="line">    <span class="keyword">int</span> processed = listLength(server.clients_pending_write);</span><br><span class="line"></span><br><span class="line">    listRewind(server.clients_pending_write,&amp;li);</span><br><span class="line">    <span class="comment">// 依次处理</span></span><br><span class="line">    <span class="keyword">while</span>((ln = listNext(&amp;li))) &#123;</span><br><span class="line">        client *c = listNodeValue(ln);</span><br><span class="line">        c-&gt;flags &amp;= ~CLIENT_PENDING_WRITE;</span><br><span class="line">        listDelNode(server.clients_pending_write,ln);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 将缓冲值写入client的socket中，如果写完，则跳过之后的操作。</span></span><br><span class="line">        <span class="keyword">if</span> (writeToClient(c-&gt;fd,c,<span class="number">0</span>) == C_ERR) <span class="keyword">continue</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 还有数据未写入，只能注册写事件处理器了</span></span><br><span class="line">        <span class="keyword">if</span> (clientHasPendingReplies(c)) &#123;</span><br><span class="line">            <span class="keyword">int</span> ae_flags = AE_WRITABLE;</span><br><span class="line">            <span class="keyword">if</span> (server.aof_state == AOF_ON &amp;&amp;</span><br><span class="line">                server.aof_fsync == AOF_FSYNC_ALWAYS)</span><br><span class="line">            &#123;</span><br><span class="line">                ae_flags |= AE_BARRIER;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 注册写事件处理器 sendReplyToClient，等待执行</span></span><br><span class="line">            <span class="keyword">if</span> (aeCreateFileEvent(server.el, c-&gt;fd, ae_flags,</span><br><span class="line">                sendReplyToClient, c) == AE_ERR)</span><br><span class="line">            &#123;</span><br><span class="line">                    freeClientAsync(c);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> processed;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>sendReplyToClient 方法其实也会调用 writeToClient 方法，该方法就是将输出缓冲区中的 buf 和 reply 列表中的数据都尽可能多的写入到对应的 socket中。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">&#x2F;&#x2F; 将输出缓冲区中的数据写入socket，如果还有数据未处理则返回C_OK
-int writeToClient(int fd, client *c, int handler_installed) {
-    ssize_t nwritten = 0, totwritten = 0;
-    size_t objlen;
-    sds o;
-    &#x2F;&#x2F; 仍然有数据未写入
-    while(clientHasPendingReplies(c)) {
-        &#x2F;&#x2F; 如果缓冲区有数据
-        if (c-&gt;bufpos &gt; 0) {
-            &#x2F;&#x2F; 写入到 fd 代表的 socket 中
-            nwritten = write(fd,c-&gt;buf+c-&gt;sentlen,c-&gt;bufpos-c-&gt;sentlen);
-            if (nwritten &lt;= 0) break;
-            c-&gt;sentlen += nwritten;
-            &#x2F;&#x2F; 统计本次一共输出了多少子节
-            totwritten += nwritten;
-
-            &#x2F;&#x2F; buffer中的数据已经发送，则重置标志位，让响应的后续数据写入buffer
-            if ((int)c-&gt;sentlen == c-&gt;bufpos) {
-                c-&gt;bufpos = 0;
-                c-&gt;sentlen = 0;
-            }
-        } else {
-            &#x2F;&#x2F; 缓冲区没有数据，从reply队列中拿
-            o = listNodeValue(listFirst(c-&gt;reply));
-            objlen = sdslen(o);
-
-            if (objlen == 0) {
-                listDelNode(c-&gt;reply,listFirst(c-&gt;reply));
-                continue;
-            }
-            &#x2F;&#x2F; 将队列中的数据写入 socket
-            nwritten = write(fd, o + c-&gt;sentlen, objlen - c-&gt;sentlen);
-            if (nwritten &lt;= 0) break;
-            c-&gt;sentlen += nwritten;
-            totwritten += nwritten;
-            &#x2F;&#x2F; 如果写入成功，则删除队列
-            if (c-&gt;sentlen == objlen) {
-                listDelNode(c-&gt;reply,listFirst(c-&gt;reply));
-                c-&gt;sentlen = 0;
-                c-&gt;reply_bytes -= objlen;
-                if (listLength(c-&gt;reply) == 0)
-                    serverAssert(c-&gt;reply_bytes == 0);
-            }
-        }
-        &#x2F;&#x2F; 如果输出的字节数量已经超过NET_MAX_WRITES_PER_EVENT限制，break
-        if (totwritten &gt; NET_MAX_WRITES_PER_EVENT &amp;&amp;
-            (server.maxmemory == 0 ||
-             zmalloc_used_memory() &lt; server.maxmemory) &amp;&amp;
-            !(c-&gt;flags &amp; CLIENT_SLAVE)) break;
-    }
-    server.stat_net_output_bytes += totwritten;
-    if (nwritten == -1) {
-        if (errno == EAGAIN) {
-            nwritten = 0;
-        } else {
-            serverLog(LL_VERBOSE,
-                &quot;Error writing to client: %s&quot;, strerror(errno));
-            freeClient(c);
-            return C_ERR;
-        }
-    }
-    if (!clientHasPendingReplies(c)) {
-        c-&gt;sentlen = 0;
-        &#x2F;&#x2F;如果内容已经全部输出，删除事件处理器
-        if (handler_installed) aeDeleteFileEvent(server.el,c-&gt;fd,AE_WRITABLE);
-        &#x2F;&#x2F; 数据全部返回，则关闭client和连接
-        if (c-&gt;flags &amp; CLIENT_CLOSE_AFTER_REPLY) {
-            freeClient(c);
-            return C_ERR;
-        }
-    }
-    return C_OK;
-}
-</code></pre>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 将输出缓冲区中的数据写入socket，如果还有数据未处理则返回C_OK</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">writeToClient</span><span class="params">(<span class="keyword">int</span> fd, client *c, <span class="keyword">int</span> handler_installed)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">ssize_t</span> nwritten = <span class="number">0</span>, totwritten = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">size_t</span> objlen;</span><br><span class="line">    sds o;</span><br><span class="line">    <span class="comment">// 仍然有数据未写入</span></span><br><span class="line">    <span class="keyword">while</span>(clientHasPendingReplies(c)) &#123;</span><br><span class="line">        <span class="comment">// 如果缓冲区有数据</span></span><br><span class="line">        <span class="keyword">if</span> (c-&gt;bufpos &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="comment">// 写入到 fd 代表的 socket 中</span></span><br><span class="line">            nwritten = write(fd,c-&gt;buf+c-&gt;sentlen,c-&gt;bufpos-c-&gt;sentlen);</span><br><span class="line">            <span class="keyword">if</span> (nwritten &lt;= <span class="number">0</span>) <span class="keyword">break</span>;</span><br><span class="line">            c-&gt;sentlen += nwritten;</span><br><span class="line">            <span class="comment">// 统计本次一共输出了多少子节</span></span><br><span class="line">            totwritten += nwritten;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// buffer中的数据已经发送，则重置标志位，让响应的后续数据写入buffer</span></span><br><span class="line">            <span class="keyword">if</span> ((<span class="keyword">int</span>)c-&gt;sentlen == c-&gt;bufpos) &#123;</span><br><span class="line">                c-&gt;bufpos = <span class="number">0</span>;</span><br><span class="line">                c-&gt;sentlen = <span class="number">0</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 缓冲区没有数据，从reply队列中拿</span></span><br><span class="line">            o = listNodeValue(listFirst(c-&gt;reply));</span><br><span class="line">            objlen = sdslen(o);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (objlen == <span class="number">0</span>) &#123;</span><br><span class="line">                listDelNode(c-&gt;reply,listFirst(c-&gt;reply));</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 将队列中的数据写入 socket</span></span><br><span class="line">            nwritten = write(fd, o + c-&gt;sentlen, objlen - c-&gt;sentlen);</span><br><span class="line">            <span class="keyword">if</span> (nwritten &lt;= <span class="number">0</span>) <span class="keyword">break</span>;</span><br><span class="line">            c-&gt;sentlen += nwritten;</span><br><span class="line">            totwritten += nwritten;</span><br><span class="line">            <span class="comment">// 如果写入成功，则删除队列</span></span><br><span class="line">            <span class="keyword">if</span> (c-&gt;sentlen == objlen) &#123;</span><br><span class="line">                listDelNode(c-&gt;reply,listFirst(c-&gt;reply));</span><br><span class="line">                c-&gt;sentlen = <span class="number">0</span>;</span><br><span class="line">                c-&gt;reply_bytes -= objlen;</span><br><span class="line">                <span class="keyword">if</span> (listLength(c-&gt;reply) == <span class="number">0</span>)</span><br><span class="line">                    serverAssert(c-&gt;reply_bytes == <span class="number">0</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 如果输出的字节数量已经超过NET_MAX_WRITES_PER_EVENT限制，break</span></span><br><span class="line">        <span class="keyword">if</span> (totwritten &gt; NET_MAX_WRITES_PER_EVENT &amp;&amp;</span><br><span class="line">            (server.maxmemory == <span class="number">0</span> ||</span><br><span class="line">             zmalloc_used_memory() &lt; server.maxmemory) &amp;&amp;</span><br><span class="line">            !(c-&gt;flags &amp; CLIENT_SLAVE)) <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    server.stat_net_output_bytes += totwritten;</span><br><span class="line">    <span class="keyword">if</span> (nwritten == <span class="number">-1</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (errno == EAGAIN) &#123;</span><br><span class="line">            nwritten = <span class="number">0</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            serverLog(LL_VERBOSE,</span><br><span class="line">                <span class="string">"Error writing to client: %s"</span>, strerror(errno));</span><br><span class="line">            freeClient(c);</span><br><span class="line">            <span class="keyword">return</span> C_ERR;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (!clientHasPendingReplies(c)) &#123;</span><br><span class="line">        c-&gt;sentlen = <span class="number">0</span>;</span><br><span class="line">        <span class="comment">//如果内容已经全部输出，删除事件处理器</span></span><br><span class="line">        <span class="keyword">if</span> (handler_installed) aeDeleteFileEvent(server.el,c-&gt;fd,AE_WRITABLE);</span><br><span class="line">        <span class="comment">// 数据全部返回，则关闭client和连接</span></span><br><span class="line">        <span class="keyword">if</span> (c-&gt;flags &amp; CLIENT_CLOSE_AFTER_REPLY) &#123;</span><br><span class="line">            freeClient(c);</span><br><span class="line">            <span class="keyword">return</span> C_ERR;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> C_OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p><a href="[http://remcarpediem.net/article/1aa2da89/](http://remcarpediem.net/article/1aa2da89/">个人博客地址，欢迎查看</a>)<br><img src="/images/logo.png" alt=""></p>
 
         
@@ -673,7 +343,7 @@ int writeToClient(int fd, client *c, int handler_installed) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/1dd72ef8/" data-id="ck6531e3w003x6pseuw7q1y5g" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/1dd72ef8/" data-id="ck6535m7z003z9kseibzqcx1f" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -749,7 +419,7 @@ int writeToClient(int fd, client *c, int handler_installed) {
 <nav id="article-nav">
     
         <a href="/article/24b8edbf/" id="article-nav-newer" class="article-nav-link-wrap">
-            <strong class="article-nav-caption">Más nuevo</strong>
+            <strong class="article-nav-caption">Newer</strong>
             <div class="article-nav-title">
                 
                     Redis Cluster 的数据分片机制
@@ -759,7 +429,7 @@ int writeToClient(int fd, client *c, int handler_installed) {
     
     
         <a href="/article/4cc1fb9/" id="article-nav-older" class="article-nav-link-wrap">
-            <strong class="article-nav-caption">Más viejo</strong>
+            <strong class="article-nav-caption">Older</strong>
             <div class="article-nav-title">Redis 命令执行过程(上)</div>
         </a>
     
@@ -784,7 +454,7 @@ int writeToClient(int fd, client *c, int handler_installed) {
    
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Recientes</h3>
+        <h3 class="widget-title">recent</h3>
         <div class="widget">
             <ul id="recent-post" class="">
                 
@@ -890,7 +560,7 @@ int writeToClient(int fd, client *c, int handler_installed) {
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Categorias</h3>
+        <h3 class="widget-title">categories</h3>
         <div class="widget">
             <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">25</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MySQL/">MySQL</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Netty/">Netty</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Redis/">Redis</a><span class="category-list-count">16</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SICP/">SICP</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/docker/">docker</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/java-persistent/">java persistent</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/plan/">plan</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">2</span></li></ul>
         </div>
@@ -899,7 +569,7 @@ int writeToClient(int fd, client *c, int handler_installed) {
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Archivos</h3>
+        <h3 class="widget-title">archives</h3>
         <div class="widget">
             <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
         </div>
@@ -908,7 +578,7 @@ int writeToClient(int fd, client *c, int handler_installed) {
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Nube de etiquetas</h3>
+        <h3 class="widget-title">tag cloud</h3>
         <div class="widget tagcloud">
             <a href="/tags/AOP/" style="font-size: 15px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 20px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/Netty/" style="font-size: 20px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 15px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 15px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 20px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 15px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/persistent/" style="font-size: 15px;">persistent</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 15px;">第三方库</a> <a href="/tags/算法/" style="font-size: 20px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 15px;">限流</a>
         </div>
@@ -917,7 +587,7 @@ int writeToClient(int fd, client *c, int handler_installed) {
     
         
     <div class="widget-wrap widget-list">
-        <h3 class="widget-title">Links</h3>
+        <h3 class="widget-title">links</h3>
         <div class="widget">
             <ul>
                 

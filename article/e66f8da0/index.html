@@ -47,18 +47,27 @@
     
     
     
-        <script type="text/javascript">
-(function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
-(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-ga('create', 'UA-118574570-1', 'auto');
-ga('send', 'pageview');
-
+    
+    
+        <script>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
 </script>
-    
-    
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
     
 
 
@@ -102,7 +111,7 @@ ga('send', 'pageview');
             <div id="search-form-wrap">
 
     <form class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
         <button type="submit" class="search-form-submit"></button>
     </form>
     <div class="ins-search">
@@ -121,10 +130,10 @@ ga('send', 'pageview');
 (function (window) {
     var INSIGHT_CONFIG = {
         TRANSLATION: {
-            POSTS: 'Entradas',
+            POSTS: 'Posts',
             PAGES: 'Pages',
-            CATEGORIES: 'Categorias',
-            TAGS: 'Etiquetas',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
             UNTITLED: '(Untitled)',
         },
         ROOT_URL: '/',
@@ -157,7 +166,7 @@ ga('send', 'pageview');
                 <td>
                     
     <div class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
     </div>
 
                 </td>
@@ -183,11 +192,11 @@ ga('send', 'pageview');
         <div class="article-info profile-block">
             <div class="article-info-block">
                 90
-                <span>Entradas</span>
+                <span>posts</span>
             </div>
             <div class="article-info-block">
                 61
-                <span>Etiquetas</span>
+                <span>tags</span>
             </div>
         </div>
         
@@ -285,153 +294,19 @@ ga('send', 'pageview');
 <li>二是记录键空间事件，</li>
 <li>三是根据 lazyfree_lazy_expire 是否开启进行异步删除或者异步删除操作。 </li>
 </ul>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">int expireIfNeeded(redisDb *db, robj *key) {
-    &#x2F;&#x2F; 获取键的过期时间
-    mstime_t when = getExpire(db,key);
-    mstime_t now;
-    &#x2F;&#x2F; 键没有过期时间
-    if (when &lt; 0) return 0;
-    &#x2F;&#x2F; 实例正在从硬盘 laod 数据，比如说 RDB 或者 AOF
-    if (server.loading) return 0;
-
-    &#x2F;&#x2F; 当执行lua脚本时，只有键在lua一开始执行时
-    &#x2F;&#x2F; 就到了过期时间才算过期，否则在lua执行过程中不算失效
-    now = server.lua_caller ? server.lua_time_start : mstime();
-
-    &#x2F;&#x2F; 当本实例是slave时，过期键的删除由master发送过来的
-    &#x2F;&#x2F; del 指令控制。但是这个函数还是将正确的信息返回给调用者。
-    if (server.masterhost != NULL) return now &gt; when;
-    &#x2F;&#x2F; 判断是否未过期
-    if (now &lt;= when) return 0;
-
-    &#x2F;&#x2F; 代码到这里，说明键已经过期，而且需要被删除
-    server.stat_expiredkeys++;
-    &#x2F;&#x2F; 命令传播，到 slave 和 AOF
-    propagateExpire(db,key,server.lazyfree_lazy_expire);
-    &#x2F;&#x2F; 键空间通知使得客户端可以通过订阅频道或模式， 来接收那些以某种方式改动了 Redis 数据集的事件。
-    notifyKeyspaceEvent(NOTIFY_EXPIRED,
-        &quot;expired&quot;,key,db-&gt;id);
-    &#x2F;&#x2F; 如果是惰性删除，调用dbAsyncDelete，否则调用 dbSyncDelete
-    return server.lazyfree_lazy_expire ? dbAsyncDelete(db,key) :
-                                         dbSyncDelete(db,key);
-}
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">int expireIfNeeded(redisDb *db, robj *key) &#123;</span><br><span class="line">    // 获取键的过期时间</span><br><span class="line">    mstime_t when = getExpire(db,key);</span><br><span class="line">    mstime_t now;</span><br><span class="line">    // 键没有过期时间</span><br><span class="line">    if (when &lt; 0) return 0;</span><br><span class="line">    // 实例正在从硬盘 laod 数据，比如说 RDB 或者 AOF</span><br><span class="line">    if (server.loading) return 0;</span><br><span class="line"></span><br><span class="line">    // 当执行lua脚本时，只有键在lua一开始执行时</span><br><span class="line">    // 就到了过期时间才算过期，否则在lua执行过程中不算失效</span><br><span class="line">    now = server.lua_caller ? server.lua_time_start : mstime();</span><br><span class="line"></span><br><span class="line">    // 当本实例是slave时，过期键的删除由master发送过来的</span><br><span class="line">    // del 指令控制。但是这个函数还是将正确的信息返回给调用者。</span><br><span class="line">    if (server.masterhost != NULL) return now &gt; when;</span><br><span class="line">    // 判断是否未过期</span><br><span class="line">    if (now &lt;= when) return 0;</span><br><span class="line"></span><br><span class="line">    // 代码到这里，说明键已经过期，而且需要被删除</span><br><span class="line">    server.stat_expiredkeys++;</span><br><span class="line">    // 命令传播，到 slave 和 AOF</span><br><span class="line">    propagateExpire(db,key,server.lazyfree_lazy_expire);</span><br><span class="line">    // 键空间通知使得客户端可以通过订阅频道或模式， 来接收那些以某种方式改动了 Redis 数据集的事件。</span><br><span class="line">    notifyKeyspaceEvent(NOTIFY_EXPIRED,</span><br><span class="line">        &quot;expired&quot;,key,db-&gt;id);</span><br><span class="line">    // 如果是惰性删除，调用dbAsyncDelete，否则调用 dbSyncDelete</span><br><span class="line">    return server.lazyfree_lazy_expire ? dbAsyncDelete(db,key) :</span><br><span class="line">                                         dbSyncDelete(db,key);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p><img src="/images/19_1026/image3.webp" alt=""></p>
 <p>上图是写命令传播的示意图，删除命令的传播和它一致。propagateExpire 函数先调用 feedAppendOnlyFile 函数将命令同步到 AOF 的缓冲区中，然后调用 replicationFeedSlaves函数将命令同步到所有的 slave 中。Redis 复制的机制可以查看<a href="https://mp.weixin.qq.com/s/0VVYTyAI1egfs2Fxcrme3A" target="_blank" rel="noopener">Redis 复制过程详解</a>。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 将命令传递到slave和AOF缓冲区。maser删除一个过期键时会发送Del命令到所有的slave和AOF缓冲区
-void propagateExpire(redisDb *db, robj *key, int lazy) {
-    robj *argv[2];
-    &#x2F;&#x2F; 生成同步的数据
-    argv[0] = lazy ? shared.unlink : shared.del;
-    argv[1] = key;
-    incrRefCount(argv[0]);
-    incrRefCount(argv[1]);
-    &#x2F;&#x2F; 如果开启了 AOF 则追加到 AOF 缓冲区中
-    if (server.aof_state != AOF_OFF)
-        feedAppendOnlyFile(server.delCommand,db-&gt;id,argv,2);
-    &#x2F;&#x2F; 同步到所有 slave
-    replicationFeedSlaves(server.slaves,db-&gt;id,argv,2);
-
-    decrRefCount(argv[0]);
-    decrRefCount(argv[1]);
-}
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">// 将命令传递到slave和AOF缓冲区。maser删除一个过期键时会发送Del命令到所有的slave和AOF缓冲区</span><br><span class="line">void propagateExpire(redisDb *db, robj *key, int lazy) &#123;</span><br><span class="line">    robj *argv[2];</span><br><span class="line">    // 生成同步的数据</span><br><span class="line">    argv[0] = lazy ? shared.unlink : shared.del;</span><br><span class="line">    argv[1] = key;</span><br><span class="line">    incrRefCount(argv[0]);</span><br><span class="line">    incrRefCount(argv[1]);</span><br><span class="line">    // 如果开启了 AOF 则追加到 AOF 缓冲区中</span><br><span class="line">    if (server.aof_state != AOF_OFF)</span><br><span class="line">        feedAppendOnlyFile(server.delCommand,db-&gt;id,argv,2);</span><br><span class="line">    // 同步到所有 slave</span><br><span class="line">    replicationFeedSlaves(server.slaves,db-&gt;id,argv,2);</span><br><span class="line"></span><br><span class="line">    decrRefCount(argv[0]);</span><br><span class="line">    decrRefCount(argv[1]);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>dbAsyncDelete 函数会先调用 dictDelete 来删除过期表中的键，然后处理键值表中的键值对象。它会根据值的占用的空间来选择是直接释放值对象，还是交给 bio 异步释放值对象。判断依据就是值的估计大小是否大于 LAZYFREE_THRESHOLD 阈值。键对象和 dictEntry 对象则都是直接被释放。</p>
 <p><img src="/images/19_1026/image4.webp" alt=""></p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">#define LAZYFREE_THRESHOLD 64
-int dbAsyncDelete(redisDb *db, robj *key) {
-    &#x2F;&#x2F; 删除该键在过期表中对应的entry
-    if (dictSize(db-&gt;expires) &gt; 0) dictDelete(db-&gt;expires,key-&gt;ptr);
-
-    &#x2F;&#x2F; unlink 该键在键值表对应的entry
-    dictEntry *de = dictUnlink(db-&gt;dict,key-&gt;ptr);
-    &#x2F;&#x2F; 如果该键值占用空间非常小，懒删除反而效率低。所以只有在一定条件下，才会异步删除
-    if (de) {
-        robj *val = dictGetVal(de);
-        size_t free_effort = lazyfreeGetFreeEffort(val);
-        &#x2F;&#x2F; 如果释放这个对象消耗很多，并且值未被共享(refcount == 1)则将其加入到懒删除列表
-        if (free_effort &gt; LAZYFREE_THRESHOLD &amp;&amp; val-&gt;refcount == 1) {
-            atomicIncr(lazyfree_objects,1);
-            bioCreateBackgroundJob(BIO_LAZY_FREE,val,NULL,NULL);
-            dictSetVal(db-&gt;dict,de,NULL);
-        }
-    }
-
-    &#x2F;&#x2F; 释放键值对，或者只释放key，而将val设置为NULL来后续懒删除
-    if (de) {
-        dictFreeUnlinkedEntry(db-&gt;dict,de);
-        &#x2F;&#x2F; slot 和 key 的映射关系是用于快速定位某个key在哪个 slot中。
-        if (server.cluster_enabled) slotToKeyDel(key);
-        return 1;
-    } else {
-        return 0;
-    }
-}
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">#define LAZYFREE_THRESHOLD 64</span><br><span class="line">int dbAsyncDelete(redisDb *db, robj *key) &#123;</span><br><span class="line">    // 删除该键在过期表中对应的entry</span><br><span class="line">    if (dictSize(db-&gt;expires) &gt; 0) dictDelete(db-&gt;expires,key-&gt;ptr);</span><br><span class="line"></span><br><span class="line">    // unlink 该键在键值表对应的entry</span><br><span class="line">    dictEntry *de = dictUnlink(db-&gt;dict,key-&gt;ptr);</span><br><span class="line">    // 如果该键值占用空间非常小，懒删除反而效率低。所以只有在一定条件下，才会异步删除</span><br><span class="line">    if (de) &#123;</span><br><span class="line">        robj *val = dictGetVal(de);</span><br><span class="line">        size_t free_effort = lazyfreeGetFreeEffort(val);</span><br><span class="line">        // 如果释放这个对象消耗很多，并且值未被共享(refcount == 1)则将其加入到懒删除列表</span><br><span class="line">        if (free_effort &gt; LAZYFREE_THRESHOLD &amp;&amp; val-&gt;refcount == 1) &#123;</span><br><span class="line">            atomicIncr(lazyfree_objects,1);</span><br><span class="line">            bioCreateBackgroundJob(BIO_LAZY_FREE,val,NULL,NULL);</span><br><span class="line">            dictSetVal(db-&gt;dict,de,NULL);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // 释放键值对，或者只释放key，而将val设置为NULL来后续懒删除</span><br><span class="line">    if (de) &#123;</span><br><span class="line">        dictFreeUnlinkedEntry(db-&gt;dict,de);</span><br><span class="line">        // slot 和 key 的映射关系是用于快速定位某个key在哪个 slot中。</span><br><span class="line">        if (server.cluster_enabled) slotToKeyDel(key);</span><br><span class="line">        return 1;</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        return 0;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>dictUnlink 会将键值从键值表中删除，但是却不释放 key、val和对应的表entry对象，而是将其直接返回，然后再调用dictFreeUnlinkedEntry进行释放。dictDelete 是它的兄弟函数，但是会直接释放相应的对象。二者底层都通过调用 dictGenericDelete来实现。dbAsyncDelete d的兄弟函数 dbSyncDelete 就是直接调用dictDelete来删除过期键。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">void dictFreeUnlinkedEntry(dict *d, dictEntry *he) {
-    if (he == NULL) return;
-    &#x2F;&#x2F; 释放key对象
-    dictFreeKey(d, he);
-    &#x2F;&#x2F; 释放值对象，如果它不为null
-    dictFreeVal(d, he);
-    &#x2F;&#x2F; 释放 dictEntry 对象
-    zfree(he);
-}
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">void dictFreeUnlinkedEntry(dict *d, dictEntry *he) &#123;</span><br><span class="line">    if (he == NULL) return;</span><br><span class="line">    // 释放key对象</span><br><span class="line">    dictFreeKey(d, he);</span><br><span class="line">    // 释放值对象，如果它不为null</span><br><span class="line">    dictFreeVal(d, he);</span><br><span class="line">    // 释放 dictEntry 对象</span><br><span class="line">    zfree(he);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>Redis 有自己的 bio 机制，主要是处理 AOF 落盘、懒删除逻辑和关闭大文件fd。bioCreateBackgroundJob 函数将释放值对象的 job 加入到队列中，bioProcessBackgroundJobs会从队列中取出任务，根据类型进行对应的操作。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">void *bioProcessBackgroundJobs(void *arg) {
-    .....
-    while(1) {
-        listNode *ln;
-
-        ln = listFirst(bio_jobs[type]);
-        job = ln-&gt;value;
-        if (type == BIO_CLOSE_FILE) {
-            close((long)job-&gt;arg1);
-        } else if (type == BIO_AOF_FSYNC) {
-            aof_fsync((long)job-&gt;arg1);
-        } else if (type == BIO_LAZY_FREE) {
-            &#x2F;&#x2F; 根据参数来决定要做什么。有参数1则要释放它，有参数2和3是释放两个键值表
-            &#x2F;&#x2F; 过期表，也就是释放db 只有参数三是释放跳表
-            if (job-&gt;arg1)
-                lazyfreeFreeObjectFromBioThread(job-&gt;arg1);
-            else if (job-&gt;arg2 &amp;&amp; job-&gt;arg3)
-                lazyfreeFreeDatabaseFromBioThread(job-&gt;arg2,job-&gt;arg3);
-            else if (job-&gt;arg3)
-                lazyfreeFreeSlotsMapFromBioThread(job-&gt;arg3);
-        }
-        zfree(job);
-        ......
-    }
-}
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">void *bioProcessBackgroundJobs(void *arg) &#123;</span><br><span class="line">    .....</span><br><span class="line">    while(1) &#123;</span><br><span class="line">        listNode *ln;</span><br><span class="line"></span><br><span class="line">        ln = listFirst(bio_jobs[type]);</span><br><span class="line">        job = ln-&gt;value;</span><br><span class="line">        if (type == BIO_CLOSE_FILE) &#123;</span><br><span class="line">            close((long)job-&gt;arg1);</span><br><span class="line">        &#125; else if (type == BIO_AOF_FSYNC) &#123;</span><br><span class="line">            aof_fsync((long)job-&gt;arg1);</span><br><span class="line">        &#125; else if (type == BIO_LAZY_FREE) &#123;</span><br><span class="line">            // 根据参数来决定要做什么。有参数1则要释放它，有参数2和3是释放两个键值表</span><br><span class="line">            // 过期表，也就是释放db 只有参数三是释放跳表</span><br><span class="line">            if (job-&gt;arg1)</span><br><span class="line">                lazyfreeFreeObjectFromBioThread(job-&gt;arg1);</span><br><span class="line">            else if (job-&gt;arg2 &amp;&amp; job-&gt;arg3)</span><br><span class="line">                lazyfreeFreeDatabaseFromBioThread(job-&gt;arg2,job-&gt;arg3);</span><br><span class="line">            else if (job-&gt;arg3)</span><br><span class="line">                lazyfreeFreeSlotsMapFromBioThread(job-&gt;arg3);</span><br><span class="line">        &#125;</span><br><span class="line">        zfree(job);</span><br><span class="line">        ......</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>dbSyncDelete 则是直接删除过期键，并且将键、值和 DictEntry 对象都释放。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">int dbSyncDelete(redisDb *db, robj *key) {
-    &#x2F;&#x2F; 删除过期表中的entry
-    if (dictSize(db-&gt;expires) &gt; 0) dictDelete(db-&gt;expires,key-&gt;ptr);
-    &#x2F;&#x2F; 删除键值表中的entry
-    if (dictDelete(db-&gt;dict,key-&gt;ptr) == DICT_OK) {
-        &#x2F;&#x2F; 如果开启了集群，则删除slot 和 key 映射表中key记录。
-        if (server.cluster_enabled) slotToKeyDel(key);
-        return 1;
-    } else {
-        return 0;
-    }
-}
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">int dbSyncDelete(redisDb *db, robj *key) &#123;</span><br><span class="line">    // 删除过期表中的entry</span><br><span class="line">    if (dictSize(db-&gt;expires) &gt; 0) dictDelete(db-&gt;expires,key-&gt;ptr);</span><br><span class="line">    // 删除键值表中的entry</span><br><span class="line">    if (dictDelete(db-&gt;dict,key-&gt;ptr) == DICT_OK) &#123;</span><br><span class="line">        // 如果开启了集群，则删除slot 和 key 映射表中key记录。</span><br><span class="line">        if (server.cluster_enabled) slotToKeyDel(key);</span><br><span class="line">        return 1;</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        return 0;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>但是单独用这种方式存在内存泄露的问题，当过期键一直没有访问将无法得到及时删除，从而导致内存不能及时释放。正因为如此，Redis还提供另一种定时任 务删除机制作为惰性删除的补充。</p>
 <p>Redis 内部维护一个定时任务，默认每秒运行10次（通过配置控制）。定时任务中删除过期键逻辑采用了自适应算法，根据键的 过期比例、使用快慢两种速率模式回收键，流程如下图所示。</p>
 <p><img src="/images/19_1026/image5.webp" alt=""></p>
@@ -443,105 +318,9 @@ int dbAsyncDelete(redisDb *db, robj *key) {
 <li>5）未超时的话，则判断是否采样的键中是否有25%的键是过期的，如果是则继续扫描当前数据库，跳到第3步。否则开始扫描下一个数据库。</li>
 </ul>
 <p>定期删除策略由 expire.c/activeExpireCycle 函数实现。在redis事件驱动的循环中的eventLoop-&gt;beforesleep和<br>周期性操作 databasesCron 都会调用 activeExpireCycle 来处理过期键。但是二者传入的 type 值不同，一个是ACTIVE_EXPIRE_CYCLE_SLOW 另外一个是ACTIVE_EXPIRE_CYCLE_FAST。activeExpireCycle 在规定的时间，分多次遍历各个数据库，从 expires 字典中随机检查一部分过期键的过期时间，删除其中的过期键，相关源码如下所示。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">void activeExpireCycle(int type) {
-    &#x2F;&#x2F; 上次检查的db
-    static unsigned int current_db = 0; 
-    &#x2F;&#x2F; 上次检查的最大执行时间
-    static int timelimit_exit = 0;
-    &#x2F;&#x2F; 上一次快速模式运行时间
-    static long long last_fast_cycle = 0; &#x2F;* When last fast cycle ran. *&#x2F;
-
-    int j, iteration = 0;
-    &#x2F;&#x2F; 每次检查周期要遍历的DB数
-    int dbs_per_call = CRON_DBS_PER_CALL;
-    long long start = ustime(), timelimit, elapsed;
-
-    ..... &#x2F;&#x2F; 一些状态时不进行检查，直接返回
-
-    &#x2F;&#x2F; 如果上次周期因为执行达到了最大执行时间而退出，则本次遍历所有db,否则遍历db数等于 CRON_DBS_PER_CALL
-    if (dbs_per_call &gt; server.dbnum || timelimit_exit)
-        dbs_per_call = server.dbnum;
-
-    &#x2F;&#x2F; 根据ACTIVE_EXPIRE_CYCLE_SLOW_TIME_PERC计算本次最大执行时间
-    timelimit = 1000000*ACTIVE_EXPIRE_CYCLE_SLOW_TIME_PERC&#x2F;server.hz&#x2F;100;
-    timelimit_exit = 0;
-    if (timelimit &lt;= 0) timelimit = 1;
-    &#x2F;&#x2F; 如果是快速模式，则最大执行时间为ACTIVE_EXPIRE_CYCLE_FAST_DURATION
-    if (type == ACTIVE_EXPIRE_CYCLE_FAST)
-        timelimit = ACTIVE_EXPIRE_CYCLE_FAST_DURATION; &#x2F;* in microseconds. *&#x2F;
-    &#x2F;&#x2F; 采样记录
-    long total_sampled = 0;
-    long total_expired = 0;
-    &#x2F;&#x2F; 依次遍历 dbs_per_call 个 db
-    for (j = 0; j &lt; dbs_per_call &amp;&amp; timelimit_exit == 0; j++) {
-        int expired;
-        redisDb *db = server.db+(current_db % server.dbnum);
-        &#x2F;&#x2F; 将db数增加，一遍下一次继续从这个db开始遍历
-        current_db++;
-
-        do {
-            ..... &#x2F;&#x2F; 申明变量和一些情况下 break
-            if (num &gt; ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP)
-                num = ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP;
-            &#x2F;&#x2F; 主要循环，在过期表中进行随机采样，判断是否比率大于25%
-            while (num--) {
-                dictEntry *de;
-                long long ttl;
-
-                if ((de = dictGetRandomKey(db-&gt;expires)) == NULL) break;
-                ttl = dictGetSignedIntegerVal(de)-now;
-                &#x2F;&#x2F; 删除过期键
-                if (activeExpireCycleTryExpire(db,de,now)) expired++;
-                if (ttl &gt; 0) {
-                    &#x2F;* We want the average TTL of keys yet not expired. *&#x2F;
-                    ttl_sum += ttl;
-                    ttl_samples++;
-                }
-                total_sampled++;
-            }
-            &#x2F;&#x2F; 记录过期总数
-            total_expired += expired;
-            &#x2F;&#x2F; 即使有很多键要过期，也不阻塞很久，如果执行超过了最大执行时间，则返回
-            if ((iteration &amp; 0xf) == 0) { &#x2F;* check once every 16 iterations. *&#x2F;
-                elapsed = ustime()-start;
-                if (elapsed &gt; timelimit) {
-                    timelimit_exit = 1;
-                    server.stat_expired_time_cap_reached_count++;
-                    break;
-                }
-            }
-            &#x2F;&#x2F; 当比率小于25%时返回
-        } while (expired &gt; ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP&#x2F;4);
-    }
-    .....&#x2F;&#x2F; 更新一些server的记录数据
-}
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br></pre></td><td class="code"><pre><span class="line">void activeExpireCycle(int type) &#123;</span><br><span class="line">    // 上次检查的db</span><br><span class="line">    static unsigned int current_db = 0; </span><br><span class="line">    // 上次检查的最大执行时间</span><br><span class="line">    static int timelimit_exit = 0;</span><br><span class="line">    // 上一次快速模式运行时间</span><br><span class="line">    static long long last_fast_cycle = 0; /* When last fast cycle ran. */</span><br><span class="line"></span><br><span class="line">    int j, iteration = 0;</span><br><span class="line">    // 每次检查周期要遍历的DB数</span><br><span class="line">    int dbs_per_call = CRON_DBS_PER_CALL;</span><br><span class="line">    long long start = ustime(), timelimit, elapsed;</span><br><span class="line"></span><br><span class="line">    ..... // 一些状态时不进行检查，直接返回</span><br><span class="line"></span><br><span class="line">    // 如果上次周期因为执行达到了最大执行时间而退出，则本次遍历所有db,否则遍历db数等于 CRON_DBS_PER_CALL</span><br><span class="line">    if (dbs_per_call &gt; server.dbnum || timelimit_exit)</span><br><span class="line">        dbs_per_call = server.dbnum;</span><br><span class="line"></span><br><span class="line">    // 根据ACTIVE_EXPIRE_CYCLE_SLOW_TIME_PERC计算本次最大执行时间</span><br><span class="line">    timelimit = 1000000*ACTIVE_EXPIRE_CYCLE_SLOW_TIME_PERC/server.hz/100;</span><br><span class="line">    timelimit_exit = 0;</span><br><span class="line">    if (timelimit &lt;= 0) timelimit = 1;</span><br><span class="line">    // 如果是快速模式，则最大执行时间为ACTIVE_EXPIRE_CYCLE_FAST_DURATION</span><br><span class="line">    if (type == ACTIVE_EXPIRE_CYCLE_FAST)</span><br><span class="line">        timelimit = ACTIVE_EXPIRE_CYCLE_FAST_DURATION; /* in microseconds. */</span><br><span class="line">    // 采样记录</span><br><span class="line">    long total_sampled = 0;</span><br><span class="line">    long total_expired = 0;</span><br><span class="line">    // 依次遍历 dbs_per_call 个 db</span><br><span class="line">    for (j = 0; j &lt; dbs_per_call &amp;&amp; timelimit_exit == 0; j++) &#123;</span><br><span class="line">        int expired;</span><br><span class="line">        redisDb *db = server.db+(current_db % server.dbnum);</span><br><span class="line">        // 将db数增加，一遍下一次继续从这个db开始遍历</span><br><span class="line">        current_db++;</span><br><span class="line"></span><br><span class="line">        do &#123;</span><br><span class="line">            ..... // 申明变量和一些情况下 break</span><br><span class="line">            if (num &gt; ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP)</span><br><span class="line">                num = ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP;</span><br><span class="line">            // 主要循环，在过期表中进行随机采样，判断是否比率大于25%</span><br><span class="line">            while (num--) &#123;</span><br><span class="line">                dictEntry *de;</span><br><span class="line">                long long ttl;</span><br><span class="line"></span><br><span class="line">                if ((de = dictGetRandomKey(db-&gt;expires)) == NULL) break;</span><br><span class="line">                ttl = dictGetSignedIntegerVal(de)-now;</span><br><span class="line">                // 删除过期键</span><br><span class="line">                if (activeExpireCycleTryExpire(db,de,now)) expired++;</span><br><span class="line">                if (ttl &gt; 0) &#123;</span><br><span class="line">                    /* We want the average TTL of keys yet not expired. */</span><br><span class="line">                    ttl_sum += ttl;</span><br><span class="line">                    ttl_samples++;</span><br><span class="line">                &#125;</span><br><span class="line">                total_sampled++;</span><br><span class="line">            &#125;</span><br><span class="line">            // 记录过期总数</span><br><span class="line">            total_expired += expired;</span><br><span class="line">            // 即使有很多键要过期，也不阻塞很久，如果执行超过了最大执行时间，则返回</span><br><span class="line">            if ((iteration &amp; 0xf) == 0) &#123; /* check once every 16 iterations. */</span><br><span class="line">                elapsed = ustime()-start;</span><br><span class="line">                if (elapsed &gt; timelimit) &#123;</span><br><span class="line">                    timelimit_exit = 1;</span><br><span class="line">                    server.stat_expired_time_cap_reached_count++;</span><br><span class="line">                    break;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            // 当比率小于25%时返回</span><br><span class="line">        &#125; while (expired &gt; ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP/4);</span><br><span class="line">    &#125;</span><br><span class="line">    .....// 更新一些server的记录数据</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>activeExpireCycleTryExpire 函数的实现就和 expireIfNeeded 类似，这里就不赘述了。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">int activeExpireCycleTryExpire(redisDb *db, dictEntry *de, long long now) {
-    long long t = dictGetSignedIntegerVal(de);
-    if (now &gt; t) {
-        sds key = dictGetKey(de);
-        robj *keyobj = createStringObject(key,sdslen(key));
-
-        propagateExpire(db,keyobj,server.lazyfree_lazy_expire);
-        if (server.lazyfree_lazy_expire)
-            dbAsyncDelete(db,keyobj);
-        else
-            dbSyncDelete(db,keyobj);
-        notifyKeyspaceEvent(NOTIFY_EXPIRED,
-            &quot;expired&quot;,keyobj,db-&gt;id);
-        decrRefCount(keyobj);
-        server.stat_expiredkeys++;
-        return 1;
-    } else {
-        return 0;
-    }
-}
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">int activeExpireCycleTryExpire(redisDb *db, dictEntry *de, long long now) &#123;</span><br><span class="line">    long long t = dictGetSignedIntegerVal(de);</span><br><span class="line">    if (now &gt; t) &#123;</span><br><span class="line">        sds key = dictGetKey(de);</span><br><span class="line">        robj *keyobj = createStringObject(key,sdslen(key));</span><br><span class="line"></span><br><span class="line">        propagateExpire(db,keyobj,server.lazyfree_lazy_expire);</span><br><span class="line">        if (server.lazyfree_lazy_expire)</span><br><span class="line">            dbAsyncDelete(db,keyobj);</span><br><span class="line">        else</span><br><span class="line">            dbSyncDelete(db,keyobj);</span><br><span class="line">        notifyKeyspaceEvent(NOTIFY_EXPIRED,</span><br><span class="line">            &quot;expired&quot;,keyobj,db-&gt;id);</span><br><span class="line">        decrRefCount(keyobj);</span><br><span class="line">        server.stat_expiredkeys++;</span><br><span class="line">        return 1;</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        return 0;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>定期删除策略的关键点就是删除操作执行的时长和频率：</p>
 <ul>
 <li>如果删除操作太过频繁或者执行时间太长，就对 CPU 时间不是很友好，CPU 时间过多的消耗在删除过期键上。</li>
@@ -571,7 +350,7 @@ int dbAsyncDelete(redisDb *db, robj *key) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/e66f8da0/" data-id="ck6531e5n007p6pse7t2dtenc" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/e66f8da0/" data-id="ck6535m9l007q9ksez23jmgzw" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -647,7 +426,7 @@ int dbAsyncDelete(redisDb *db, robj *key) {
 <nav id="article-nav">
     
         <a href="/article/f4b7b3d6/" id="article-nav-newer" class="article-nav-link-wrap">
-            <strong class="article-nav-caption">Más nuevo</strong>
+            <strong class="article-nav-caption">Newer</strong>
             <div class="article-nav-title">
                 
                     公理设计-由奇怪海战引发的软件设计思考
@@ -657,7 +436,7 @@ int dbAsyncDelete(redisDb *db, robj *key) {
     
     
         <a href="/article/516957d3/" id="article-nav-older" class="article-nav-link-wrap">
-            <strong class="article-nav-caption">Más viejo</strong>
+            <strong class="article-nav-caption">Older</strong>
             <div class="article-nav-title">一文了解 Redis 内存监控和内存消耗</div>
         </a>
     
@@ -682,7 +461,7 @@ int dbAsyncDelete(redisDb *db, robj *key) {
    
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Recientes</h3>
+        <h3 class="widget-title">recent</h3>
         <div class="widget">
             <ul id="recent-post" class="">
                 
@@ -788,7 +567,7 @@ int dbAsyncDelete(redisDb *db, robj *key) {
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Categorias</h3>
+        <h3 class="widget-title">categories</h3>
         <div class="widget">
             <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">25</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MySQL/">MySQL</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Netty/">Netty</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Redis/">Redis</a><span class="category-list-count">16</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SICP/">SICP</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/docker/">docker</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/java-persistent/">java persistent</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/plan/">plan</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">2</span></li></ul>
         </div>
@@ -797,7 +576,7 @@ int dbAsyncDelete(redisDb *db, robj *key) {
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Archivos</h3>
+        <h3 class="widget-title">archives</h3>
         <div class="widget">
             <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
         </div>
@@ -806,7 +585,7 @@ int dbAsyncDelete(redisDb *db, robj *key) {
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Nube de etiquetas</h3>
+        <h3 class="widget-title">tag cloud</h3>
         <div class="widget tagcloud">
             <a href="/tags/AOP/" style="font-size: 15px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 20px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/Netty/" style="font-size: 20px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 15px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 15px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 20px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 15px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/persistent/" style="font-size: 15px;">persistent</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 15px;">第三方库</a> <a href="/tags/算法/" style="font-size: 20px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 15px;">限流</a>
         </div>
@@ -815,7 +594,7 @@ int dbAsyncDelete(redisDb *db, robj *key) {
     
         
     <div class="widget-wrap widget-list">
-        <h3 class="widget-title">Links</h3>
+        <h3 class="widget-title">links</h3>
         <div class="widget">
             <ul>
                 

@@ -45,18 +45,27 @@
     
     
     
-        <script type="text/javascript">
-(function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
-(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-ga('create', 'UA-118574570-1', 'auto');
-ga('send', 'pageview');
-
+    
+    
+        <script>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
 </script>
-    
-    
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
     
 
 
@@ -100,7 +109,7 @@ ga('send', 'pageview');
             <div id="search-form-wrap">
 
     <form class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
         <button type="submit" class="search-form-submit"></button>
     </form>
     <div class="ins-search">
@@ -119,10 +128,10 @@ ga('send', 'pageview');
 (function (window) {
     var INSIGHT_CONFIG = {
         TRANSLATION: {
-            POSTS: 'Entradas',
+            POSTS: 'Posts',
             PAGES: 'Pages',
-            CATEGORIES: 'Categorias',
-            TAGS: 'Etiquetas',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
             UNTITLED: '(Untitled)',
         },
         ROOT_URL: '/',
@@ -155,7 +164,7 @@ ga('send', 'pageview');
                 <td>
                     
     <div class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
     </div>
 
                 </td>
@@ -181,11 +190,11 @@ ga('send', 'pageview');
         <div class="article-info profile-block">
             <div class="article-info-block">
                 90
-                <span>Entradas</span>
+                <span>posts</span>
             </div>
             <div class="article-info-block">
                 61
-                <span>Etiquetas</span>
+                <span>tags</span>
             </div>
         </div>
         
@@ -279,57 +288,10 @@ ga('send', 'pageview');
 <li><code>onSaveInstanceState</code></li>
 <li><code>onRestoreInstanceState</code></li>
 </ul>
-<p>&emsp;首先就是<code>onMeasure</code>函数，用于确定自定义视图的长和高。对于本文的Switch,我们让其高为宽的固定比例大小就可以了，所以重构函数实现得十分简单。<strong>这个函数确定的只是测量的长和高，并不是最终视图所显示的长和高</strong>。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">@Override
-protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-    super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-    int width = MeasureSpec.getSize(widthMeasureSpec);
-    int height = (int) (width * DEFAULT_WIDTH_HEIGHT_PERCENT);
-    setMeasuredDimension(width,height);
-}
-</code></pre></p>
+<p>&emsp;首先就是<code>onMeasure</code>函数，用于确定自定义视图的长和高。对于本文的Switch,我们让其高为宽的固定比例大小就可以了，所以重构函数实现得十分简单。<strong>这个函数确定的只是测量的长和高，并不是最终视图所显示的长和高</strong>。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onMeasure</span><span class="params">(<span class="keyword">int</span> widthMeasureSpec, <span class="keyword">int</span> heightMeasureSpec)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>.onMeasure(widthMeasureSpec, heightMeasureSpec);</span><br><span class="line">    <span class="keyword">int</span> width = MeasureSpec.getSize(widthMeasureSpec);</span><br><span class="line">    <span class="keyword">int</span> height = (<span class="keyword">int</span>) (width * DEFAULT_WIDTH_HEIGHT_PERCENT);</span><br><span class="line">    setMeasuredDimension(width,height);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>&emsp;然后就是视图确定真正大小(<code>onLayout</code>)之后要调用的<code>onSizeChanged</code>函数了。这个函数调用之后，<code>draw</code>函数就可能被调用，所以，一般我们在这个函数中计算绘制时所需要的数据。<br>&emsp;接着是<code>draw</code>函数，在这个函数中，我们绘制各种图像来构成视图的UI。需要注意的是，这个函数会被频繁的调用，所以不要在函数内执行耗时的操作。<br>&emsp;最后是<code>onTouchEvent</code>函数，这个函数是用户触摸屏幕时才会被调用的，主要进行视图的触摸处理，由于我们的自定义Switch支持的触摸事件比较简单，只是支持点击事件，所以此函数的实现也比较简单。<br>&emsp;最后就是涉及到视图状态保存的两个函数。我们都知道，一定情况下，activity会被销毁，然后重新建立，比如你旋转屏幕时。这个时候，你需要保存视图的一些属性数据，以备重新建立视图时使用，来恢复之前的视图。<strong>你需要注意的是，光重载这两个函数还是不够的，还需要设置View ID和调用setSaveEnabled函数</strong>。<br>&emsp;我们接下来就一步一步的来实现这个自定义组件吧。</p>
 <h4 id="田径场式背景"><a href="#田径场式背景" class="headerlink" title="田径场式背景"></a>田径场式背景</h4><p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160715-boke1.png" alt="田径场背景"></p>
-<p>&emsp;我们先来看一下这个Switch的背景，它是一个形如田径场跑道的形状，由两个半圆和一个矩形组成，我们先来看一下如何来绘制出这样的图案。我们使用<code>Path</code>来构造出这样的图案，然后再进行绘制，代码如下所示:<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">    @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        super.onSizeChanged(w, h, oldw, oldh);
-        &#x2F;&#x2F;TODO：还有padding的问题偶！！！
-        mWidth = w;
-        mHeight = h;
-        float top = 0;
-        float left = 0;
-        float bottom = h*0.8f; &#x2F;&#x2F;下边预留0.2空间来画阴影
-        float right = w;
-
-        RectF backgroundRecf = new RectF(left,top,bottom,bottom);
-        mBackgroundPath = new Path();
-        &#x2F;&#x2F;TODO:???????????
-        mBackgroundPath.arcTo(backgroundRecf,90,180);
-
-        backgroundRecf.left = right - bottom;
-        backgroundRecf.right = right;
-        mBackgroundPath.arcTo(backgroundRecf,270,180);
-        mBackgroundPath.close();
-        ........
-    }
-
-    @Override
-    protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
-        drawBackground(canvas);
-        drawForeground(canvas);
-    }
-
-    private void drawBackground(Canvas canvas) {
-        mPaint.setColor(mCurrentColor);
-        mPaint.setStyle(Paint.Style.FILL);
-        canvas.drawPath(mBackgroundPath,mPaint);
-        mPaint.reset();
-    }
-</code></pre></p>
+<p>&emsp;我们先来看一下这个Switch的背景，它是一个形如田径场跑道的形状，由两个半圆和一个矩形组成，我们先来看一下如何来绘制出这样的图案。我们使用<code>Path</code>来构造出这样的图案，然后再进行绘制，代码如下所示:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onSizeChanged</span><span class="params">(<span class="keyword">int</span> w, <span class="keyword">int</span> h, <span class="keyword">int</span> oldw, <span class="keyword">int</span> oldh)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>.onSizeChanged(w, h, oldw, oldh);</span><br><span class="line">    <span class="comment">//TODO：还有padding的问题偶！！！</span></span><br><span class="line">    mWidth = w;</span><br><span class="line">    mHeight = h;</span><br><span class="line">    <span class="keyword">float</span> top = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">float</span> left = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">float</span> bottom = h*<span class="number">0.8f</span>; <span class="comment">//下边预留0.2空间来画阴影</span></span><br><span class="line">    <span class="keyword">float</span> right = w;</span><br><span class="line"></span><br><span class="line">    RectF backgroundRecf = <span class="keyword">new</span> RectF(left,top,bottom,bottom);</span><br><span class="line">    mBackgroundPath = <span class="keyword">new</span> Path();</span><br><span class="line">    <span class="comment">//<span class="doctag">TODO:</span>???????????</span></span><br><span class="line">    mBackgroundPath.arcTo(backgroundRecf,<span class="number">90</span>,<span class="number">180</span>);</span><br><span class="line"></span><br><span class="line">    backgroundRecf.left = right - bottom;</span><br><span class="line">    backgroundRecf.right = right;</span><br><span class="line">    mBackgroundPath.arcTo(backgroundRecf,<span class="number">270</span>,<span class="number">180</span>);</span><br><span class="line">    mBackgroundPath.close();</span><br><span class="line">    ........</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onDraw</span><span class="params">(Canvas canvas)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>.onDraw(canvas);</span><br><span class="line">    drawBackground(canvas);</span><br><span class="line">    drawForeground(canvas);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">drawBackground</span><span class="params">(Canvas canvas)</span> </span>&#123;</span><br><span class="line">    mPaint.setColor(mCurrentColor);</span><br><span class="line">    mPaint.setStyle(Paint.Style.FILL);</span><br><span class="line">    canvas.drawPath(mBackgroundPath,mPaint);</span><br><span class="line">    mPaint.reset();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>&emsp;我们使用<code>arcTo(RectF oval, float startAngle, float sweepAngle)</code>这儿函数来绘制田径场图案。这个函数，需要传入一个RectF对象，将要绘制的圆是这个对象所代表矩形的内切圆，我们只要计算出来这个矩形的上下左右四点的坐标就可以了。我们先计算绘制左侧半圆所需要的矩形，然后函数后两个参数为90,和180。注意的是，这个函数中，角度的正方向是顺时针的，<code>startAngle</code>为90,也就是我们数学坐标系中角度为270所代表的方向。<br>&emsp;由于Path会自动连接绘制个点之间的连线，所以，我们只需要再绘制出右侧半圆的曲线即可。<br>&emsp;我们只需要将绘制左侧圆曲线的矩形进行一定距离的平移，就可以绘制出右侧曲线。所以矩形的右边界就等于整个视图的<code>right</code>，由于矩形的长为<code>bottom</code>,所以矩形的左边界就为<code>right-bottom</code>。然后再次调用<code>arcTo</code>函数，这次的起始角度就变成270了。<br>&emsp;最后调用<code>Path</code>的<code>close</code>函数，让上边画的两段圆弧连接起来，就形成了上述的田径场图案。</p>
 <h4 id="绘制脸部图形"><a href="#绘制脸部图形" class="headerlink" title="绘制脸部图形"></a>绘制脸部图形</h4><p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160715-smileface.png" alt="脸部图形"></p>
 <p>&emsp;笑脸图案看似复杂，其实就是几个图形组合在一起。首先是一个大圆，然后是里边的两个椭圆型的眼睛，然后是嘴巴。我们只要在正确的位置将这些图形绘制出来即可。<br>&emsp;和绘制背景图形的顺序类似，我们首先在<code>onSizeChanged</code>函数中进行相关函数的计算。<br>&emsp;首先是大圆脸的绘制，我们还是使用<code>drawPath</code>函数，只不过这次<code>Path</code>对象只绘制一个圆；而双眼则是使用<code>drawOval</code>函数来花椭圆；最后使用<code>drawRect</code>来绘制矩形。</p>
@@ -339,76 +301,12 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 <li>脸部图形的平移和转动(可以看出相当于脸部水平转动了360度)。</li>
 <li>脸部表情动画，眨眼睛和嘴巴咧开。</li>
 </ul>
-<p>&emsp;由于动画涉及的操作比较多，所以我们选择使用<code>ValueAnimator</code>+<code>AnimatorUpdateListener</code>的动画实现方式，在<code>onAnimationUpdate</code>函数中记录下来当前的<code>animatedValue</code>，然后调用<code>invalidate</code>函数来让界面重绘，在绘制界面计算数据过程中，使用记录下来的数值，从而产生动画效果。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">    private void startCloseAnimation() {
-        mValueAnimator = ValueAnimator.ofFloat(NORMAL_ANIM_MAX_FRACTION,0);
-        mValueAnimator.setDuration(mOffAnimationDuration);
-        mValueAnimator.addUpdateListener(this);
-        mValueAnimator.addListener(this);
-        mValueAnimator.setInterpolator(mInterpolator);
-        mValueAnimator.start();
-        startColorAnimation();
-    }
-    @Override
-    public void onAnimationUpdate(ValueAnimator animation) {
-        mAnimationFraction = (float)animation.getAnimatedValue();
-        invalidate(); &#x2F;&#x2F;产生动画的关键步骤
-    }
-</code></pre></p>
+<p>&emsp;由于动画涉及的操作比较多，所以我们选择使用<code>ValueAnimator</code>+<code>AnimatorUpdateListener</code>的动画实现方式，在<code>onAnimationUpdate</code>函数中记录下来当前的<code>animatedValue</code>，然后调用<code>invalidate</code>函数来让界面重绘，在绘制界面计算数据过程中，使用记录下来的数值，从而产生动画效果。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">startCloseAnimation</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    mValueAnimator = ValueAnimator.ofFloat(NORMAL_ANIM_MAX_FRACTION,<span class="number">0</span>);</span><br><span class="line">    mValueAnimator.setDuration(mOffAnimationDuration);</span><br><span class="line">    mValueAnimator.addUpdateListener(<span class="keyword">this</span>);</span><br><span class="line">    mValueAnimator.addListener(<span class="keyword">this</span>);</span><br><span class="line">    mValueAnimator.setInterpolator(mInterpolator);</span><br><span class="line">    mValueAnimator.start();</span><br><span class="line">    startColorAnimation();</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onAnimationUpdate</span><span class="params">(ValueAnimator animation)</span> </span>&#123;</span><br><span class="line">    mAnimationFraction = (<span class="keyword">float</span>)animation.getAnimatedValue();</span><br><span class="line">    invalidate(); <span class="comment">//产生动画的关键步骤</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>&emsp;所以，最终动画问题又变成了绘制静态图像问题，我们根据不同的<code>mAnimationFraction</code>的值来绘制不同的图像。<br>&emsp;接下来我们就来描述一下几个比较关键的动画的逻辑。</p>
-<h4 id="脸部转动动画"><a href="#脸部转动动画" class="headerlink" title="脸部转动动画"></a>脸部转动动画</h4><p>&emsp;其实这个脸部动画还是比较难实现的，主要是转动的这个效果没有直接的API可以实现。我们的动画只是让用户产生脸部转动的假象。由于脸部图案就是一个大圆加上充当眼睛和嘴巴的椭圆和矩形，我们可以让眼睛和嘴巴向转动方向平移，让它们平移出大圆，然后在一定时间后从另外一个方向再平移进入大圆，最终回到原来位置。这样就实现了一种脸部转动的效果。<br>&emsp;如何让眼睛和嘴巴移动到大圆边缘就消失呢？而且是随着移动渐渐的一部分一部分的消失呢？我们这里使用了另外一种思路，使用<code>clipPath</code>函数，将画布进行裁剪，只留下大圆范围内的图案。这样的话，当眼睛和嘴巴移动出大圆时，就会逐渐消失。<br>&emsp;至于眼睛和嘴巴如何平移呢？大家首先想到的方法一定是根据<code>mAnimationFraction</code>来计算它们的位置，然后在相应位置上将它们绘制出来，但是这样不是最优的方法，我们可以在绘制这些图像时，对画布进行平移，这样的话，我们绘制眼睛和嘴巴的函数就不会涉及到<code>mAnimationFraction</code>，实现比较简单。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">public void drawFace(Canvas canvas,float fraction) {
-        mPaint.setAntiAlias(true);
-        &#x2F;&#x2F;面部背景
-        mPaint.setColor(mFaceColor);
-        mPaint.setStyle(Paint.Style.FILL);
-        canvas.drawPath(mFacePath,mPaint);
-		&#x2F;&#x2F;先裁剪并平移画布，然后再绘制眼部五官
-        translateAndClipFace(canvas,fraction);
-        drawEye(canvas,fraction);
-        drawMouth(canvas,fraction);
-    }
-
-    private void translateAndClipFace(Canvas canvas,float fraction) {
-        &#x2F;&#x2F;截掉超出face的部分。
-        canvas.clipPath(mFacePath);
-
-        float faceTransition ;
-        &#x2F;&#x2F;TODO：合理的转动区间，眼睛出现和消失的时间比为1：1,所以当fraction=0.25时，应该只显示侧脸,计算faceTransition。
-        if (fraction &gt;=0.0f &amp;&amp; fraction &lt;0.5f) {
-            faceTransition = fraction * mFaceRadius *4;
-        } else if (fraction &lt;=NORMAL_ANIM_MAX_FRACTION){
-            faceTransition = - (NORMAL_ANIM_MAX_FRACTION - fraction) * mFaceRadius * 4;
-        } else if (fraction &lt;=(NORMAL_ANIM_MAX_FRACTION+FACE_ANIM_MAX_FRACTION)&#x2F;2) {
-            faceTransition =  (fraction - NORMAL_ANIM_MAX_FRACTION) * mFaceRadius * 2;
-        } else {
-            faceTransition = (FACE_ANIM_MAX_FRACTION - fraction) * mFaceRadius * 2;
-        }
-        canvas.translate(faceTransition,0);
-    }
-</code></pre></p>
+<h4 id="脸部转动动画"><a href="#脸部转动动画" class="headerlink" title="脸部转动动画"></a>脸部转动动画</h4><p>&emsp;其实这个脸部动画还是比较难实现的，主要是转动的这个效果没有直接的API可以实现。我们的动画只是让用户产生脸部转动的假象。由于脸部图案就是一个大圆加上充当眼睛和嘴巴的椭圆和矩形，我们可以让眼睛和嘴巴向转动方向平移，让它们平移出大圆，然后在一定时间后从另外一个方向再平移进入大圆，最终回到原来位置。这样就实现了一种脸部转动的效果。<br>&emsp;如何让眼睛和嘴巴移动到大圆边缘就消失呢？而且是随着移动渐渐的一部分一部分的消失呢？我们这里使用了另外一种思路，使用<code>clipPath</code>函数，将画布进行裁剪，只留下大圆范围内的图案。这样的话，当眼睛和嘴巴移动出大圆时，就会逐渐消失。<br>&emsp;至于眼睛和嘴巴如何平移呢？大家首先想到的方法一定是根据<code>mAnimationFraction</code>来计算它们的位置，然后在相应位置上将它们绘制出来，但是这样不是最优的方法，我们可以在绘制这些图像时，对画布进行平移，这样的话，我们绘制眼睛和嘴巴的函数就不会涉及到<code>mAnimationFraction</code>，实现比较简单。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">drawFace</span><span class="params">(Canvas canvas,<span class="keyword">float</span> fraction)</span> </span>&#123;</span><br><span class="line">        mPaint.setAntiAlias(<span class="keyword">true</span>);</span><br><span class="line">        <span class="comment">//面部背景</span></span><br><span class="line">        mPaint.setColor(mFaceColor);</span><br><span class="line">        mPaint.setStyle(Paint.Style.FILL);</span><br><span class="line">        canvas.drawPath(mFacePath,mPaint);</span><br><span class="line">		<span class="comment">//先裁剪并平移画布，然后再绘制眼部五官</span></span><br><span class="line">        translateAndClipFace(canvas,fraction);</span><br><span class="line">        drawEye(canvas,fraction);</span><br><span class="line">        drawMouth(canvas,fraction);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">translateAndClipFace</span><span class="params">(Canvas canvas,<span class="keyword">float</span> fraction)</span> </span>&#123;</span><br><span class="line">        <span class="comment">//截掉超出face的部分。</span></span><br><span class="line">        canvas.clipPath(mFacePath);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">float</span> faceTransition ;</span><br><span class="line">        <span class="comment">//TODO：合理的转动区间，眼睛出现和消失的时间比为1：1,所以当fraction=0.25时，应该只显示侧脸,计算faceTransition。</span></span><br><span class="line">        <span class="keyword">if</span> (fraction &gt;=<span class="number">0.0f</span> &amp;&amp; fraction &lt;<span class="number">0.5f</span>) &#123;</span><br><span class="line">            faceTransition = fraction * mFaceRadius *<span class="number">4</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (fraction &lt;=NORMAL_ANIM_MAX_FRACTION)&#123;</span><br><span class="line">            faceTransition = - (NORMAL_ANIM_MAX_FRACTION - fraction) * mFaceRadius * <span class="number">4</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (fraction &lt;=(NORMAL_ANIM_MAX_FRACTION+FACE_ANIM_MAX_FRACTION)/<span class="number">2</span>) &#123;</span><br><span class="line">            faceTransition =  (fraction - NORMAL_ANIM_MAX_FRACTION) * mFaceRadius * <span class="number">2</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            faceTransition = (FACE_ANIM_MAX_FRACTION - fraction) * mFaceRadius * <span class="number">2</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        canvas.translate(faceTransition,<span class="number">0</span>);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
 <h4 id="眨眼睛和变笑脸动画"><a href="#眨眼睛和变笑脸动画" class="headerlink" title="眨眼睛和变笑脸动画"></a>眨眼睛和变笑脸动画</h4><p>&emsp;眨眼睛动画十分简单，我们只要在绘制眼睛之前对画布进行缩放即可，然后在绘制玩眼睛之后，在将画布转变回来。但是后来我发现，画布缩放的中心点不容易确认，所以，采取了使用<code>mAnimationValue</code>计算椭圆数据的方式来进行椭圆大小的缩放。<br>&emsp;变笑脸动画主要就是嘴巴的动画效果，在静止情况下，我们使用<code>drawRect</code>来绘制嘴部图形；但在动画过程中，我们使用<code>drawPath</code>和<code>quadTo</code>来共同绘制嘴巴形状。<br>&emsp;<code>Path</code>的<code>quadTo</code>是用来绘制贝塞尔曲线，具体使用方法请查看<a href="https://github.com/GcsSloop/AndroidNote/blob/master/CustomView/Advance/%5B6%5DPath_Bezier.md" target="_blank" rel="noopener">Path之贝塞尔曲线</a>。我们主要使用其二阶曲线版本，即两个数据点，一个控制点。我们计算出A,B这两个数据点，也就是静止状态下矩形的左上点和右上点，然后根据<code>mAnimationValue</code>来计算控制点c的坐标，然后完成绘制。</p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160715-quadTo.jpg" alt="贝塞尔曲线原理图"></p>
-<p>&emsp;嘴部图案的绘制如下所示。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">    private void drawMouth(Canvas canvas,float fraction) {
-		.......
-        &#x2F;&#x2F;嘴巴
-        if (fraction &lt;=0.75) { &#x2F;&#x2F;
-            canvas.drawRect(mouthLeft, mouthTop, mouthLeft + mouthWidth, mouthTop + mouthHeight, mPaint);
-        } else {
-            Path path = new Path();
-            path.moveTo(mouthLeft,mouthTop);
-            float controlX = mouthLeft + mouthWidth&#x2F;2;
-            float controlY = mouthTop + mouthHeight + mouthHeight * 15 * (fraction - 0.75f);
-        path.quadTo(controlX,controlY,mouthLeft+mouthWidth,mouthTop);
-            path.close();
-            canvas.drawPath(path,mPaint);
-        }
-    }
-</code></pre></p>
+<p>&emsp;嘴部图案的绘制如下所示。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">  <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">drawMouth</span><span class="params">(Canvas canvas,<span class="keyword">float</span> fraction)</span> </span>&#123;</span><br><span class="line">.......</span><br><span class="line">      <span class="comment">//嘴巴</span></span><br><span class="line">      <span class="keyword">if</span> (fraction &lt;=<span class="number">0.75</span>) &#123; <span class="comment">//</span></span><br><span class="line">          canvas.drawRect(mouthLeft, mouthTop, mouthLeft + mouthWidth, mouthTop + mouthHeight, mPaint);</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          Path path = <span class="keyword">new</span> Path();</span><br><span class="line">          path.moveTo(mouthLeft,mouthTop);</span><br><span class="line">          <span class="keyword">float</span> controlX = mouthLeft + mouthWidth/<span class="number">2</span>;</span><br><span class="line">          <span class="keyword">float</span> controlY = mouthTop + mouthHeight + mouthHeight * <span class="number">15</span> * (fraction - <span class="number">0.75f</span>);</span><br><span class="line">      path.quadTo(controlX,controlY,mouthLeft+mouthWidth,mouthTop);</span><br><span class="line">          path.close();</span><br><span class="line">          canvas.drawPath(path,mPaint);</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
 <h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>&emsp;其实还有一些细节问题我没有在这篇文章上讲出，一方面是因为讲述起来太过复杂，还是大家自己查阅代码比较好，另一方面是，我觉得自己实现的方式也不是很好，就不在这里献丑了。<br>&emsp;项目还没有完全完成，比如自定义监听器和自定义属性的相关逻辑都没有添加，希望感兴趣的同学可以自行研究代码并完善它。项目地址摸我<a href="https://github.com/ztelur/FunSwitch" target="_blank" rel="noopener">我的github</a>。</p>
 
         
@@ -420,7 +318,7 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/413b422c/" data-id="ck6531e5j007c6psep7popn4m" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/413b422c/" data-id="ck6535m9d00769ksee2a4b6c7" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -496,7 +394,7 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 <nav id="article-nav">
     
         <a href="/article/29372fe3/" id="article-nav-newer" class="article-nav-link-wrap">
-            <strong class="article-nav-caption">Más nuevo</strong>
+            <strong class="article-nav-caption">Newer</strong>
             <div class="article-nav-title">
                 
                     Android Span 架构介绍
@@ -506,7 +404,7 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
     
     
         <a href="/article/69b8b4a1/" id="article-nav-older" class="article-nav-link-wrap">
-            <strong class="article-nav-caption">Más viejo</strong>
+            <strong class="article-nav-caption">Older</strong>
             <div class="article-nav-title">Python文件系统相关API总结</div>
         </a>
     
@@ -531,7 +429,7 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
    
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Recientes</h3>
+        <h3 class="widget-title">recent</h3>
         <div class="widget">
             <ul id="recent-post" class="">
                 
@@ -637,7 +535,7 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Categorias</h3>
+        <h3 class="widget-title">categories</h3>
         <div class="widget">
             <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">25</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MySQL/">MySQL</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Netty/">Netty</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Redis/">Redis</a><span class="category-list-count">16</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SICP/">SICP</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/docker/">docker</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/java-persistent/">java persistent</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/plan/">plan</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">2</span></li></ul>
         </div>
@@ -646,7 +544,7 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Archivos</h3>
+        <h3 class="widget-title">archives</h3>
         <div class="widget">
             <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
         </div>
@@ -655,7 +553,7 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Nube de etiquetas</h3>
+        <h3 class="widget-title">tag cloud</h3>
         <div class="widget tagcloud">
             <a href="/tags/AOP/" style="font-size: 15px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 20px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/Netty/" style="font-size: 20px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 15px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 15px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 20px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 15px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/persistent/" style="font-size: 15px;">persistent</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 15px;">第三方库</a> <a href="/tags/算法/" style="font-size: 20px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 15px;">限流</a>
         </div>
@@ -664,7 +562,7 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
     
         
     <div class="widget-wrap widget-list">
-        <h3 class="widget-title">Links</h3>
+        <h3 class="widget-title">links</h3>
         <div class="widget">
             <ul>
                 

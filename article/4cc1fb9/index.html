@@ -48,18 +48,27 @@
     
     
     
-        <script type="text/javascript">
-(function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
-(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-ga('create', 'UA-118574570-1', 'auto');
-ga('send', 'pageview');
-
+    
+    
+        <script>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
 </script>
-    
-    
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
     
 
 
@@ -103,7 +112,7 @@ ga('send', 'pageview');
             <div id="search-form-wrap">
 
     <form class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
         <button type="submit" class="search-form-submit"></button>
     </form>
     <div class="ins-search">
@@ -122,10 +131,10 @@ ga('send', 'pageview');
 (function (window) {
     var INSIGHT_CONFIG = {
         TRANSLATION: {
-            POSTS: 'Entradas',
+            POSTS: 'Posts',
             PAGES: 'Pages',
-            CATEGORIES: 'Categorias',
-            TAGS: 'Etiquetas',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
             UNTITLED: '(Untitled)',
         },
         ROOT_URL: '/',
@@ -158,7 +167,7 @@ ga('send', 'pageview');
                 <td>
                     
     <div class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
     </div>
 
                 </td>
@@ -184,11 +193,11 @@ ga('send', 'pageview');
         <div class="article-info profile-block">
             <div class="article-info-block">
                 90
-                <span>Entradas</span>
+                <span>posts</span>
             </div>
             <div class="article-info-block">
                 61
-                <span>Etiquetas</span>
+                <span>tags</span>
             </div>
         </div>
         
@@ -272,87 +281,13 @@ ga('send', 'pageview');
 </ul>
 <p><img src="/images/19_1221/2_image1.png" alt=""></p>
 <p>接下来，我们分别来看一下各个步骤的具体原理和代码实现。</p>
-<h3 id="启动时监听socket"><a href="#启动时监听socket" class="headerlink" title="启动时监听socket"></a>启动时监听socket</h3><p>Redis 服务器启动时，会调用 initServer 方法，首先会建立 Redis 自己的事件机制 eventLoop，然后在其上注册周期时间事件处理器，最后在所监听的 socket 上<br>创建文件事件处理器，监听 socket 建立连接的事件，其处理函数为 acceptTcpHandler。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">void initServer(void) { &#x2F;&#x2F; server.c
-    ....
-    &#x2F;**
-     * 创建eventLoop
-     *&#x2F;
-    server.el = aeCreateEventLoop(server.maxclients+CONFIG_FDSET_INCR);
-    &#x2F;* Open the TCP listening socket for the user commands. *&#x2F;
-
-    if (server.port != 0 &amp;&amp;
-        listenToPort(server.port,server.ipfd,&amp;server.ipfd_count) == C_ERR)
-        exit(1);
-
-    &#x2F;**
-     * 注册周期时间事件，处理后台操作，比如说客户端操作、过期键等
-     *&#x2F;
-    if (aeCreateTimeEvent(server.el, 1, serverCron, NULL, NULL) == AE_ERR) {
-        serverPanic(&quot;Can&#39;t create event loop timers.&quot;);
-        exit(1);
-    }
-    &#x2F;**
-     * 为所有监听的socket创建文件事件，监听可读事件；事件处理函数为acceptTcpHandler
-     * 
-     *&#x2F;
-    for (j = 0; j &lt; server.ipfd_count; j++) {
-        if (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE,
-            acceptTcpHandler,NULL) == AE_ERR)
-            {
-                serverPanic(
-                    &quot;Unrecoverable error creating server.ipfd file event.&quot;);
-            }
-    }
-    ....
-}
-</code></pre></p>
+<h3 id="启动时监听socket"><a href="#启动时监听socket" class="headerlink" title="启动时监听socket"></a>启动时监听socket</h3><p>Redis 服务器启动时，会调用 initServer 方法，首先会建立 Redis 自己的事件机制 eventLoop，然后在其上注册周期时间事件处理器，最后在所监听的 socket 上<br>创建文件事件处理器，监听 socket 建立连接的事件，其处理函数为 acceptTcpHandler。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">initServer</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123; <span class="comment">// server.c</span></span><br><span class="line">    ....</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 创建eventLoop</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    server.el = aeCreateEventLoop(server.maxclients+CONFIG_FDSET_INCR);</span><br><span class="line">    <span class="comment">/* Open the TCP listening socket for the user commands. */</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (server.port != <span class="number">0</span> &amp;&amp;</span><br><span class="line">        listenToPort(server.port,server.ipfd,&amp;server.ipfd_count) == C_ERR)</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 注册周期时间事件，处理后台操作，比如说客户端操作、过期键等</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> (aeCreateTimeEvent(server.el, <span class="number">1</span>, serverCron, <span class="literal">NULL</span>, <span class="literal">NULL</span>) == AE_ERR) &#123;</span><br><span class="line">        serverPanic(<span class="string">"Can't create event loop timers."</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 为所有监听的socket创建文件事件，监听可读事件；事件处理函数为acceptTcpHandler</span></span><br><span class="line"><span class="comment">     * </span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; server.ipfd_count; j++) &#123;</span><br><span class="line">        <span class="keyword">if</span> (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE,</span><br><span class="line">            acceptTcpHandler,<span class="literal">NULL</span>) == AE_ERR)</span><br><span class="line">            &#123;</span><br><span class="line">                serverPanic(</span><br><span class="line">                    <span class="string">"Unrecoverable error creating server.ipfd file event."</span>);</span><br><span class="line">            &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>在《Redis 事件机制详解》一文中，我们曾详细介绍过 Redis 的事件机制，可以说，Redis 命令执行过程中都是由事件机制协调管理的，也就是 initServer 方法中生成的 aeEventLoop。当socket发生对应的事件时，aeEventLoop 对调用已经注册的对应的事件处理器。</p>
 <p><img src="/images/19_1221/2_image2.png" alt=""></p>
 <h3 id="建立连接和Client"><a href="#建立连接和Client" class="headerlink" title="建立连接和Client"></a>建立连接和Client</h3><p>当客户端向 Redis 建立 socket时，aeEventLoop 会调用 acceptTcpHandler 处理函数，服务器会为每个链接创建一个 Client 对象，并创建相应文件事件来监听socket的可读事件，并指定事件处理函数。</p>
-<p>acceptTcpHandler 函数会首先调用 <code>anetTcpAccept</code>方法，它底层会调用 socket 的 accept 方法，也就是接受客户端来的建立连接请求，然后调用 <code>acceptCommonHandler</code>方法，继续后续的逻辑处理。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 当客户端建立链接时进行的eventloop处理函数  networking.c
-void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
-    ....
-    &#x2F;&#x2F; 层层调用，最后在anet.c 中 anetGenericAccept 方法中调用 socket 的 accept 方法
-    cfd = anetTcpAccept(server.neterr, fd, cip, sizeof(cip), &amp;cport);
-    if (cfd == ANET_ERR) {
-        if (errno != EWOULDBLOCK)
-            serverLog(LL_WARNING,
-                &quot;Accepting client connection: %s&quot;, server.neterr);
-        return;
-    }
-    serverLog(LL_VERBOSE,&quot;Accepted %s:%d&quot;, cip, cport);
-    &#x2F;**
-     * 进行socket 建立连接后的处理
-     *&#x2F;
-    acceptCommonHandler(cfd,0,cip);
-}
-</code></pre></p>
+<p>acceptTcpHandler 函数会首先调用 <code>anetTcpAccept</code>方法，它底层会调用 socket 的 accept 方法，也就是接受客户端来的建立连接请求，然后调用 <code>acceptCommonHandler</code>方法，继续后续的逻辑处理。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">// 当客户端建立链接时进行的eventloop处理函数  networking.c</span><br><span class="line">void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) &#123;</span><br><span class="line">    ....</span><br><span class="line">    // 层层调用，最后在anet.c 中 anetGenericAccept 方法中调用 socket 的 accept 方法</span><br><span class="line">    cfd = anetTcpAccept(server.neterr, fd, cip, sizeof(cip), &amp;cport);</span><br><span class="line">    if (cfd == ANET_ERR) &#123;</span><br><span class="line">        if (errno != EWOULDBLOCK)</span><br><span class="line">            serverLog(LL_WARNING,</span><br><span class="line">                &quot;Accepting client connection: %s&quot;, server.neterr);</span><br><span class="line">        return;</span><br><span class="line">    &#125;</span><br><span class="line">    serverLog(LL_VERBOSE,&quot;Accepted %s:%d&quot;, cip, cport);</span><br><span class="line">    /**</span><br><span class="line">     * 进行socket 建立连接后的处理</span><br><span class="line">     */</span><br><span class="line">    acceptCommonHandler(cfd,0,cip);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>acceptCommonHandler 则首先调用 createClient 创建 client，接着判断当前 client 的数量是否超出了配置的 maxclients，如果超过，则给客户端发送错误信息，并且释放 client。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">static void acceptCommonHandler(int fd, int flags, char *ip) { &#x2F;&#x2F;networking.c
-    client *c;
-    &#x2F;&#x2F; 创建redisClient
-    c = createClient(fd)
-    &#x2F;&#x2F; 当 maxClient 属性被设置，并且client数量已经超出时，给client发送error，然后释放连接
-    if (listLength(server.clients) &gt; server.maxclients) {
-        char *err = &quot;-ERR max number of clients reached\r\n&quot;;
-        if (write(c-&gt;fd,err,strlen(err)) == -1) {
-        }
-        server.stat_rejected_conn++;
-        freeClient(c);
-        return;
-    }
-    .... &#x2F;&#x2F; 处理为设置密码时默认保护状态的客户端连接
-    &#x2F;&#x2F; 统计连接数
-    server.stat_numconnections++;
-    c-&gt;flags |= flags;
-}
-</code></pre>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">acceptCommonHandler</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">int</span> flags, <span class="keyword">char</span> *ip)</span> </span>&#123; <span class="comment">//networking.c</span></span><br><span class="line">    client *c;</span><br><span class="line">    <span class="comment">// 创建redisClient</span></span><br><span class="line">    c = createClient(fd)</span><br><span class="line">    <span class="comment">// 当 maxClient 属性被设置，并且client数量已经超出时，给client发送error，然后释放连接</span></span><br><span class="line">    <span class="keyword">if</span> (listLength(server.clients) &gt; server.maxclients) &#123;</span><br><span class="line">        <span class="keyword">char</span> *err = <span class="string">"-ERR max number of clients reached\r\n"</span>;</span><br><span class="line">        <span class="keyword">if</span> (write(c-&gt;fd,err,<span class="built_in">strlen</span>(err)) == <span class="number">-1</span>) &#123;</span><br><span class="line">        &#125;</span><br><span class="line">        server.stat_rejected_conn++;</span><br><span class="line">        freeClient(c);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    .... <span class="comment">// 处理为设置密码时默认保护状态的客户端连接</span></span><br><span class="line">    <span class="comment">// 统计连接数</span></span><br><span class="line">    server.stat_numconnections++;</span><br><span class="line">    c-&gt;flags |= flags;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>createClient 方法用于创建 client，它代表着连接到 Redis 客户端，每个客户端都有各自的输入缓冲区和输出缓冲区，输入缓冲区存储客户端通过 socket 发送过来的数据，输出缓冲区则存储着 Redis 对客户端的响应数据。client一共有三种类型，不同类型的对应缓冲区的大小都不同。</p>
 <ul>
 <li>普通客户端是除了复制和订阅的客户端之外的所有连接</li>
@@ -363,153 +298,15 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
 <p>createClient 方法除了创建 client 结构体并设置其属性值外，还会对 socket进行配置并注册读事件处理器</p>
 <p>设置 socket 为 非阻塞 socket、设置 NO_DELAY 和 SO_KEEPALIVE标志位来关闭 Nagle 算法并且启动 socket 存活检查机制。</p>
 <p>设置读事件处理器，当客户端通过 socket 发送来数据后，Redis 会调用 readQueryFromClient 方法。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">client *createClient(int fd) {
-    client *c = zmalloc(sizeof(client));
-    &#x2F;&#x2F; fd 为 -1，表示其他特殊情况创建的client，redis在进行比如lua脚本执行之类的情况下也会创建client
-    if (fd != -1) {
-        &#x2F;&#x2F; 配置socket为非阻塞、NO_DELAY不开启Nagle算法和SO_KEEPALIVE
-        anetNonBlock(NULL,fd);
-        anetEnableTcpNoDelay(NULL,fd);
-        if (server.tcpkeepalive)
-            anetKeepAlive(NULL,fd,server.tcpkeepalive);
-        &#x2F;**
-         * 向 eventLoop 中注册了 readQueryFromClient。
-         * readQueryFromClient 的作用就是从client中读取客户端的查询缓冲区内容。
-         * 绑定读事件到事件 loop （开始接收命令请求）
-         *&#x2F;
-        if (aeCreateFileEvent(server.el,fd,AE_READABLE,
-            readQueryFromClient, c) == AE_ERR)
-        {
-            close(fd);
-            zfree(c);
-            return NULL;
-        }
-    }
-    &#x2F;&#x2F; 默认选择数据库
-    selectDb(c,0);
-    uint64_t client_id;
-    atomicGetIncr(server.next_client_id,client_id,1);
-    c-&gt;id = client_id;
-    c-&gt;fd = fd;
-    .... &#x2F;&#x2F; 设置client的属性
-    return c;
-}
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">client *createClient(int fd) &#123;</span><br><span class="line">    client *c = zmalloc(sizeof(client));</span><br><span class="line">    // fd 为 -1，表示其他特殊情况创建的client，redis在进行比如lua脚本执行之类的情况下也会创建client</span><br><span class="line">    if (fd != -1) &#123;</span><br><span class="line">        // 配置socket为非阻塞、NO_DELAY不开启Nagle算法和SO_KEEPALIVE</span><br><span class="line">        anetNonBlock(NULL,fd);</span><br><span class="line">        anetEnableTcpNoDelay(NULL,fd);</span><br><span class="line">        if (server.tcpkeepalive)</span><br><span class="line">            anetKeepAlive(NULL,fd,server.tcpkeepalive);</span><br><span class="line">        /**</span><br><span class="line">         * 向 eventLoop 中注册了 readQueryFromClient。</span><br><span class="line">         * readQueryFromClient 的作用就是从client中读取客户端的查询缓冲区内容。</span><br><span class="line">         * 绑定读事件到事件 loop （开始接收命令请求）</span><br><span class="line">         */</span><br><span class="line">        if (aeCreateFileEvent(server.el,fd,AE_READABLE,</span><br><span class="line">            readQueryFromClient, c) == AE_ERR)</span><br><span class="line">        &#123;</span><br><span class="line">            close(fd);</span><br><span class="line">            zfree(c);</span><br><span class="line">            return NULL;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    // 默认选择数据库</span><br><span class="line">    selectDb(c,0);</span><br><span class="line">    uint64_t client_id;</span><br><span class="line">    atomicGetIncr(server.next_client_id,client_id,1);</span><br><span class="line">    c-&gt;id = client_id;</span><br><span class="line">    c-&gt;fd = fd;</span><br><span class="line">    .... // 设置client的属性</span><br><span class="line">    return c;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>client 的属性中有很多属性，比如后边会看到的输入缓冲区 querybuf 和输出缓冲区 buf，这里因为代码过长做了省略，感兴趣的同学可以自行阅读源码。</p>
 <h3 id="读取socket数据到输入缓冲区"><a href="#读取socket数据到输入缓冲区" class="headerlink" title="读取socket数据到输入缓冲区"></a>读取socket数据到输入缓冲区</h3><p>readQueryFromClient 方法会调用 read 方法从 socket 中读取数据到输入缓冲区中，然后判断其大小是否大于系统设置的 client_max_querybuf_len，如果大于，则向 Redis返回错误信息，并关闭 client。</p>
 <p>将数据读取到输入缓冲区后，readQueryFromClient 方法会根据 client 的类型来做不同的处理，如果是普通类型，则直接调用 processInputBuffer 来处理；如果是主从客户端，还需要将命令同步到自己的从服务器中。也就是说，Redis实例将主实例传来的命令执行后，继续将命令同步给自己的从实例。</p>
 <p><img src="/images/19_1221/2_image4.png" alt=""></p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 处理从client中读取客户端的输入缓冲区内容。
-void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
-    client *c = (client*) privdata;
-    ....
-    if (c-&gt;querybuf_peak &lt; qblen) c-&gt;querybuf_peak = qblen;
-    c-&gt;querybuf = sdsMakeRoomFor(c-&gt;querybuf, readlen);
-    &#x2F;&#x2F; 从 fd 对应的socket中读取到 client 中的 querybuf 输入缓冲区
-    nread = read(fd, c-&gt;querybuf+qblen, readlen);
-    if (nread == -1) {
-        .... &#x2F;&#x2F; 出错释放 client
-    } else if (nread == 0) {
-        &#x2F;&#x2F; 客户端主动关闭 connection
-        serverLog(LL_VERBOSE, &quot;Client closed connection&quot;);
-        freeClient(c);
-        return;
-    } else if (c-&gt;flags &amp; CLIENT_MASTER) { 
-        &#x2F;*
-         * 当这个client代表主从的master节点时，将query buffer和 pending_querybuf结合
-         * 用于主从复制中的命令传播？？？？
-         *&#x2F;
-        c-&gt;pending_querybuf = sdscatlen(c-&gt;pending_querybuf,
-                                        c-&gt;querybuf+qblen,nread);
-    }
-    &#x2F;&#x2F; 增加已经读取的字节数
-    sdsIncrLen(c-&gt;querybuf,nread);
-    c-&gt;lastinteraction = server.unixtime;
-    if (c-&gt;flags &amp; CLIENT_MASTER) c-&gt;read_reploff += nread;
-    server.stat_net_input_bytes += nread;
-    &#x2F;&#x2F; 如果大于系统配置的最大客户端缓存区大小，也就是配置文件中的client-query-buffer-limit
-    if (sdslen(c-&gt;querybuf) &gt; server.client_max_querybuf_len) {
-        sds ci = catClientInfoString(sdsempty(),c), bytes = sdsempty();
-        &#x2F;&#x2F; 返回错误信息，并且关闭client
-        bytes = sdscatrepr(bytes,c-&gt;querybuf,64);
-        serverLog(LL_WARNING,&quot;Closing client that reached max query buffer length: %s (qbuf initial bytes: %s)&quot;, ci, bytes);
-        sdsfree(ci);
-        sdsfree(bytes);
-        freeClient(c);
-        return;
-    }
-
-    
-    if (!(c-&gt;flags &amp; CLIENT_MASTER)) {
-        &#x2F;&#x2F; processInputBuffer 处理输入缓冲区
-        processInputBuffer(c);
-    } else {
-        &#x2F;&#x2F; 如果client是master的连接
-        size_t prev_offset = c-&gt;reploff;
-        processInputBuffer(c);
-        &#x2F;&#x2F; 判断是否同步偏移量发生变化，则通知到后续的slave
-        size_t applied = c-&gt;reploff - prev_offset;
-
-        if (applied) {
-            replicationFeedSlavesFromMasterStream(server.slaves,
-                    c-&gt;pending_querybuf, applied);
-            sdsrange(c-&gt;pending_querybuf,applied,-1);
-        }
-    }
-}
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line">// 处理从client中读取客户端的输入缓冲区内容。</span><br><span class="line">void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) &#123;</span><br><span class="line">    client *c = (client*) privdata;</span><br><span class="line">    ....</span><br><span class="line">    if (c-&gt;querybuf_peak &lt; qblen) c-&gt;querybuf_peak = qblen;</span><br><span class="line">    c-&gt;querybuf = sdsMakeRoomFor(c-&gt;querybuf, readlen);</span><br><span class="line">    // 从 fd 对应的socket中读取到 client 中的 querybuf 输入缓冲区</span><br><span class="line">    nread = read(fd, c-&gt;querybuf+qblen, readlen);</span><br><span class="line">    if (nread == -1) &#123;</span><br><span class="line">        .... // 出错释放 client</span><br><span class="line">    &#125; else if (nread == 0) &#123;</span><br><span class="line">        // 客户端主动关闭 connection</span><br><span class="line">        serverLog(LL_VERBOSE, &quot;Client closed connection&quot;);</span><br><span class="line">        freeClient(c);</span><br><span class="line">        return;</span><br><span class="line">    &#125; else if (c-&gt;flags &amp; CLIENT_MASTER) &#123; </span><br><span class="line">        /*</span><br><span class="line">         * 当这个client代表主从的master节点时，将query buffer和 pending_querybuf结合</span><br><span class="line">         * 用于主从复制中的命令传播？？？？</span><br><span class="line">         */</span><br><span class="line">        c-&gt;pending_querybuf = sdscatlen(c-&gt;pending_querybuf,</span><br><span class="line">                                        c-&gt;querybuf+qblen,nread);</span><br><span class="line">    &#125;</span><br><span class="line">    // 增加已经读取的字节数</span><br><span class="line">    sdsIncrLen(c-&gt;querybuf,nread);</span><br><span class="line">    c-&gt;lastinteraction = server.unixtime;</span><br><span class="line">    if (c-&gt;flags &amp; CLIENT_MASTER) c-&gt;read_reploff += nread;</span><br><span class="line">    server.stat_net_input_bytes += nread;</span><br><span class="line">    // 如果大于系统配置的最大客户端缓存区大小，也就是配置文件中的client-query-buffer-limit</span><br><span class="line">    if (sdslen(c-&gt;querybuf) &gt; server.client_max_querybuf_len) &#123;</span><br><span class="line">        sds ci = catClientInfoString(sdsempty(),c), bytes = sdsempty();</span><br><span class="line">        // 返回错误信息，并且关闭client</span><br><span class="line">        bytes = sdscatrepr(bytes,c-&gt;querybuf,64);</span><br><span class="line">        serverLog(LL_WARNING,&quot;Closing client that reached max query buffer length: %s (qbuf initial bytes: %s)&quot;, ci, bytes);</span><br><span class="line">        sdsfree(ci);</span><br><span class="line">        sdsfree(bytes);</span><br><span class="line">        freeClient(c);</span><br><span class="line">        return;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    </span><br><span class="line">    if (!(c-&gt;flags &amp; CLIENT_MASTER)) &#123;</span><br><span class="line">        // processInputBuffer 处理输入缓冲区</span><br><span class="line">        processInputBuffer(c);</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        // 如果client是master的连接</span><br><span class="line">        size_t prev_offset = c-&gt;reploff;</span><br><span class="line">        processInputBuffer(c);</span><br><span class="line">        // 判断是否同步偏移量发生变化，则通知到后续的slave</span><br><span class="line">        size_t applied = c-&gt;reploff - prev_offset;</span><br><span class="line"></span><br><span class="line">        if (applied) &#123;</span><br><span class="line">            replicationFeedSlavesFromMasterStream(server.slaves,</span><br><span class="line">                    c-&gt;pending_querybuf, applied);</span><br><span class="line">            sdsrange(c-&gt;pending_querybuf,applied,-1);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <h3 id="解析获取命令"><a href="#解析获取命令" class="headerlink" title="解析获取命令"></a>解析获取命令</h3><p>processInputBuffer 主要是将输入缓冲区中的数据解析成对应的命令，根据命令类型是 PROTO_REQ_MULTIBULK 还是 PROTO_REQ_INLINE，来分别调用 processInlineBuffer 和 processMultibulkBuffer 方法来解析命令。</p>
 <p>然后调用 processCommand 方法来执行命令。执行成功后，如果是主从客户端，还需要更新同步偏移量 reploff 属性，然后重置 client，让client可以接收一条命令。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">void processInputBuffer(client *c) { &#x2F;&#x2F; networking.c
-    server.current_client = c;
-    &#x2F;* 当缓冲区中还有数据时就一直处理 *&#x2F;
-    while(sdslen(c-&gt;querybuf)) {
-        .... &#x2F;&#x2F; 处理 client 的各种状态
-        &#x2F;* 判断命令请求类型 telnet发送的命令和redis-cli发送的命令请求格式不同 *&#x2F;
-        if (!c-&gt;reqtype) {
-            if (c-&gt;querybuf[0] == &#39;*&#39;) {
-                c-&gt;reqtype = PROTO_REQ_MULTIBULK;
-            } else {
-                c-&gt;reqtype = PROTO_REQ_INLINE;
-            }
-        }
-        &#x2F;**
-         * 从缓冲区解析命令
-         *&#x2F;
-        if (c-&gt;reqtype == PROTO_REQ_INLINE) {
-            if (processInlineBuffer(c) != C_OK) break;
-        } else if (c-&gt;reqtype == PROTO_REQ_MULTIBULK) {
-            if (processMultibulkBuffer(c) != C_OK) break;
-        } else {
-            serverPanic(&quot;Unknown request type&quot;);
-        }
-
-        &#x2F;* 参数个数为0时重置client，可以接受下一个命令 *&#x2F;
-        if (c-&gt;argc == 0) {
-            resetClient(c);
-        } else {
-            &#x2F;&#x2F; 执行命令
-            if (processCommand(c) == C_OK) {
-                if (c-&gt;flags &amp; CLIENT_MASTER &amp;&amp; !(c-&gt;flags &amp; CLIENT_MULTI)) {
-                    &#x2F;&#x2F; 如果是master的client发来的命令，则 更新 reploff
-                    c-&gt;reploff = c-&gt;read_reploff - sdslen(c-&gt;querybuf);
-                }
-
-                &#x2F;&#x2F; 如果不是阻塞状态，则重置client，可以接受下一个命令
-                if (!(c-&gt;flags &amp; CLIENT_BLOCKED) || c-&gt;btype != BLOCKED_MODULE)
-                    resetClient(c);
-            }
-        }
-    }
-    server.current_client = NULL;
-}
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">void processInputBuffer(client *c) &#123; // networking.c</span><br><span class="line">    server.current_client = c;</span><br><span class="line">    /* 当缓冲区中还有数据时就一直处理 */</span><br><span class="line">    while(sdslen(c-&gt;querybuf)) &#123;</span><br><span class="line">        .... // 处理 client 的各种状态</span><br><span class="line">        /* 判断命令请求类型 telnet发送的命令和redis-cli发送的命令请求格式不同 */</span><br><span class="line">        if (!c-&gt;reqtype) &#123;</span><br><span class="line">            if (c-&gt;querybuf[0] == &apos;*&apos;) &#123;</span><br><span class="line">                c-&gt;reqtype = PROTO_REQ_MULTIBULK;</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                c-&gt;reqtype = PROTO_REQ_INLINE;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        /**</span><br><span class="line">         * 从缓冲区解析命令</span><br><span class="line">         */</span><br><span class="line">        if (c-&gt;reqtype == PROTO_REQ_INLINE) &#123;</span><br><span class="line">            if (processInlineBuffer(c) != C_OK) break;</span><br><span class="line">        &#125; else if (c-&gt;reqtype == PROTO_REQ_MULTIBULK) &#123;</span><br><span class="line">            if (processMultibulkBuffer(c) != C_OK) break;</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            serverPanic(&quot;Unknown request type&quot;);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        /* 参数个数为0时重置client，可以接受下一个命令 */</span><br><span class="line">        if (c-&gt;argc == 0) &#123;</span><br><span class="line">            resetClient(c);</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            // 执行命令</span><br><span class="line">            if (processCommand(c) == C_OK) &#123;</span><br><span class="line">                if (c-&gt;flags &amp; CLIENT_MASTER &amp;&amp; !(c-&gt;flags &amp; CLIENT_MULTI)) &#123;</span><br><span class="line">                    // 如果是master的client发来的命令，则 更新 reploff</span><br><span class="line">                    c-&gt;reploff = c-&gt;read_reploff - sdslen(c-&gt;querybuf);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                // 如果不是阻塞状态，则重置client，可以接受下一个命令</span><br><span class="line">                if (!(c-&gt;flags &amp; CLIENT_BLOCKED) || c-&gt;btype != BLOCKED_MODULE)</span><br><span class="line">                    resetClient(c);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    server.current_client = NULL;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>解析命令暂时不看，就是将 redis 命令文本信息，记录到client的argv/argc属性中</p>
 <h3 id="执行命令"><a href="#执行命令" class="headerlink" title="执行命令"></a>执行命令</h3><p>processCommand 方法会处理很多逻辑，不过大致可以分为三个部分：首先是调用 lookupCommand 方法获得对应的 redisCommand；接着是检测当前 Redis 是否可以执行该命令；最后是调用 call 方法真正执行命令。</p>
 <p>processCommand会做如下逻辑处理：</p>
@@ -528,160 +325,7 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
 <li>12 当服务器因为执行lua脚本阻塞时，只会执行部分命令，其余都会拒绝</li>
 <li>13 如果是事务命令，则开启事务，命令进入等待队列；否则直接执行命令。</li>
 </ul>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">int processCommand(client *c) {
-    &#x2F;&#x2F; 1 处理 quit 命令
-    if (!strcasecmp(c-&gt;argv[0]-&gt;ptr,&quot;quit&quot;)) {
-        addReply(c,shared.ok);
-        c-&gt;flags |= CLIENT_CLOSE_AFTER_REPLY;
-        return C_ERR;
-    }
-
-    &#x2F;**
-     * 根据 argv[0] 查找对应的 command
-     * 2 命令字典查找指定命令；所有的命令都存储在命令字典中 struct redisCommand redisCommandTable[]={}
-     *&#x2F;
-    c-&gt;cmd = c-&gt;lastcmd = lookupCommand(c-&gt;argv[0]-&gt;ptr);
-    if (!c-&gt;cmd) {
-        &#x2F;&#x2F; 处理未知命令
-    } else if ((c-&gt;cmd-&gt;arity &gt; 0 &amp;&amp; c-&gt;cmd-&gt;arity != c-&gt;argc) ||
-               (c-&gt;argc &lt; -c-&gt;cmd-&gt;arity)) {
-        &#x2F;&#x2F; 处理参数错误
-    }
-    &#x2F;&#x2F; 3 检查用户验证
-    if (server.requirepass &amp;&amp; !c-&gt;authenticated &amp;&amp; c-&gt;cmd-&gt;proc != authCommand)
-    {
-        flagTransaction(c);
-        addReply(c,shared.noautherr);
-        return C_OK;
-    }
-
-    &#x2F;**
-     * 4 如果是集群模式，处理集群重定向。当命令发送者是master或者 命令没有任何key的参数时可以不重定向
-     *&#x2F;
-    if (server.cluster_enabled &amp;&amp;
-        !(c-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;
-        !(c-&gt;flags &amp; CLIENT_LUA &amp;&amp;
-          server.lua_caller-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;
-        !(c-&gt;cmd-&gt;getkeys_proc == NULL &amp;&amp; c-&gt;cmd-&gt;firstkey == 0 &amp;&amp;
-          c-&gt;cmd-&gt;proc != execCommand))
-    {
-        int hashslot;
-        int error_code;
-        &#x2F;&#x2F; 查询可以执行的node信息
-        clusterNode *n = getNodeByQuery(c,c-&gt;cmd,c-&gt;argv,c-&gt;argc,
-                                        &amp;hashslot,&amp;error_code);
-        if (n == NULL || n != server.cluster-&gt;myself) {
-            if (c-&gt;cmd-&gt;proc == execCommand) {
-                discardTransaction(c);
-            } else {
-                flagTransaction(c);
-            }
-            clusterRedirectClient(c,n,hashslot,error_code);
-            return C_OK;
-        }
-    }
-
-    &#x2F;&#x2F; 5 处理maxmemory请求，先尝试回收一下，如果不行，则返回异常
-    if (server.maxmemory) {
-        int retval = freeMemoryIfNeeded();
-        ....
-    }
-
-    &#x2F;**
-     * 6 当此服务器是master时：aof持久化失败时，或上一次bgsave执行错误，
-     * 且配置bgsave参数和stop_writes_on_bgsave_err；禁止执行写命令
-     *&#x2F;
-    if (((server.stop_writes_on_bgsave_err &amp;&amp;
-          server.saveparamslen &gt; 0 &amp;&amp;
-          server.lastbgsave_status == C_ERR) ||
-          server.aof_last_write_status == C_ERR) &amp;&amp;
-        server.masterhost == NULL &amp;&amp;
-        (c-&gt;cmd-&gt;flags &amp; CMD_WRITE ||
-         c-&gt;cmd-&gt;proc == pingCommand)) { .... }
-
-    &#x2F;**
-     * 7 当此服务器时master时：如果配置了repl_min_slaves_to_write，
-     * 当slave数目小于时，禁止执行写命令
-     *&#x2F;
-    if (server.masterhost == NULL &amp;&amp;
-        server.repl_min_slaves_to_write &amp;&amp;
-        server.repl_min_slaves_max_lag &amp;&amp;
-        c-&gt;cmd-&gt;flags &amp; CMD_WRITE &amp;&amp;
-        server.repl_good_slaves_count &lt; server.repl_min_slaves_to_write) { .... }
-
-    &#x2F;**
-     * 8 当时只读slave时，除了master的不接受其他写命令
-     *&#x2F;
-    if (server.masterhost &amp;&amp; server.repl_slave_ro &amp;&amp;
-        !(c-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;
-        c-&gt;cmd-&gt;flags &amp; CMD_WRITE) { .... }
-
-    &#x2F;**
-     * 9 当客户端正在订阅频道时，只会执行以下命令
-     *&#x2F;
-    if (c-&gt;flags &amp; CLIENT_PUBSUB &amp;&amp;
-        c-&gt;cmd-&gt;proc != pingCommand &amp;&amp;
-        c-&gt;cmd-&gt;proc != subscribeCommand &amp;&amp;
-        c-&gt;cmd-&gt;proc != unsubscribeCommand &amp;&amp;
-        c-&gt;cmd-&gt;proc != psubscribeCommand &amp;&amp;
-        c-&gt;cmd-&gt;proc != punsubscribeCommand) { .... }
-    &#x2F;**
-     * 10 服务器为slave，但没有正确连接master时，只会执行带有CMD_STALE标志的命令，如info等
-     *&#x2F;
-    if (server.masterhost &amp;&amp; server.repl_state != REPL_STATE_CONNECTED &amp;&amp;
-        server.repl_serve_stale_data == 0 &amp;&amp;
-        !(c-&gt;cmd-&gt;flags &amp; CMD_STALE)) {...}
-    &#x2F;**
-     * 11 正在加载数据库时，只会执行带有CMD_LOADING标志的命令，其余都会被拒绝
-     *&#x2F;
-    if (server.loading &amp;&amp; !(c-&gt;cmd-&gt;flags &amp; CMD_LOADING)) { .... }
-    &#x2F;**
-     * 12 当服务器因为执行lua脚本阻塞时，只会执行以下几个命令，其余都会拒绝
-     *&#x2F;
-    if (server.lua_timedout &amp;&amp;
-          c-&gt;cmd-&gt;proc != authCommand &amp;&amp;
-          c-&gt;cmd-&gt;proc != replconfCommand &amp;&amp;
-        !(c-&gt;cmd-&gt;proc == shutdownCommand &amp;&amp;
-          c-&gt;argc == 2 &amp;&amp;
-          tolower(((char*)c-&gt;argv[1]-&gt;ptr)[0]) == &#39;n&#39;) &amp;&amp;
-        !(c-&gt;cmd-&gt;proc == scriptCommand &amp;&amp;
-          c-&gt;argc == 2 &amp;&amp;
-          tolower(((char*)c-&gt;argv[1]-&gt;ptr)[0]) == &#39;k&#39;)) {....}
-
-    &#x2F;**
-     * 13 开始执行命令
-     *&#x2F;
-    if (c-&gt;flags &amp; CLIENT_MULTI &amp;&amp;
-        c-&gt;cmd-&gt;proc != execCommand &amp;&amp; c-&gt;cmd-&gt;proc != discardCommand &amp;&amp;
-        c-&gt;cmd-&gt;proc != multiCommand &amp;&amp; c-&gt;cmd-&gt;proc != watchCommand)
-    {
-        &#x2F;**
-         * 开启了事务，命令只会入队列
-         *&#x2F;
-        queueMultiCommand(c);
-        addReply(c,shared.queued);
-    } else {
-        &#x2F;**
-         * 直接执行命令
-         *&#x2F;
-        call(c,CMD_CALL_FULL);
-        c-&gt;woff = server.master_repl_offset;
-        if (listLength(server.ready_keys))
-            handleClientsBlockedOnLists();
-    }
-    return C_OK;
-}
-
-
-struct redisCommand redisCommandTable[] = {
-    {&quot;get&quot;,getCommand,2,&quot;rF&quot;,0,NULL,1,1,1,0,0},
-    {&quot;set&quot;,setCommand,-3,&quot;wm&quot;,0,NULL,1,1,1,0,0},
-    {&quot;hmset&quot;,hsetCommand,-4,&quot;wmF&quot;,0,NULL,1,1,1,0,0},
-    .... &#x2F;&#x2F; 所有的 redis 命令都有
-}
-</code></pre>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">processCommand</span><span class="params">(client *c)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 1 处理 quit 命令</span></span><br><span class="line">    <span class="keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="number">0</span>]-&gt;ptr,<span class="string">"quit"</span>)) &#123;</span><br><span class="line">        addReply(c,shared.ok);</span><br><span class="line">        c-&gt;flags |= CLIENT_CLOSE_AFTER_REPLY;</span><br><span class="line">        <span class="keyword">return</span> C_ERR;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 根据 argv[0] 查找对应的 command</span></span><br><span class="line"><span class="comment">     * 2 命令字典查找指定命令；所有的命令都存储在命令字典中 struct redisCommand redisCommandTable[]=&#123;&#125;</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    c-&gt;cmd = c-&gt;lastcmd = lookupCommand(c-&gt;argv[<span class="number">0</span>]-&gt;ptr);</span><br><span class="line">    <span class="keyword">if</span> (!c-&gt;cmd) &#123;</span><br><span class="line">        <span class="comment">// 处理未知命令</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> ((c-&gt;cmd-&gt;arity &gt; <span class="number">0</span> &amp;&amp; c-&gt;cmd-&gt;arity != c-&gt;argc) ||</span><br><span class="line">               (c-&gt;argc &lt; -c-&gt;cmd-&gt;arity)) &#123;</span><br><span class="line">        <span class="comment">// 处理参数错误</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 3 检查用户验证</span></span><br><span class="line">    <span class="keyword">if</span> (server.requirepass &amp;&amp; !c-&gt;authenticated &amp;&amp; c-&gt;cmd-&gt;proc != authCommand)</span><br><span class="line">    &#123;</span><br><span class="line">        flagTransaction(c);</span><br><span class="line">        addReply(c,shared.noautherr);</span><br><span class="line">        <span class="keyword">return</span> C_OK;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 4 如果是集群模式，处理集群重定向。当命令发送者是master或者 命令没有任何key的参数时可以不重定向</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> (server.cluster_enabled &amp;&amp;</span><br><span class="line">        !(c-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;</span><br><span class="line">        !(c-&gt;flags &amp; CLIENT_LUA &amp;&amp;</span><br><span class="line">          server.lua_caller-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;</span><br><span class="line">        !(c-&gt;cmd-&gt;getkeys_proc == <span class="literal">NULL</span> &amp;&amp; c-&gt;cmd-&gt;firstkey == <span class="number">0</span> &amp;&amp;</span><br><span class="line">          c-&gt;cmd-&gt;proc != execCommand))</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">int</span> hashslot;</span><br><span class="line">        <span class="keyword">int</span> error_code;</span><br><span class="line">        <span class="comment">// 查询可以执行的node信息</span></span><br><span class="line">        clusterNode *n = getNodeByQuery(c,c-&gt;cmd,c-&gt;argv,c-&gt;argc,</span><br><span class="line">                                        &amp;hashslot,&amp;error_code);</span><br><span class="line">        <span class="keyword">if</span> (n == <span class="literal">NULL</span> || n != server.cluster-&gt;myself) &#123;</span><br><span class="line">            <span class="keyword">if</span> (c-&gt;cmd-&gt;proc == execCommand) &#123;</span><br><span class="line">                discardTransaction(c);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                flagTransaction(c);</span><br><span class="line">            &#125;</span><br><span class="line">            clusterRedirectClient(c,n,hashslot,error_code);</span><br><span class="line">            <span class="keyword">return</span> C_OK;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 5 处理maxmemory请求，先尝试回收一下，如果不行，则返回异常</span></span><br><span class="line">    <span class="keyword">if</span> (server.maxmemory) &#123;</span><br><span class="line">        <span class="keyword">int</span> retval = freeMemoryIfNeeded();</span><br><span class="line">        ....</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 6 当此服务器是master时：aof持久化失败时，或上一次bgsave执行错误，</span></span><br><span class="line"><span class="comment">     * 且配置bgsave参数和stop_writes_on_bgsave_err；禁止执行写命令</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> (((server.stop_writes_on_bgsave_err &amp;&amp;</span><br><span class="line">          server.saveparamslen &gt; <span class="number">0</span> &amp;&amp;</span><br><span class="line">          server.lastbgsave_status == C_ERR) ||</span><br><span class="line">          server.aof_last_write_status == C_ERR) &amp;&amp;</span><br><span class="line">        server.masterhost == <span class="literal">NULL</span> &amp;&amp;</span><br><span class="line">        (c-&gt;cmd-&gt;flags &amp; CMD_WRITE ||</span><br><span class="line">         c-&gt;cmd-&gt;proc == pingCommand)) &#123; .... &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 7 当此服务器时master时：如果配置了repl_min_slaves_to_write，</span></span><br><span class="line"><span class="comment">     * 当slave数目小于时，禁止执行写命令</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> (server.masterhost == <span class="literal">NULL</span> &amp;&amp;</span><br><span class="line">        server.repl_min_slaves_to_write &amp;&amp;</span><br><span class="line">        server.repl_min_slaves_max_lag &amp;&amp;</span><br><span class="line">        c-&gt;cmd-&gt;flags &amp; CMD_WRITE &amp;&amp;</span><br><span class="line">        server.repl_good_slaves_count &lt; server.repl_min_slaves_to_write) &#123; .... &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 8 当时只读slave时，除了master的不接受其他写命令</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> (server.masterhost &amp;&amp; server.repl_slave_ro &amp;&amp;</span><br><span class="line">        !(c-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;</span><br><span class="line">        c-&gt;cmd-&gt;flags &amp; CMD_WRITE) &#123; .... &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 9 当客户端正在订阅频道时，只会执行以下命令</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> (c-&gt;flags &amp; CLIENT_PUBSUB &amp;&amp;</span><br><span class="line">        c-&gt;cmd-&gt;proc != pingCommand &amp;&amp;</span><br><span class="line">        c-&gt;cmd-&gt;proc != subscribeCommand &amp;&amp;</span><br><span class="line">        c-&gt;cmd-&gt;proc != unsubscribeCommand &amp;&amp;</span><br><span class="line">        c-&gt;cmd-&gt;proc != psubscribeCommand &amp;&amp;</span><br><span class="line">        c-&gt;cmd-&gt;proc != punsubscribeCommand) &#123; .... &#125;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 10 服务器为slave，但没有正确连接master时，只会执行带有CMD_STALE标志的命令，如info等</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> (server.masterhost &amp;&amp; server.repl_state != REPL_STATE_CONNECTED &amp;&amp;</span><br><span class="line">        server.repl_serve_stale_data == <span class="number">0</span> &amp;&amp;</span><br><span class="line">        !(c-&gt;cmd-&gt;flags &amp; CMD_STALE)) &#123;...&#125;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 11 正在加载数据库时，只会执行带有CMD_LOADING标志的命令，其余都会被拒绝</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> (server.loading &amp;&amp; !(c-&gt;cmd-&gt;flags &amp; CMD_LOADING)) &#123; .... &#125;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 12 当服务器因为执行lua脚本阻塞时，只会执行以下几个命令，其余都会拒绝</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> (server.lua_timedout &amp;&amp;</span><br><span class="line">          c-&gt;cmd-&gt;proc != authCommand &amp;&amp;</span><br><span class="line">          c-&gt;cmd-&gt;proc != replconfCommand &amp;&amp;</span><br><span class="line">        !(c-&gt;cmd-&gt;proc == shutdownCommand &amp;&amp;</span><br><span class="line">          c-&gt;argc == <span class="number">2</span> &amp;&amp;</span><br><span class="line">          <span class="built_in">tolower</span>(((<span class="keyword">char</span>*)c-&gt;argv[<span class="number">1</span>]-&gt;ptr)[<span class="number">0</span>]) == <span class="string">'n'</span>) &amp;&amp;</span><br><span class="line">        !(c-&gt;cmd-&gt;proc == scriptCommand &amp;&amp;</span><br><span class="line">          c-&gt;argc == <span class="number">2</span> &amp;&amp;</span><br><span class="line">          <span class="built_in">tolower</span>(((<span class="keyword">char</span>*)c-&gt;argv[<span class="number">1</span>]-&gt;ptr)[<span class="number">0</span>]) == <span class="string">'k'</span>)) &#123;....&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 13 开始执行命令</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> (c-&gt;flags &amp; CLIENT_MULTI &amp;&amp;</span><br><span class="line">        c-&gt;cmd-&gt;proc != execCommand &amp;&amp; c-&gt;cmd-&gt;proc != discardCommand &amp;&amp;</span><br><span class="line">        c-&gt;cmd-&gt;proc != multiCommand &amp;&amp; c-&gt;cmd-&gt;proc != watchCommand)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">/**</span></span><br><span class="line"><span class="comment">         * 开启了事务，命令只会入队列</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        queueMultiCommand(c);</span><br><span class="line">        addReply(c,shared.queued);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">/**</span></span><br><span class="line"><span class="comment">         * 直接执行命令</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        call(c,CMD_CALL_FULL);</span><br><span class="line">        c-&gt;woff = server.master_repl_offset;</span><br><span class="line">        <span class="keyword">if</span> (listLength(server.ready_keys))</span><br><span class="line">            handleClientsBlockedOnLists();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> C_OK;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">redisCommand</span> <span class="title">redisCommandTable</span>[] = &#123;</span></span><br><span class="line">    &#123;<span class="string">"get"</span>,getCommand,<span class="number">2</span>,<span class="string">"rF"</span>,<span class="number">0</span>,<span class="literal">NULL</span>,<span class="number">1</span>,<span class="number">1</span>,<span class="number">1</span>,<span class="number">0</span>,<span class="number">0</span>&#125;,</span><br><span class="line">    &#123;<span class="string">"set"</span>,setCommand,<span class="number">-3</span>,<span class="string">"wm"</span>,<span class="number">0</span>,<span class="literal">NULL</span>,<span class="number">1</span>,<span class="number">1</span>,<span class="number">1</span>,<span class="number">0</span>,<span class="number">0</span>&#125;,</span><br><span class="line">    &#123;<span class="string">"hmset"</span>,hsetCommand,<span class="number">-4</span>,<span class="string">"wmF"</span>,<span class="number">0</span>,<span class="literal">NULL</span>,<span class="number">1</span>,<span class="number">1</span>,<span class="number">1</span>,<span class="number">0</span>,<span class="number">0</span>&#125;,</span><br><span class="line">    .... <span class="comment">// 所有的 redis 命令都有</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>call 方法是 Redis 中执行命令的通用方法，它会处理通用的执行命令的前置和后续操作。</p>
 <p><img src="/images/19_1221/2_image5.png" alt=""></p>
 <ul>
@@ -693,75 +337,7 @@ struct redisCommand redisCommandTable[] = {
 </ul>
 <p><img src="/images/19_1221/2_image6.png" alt=""></p>
 <p>命令传播就是将命令写入 repl-backlog-buffer 缓冲中，并发送给各个从服务器中。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">&#x2F;&#x2F; 执行client中持有的 redisCommand 命令
-void call(client *c, int flags) {
-    &#x2F;**
-     * dirty记录数据库修改次数；start记录命令开始执行时间us；duration记录命令执行花费时间
-     *&#x2F;
-    long long dirty, start, duration;
-    int client_old_flags = c-&gt;flags;
-
-    &#x2F;**
-     * 有监视器的话，需要将不是从AOF获取的命令会发送给监视器。当然，这里会消耗时间
-     *&#x2F;
-    if (listLength(server.monitors) &amp;&amp;
-        !server.loading &amp;&amp;
-        !(c-&gt;cmd-&gt;flags &amp; (CMD_SKIP_MONITOR|CMD_ADMIN)))
-    {
-        replicationFeedMonitors(c,server.monitors,c-&gt;db-&gt;id,c-&gt;argv,c-&gt;argc);
-    }
-    ....
-    &#x2F;* Call the command. *&#x2F;
-    dirty = server.dirty;
-    start = ustime();
-    &#x2F;&#x2F; 处理命令，调用命令处理函数
-    c-&gt;cmd-&gt;proc(c);
-    duration = ustime()-start;
-    dirty = server.dirty-dirty;
-    if (dirty &lt; 0) dirty = 0;
-
-    .... &#x2F;&#x2F; Lua 脚本的一些特殊处理
-
-    &#x2F;**
-     * CMD_CALL_SLOWLOG 表示要记录慢查询日志
-     *&#x2F;
-    if (flags &amp; CMD_CALL_SLOWLOG &amp;&amp; c-&gt;cmd-&gt;proc != execCommand) {
-        char *latency_event = (c-&gt;cmd-&gt;flags &amp; CMD_FAST) ?
-                              &quot;fast-command&quot; : &quot;command&quot;;
-        latencyAddSampleIfNeeded(latency_event,duration&#x2F;1000);
-        slowlogPushEntryIfNeeded(c,c-&gt;argv,c-&gt;argc,duration);
-    }
-    &#x2F;**
-     * CMD_CALL_STATS 表示要统计
-     *&#x2F;
-    if (flags &amp; CMD_CALL_STATS) {
-        c-&gt;lastcmd-&gt;microseconds += duration;
-        c-&gt;lastcmd-&gt;calls++;
-    }
-    &#x2F;**
-     * CMD_CALL_PROPAGATE表示要进行广播命令
-     *&#x2F;
-    if (flags &amp; CMD_CALL_PROPAGATE &amp;&amp;
-        (c-&gt;flags &amp; CLIENT_PREVENT_PROP) != CLIENT_PREVENT_PROP)
-    {
-        int propagate_flags = PROPAGATE_NONE;
-        &#x2F;**
-         * dirty大于0时，需要广播命令给slave和aof
-         *&#x2F;
-        if (dirty) propagate_flags |= (PROPAGATE_AOF|PROPAGATE_REPL);
-        .... 
-        &#x2F;**
-         * 广播命令，写如aof，发送命令到slave
-         * 也就是传说中的传播命令
-         *&#x2F;
-        if (propagate_flags != PROPAGATE_NONE &amp;&amp; !(c-&gt;cmd-&gt;flags &amp; CMD_MODULE))
-            propagate(c-&gt;cmd,c-&gt;db-&gt;id,c-&gt;argv,c-&gt;argc,propagate_flags);
-    }
-    ....
-}
-</code></pre>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 执行client中持有的 redisCommand 命令</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">call</span><span class="params">(client *c, <span class="keyword">int</span> flags)</span> </span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * dirty记录数据库修改次数；start记录命令开始执行时间us；duration记录命令执行花费时间</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> dirty, start, duration;</span><br><span class="line">    <span class="keyword">int</span> client_old_flags = c-&gt;flags;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 有监视器的话，需要将不是从AOF获取的命令会发送给监视器。当然，这里会消耗时间</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> (listLength(server.monitors) &amp;&amp;</span><br><span class="line">        !server.loading &amp;&amp;</span><br><span class="line">        !(c-&gt;cmd-&gt;flags &amp; (CMD_SKIP_MONITOR|CMD_ADMIN)))</span><br><span class="line">    &#123;</span><br><span class="line">        replicationFeedMonitors(c,server.monitors,c-&gt;db-&gt;id,c-&gt;argv,c-&gt;argc);</span><br><span class="line">    &#125;</span><br><span class="line">    ....</span><br><span class="line">    <span class="comment">/* Call the command. */</span></span><br><span class="line">    dirty = server.dirty;</span><br><span class="line">    start = ustime();</span><br><span class="line">    <span class="comment">// 处理命令，调用命令处理函数</span></span><br><span class="line">    c-&gt;cmd-&gt;proc(c);</span><br><span class="line">    duration = ustime()-start;</span><br><span class="line">    dirty = server.dirty-dirty;</span><br><span class="line">    <span class="keyword">if</span> (dirty &lt; <span class="number">0</span>) dirty = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    .... <span class="comment">// Lua 脚本的一些特殊处理</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * CMD_CALL_SLOWLOG 表示要记录慢查询日志</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> (flags &amp; CMD_CALL_SLOWLOG &amp;&amp; c-&gt;cmd-&gt;proc != execCommand) &#123;</span><br><span class="line">        <span class="keyword">char</span> *latency_event = (c-&gt;cmd-&gt;flags &amp; CMD_FAST) ?</span><br><span class="line">                              <span class="string">"fast-command"</span> : <span class="string">"command"</span>;</span><br><span class="line">        latencyAddSampleIfNeeded(latency_event,duration/<span class="number">1000</span>);</span><br><span class="line">        slowlogPushEntryIfNeeded(c,c-&gt;argv,c-&gt;argc,duration);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * CMD_CALL_STATS 表示要统计</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> (flags &amp; CMD_CALL_STATS) &#123;</span><br><span class="line">        c-&gt;lastcmd-&gt;microseconds += duration;</span><br><span class="line">        c-&gt;lastcmd-&gt;calls++;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * CMD_CALL_PROPAGATE表示要进行广播命令</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> (flags &amp; CMD_CALL_PROPAGATE &amp;&amp;</span><br><span class="line">        (c-&gt;flags &amp; CLIENT_PREVENT_PROP) != CLIENT_PREVENT_PROP)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">int</span> propagate_flags = PROPAGATE_NONE;</span><br><span class="line">        <span class="comment">/**</span></span><br><span class="line"><span class="comment">         * dirty大于0时，需要广播命令给slave和aof</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">if</span> (dirty) propagate_flags |= (PROPAGATE_AOF|PROPAGATE_REPL);</span><br><span class="line">        .... </span><br><span class="line">        <span class="comment">/**</span></span><br><span class="line"><span class="comment">         * 广播命令，写如aof，发送命令到slave</span></span><br><span class="line"><span class="comment">         * 也就是传说中的传播命令</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">if</span> (propagate_flags != PROPAGATE_NONE &amp;&amp; !(c-&gt;cmd-&gt;flags &amp; CMD_MODULE))</span><br><span class="line">            propagate(c-&gt;cmd,c-&gt;db-&gt;id,c-&gt;argv,c-&gt;argc,propagate_flags);</span><br><span class="line">    &#125;</span><br><span class="line">    ....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>由于文章篇幅问题，本篇文章就先讲到这里，后半部分在接下来的文章中进行讲解，欢迎大家继续关注。</p>
 <p><img src="/images/logo.png" alt=""></p>
 
@@ -774,7 +350,7 @@ void call(client *c, int flags) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/4cc1fb9/" data-id="ck6531e3u003w6psek1xai599" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/4cc1fb9/" data-id="ck6535m7x003w9kse158digoj" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -850,7 +426,7 @@ void call(client *c, int flags) {
 <nav id="article-nav">
     
         <a href="/article/1dd72ef8/" id="article-nav-newer" class="article-nav-link-wrap">
-            <strong class="article-nav-caption">Más nuevo</strong>
+            <strong class="article-nav-caption">Newer</strong>
             <div class="article-nav-title">
                 
                     Redis 命令执行过程(下)
@@ -860,7 +436,7 @@ void call(client *c, int flags) {
     
     
         <a href="/article/8c16d4e4/" id="article-nav-older" class="article-nav-link-wrap">
-            <strong class="article-nav-caption">Más viejo</strong>
+            <strong class="article-nav-caption">Older</strong>
             <div class="article-nav-title">Java 数据持久化系列之JDBC</div>
         </a>
     
@@ -885,7 +461,7 @@ void call(client *c, int flags) {
    
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Recientes</h3>
+        <h3 class="widget-title">recent</h3>
         <div class="widget">
             <ul id="recent-post" class="">
                 
@@ -991,7 +567,7 @@ void call(client *c, int flags) {
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Categorias</h3>
+        <h3 class="widget-title">categories</h3>
         <div class="widget">
             <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">25</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MySQL/">MySQL</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Netty/">Netty</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Redis/">Redis</a><span class="category-list-count">16</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SICP/">SICP</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/docker/">docker</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/java-persistent/">java persistent</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/plan/">plan</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">2</span></li></ul>
         </div>
@@ -1000,7 +576,7 @@ void call(client *c, int flags) {
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Archivos</h3>
+        <h3 class="widget-title">archives</h3>
         <div class="widget">
             <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
         </div>
@@ -1009,7 +585,7 @@ void call(client *c, int flags) {
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Nube de etiquetas</h3>
+        <h3 class="widget-title">tag cloud</h3>
         <div class="widget tagcloud">
             <a href="/tags/AOP/" style="font-size: 15px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 20px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/Netty/" style="font-size: 20px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 15px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 15px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 20px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 15px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/persistent/" style="font-size: 15px;">persistent</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 15px;">第三方库</a> <a href="/tags/算法/" style="font-size: 20px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 15px;">限流</a>
         </div>
@@ -1018,7 +594,7 @@ void call(client *c, int flags) {
     
         
     <div class="widget-wrap widget-list">
-        <h3 class="widget-title">Links</h3>
+        <h3 class="widget-title">links</h3>
         <div class="widget">
             <ul>
                 

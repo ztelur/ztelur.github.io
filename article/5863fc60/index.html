@@ -48,18 +48,27 @@
     
     
     
-        <script type="text/javascript">
-(function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
-(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-ga('create', 'UA-118574570-1', 'auto');
-ga('send', 'pageview');
-
+    
+    
+        <script>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
 </script>
-    
-    
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
     
 
 
@@ -103,7 +112,7 @@ ga('send', 'pageview');
             <div id="search-form-wrap">
 
     <form class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
         <button type="submit" class="search-form-submit"></button>
     </form>
     <div class="ins-search">
@@ -122,10 +131,10 @@ ga('send', 'pageview');
 (function (window) {
     var INSIGHT_CONFIG = {
         TRANSLATION: {
-            POSTS: 'Entradas',
+            POSTS: 'Posts',
             PAGES: 'Pages',
-            CATEGORIES: 'Categorias',
-            TAGS: 'Etiquetas',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
             UNTITLED: '(Untitled)',
         },
         ROOT_URL: '/',
@@ -158,7 +167,7 @@ ga('send', 'pageview');
                 <td>
                     
     <div class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
     </div>
 
                 </td>
@@ -184,11 +193,11 @@ ga('send', 'pageview');
         <div class="article-info profile-block">
             <div class="article-info-block">
                 90
-                <span>Entradas</span>
+                <span>posts</span>
             </div>
             <div class="article-info-block">
                 61
-                <span>Etiquetas</span>
+                <span>tags</span>
             </div>
         </div>
         
@@ -312,19 +321,7 @@ ga('send', 'pageview');
 <h3 id="Guava的布隆过滤器"><a href="#Guava的布隆过滤器" class="headerlink" title="Guava的布隆过滤器"></a>Guava的布隆过滤器</h3><p>&emsp;这就又要提起我们的Guava了，它是Google开源的Java包，提供了很多常用的功能，比如说我们之前总结的<a href="https://mp.weixin.qq.com/s?__biz=MzU2MDYwMDMzNQ==&amp;mid=2247483781&amp;idx=1&amp;sn=05a2de89cf9b2185292708bcb4431d09&amp;chksm=fc04c5e5cb734cf32b0ea6bc85f58e2b9ddfa78586dd06246089aec01335ab0e205b7d5df08d&amp;token=948342140&amp;lang=zh_CN#rd" target="_blank" rel="noopener">超详细的Guava RateLimiter限流原理解析
 </a>。</p>
 <p>&emsp;Guava中，布隆过滤器的实现主要涉及到2个类，<code>BloomFilter</code>和<code>BloomFilterStrategies</code>，首先来看一下<code>BloomFilter</code>的成员变量。需要注意的是不同Guava版本的<code>BloomFilter</code>实现不同。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike"> &#x2F;** guava实现的以CAS方式设置每个bit位的bit数组 *&#x2F;
-  private final LockFreeBitArray bits;
-  &#x2F;** hash函数的个数 *&#x2F;
-  private final int numHashFunctions;
-  &#x2F;** guava中将对象转换为byte的通道 *&#x2F;
-  private final Funnel&lt;? super T&gt; funnel;
-  &#x2F;**
-   * 将byte转换为n个bit的策略，也是bloomfilter hash映射的具体实现
-   *&#x2F;
-  private final Strategy strategy;
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">/** guava实现的以CAS方式设置每个bit位的bit数组 */</span><br><span class="line"> private final LockFreeBitArray bits;</span><br><span class="line"> /** hash函数的个数 */</span><br><span class="line"> private final int numHashFunctions;</span><br><span class="line"> /** guava中将对象转换为byte的通道 */</span><br><span class="line"> private final Funnel&lt;? super T&gt; funnel;</span><br><span class="line"> /**</span><br><span class="line">  * 将byte转换为n个bit的策略，也是bloomfilter hash映射的具体实现</span><br><span class="line">  */</span><br><span class="line"> private final Strategy strategy;</span><br></pre></td></tr></table></figure>
 <p>&emsp;这是它的4个成员变量:</p>
 <ul>
 <li><code>LockFreeBitArray</code>是定义在<code>BloomFilterStrategies</code>中的内部类，封装了布隆过滤器底层bit数组的操作。</li>
@@ -332,102 +329,15 @@ ga('send', 'pageview');
 <li><code>Funnel</code>，它和<code>PrimitiveSink</code>配套使用，能将任意类型的对象转化成Java基本数据类型，默认用<code>java.nio.ByteBuffer</code>实现，最终均转化为byte数组。</li>
 <li><code>Strategy</code>是定义在<code>BloomFilter</code>类内部的接口，代码如下，主要有2个方法，<code>put</code>和<code>mightContain</code>。</li>
 </ul>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">interface Strategy extends java.io.Serializable {
-    &#x2F;** 设置元素 *&#x2F;
-    &lt;T&gt; boolean put(T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits);
-    &#x2F;** 判断元素是否存在*&#x2F;
-    &lt;T&gt; boolean mightContain(
-    T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits);
-    .....
-}
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">interface Strategy extends java.io.Serializable &#123;</span><br><span class="line">    /** 设置元素 */</span><br><span class="line">    &lt;T&gt; boolean put(T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits);</span><br><span class="line">    /** 判断元素是否存在*/</span><br><span class="line">    &lt;T&gt; boolean mightContain(</span><br><span class="line">    T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits);</span><br><span class="line">    .....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>&emsp;创建布隆过滤器，<code>BloomFilter</code>并没有公有的构造函数，只有一个私有构造函数，而对外它提供了5个重载的<code>create</code>方法，在缺省情况下误判率设定为3%，采用<code>BloomFilterStrategies.MURMUR128_MITZ_64</code>的实现。</p>
 <p>&emsp;<code>BloomFilterStrategies.MURMUR128_MITZ_64</code>是<code>Strategy</code>的两个实现之一，Guava以枚举的方式提供这两个实现，这也是《Effective Java》书中推荐的提供对象的方法之一。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">enum BloomFilterStrategies implements BloomFilter.Strategy {
-    MURMUR128_MITZ_32() {&#x2F;&#x2F;....}
-    MURMUR128_MITZ_64() {&#x2F;&#x2F;....}
-}
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">enum BloomFilterStrategies implements BloomFilter.Strategy &#123;</span><br><span class="line">    MURMUR128_MITZ_32() &#123;//....&#125;</span><br><span class="line">    MURMUR128_MITZ_64() &#123;//....&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>&emsp;二者对应了32位哈希映射函数，和64位哈希映射函数，后者使用了murmur3 hash生成的所有128位，具有更大的空间，不过原理是相通的，我们选择相对简单的<code>MURMUR128_MITZ_32</code>来分析。</p>
-<p>&emsp;先来看一下它的<code>put</code>方法，它用两个hash函数来模拟多个hash函数的情况，这是布隆过滤器的一种优化。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public &lt;T&gt; boolean put(
-    T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits) {
-    long bitSize = bits.bitSize();
-    &#x2F;&#x2F; 先利用murmur3 hash对输入的funnel计算得到128位的哈希值，funnel现将object转换为byte数组，
-    &#x2F;&#x2F; 然后在使用哈希函数转换为long
-    long hash64 = Hashing.murmur3_128().hashObject(object, funnel).asLong();
-    &#x2F;&#x2F; 根据hash值的高低位算出hash1和hash2
-    int hash1 = (int) hash64;
-    int hash2 = (int) (hash64 &gt;&gt;&gt; 32);
-
-    boolean bitsChanged = false;
-    &#x2F;&#x2F; 循环体内采用了2个函数模拟其他函数的思想,相当于每次累加hash2
-    for (int i = 1; i &lt;= numHashFunctions; i++) {
-    int combinedHash = hash1 + (i * hash2);
-    &#x2F;&#x2F; 如果是负数就变为正数
-    if (combinedHash &lt; 0) {
-        combinedHash = ~combinedHash;
-    }
-    &#x2F;&#x2F; 通过基于bitSize取模的方式获取bit数组中的索引，然后调用set函数设置。
-    bitsChanged |= bits.set(combinedHash % bitSize);
-    }
-    return bitsChanged;
-}
-</code></pre></p>
-<p>&emsp;在<code>put</code>方法中，先是将索引位置上的二进制置为1，然后用<code>bitsChanged</code>记录插入结果，如果返回true表明没有重复插入成功，而<code>mightContain</code>方法则是将索引位置上的数值取出，并判断是否为0，只要其中出现一个0，那么立即判断为不存在。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public &lt;T&gt; boolean mightContain(
-    T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits) {
-    long bitSize = bits.bitSize();
-    long hash64 = Hashing.murmur3_128().hashObject(object, funnel).asLong();
-    int hash1 = (int) hash64;
-    int hash2 = (int) (hash64 &gt;&gt;&gt; 32);
-
-    for (int i = 1; i &lt;= numHashFunctions; i++) {
-    int combinedHash = hash1 + (i * hash2);
-    &#x2F;&#x2F; Flip all the bits if it&#39;s negative (guaranteed positive number)
-    if (combinedHash &lt; 0) {
-        combinedHash = ~combinedHash;
-    }
-    &#x2F;&#x2F; 和put的区别就在这里，从set转换为get，来判断是否存在
-    if (!bits.get(combinedHash % bitSize)) {
-        return false;
-    }
-    }
-    return true;
-}
-</code></pre></p>
+<p>&emsp;先来看一下它的<code>put</code>方法，它用两个hash函数来模拟多个hash函数的情况，这是布隆过滤器的一种优化。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">public &lt;T&gt; boolean put(</span><br><span class="line">    T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits) &#123;</span><br><span class="line">    long bitSize = bits.bitSize();</span><br><span class="line">    // 先利用murmur3 hash对输入的funnel计算得到128位的哈希值，funnel现将object转换为byte数组，</span><br><span class="line">    // 然后在使用哈希函数转换为long</span><br><span class="line">    long hash64 = Hashing.murmur3_128().hashObject(object, funnel).asLong();</span><br><span class="line">    // 根据hash值的高低位算出hash1和hash2</span><br><span class="line">    int hash1 = (int) hash64;</span><br><span class="line">    int hash2 = (int) (hash64 &gt;&gt;&gt; 32);</span><br><span class="line"></span><br><span class="line">    boolean bitsChanged = false;</span><br><span class="line">    // 循环体内采用了2个函数模拟其他函数的思想,相当于每次累加hash2</span><br><span class="line">    for (int i = 1; i &lt;= numHashFunctions; i++) &#123;</span><br><span class="line">    int combinedHash = hash1 + (i * hash2);</span><br><span class="line">    // 如果是负数就变为正数</span><br><span class="line">    if (combinedHash &lt; 0) &#123;</span><br><span class="line">        combinedHash = ~combinedHash;</span><br><span class="line">    &#125;</span><br><span class="line">    // 通过基于bitSize取模的方式获取bit数组中的索引，然后调用set函数设置。</span><br><span class="line">    bitsChanged |= bits.set(combinedHash % bitSize);</span><br><span class="line">    &#125;</span><br><span class="line">    return bitsChanged;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;在<code>put</code>方法中，先是将索引位置上的二进制置为1，然后用<code>bitsChanged</code>记录插入结果，如果返回true表明没有重复插入成功，而<code>mightContain</code>方法则是将索引位置上的数值取出，并判断是否为0，只要其中出现一个0，那么立即判断为不存在。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">public &lt;T&gt; boolean mightContain(</span><br><span class="line">    T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits) &#123;</span><br><span class="line">    long bitSize = bits.bitSize();</span><br><span class="line">    long hash64 = Hashing.murmur3_128().hashObject(object, funnel).asLong();</span><br><span class="line">    int hash1 = (int) hash64;</span><br><span class="line">    int hash2 = (int) (hash64 &gt;&gt;&gt; 32);</span><br><span class="line"></span><br><span class="line">    for (int i = 1; i &lt;= numHashFunctions; i++) &#123;</span><br><span class="line">    int combinedHash = hash1 + (i * hash2);</span><br><span class="line">    // Flip all the bits if it&apos;s negative (guaranteed positive number)</span><br><span class="line">    if (combinedHash &lt; 0) &#123;</span><br><span class="line">        combinedHash = ~combinedHash;</span><br><span class="line">    &#125;</span><br><span class="line">    // 和put的区别就在这里，从set转换为get，来判断是否存在</span><br><span class="line">    if (!bits.get(combinedHash % bitSize)) &#123;</span><br><span class="line">        return false;</span><br><span class="line">    &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    return true;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>&emsp;<code>Guava</code>为了提供效率，自己实现了<code>LockFreeBitArray</code>来提供bit数组的无锁设置和读取。我们只来看一下它的<code>put</code>函数。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">boolean set(long bitIndex) {
-    if (get(bitIndex)) {
-    return false;
-    }
-
-    int longIndex = (int) (bitIndex &gt;&gt;&gt; LONG_ADDRESSABLE_BITS);
-    long mask = 1L &lt;&lt; bitIndex; &#x2F;&#x2F; only cares about low 6 bits of bitIndex
-
-    long oldValue;
-    long newValue;
-    &#x2F;&#x2F; 经典的CAS自旋重试机制
-    do {
-    oldValue = data.get(longIndex);
-    newValue = oldValue | mask;
-    if (oldValue == newValue) {
-        return false;
-    }
-    } while (!data.compareAndSet(longIndex, oldValue, newValue));
-
-    bitCount.increment();
-    return true;
-}
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">boolean set(long bitIndex) &#123;</span><br><span class="line">    if (get(bitIndex)) &#123;</span><br><span class="line">    return false;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    int longIndex = (int) (bitIndex &gt;&gt;&gt; LONG_ADDRESSABLE_BITS);</span><br><span class="line">    long mask = 1L &lt;&lt; bitIndex; // only cares about low 6 bits of bitIndex</span><br><span class="line"></span><br><span class="line">    long oldValue;</span><br><span class="line">    long newValue;</span><br><span class="line">    // 经典的CAS自旋重试机制</span><br><span class="line">    do &#123;</span><br><span class="line">    oldValue = data.get(longIndex);</span><br><span class="line">    newValue = oldValue | mask;</span><br><span class="line">    if (oldValue == newValue) &#123;</span><br><span class="line">        return false;</span><br><span class="line">    &#125;</span><br><span class="line">    &#125; while (!data.compareAndSet(longIndex, oldValue, newValue));</span><br><span class="line"></span><br><span class="line">    bitCount.increment();</span><br><span class="line">    return true;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;欢迎大家留言和持续关注我。</p>
 <p><img src="/images/logo.png" alt=""></p>
 <h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
@@ -448,7 +358,7 @@ ga('send', 'pageview');
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/5863fc60/" data-id="ck6531e30001q6psejfs6cp4b" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/5863fc60/" data-id="ck6535m6z001u9kset92la6yo" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -524,7 +434,7 @@ ga('send', 'pageview');
 <nav id="article-nav">
     
         <a href="/article/bedc2c36/" id="article-nav-newer" class="article-nav-link-wrap">
-            <strong class="article-nav-caption">Más nuevo</strong>
+            <strong class="article-nav-caption">Newer</strong>
             <div class="article-nav-title">
                 
                     分布式数据缓存中的一致性哈希算法
@@ -534,7 +444,7 @@ ga('send', 'pageview');
     
     
         <a href="/article/4a70661a/" id="article-nav-older" class="article-nav-link-wrap">
-            <strong class="article-nav-caption">Más viejo</strong>
+            <strong class="article-nav-caption">Older</strong>
             <div class="article-nav-title">TCP报文发送的那些事</div>
         </a>
     
@@ -559,7 +469,7 @@ ga('send', 'pageview');
    
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Recientes</h3>
+        <h3 class="widget-title">recent</h3>
         <div class="widget">
             <ul id="recent-post" class="">
                 
@@ -665,7 +575,7 @@ ga('send', 'pageview');
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Categorias</h3>
+        <h3 class="widget-title">categories</h3>
         <div class="widget">
             <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">25</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MySQL/">MySQL</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Netty/">Netty</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Redis/">Redis</a><span class="category-list-count">16</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SICP/">SICP</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/docker/">docker</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/java-persistent/">java persistent</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/plan/">plan</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">2</span></li></ul>
         </div>
@@ -674,7 +584,7 @@ ga('send', 'pageview');
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Archivos</h3>
+        <h3 class="widget-title">archives</h3>
         <div class="widget">
             <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
         </div>
@@ -683,7 +593,7 @@ ga('send', 'pageview');
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Nube de etiquetas</h3>
+        <h3 class="widget-title">tag cloud</h3>
         <div class="widget tagcloud">
             <a href="/tags/AOP/" style="font-size: 15px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 20px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/Netty/" style="font-size: 20px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 15px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 15px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 20px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 15px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/persistent/" style="font-size: 15px;">persistent</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 15px;">第三方库</a> <a href="/tags/算法/" style="font-size: 20px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 15px;">限流</a>
         </div>
@@ -692,7 +602,7 @@ ga('send', 'pageview');
     
         
     <div class="widget-wrap widget-list">
-        <h3 class="widget-title">Links</h3>
+        <h3 class="widget-title">links</h3>
         <div class="widget">
             <ul>
                 

@@ -35,18 +35,27 @@
     
     
     
-        <script type="text/javascript">
-(function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
-(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-ga('create', 'UA-118574570-1', 'auto');
-ga('send', 'pageview');
-
+    
+    
+        <script>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
 </script>
-    
-    
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
     
 
 
@@ -90,7 +99,7 @@ ga('send', 'pageview');
             <div id="search-form-wrap">
 
     <form class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
         <button type="submit" class="search-form-submit"></button>
     </form>
     <div class="ins-search">
@@ -109,10 +118,10 @@ ga('send', 'pageview');
 (function (window) {
     var INSIGHT_CONFIG = {
         TRANSLATION: {
-            POSTS: 'Entradas',
+            POSTS: 'Posts',
             PAGES: 'Pages',
-            CATEGORIES: 'Categorias',
-            TAGS: 'Etiquetas',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
             UNTITLED: '(Untitled)',
         },
         ROOT_URL: '/',
@@ -145,7 +154,7 @@ ga('send', 'pageview');
                 <td>
                     
     <div class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
     </div>
 
                 </td>
@@ -171,11 +180,11 @@ ga('send', 'pageview');
         <div class="article-info profile-block">
             <div class="article-info-block">
                 90
-                <span>Entradas</span>
+                <span>posts</span>
             </div>
             <div class="article-info-block">
                 61
-                <span>Etiquetas</span>
+                <span>tags</span>
             </div>
         </div>
         
@@ -258,186 +267,14 @@ ga('send', 'pageview');
 <h3 id="阻塞队列"><a href="#阻塞队列" class="headerlink" title="阻塞队列"></a>阻塞队列</h3><p> 相信大多数同学都是在学习线程池相关知识时了解到阻塞队列的概念的。知道各种类型的阻塞队列对线程池初始化时的影响。在java doc中这样定义阻塞队列。当从阻塞队列获取元素但是队列为空时，当前线程会阻塞直到另一个线程向阻塞队列中添加一个元素；类似的，当向一个阻塞队列加入元素时，如果队列已经满了，当前线程也会阻塞知道另外一个线程从队列中读取一个元素。阻塞队列一般都是FIFO,用来实现生产者和消费者模式。阻塞队列的方法通过四种不同的方式来处理操作无法被立即完成的情况，这四种情况分别为抛出异常，返回特殊值(null或在是false),阻塞当前线程直到执行结束，最后一种是只阻塞固定时间，然后还未执行成功就放弃操作。这些方法都总结在下边这种表中了。</p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017416-condition-BlockingQueue.png" alt="BlockingQueue"></p>
 <p> 我们就只分析<code>put</code>和<code>take</code>方法。</p>
-<h3 id="put和take函数"><a href="#put和take函数" class="headerlink" title="put和take函数"></a>put和take函数</h3><p> 我们都知道，使用同步队列可以很轻松的实现生产者-消费者模式，其实，同步队列就是按照生产者-消费者的模式来实现的，我们可以将<code>put</code>函数看作生产者的操作，<code>take</code>是消费者的操作。<br> <code>put</code>函数会在队列末尾添加元素，如果队列已经满了，无法添加元素的话，就一直阻塞等待到可以加入为止。函数的源码如下所示。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">    public void put(E e) throws InterruptedException {
-        checkNotNull(e);
-        final ReentrantLock lock = this.lock;
-        lock.lockInterruptibly(); &#x2F;&#x2F;先获得锁
-        try {
-            while (count == items.length) 
-            &#x2F;&#x2F;如果队列满了，就NotFull这个condition对象上进行等待
-                notFull.await();
-            enqueue(e);
-        } finally {
-            lock.unlock();
-        }
-    }
-    private void enqueue(E x) {
-        final Object[] items = this.items;
-        items[putIndex] = x;
-        &#x2F;&#x2F;这里可以注意的是ArrayBlockingList实际上使用Array实现了一个环形数组，
-       &#x2F;&#x2F;当putIndex达到最大时，就返回到起点，继续插入,
-       &#x2F;&#x2F;当然，如果此时0位置的元素还没有被取走，
-       &#x2F;&#x2F;下次put时，就会因为cout == item.length未被阻塞。
-        if (++putIndex == items.length)
-            putIndex = 0;
-        count++;
-        &#x2F;&#x2F;因为插入了元素，通知等待notEmpty事件的线程。
-        notEmpty.signal();
-    }
-</code></pre></p>
-<p> 我们会发现put函数也是使用了wait/notify的机制。与一般生产者-消费者的实现方式不同，同步队列使用<code>ReentrantLock</code>和<code>Condition</code>相结合的先获得锁，再等待的机制；而不是<code>synchronized</code>和<code>Object.wait</code>的机制。这里的区别我们下一节再详细讲解。<br> 看完了生产者相关的<code>put</code>函数，我们再来看一下消费者调用的<code>take</code>函数。<code>take</code>函数在队列为空时会被阻塞，一直到阻塞队列加入了新的元素。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">    public E take() throws InterruptedException {
-        final ReentrantLock lock = this.lock;
-        lock.lockInterruptibly();
-        try {
-            while (count == 0)
-            &#x2F;&#x2F;如果队列为空，那么在notEmpty对象上等待，
-            &#x2F;&#x2F;当put函数调用时，会调用notEmpty的notify进行通知。
-                notEmpty.await();
-            return dequeue();
-        } finally {
-            lock.unlock();
-        }
-    }
-    private E dequeue() {
-        E x = (E) items[takeIndex];
-        items[takeIndex] = null; &#x2F;&#x2F;取出takeIndex位置的元素
-        if (++takeIndex == items.length)
-            &#x2F;&#x2F;如果到了尾部，将指针重新调整到头部
-            takeIndex = 0;
-        count--;
-        ....
-        &#x2F;&#x2F;通知notFull对象上等待的线程
-        notFull.signal();
-        return x;
-    }
-</code></pre></p>
+<h3 id="put和take函数"><a href="#put和take函数" class="headerlink" title="put和take函数"></a>put和take函数</h3><p> 我们都知道，使用同步队列可以很轻松的实现生产者-消费者模式，其实，同步队列就是按照生产者-消费者的模式来实现的，我们可以将<code>put</code>函数看作生产者的操作，<code>take</code>是消费者的操作。<br> <code>put</code>函数会在队列末尾添加元素，如果队列已经满了，无法添加元素的话，就一直阻塞等待到可以加入为止。函数的源码如下所示。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">put</span><span class="params">(E e)</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">    checkNotNull(e);</span><br><span class="line">    <span class="keyword">final</span> ReentrantLock lock = <span class="keyword">this</span>.lock;</span><br><span class="line">    lock.lockInterruptibly(); <span class="comment">//先获得锁</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">while</span> (count == items.length) </span><br><span class="line">        <span class="comment">//如果队列满了，就NotFull这个condition对象上进行等待</span></span><br><span class="line">            notFull.await();</span><br><span class="line">        enqueue(e);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        lock.unlock();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">enqueue</span><span class="params">(E x)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> Object[] items = <span class="keyword">this</span>.items;</span><br><span class="line">    items[putIndex] = x;</span><br><span class="line">    <span class="comment">//这里可以注意的是ArrayBlockingList实际上使用Array实现了一个环形数组，</span></span><br><span class="line">   <span class="comment">//当putIndex达到最大时，就返回到起点，继续插入,</span></span><br><span class="line">   <span class="comment">//当然，如果此时0位置的元素还没有被取走，</span></span><br><span class="line">   <span class="comment">//下次put时，就会因为cout == item.length未被阻塞。</span></span><br><span class="line">    <span class="keyword">if</span> (++putIndex == items.length)</span><br><span class="line">        putIndex = <span class="number">0</span>;</span><br><span class="line">    count++;</span><br><span class="line">    <span class="comment">//因为插入了元素，通知等待notEmpty事件的线程。</span></span><br><span class="line">    notEmpty.signal();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p> 我们会发现put函数也是使用了wait/notify的机制。与一般生产者-消费者的实现方式不同，同步队列使用<code>ReentrantLock</code>和<code>Condition</code>相结合的先获得锁，再等待的机制；而不是<code>synchronized</code>和<code>Object.wait</code>的机制。这里的区别我们下一节再详细讲解。<br> 看完了生产者相关的<code>put</code>函数，我们再来看一下消费者调用的<code>take</code>函数。<code>take</code>函数在队列为空时会被阻塞，一直到阻塞队列加入了新的元素。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> E <span class="title">take</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> ReentrantLock lock = <span class="keyword">this</span>.lock;</span><br><span class="line">    lock.lockInterruptibly();</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">while</span> (count == <span class="number">0</span>)</span><br><span class="line">        <span class="comment">//如果队列为空，那么在notEmpty对象上等待，</span></span><br><span class="line">        <span class="comment">//当put函数调用时，会调用notEmpty的notify进行通知。</span></span><br><span class="line">            notEmpty.await();</span><br><span class="line">        <span class="keyword">return</span> dequeue();</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        lock.unlock();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">private</span> E <span class="title">dequeue</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    E x = (E) items[takeIndex];</span><br><span class="line">    items[takeIndex] = <span class="keyword">null</span>; <span class="comment">//取出takeIndex位置的元素</span></span><br><span class="line">    <span class="keyword">if</span> (++takeIndex == items.length)</span><br><span class="line">        <span class="comment">//如果到了尾部，将指针重新调整到头部</span></span><br><span class="line">        takeIndex = <span class="number">0</span>;</span><br><span class="line">    count--;</span><br><span class="line">    ....</span><br><span class="line">    <span class="comment">//通知notFull对象上等待的线程</span></span><br><span class="line">    notFull.signal();</span><br><span class="line">    <span class="keyword">return</span> x;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <h3 id="Condition-await和Object-wait"><a href="#Condition-await和Object-wait" class="headerlink" title="Condition.await和Object.wait"></a>Condition.await和Object.wait</h3><p> 我们发现<code>ArrayBlockingList</code>并没有使用<code>Object.wait</code>，而是使用的<code>Condition.await</code>，这是为什么呢？其中又有哪些原因呢？<br> <code>Condition</code>对象可以提供和<code>Object</code>的<code>wait</code>和<code>notify</code>一样的行为，但是后者必须使用<code>synchronized</code>这个内置的monitor锁，而<code>Condition</code>使用的是<code>RenentranceLock</code>。这两种方式在阻塞等待时都会将相应的锁释放掉，但是<code>Condition</code>的等待可以中断，这是二者唯一的区别。<br>＆emsp;Condition的流程大致如下边两张图所示.</p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017416-condition-condition1.png" alt="await"></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017416-condition-condition2.png" alt="notify"></p>
 <p> 我们首先来看一下<code>await</code>函数的实现，详细的讲解都在代码中．</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">public final void await() throws InterruptedException {
-    if (Thread.interrupted())
-        throw new InterruptedException();
-    &#x2F;&#x2F;在condition wait队列上添加新的节点
-    Node node = addConditionWaiter();
-    &#x2F;&#x2F;释放当前持有的锁
-    int savedState = fullyRelease(node);
-    int interruptMode = 0;
-    &#x2F;&#x2F;由于node在之前是添加到condition wait queue上的，现在判断这个node
-    &#x2F;&#x2F;是否被添加到Sync的获得锁的等待队列上。
-    &#x2F;&#x2F;node在condition queue上说明还在等待事件的notify,
-    &#x2F;&#x2F;notify函数会将condition queue 上的node转化到Sync的队列上。
-    while (!isOnSyncQueue(node)) {
-        &#x2F;&#x2F;node还没有被添加到Sync Queue上，说明还在等待事件通知
-        &#x2F;&#x2F;所以调用park函数来停止线程执行
-        LockSupport.park(this);
-        &#x2F;&#x2F;判断是否被中断,线程从park函数返回有两种情况，一种是
-        &#x2F;&#x2F;其他线程调用了unpark,另外一种是线程被中断
-        if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
-            break;
-    }
-    &#x2F;&#x2F;代码执行到这里，已经有其他线程调用notify函数，或则被中断，该线程可以继续执行，但是必须先
-    &#x2F;&#x2F;再次获得调用await函数时的锁．acquireQueued函数在AQS文章中做了介绍．
-    if (acquireQueued(node, savedState) &amp;&amp; interruptMode != THROW_IE)
-        interruptMode = REINTERRUPT;
-  　．．．．
-}
-
-final int fullyRelease(Node node) {
-    &#x2F;&#x2F;AQS的方法，当前已经在锁中了，所以直接操作
-    boolean failed = true;
-    try {
-        int savedState = getState();
-        &#x2F;&#x2F;获取state当前的值，然后保存，以待以后恢复
-        if (release(savedState)) {
-            failed = false;
-            return savedState;
-        } else {
-            throw new IllegalMonitorStateException();
-        }
-    } finally {
-        if (failed)
-            node.waitStatus = Node.CANCELLED;
-    }
-}
-
-&#x2F;**
- * Checks for interrupt, returning THROW_IE if interrupted
- * before signalled, REINTERRUPT if after signalled, or
- * 0 if not interrupted.
- *&#x2F;
-private int checkInterruptWhileWaiting(Node node) {
-    &#x2F;&#x2F;中断可能发生在两个阶段中，一是在等待singla,另外一个是在获得signal之后
-    return Thread.interrupted() ?
-        (transferAfterCancelledWait(node) ? THROW_IE : REINTERRUPT) :
-        0;
-}
-
-final boolean transferAfterCancelledWait(Node node) {
-    &#x2F;&#x2F;这里要和下边的transferForSignal对应着看，这是线程中断进入的逻辑．那边是signal的逻辑
-    &#x2F;&#x2F;两边可能有并发冲突，但是成功的一方必须调用enq来进入acquire lock queue中．
-    if (compareAndSetWaitStatus(node, Node.CONDITION, 0)) {
-        enq(node);
-        return true;
-    }
-    &#x2F;&#x2F;如果失败了，说明transferForSignal那边成功了，等待node 进入acquire lock queue
-    while (!isOnSyncQueue(node))
-        Thread.yield();
-    return false;
-}
-</code></pre>
-<p> <code>signal</code>函数将等待事件最长时间的线程节点从等待condition的队列移动到获得lock的等待队列中．<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">public final void signal() {
-    &#x2F;&#x2F;
-    if (!isHeldExclusively())
-    &#x2F;&#x2F;如果当前线程没有获得锁，抛出异常
-        throw new IllegalMonitorStateException();
-    Node first = firstWaiter;
-    if (first != null)
-        &#x2F;&#x2F;将Condition wait queue中的第一个node转移到acquire lock queue中．
-        doSignal(first);
-}
-
-private void doSignal(Node first) {
-    do {
-　　 &#x2F;&#x2F;由于生产者的signal在有消费者等待的情况下，必须要通知
-        &#x2F;&#x2F;一个消费者，所以这里有一个循环，直到队列为空
-        &#x2F;&#x2F;把first 这个node从condition queue中删除掉
-        &#x2F;&#x2F;condition queue的头指针指向node的后继节点，如果node后续节点为null,那么也将尾指针也置为null
-        if ( (firstWaiter = first.nextWaiter) == null)
-            lastWaiter = null;
-        first.nextWaiter = null;
-    } while (!transferForSignal(first) &amp;&amp;
-             (first = firstWaiter) != null);
-    &#x2F;&#x2F;transferForSignal将node转而添加到Sync的acquire lock 队列
-}
-
-final boolean transferForSignal(Node node) {
-    &#x2F;&#x2F;如果设置失败，说明该node已经被取消了,所以返回false,让doSignal继续向下通知其他未被取消的node
-    if (!compareAndSetWaitStatus(node, Node.CONDITION, 0))
-        return false;
-    &#x2F;&#x2F;将node添加到acquire lock　queue中．
-    Node p = enq(node);
-    int ws = p.waitStatus;
-    &#x2F;&#x2F;需要注意的是这里的node进行了转化
-    &#x2F;&#x2F;ws&gt;0代表canceled的含义所以直接unpark线程
-    &#x2F;&#x2F;如果compareAndSetWaitStatus失败，所以直接unpark,让线程继续执行await中的
-    &#x2F;&#x2F;进行isOnSyncQueue判断的while循环,然后进入acquireQueue函数．
-    &#x2F;&#x2F;这里失败的原因可能是Lock其他线程释放掉了锁，同步设置p的waitStatus
-    &#x2F;&#x2F;如果compareAndSetWaitStatus成功了呢？那么该node就一直在acquire lock queue中
-    &#x2F;&#x2F;等待锁被释放掉再次抢夺锁，然后再unparｋ
-    if (ws &gt; 0 || !compareAndSetWaitStatus(p, ws, Node.SIGNAL))
-        LockSupport.unpark(node.thread);
-    return true;
-}
-</code></pre></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">await</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (Thread.interrupted())</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> InterruptedException();</span><br><span class="line">    <span class="comment">//在condition wait队列上添加新的节点</span></span><br><span class="line">    Node node = addConditionWaiter();</span><br><span class="line">    <span class="comment">//释放当前持有的锁</span></span><br><span class="line">    <span class="keyword">int</span> savedState = fullyRelease(node);</span><br><span class="line">    <span class="keyword">int</span> interruptMode = <span class="number">0</span>;</span><br><span class="line">    <span class="comment">//由于node在之前是添加到condition wait queue上的，现在判断这个node</span></span><br><span class="line">    <span class="comment">//是否被添加到Sync的获得锁的等待队列上。</span></span><br><span class="line">    <span class="comment">//node在condition queue上说明还在等待事件的notify,</span></span><br><span class="line">    <span class="comment">//notify函数会将condition queue 上的node转化到Sync的队列上。</span></span><br><span class="line">    <span class="keyword">while</span> (!isOnSyncQueue(node)) &#123;</span><br><span class="line">        <span class="comment">//node还没有被添加到Sync Queue上，说明还在等待事件通知</span></span><br><span class="line">        <span class="comment">//所以调用park函数来停止线程执行</span></span><br><span class="line">        LockSupport.park(<span class="keyword">this</span>);</span><br><span class="line">        <span class="comment">//判断是否被中断,线程从park函数返回有两种情况，一种是</span></span><br><span class="line">        <span class="comment">//其他线程调用了unpark,另外一种是线程被中断</span></span><br><span class="line">        <span class="keyword">if</span> ((interruptMode = checkInterruptWhileWaiting(node)) != <span class="number">0</span>)</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//代码执行到这里，已经有其他线程调用notify函数，或则被中断，该线程可以继续执行，但是必须先</span></span><br><span class="line">    <span class="comment">//再次获得调用await函数时的锁．acquireQueued函数在AQS文章中做了介绍．</span></span><br><span class="line">    <span class="keyword">if</span> (acquireQueued(node, savedState) &amp;&amp; interruptMode != THROW_IE)</span><br><span class="line">        interruptMode = REINTERRUPT;</span><br><span class="line">  　．．．．</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">int</span> <span class="title">fullyRelease</span><span class="params">(Node node)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//AQS的方法，当前已经在锁中了，所以直接操作</span></span><br><span class="line">    <span class="keyword">boolean</span> failed = <span class="keyword">true</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">int</span> savedState = getState();</span><br><span class="line">        <span class="comment">//获取state当前的值，然后保存，以待以后恢复</span></span><br><span class="line">        <span class="keyword">if</span> (release(savedState)) &#123;</span><br><span class="line">            failed = <span class="keyword">false</span>;</span><br><span class="line">            <span class="keyword">return</span> savedState;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalMonitorStateException();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (failed)</span><br><span class="line">            node.waitStatus = Node.CANCELLED;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Checks for interrupt, returning THROW_IE if interrupted</span></span><br><span class="line"><span class="comment"> * before signalled, REINTERRUPT if after signalled, or</span></span><br><span class="line"><span class="comment"> * 0 if not interrupted.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">checkInterruptWhileWaiting</span><span class="params">(Node node)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//中断可能发生在两个阶段中，一是在等待singla,另外一个是在获得signal之后</span></span><br><span class="line">    <span class="keyword">return</span> Thread.interrupted() ?</span><br><span class="line">        (transferAfterCancelledWait(node) ? THROW_IE : REINTERRUPT) :</span><br><span class="line">        <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">transferAfterCancelledWait</span><span class="params">(Node node)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//这里要和下边的transferForSignal对应着看，这是线程中断进入的逻辑．那边是signal的逻辑</span></span><br><span class="line">    <span class="comment">//两边可能有并发冲突，但是成功的一方必须调用enq来进入acquire lock queue中．</span></span><br><span class="line">    <span class="keyword">if</span> (compareAndSetWaitStatus(node, Node.CONDITION, <span class="number">0</span>)) &#123;</span><br><span class="line">        enq(node);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//如果失败了，说明transferForSignal那边成功了，等待node 进入acquire lock queue</span></span><br><span class="line">    <span class="keyword">while</span> (!isOnSyncQueue(node))</span><br><span class="line">        Thread.yield();</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p> <code>signal</code>函数将等待事件最长时间的线程节点从等待condition的队列移动到获得lock的等待队列中．<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">signal</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">//</span></span><br><span class="line">    <span class="keyword">if</span> (!isHeldExclusively())</span><br><span class="line">    <span class="comment">//如果当前线程没有获得锁，抛出异常</span></span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalMonitorStateException();</span><br><span class="line">    Node first = firstWaiter;</span><br><span class="line">    <span class="keyword">if</span> (first != <span class="keyword">null</span>)</span><br><span class="line">        <span class="comment">//将Condition wait queue中的第一个node转移到acquire lock queue中．</span></span><br><span class="line">        doSignal(first);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">doSignal</span><span class="params">(Node first)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">do</span> &#123;</span><br><span class="line">　　 <span class="comment">//由于生产者的signal在有消费者等待的情况下，必须要通知</span></span><br><span class="line">        <span class="comment">//一个消费者，所以这里有一个循环，直到队列为空</span></span><br><span class="line">        <span class="comment">//把first 这个node从condition queue中删除掉</span></span><br><span class="line">        <span class="comment">//condition queue的头指针指向node的后继节点，如果node后续节点为null,那么也将尾指针也置为null</span></span><br><span class="line">        <span class="keyword">if</span> ( (firstWaiter = first.nextWaiter) == <span class="keyword">null</span>)</span><br><span class="line">            lastWaiter = <span class="keyword">null</span>;</span><br><span class="line">        first.nextWaiter = <span class="keyword">null</span>;</span><br><span class="line">    &#125; <span class="keyword">while</span> (!transferForSignal(first) &amp;&amp;</span><br><span class="line">             (first = firstWaiter) != <span class="keyword">null</span>);</span><br><span class="line">    <span class="comment">//transferForSignal将node转而添加到Sync的acquire lock 队列</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">transferForSignal</span><span class="params">(Node node)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//如果设置失败，说明该node已经被取消了,所以返回false,让doSignal继续向下通知其他未被取消的node</span></span><br><span class="line">    <span class="keyword">if</span> (!compareAndSetWaitStatus(node, Node.CONDITION, <span class="number">0</span>))</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    <span class="comment">//将node添加到acquire lock　queue中．</span></span><br><span class="line">    Node p = enq(node);</span><br><span class="line">    <span class="keyword">int</span> ws = p.waitStatus;</span><br><span class="line">    <span class="comment">//需要注意的是这里的node进行了转化</span></span><br><span class="line">    <span class="comment">//ws&gt;0代表canceled的含义所以直接unpark线程</span></span><br><span class="line">    <span class="comment">//如果compareAndSetWaitStatus失败，所以直接unpark,让线程继续执行await中的</span></span><br><span class="line">    <span class="comment">//进行isOnSyncQueue判断的while循环,然后进入acquireQueue函数．</span></span><br><span class="line">    <span class="comment">//这里失败的原因可能是Lock其他线程释放掉了锁，同步设置p的waitStatus</span></span><br><span class="line">    <span class="comment">//如果compareAndSetWaitStatus成功了呢？那么该node就一直在acquire lock queue中</span></span><br><span class="line">    <span class="comment">//等待锁被释放掉再次抢夺锁，然后再unparｋ</span></span><br><span class="line">    <span class="keyword">if</span> (ws &gt; <span class="number">0</span> || !compareAndSetWaitStatus(p, ws, Node.SIGNAL))</span><br><span class="line">        LockSupport.unpark(node.thread);</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;后边一篇文章主要讲解如何自己使用<code>AQS</code>来创建符合自己业务需求的锁，请大家继续关注我的文章啦．一起进步偶．</p>
 
         
@@ -449,7 +286,7 @@ final boolean transferForSignal(Node node) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/815f6f66/" data-id="ck6531e2u001c6psewam03wrr" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/815f6f66/" data-id="ck6535m6s001g9kse67cze9g9" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -570,122 +407,11 @@ final boolean transferForSignal(Node node) {
             
             <p>＆emsp;对<code>LongAdder</code>的最初了解是从Coolshell上的一篇文章中获得的，但是一直都没有深入的了解过其实现，只知道它相较于<code>AtomicLong</code>来说，更加适合读多写少的并发情景。今天，我们就研究一下<code>LongAdder</code>的原理，探究一下它如此高效的原因。</p>
 <h3 id="基本原理和思想"><a href="#基本原理和思想" class="headerlink" title="基本原理和思想"></a>基本原理和思想</h3><p> 我们都知道<code>AtomicLong</code>是通过无限循环不停的采取CAS的方法去设置value，直到成功为止。那么当并发数比较多或出现更新热点时，就会导致CAS的失败机率变高，重试次数更多，越多的线程重试，CAS失败的机率越高，形成恶性循环，从而降低了效率。而LongAdder的原理就是降低对value更新的并发数，也就是将对单一value的变更压力分散到多个value值上，降低单个value的“热度”<br> 我们知道<code>LongAdder</code>的大致原理之后，再来详细的了解一下它的具体实现，其中也有很多值得借鉴的并发编程的技巧。</p>
-<h3 id="Add操作"><a href="#Add操作" class="headerlink" title="Add操作"></a>Add操作</h3>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">public void add(long x) {
-    Cell[] as; long b, v; int m; Cell a;
-    if ((as = cells) != null || !casBase(b = base, b + x)) { &#x2F;&#x2F;step1
-        boolean uncontended = true;
-        if (as == null || (m = as.length - 1) &lt; 0 || &#x2F;&#x2F;step2
-            (a = as[getProbe() &amp; m]) == null ||  &#x2F;&#x2F;step3
-            !(uncontended = a.cas(v = a.value, v + x))) &#x2F;&#x2F;step4
-            longAccumulate(x, null, uncontended); &#x2F;&#x2F; step5
-    }
-}
-</code></pre>
-<p> <code>cells</code>是<code>LongAdder</code>的父类<code>Striped64</code>中的<code>Cell</code>数组类型的成员变量。每个<code>Cell</code>对象中都包含一个value值，并提供对这个value值的CAS操作。<br> 我们来看一下<code>casBase</code>函数相关的源码吧。我们可以认为变量<code>base</code>就是第一个value值，也是基础value变量。先调用casBase函数来cas一下base变量，如果成功了，就不需要在进行下面比较复杂的算法，<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">    final boolean casBase(long cmp, long val) {
-        return UNSAFE.compareAndSwapLong(this, BASE, cmp, val);
-    }
-</code></pre></p>
+<h3 id="Add操作"><a href="#Add操作" class="headerlink" title="Add操作"></a>Add操作</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">add</span><span class="params">(<span class="keyword">long</span> x)</span> </span>&#123;</span><br><span class="line">    Cell[] as; <span class="keyword">long</span> b, v; <span class="keyword">int</span> m; Cell a;</span><br><span class="line">    <span class="keyword">if</span> ((as = cells) != <span class="keyword">null</span> || !casBase(b = base, b + x)) &#123; <span class="comment">//step1</span></span><br><span class="line">        <span class="keyword">boolean</span> uncontended = <span class="keyword">true</span>;</span><br><span class="line">        <span class="keyword">if</span> (as == <span class="keyword">null</span> || (m = as.length - <span class="number">1</span>) &lt; <span class="number">0</span> || <span class="comment">//step2</span></span><br><span class="line">            (a = as[getProbe() &amp; m]) == <span class="keyword">null</span> ||  <span class="comment">//step3</span></span><br><span class="line">            !(uncontended = a.cas(v = a.value, v + x))) <span class="comment">//step4</span></span><br><span class="line">            longAccumulate(x, <span class="keyword">null</span>, uncontended); <span class="comment">// step5</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p> <code>cells</code>是<code>LongAdder</code>的父类<code>Striped64</code>中的<code>Cell</code>数组类型的成员变量。每个<code>Cell</code>对象中都包含一个value值，并提供对这个value值的CAS操作。<br> 我们来看一下<code>casBase</code>函数相关的源码吧。我们可以认为变量<code>base</code>就是第一个value值，也是基础value变量。先调用casBase函数来cas一下base变量，如果成功了，就不需要在进行下面比较复杂的算法，<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">final boolean casBase(long cmp, long val) &#123;</span><br><span class="line">    return UNSAFE.compareAndSwapLong(this, BASE, cmp, val);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p> 然后我们继续看step2第二层条件语句中执行的逻辑。如果cells数组为null或为空,就直接调用<code>longAccumulate</code>方法。因为cells为null或在为空，说明cells未完全初始化，所以调用<code>longAccumulate</code>进行初始化。否则继续判断。<br> 如果cells中已经有对象了，那么执行step3。我们先来理解一下<code>getProbe() &amp; m</code>的这个操作吧。我们可以首先将这个操作当作一次计算”hash”值,然后将cells中这个位置的Cell对象赋值给变量a。然后判断a是否为null,如果不为null,那么就调用Cell对象自己的cas方法去设置value值。如果a为null,或在cas赋值发生冲突，那么也是开始调用<code>longAccumulate</code>方法。</p>
 <h3 id="LongAccumulate方法"><a href="#LongAccumulate方法" class="headerlink" title="LongAccumulate方法"></a>LongAccumulate方法</h3><p> <code>longAccumulate</code>函数比较复杂，带有我的注释的代码已经贴在了文章后边，这里我们就只讲一下其中比较关键的一些技巧和思想．<br> 首先，我们都知道只有当对<code>base</code>的cas操作失败之后，<code>LongAdder</code>才引入<code>Cell</code>数组．所以在<code>longAccumulate</code>中就是对<code>Cell</code>数组进行操作．分别涉及了数组的初始化，扩容和设置某个位置的Cell对象等操作．<br> 在这段代码中，关于cellBusy的cas操作构成了一个SpinLock,这就是经典的SpinLock的编程技巧，大家可以学习一下．</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">final void longAccumulate(long x, LongBinaryOperator fn,
-                             boolean wasUncontended) {
-       int h;
-       if ((h = getProbe()) == 0) { &#x2F;&#x2F;获取PROBE变量，探针变量，与当前运行的线程相关，不同线程不同
-           ThreadLocalRandom.current(); &#x2F;&#x2F;初始化PROBE变量，和getProbe都使用Unsafe类提供的原子性操作。
-           h = getProbe();
-           wasUncontended = true;
-       }
-       boolean collide = false;
-       for (;;) { &#x2F;&#x2F;cas经典无限循环，不断尝试
-           Cell[] as; Cell a; int n; long v;
-           if ((as = cells) != null &amp;&amp; (n = as.length) &gt; 0) { &#x2F;&#x2F; cells不为null,并且数组size大于0
-           &#x2F;&#x2F;表示cells已经初始化了
-               if ((a = as[(n - 1) &amp; h]) == null) { &#x2F;&#x2F;通过与操作计算出来需要操作的Cell对象的坐标
-                   if (cellsBusy == 0) { &#x2F;&#x2F;volatile 变量，用来实现spinLock,来在初始化和resize cells数组时使用。
-                   &#x2F;&#x2F;当cellsBusy为0时，表示当前可以对cells数组进行操作。 
-                       Cell r = new Cell(x);&#x2F;&#x2F;将x值直接赋值给Cell对象
-                       if (cellsBusy == 0 &amp;&amp; casCellsBusy()) {&#x2F;&#x2F;如果这个时候cellsBusy还是0
-                       &#x2F;&#x2F;就cas将其设置为非０，如果成功了就是获得了spinLock的锁．可以对cells数组进行操作．
-                       &#x2F;&#x2F;如果失败了，就会再次执行一次循环
-                           boolean created = false;
-                           try {
-                               Cell[] rs; int m, j;
-                               &#x2F;&#x2F;判断cells是否已经初始化，并且要操作的位置上没有cell对象．
-                               if ((rs = cells) != null &amp;&amp;
-                                   (m = rs.length) &gt; 0 &amp;&amp;
-                                   rs[j = (m - 1) &amp; h] == null) {
-                                   rs[j] = r;　&#x2F;&#x2F;将之前创建的值为x的cell对象赋值到cells数组的响应位置．
-                                   created = true;
-                               }
-                           } finally {
-                               &#x2F;&#x2F;经典的spinLock编程技巧，先获得锁，然后try finally将锁释放掉
-                               &#x2F;&#x2F;将cellBusy设置为0就是释放锁．
-                               cellsBusy = 0;
-                           }
-                           if (created)
-                               break;　&#x2F;&#x2F;如果创建成功了，就是使用x创建了新的cell对象，也就是新创建了一个分担热点的value
-                           continue; 
-                       }
-                   }
-                   collide = false; &#x2F;&#x2F;未发生碰撞
-               }
-               else if (!wasUncontended)&#x2F;&#x2F;是否已经发生过一次cas操作失败
-                   wasUncontended = true; &#x2F;&#x2F;设置成true,以便第二次进入下一个else if 判断
-               else if (a.cas(v = a.value, ((fn == null) ? v + x :
-                                            fn.applyAsLong(v, x))))
-                  　&#x2F;&#x2F;fn是操作类型，如果是空，就是相加，所以让a这个cell对象中的value值和x相加，然后在cas设置，如果成果
-                  &#x2F;&#x2F;就直接返回
-                   break;
-               else if (n &gt;= NCPU || cells != as)
-               　　&#x2F;&#x2F;如果cells数组的大小大于系统的可获得处理器数量或在as不再和cells相等．
-                   collide = false;            &#x2F;&#x2F; At max size or stale
-               else if (!collide)
-                   collide = true;
-               else if (cellsBusy == 0 &amp;&amp; casCellsBusy()) {
-               　　&#x2F;&#x2F;再次获得cellsBusy这个spinLock,对数组进行resize
-                   try {
-                       if (cells == as) {&#x2F;&#x2F;要再次检测as是否等于cells以免其他线程已经对cells进行了操作．
-                           Cell[] rs = new Cell[n &lt;&lt; 1]; &#x2F;&#x2F;扩容一倍
-                           for (int i = 0; i &lt; n; ++i)
-                               rs[i] = as[i];
-                           cells = rs;&#x2F;&#x2F;赋予cells一个新的数组对象
-                       }
-                   } finally {
-                       cellsBusy = 0;
-                   }
-                   collide = false;
-                   continue;
-               }
-               h = advanceProbe(h);&#x2F;&#x2F;由于使用当前探针变量无法操作成功，所以重新设置一个,再次尝试
-           }
-           else if (cellsBusy == 0 &amp;&amp; cells == as &amp;&amp; casCellsBusy()) {
-           &#x2F;&#x2F;cells数组未初始化，获得cellsBusy　lock,来初始化
-               boolean init = false;
-               try {                           &#x2F;&#x2F; Initialize table
-                   if (cells == as) {
-                       Cell[] rs = new Cell[2];
-                       rs[h &amp; 1] = new Cell(x); &#x2F;&#x2F;设置x的值为cell对象的value值
-                       cells = rs;
-                       init = true;
-                   }
-               } finally {
-                   cellsBusy = 0;
-               }
-               if (init)
-                   break;
-           }&#x2F;&#x2F;如果初始化数组失败了，那就再次尝试一下直接cas base变量，如果成功了就直接返回
-           else if (casBase(v = base, ((fn == null) ? v + x :
-                                       fn.applyAsLong(v, x))))
-               break;                          &#x2F;&#x2F; Fall back on using base
-       }
-   }
-</code></pre>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">longAccumulate</span><span class="params">(<span class="keyword">long</span> x, LongBinaryOperator fn,</span></span></span><br><span class="line"><span class="function"><span class="params">                             <span class="keyword">boolean</span> wasUncontended)</span> </span>&#123;</span><br><span class="line">       <span class="keyword">int</span> h;</span><br><span class="line">       <span class="keyword">if</span> ((h = getProbe()) == <span class="number">0</span>) &#123; <span class="comment">//获取PROBE变量，探针变量，与当前运行的线程相关，不同线程不同</span></span><br><span class="line">           ThreadLocalRandom.current(); <span class="comment">//初始化PROBE变量，和getProbe都使用Unsafe类提供的原子性操作。</span></span><br><span class="line">           h = getProbe();</span><br><span class="line">           wasUncontended = <span class="keyword">true</span>;</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">boolean</span> collide = <span class="keyword">false</span>;</span><br><span class="line">       <span class="keyword">for</span> (;;) &#123; <span class="comment">//cas经典无限循环，不断尝试</span></span><br><span class="line">           Cell[] as; Cell a; <span class="keyword">int</span> n; <span class="keyword">long</span> v;</span><br><span class="line">           <span class="keyword">if</span> ((as = cells) != <span class="keyword">null</span> &amp;&amp; (n = as.length) &gt; <span class="number">0</span>) &#123; <span class="comment">// cells不为null,并且数组size大于0</span></span><br><span class="line">           <span class="comment">//表示cells已经初始化了</span></span><br><span class="line">               <span class="keyword">if</span> ((a = as[(n - <span class="number">1</span>) &amp; h]) == <span class="keyword">null</span>) &#123; <span class="comment">//通过与操作计算出来需要操作的Cell对象的坐标</span></span><br><span class="line">                   <span class="keyword">if</span> (cellsBusy == <span class="number">0</span>) &#123; <span class="comment">//volatile 变量，用来实现spinLock,来在初始化和resize cells数组时使用。</span></span><br><span class="line">                   <span class="comment">//当cellsBusy为0时，表示当前可以对cells数组进行操作。 </span></span><br><span class="line">                       Cell r = <span class="keyword">new</span> Cell(x);<span class="comment">//将x值直接赋值给Cell对象</span></span><br><span class="line">                       <span class="keyword">if</span> (cellsBusy == <span class="number">0</span> &amp;&amp; casCellsBusy()) &#123;<span class="comment">//如果这个时候cellsBusy还是0</span></span><br><span class="line">                       <span class="comment">//就cas将其设置为非０，如果成功了就是获得了spinLock的锁．可以对cells数组进行操作．</span></span><br><span class="line">                       <span class="comment">//如果失败了，就会再次执行一次循环</span></span><br><span class="line">                           <span class="keyword">boolean</span> created = <span class="keyword">false</span>;</span><br><span class="line">                           <span class="keyword">try</span> &#123;</span><br><span class="line">                               Cell[] rs; <span class="keyword">int</span> m, j;</span><br><span class="line">                               <span class="comment">//判断cells是否已经初始化，并且要操作的位置上没有cell对象．</span></span><br><span class="line">                               <span class="keyword">if</span> ((rs = cells) != <span class="keyword">null</span> &amp;&amp;</span><br><span class="line">                                   (m = rs.length) &gt; <span class="number">0</span> &amp;&amp;</span><br><span class="line">                                   rs[j = (m - <span class="number">1</span>) &amp; h] == <span class="keyword">null</span>) &#123;</span><br><span class="line">                                   rs[j] = r;　<span class="comment">//将之前创建的值为x的cell对象赋值到cells数组的响应位置．</span></span><br><span class="line">                                   created = <span class="keyword">true</span>;</span><br><span class="line">                               &#125;</span><br><span class="line">                           &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                               <span class="comment">//经典的spinLock编程技巧，先获得锁，然后try finally将锁释放掉</span></span><br><span class="line">                               <span class="comment">//将cellBusy设置为0就是释放锁．</span></span><br><span class="line">                               cellsBusy = <span class="number">0</span>;</span><br><span class="line">                           &#125;</span><br><span class="line">                           <span class="keyword">if</span> (created)</span><br><span class="line">                               <span class="keyword">break</span>;　<span class="comment">//如果创建成功了，就是使用x创建了新的cell对象，也就是新创建了一个分担热点的value</span></span><br><span class="line">                           <span class="keyword">continue</span>; </span><br><span class="line">                       &#125;</span><br><span class="line">                   &#125;</span><br><span class="line">                   collide = <span class="keyword">false</span>; <span class="comment">//未发生碰撞</span></span><br><span class="line">               &#125;</span><br><span class="line">               <span class="keyword">else</span> <span class="keyword">if</span> (!wasUncontended)<span class="comment">//是否已经发生过一次cas操作失败</span></span><br><span class="line">                   wasUncontended = <span class="keyword">true</span>; <span class="comment">//设置成true,以便第二次进入下一个else if 判断</span></span><br><span class="line">               <span class="keyword">else</span> <span class="keyword">if</span> (a.cas(v = a.value, ((fn == <span class="keyword">null</span>) ? v + x :</span><br><span class="line">                                            fn.applyAsLong(v, x))))</span><br><span class="line">                  　<span class="comment">//fn是操作类型，如果是空，就是相加，所以让a这个cell对象中的value值和x相加，然后在cas设置，如果成果</span></span><br><span class="line">                  <span class="comment">//就直接返回</span></span><br><span class="line">                   <span class="keyword">break</span>;</span><br><span class="line">               <span class="keyword">else</span> <span class="keyword">if</span> (n &gt;= NCPU || cells != as)</span><br><span class="line">               　　<span class="comment">//如果cells数组的大小大于系统的可获得处理器数量或在as不再和cells相等．</span></span><br><span class="line">                   collide = <span class="keyword">false</span>;            <span class="comment">// At max size or stale</span></span><br><span class="line">               <span class="keyword">else</span> <span class="keyword">if</span> (!collide)</span><br><span class="line">                   collide = <span class="keyword">true</span>;</span><br><span class="line">               <span class="keyword">else</span> <span class="keyword">if</span> (cellsBusy == <span class="number">0</span> &amp;&amp; casCellsBusy()) &#123;</span><br><span class="line">               　　<span class="comment">//再次获得cellsBusy这个spinLock,对数组进行resize</span></span><br><span class="line">                   <span class="keyword">try</span> &#123;</span><br><span class="line">                       <span class="keyword">if</span> (cells == as) &#123;<span class="comment">//要再次检测as是否等于cells以免其他线程已经对cells进行了操作．</span></span><br><span class="line">                           Cell[] rs = <span class="keyword">new</span> Cell[n &lt;&lt; <span class="number">1</span>]; <span class="comment">//扩容一倍</span></span><br><span class="line">                           <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; n; ++i)</span><br><span class="line">                               rs[i] = as[i];</span><br><span class="line">                           cells = rs;<span class="comment">//赋予cells一个新的数组对象</span></span><br><span class="line">                       &#125;</span><br><span class="line">                   &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                       cellsBusy = <span class="number">0</span>;</span><br><span class="line">                   &#125;</span><br><span class="line">                   collide = <span class="keyword">false</span>;</span><br><span class="line">                   <span class="keyword">continue</span>;</span><br><span class="line">               &#125;</span><br><span class="line">               h = advanceProbe(h);<span class="comment">//由于使用当前探针变量无法操作成功，所以重新设置一个,再次尝试</span></span><br><span class="line">           &#125;</span><br><span class="line">           <span class="keyword">else</span> <span class="keyword">if</span> (cellsBusy == <span class="number">0</span> &amp;&amp; cells == as &amp;&amp; casCellsBusy()) &#123;</span><br><span class="line">           <span class="comment">//cells数组未初始化，获得cellsBusy　lock,来初始化</span></span><br><span class="line">               <span class="keyword">boolean</span> init = <span class="keyword">false</span>;</span><br><span class="line">               <span class="keyword">try</span> &#123;                           <span class="comment">// Initialize table</span></span><br><span class="line">                   <span class="keyword">if</span> (cells == as) &#123;</span><br><span class="line">                       Cell[] rs = <span class="keyword">new</span> Cell[<span class="number">2</span>];</span><br><span class="line">                       rs[h &amp; <span class="number">1</span>] = <span class="keyword">new</span> Cell(x); <span class="comment">//设置x的值为cell对象的value值</span></span><br><span class="line">                       cells = rs;</span><br><span class="line">                       init = <span class="keyword">true</span>;</span><br><span class="line">                   &#125;</span><br><span class="line">               &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                   cellsBusy = <span class="number">0</span>;</span><br><span class="line">               &#125;</span><br><span class="line">               <span class="keyword">if</span> (init)</span><br><span class="line">                   <span class="keyword">break</span>;</span><br><span class="line">           &#125;<span class="comment">//如果初始化数组失败了，那就再次尝试一下直接cas base变量，如果成功了就直接返回</span></span><br><span class="line">           <span class="keyword">else</span> <span class="keyword">if</span> (casBase(v = base, ((fn == <span class="keyword">null</span>) ? v + x :</span><br><span class="line">                                       fn.applyAsLong(v, x))))</span><br><span class="line">               <span class="keyword">break</span>;                          <span class="comment">// Fall back on using base</span></span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
 <h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;本篇文章写的不是很好，我写完之后又看了一遍coolshell上的这篇关于<code>LongAdder</code>的<a href="http://coolshell.cn/articles/11454.html" target="_blank" rel="noopener">文章</a>，感觉自己没有人家写的那么简介明了。我对代码细节的注释和投入太多了。其实很多代码大家都可以看懂，并不需要大量的代码片段加注释。以后要注意一下。之后会接着研究一下JUC包中的其他类，希望大家多多关注。</p>
 
         
@@ -697,7 +423,7 @@ final boolean transferForSignal(Node node) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/d29e90d8/" data-id="ck6531e3800276psezfi2qcci" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/d29e90d8/" data-id="ck6535m7300289ksempodu0sy" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -859,7 +585,7 @@ final boolean transferForSignal(Node node) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/5635585c/" data-id="ck6531e5500676psev0hm2xoo" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/5635585c/" data-id="ck6535m8z00649ksewtxdaoo7" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -979,215 +705,25 @@ final boolean transferForSignal(Node node) {
         
             
             <p> 今天我们来研究学习一下<code>AbstractQueuedSynchronizer</code>类的相关原理,<code>java.util.concurrent</code>包中很多类都依赖于这个类所提供的队列式的同步器,比如说常用的<code>ReentranLock</code>,<code>Semaphore</code>和<code>CountDownLatch</code>等.<br> 为了方便理解,我们以一段使用<code>ReentranLock</code>的代码为例,讲解<code>ReentranLock</code>每个方法中有关<code>AQS</code>的使用.</p>
-<h3 id="ReentranLock示例"><a href="#ReentranLock示例" class="headerlink" title="ReentranLock示例"></a>ReentranLock示例</h3><p> 我们都知道<code>ReentranLock</code>的加锁行为和<code>Synchronized</code>类似,都是可重入的锁,但是二者的实现方式确实完全不同的,我们之后也会讲解<code>Synchronized</code>的原理.<strong><em>除此之外,Synchronized的阻塞无法被中断,而ReentrantLock则提供了可中断的阻塞</em></strong>下面的代码是<code>ReentranLock</code>的相关API,我们就以此为顺序,依次讲解.<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">ReentrantLock lock = new ReentrantLock();
-lock.lock();
-lock.unlock();
-</code></pre></p>
+<h3 id="ReentranLock示例"><a href="#ReentranLock示例" class="headerlink" title="ReentranLock示例"></a>ReentranLock示例</h3><p> 我们都知道<code>ReentranLock</code>的加锁行为和<code>Synchronized</code>类似,都是可重入的锁,但是二者的实现方式确实完全不同的,我们之后也会讲解<code>Synchronized</code>的原理.<strong><em>除此之外,Synchronized的阻塞无法被中断,而ReentrantLock则提供了可中断的阻塞</em></strong>下面的代码是<code>ReentranLock</code>的相关API,我们就以此为顺序,依次讲解.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ReentrantLock lock = <span class="keyword">new</span> ReentrantLock();</span><br><span class="line">lock.lock();</span><br><span class="line">lock.unlock();</span><br></pre></td></tr></table></figure></p>
 <h3 id="公平锁和非公平锁"><a href="#公平锁和非公平锁" class="headerlink" title="公平锁和非公平锁"></a>公平锁和非公平锁</h3><p> ReentranLock分为公平锁和非公平锁.二者的区别就在获取锁是否和排队顺序相关.我们都知道,如果当前锁被另一个线程持有,那么当前申请锁的线程会被挂起等待,然后加入一个等待队列里.理论上,先调用<code>lock</code>函数被挂起等待的线程应该排在等待队列的前端,后调用的就排在后边.如果此时,锁被释放,需要通知等待线程再次尝试获取锁,公平锁会让最先进入队列的线程获得锁,而非公平锁则会唤醒所有线程,让它们再次尝试获取锁,所以可能会导致后来的线程先获得了锁,则就是非公平.</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">public ReentrantLock(boolean fair) {
-    sync = fair ? new FairSync() : new NonfairSync();
-}
-</code></pre>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">ReentrantLock</span><span class="params">(<span class="keyword">boolean</span> fair)</span> </span>&#123;</span><br><span class="line">    sync = fair ? <span class="keyword">new</span> FairSync() : <span class="keyword">new</span> NonfairSync();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p> 我们会发现<code>FairSync</code>和<code>NonfairSync</code>都继承了<code>Sync</code>类,而<code>Sync</code>的父类就是<code>AbstractQueuedSynchronizer</code>.但是<code>AQS</code>的构造函数是空的,并没有任何操作.<br> 之后的源码分析,如果没有特别说明,就是指公平锁.</p>
-<h3 id="lock操作"><a href="#lock操作" class="headerlink" title="lock操作"></a>lock操作</h3><p> <code>ReentranLock</code>的<code>lock</code>函数如下所示,直接调用了<code>sync</code>的<code>lock</code>函数.也就是调用了<code>FairSync</code>的<code>lock</code>函数.<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">    &#x2F;&#x2F;ReentranLock
-    public void lock() {
-        sync.lock();
-    }
-    &#x2F;&#x2F;FairSync
-    final void lock() {
-        acquire(1);&#x2F;&#x2F;调用了AQS的acquire函数,这是关键函数之一
-    }
-</code></pre></p>
-<p> 好,我们接下来就正式开始<code>AQS</code>相关的源码分析了,<code>acquire</code>函数你可以将其理解为获取一个同一时间只能有一个函数获取的量,这个量就是锁概念的抽象化.我们先分析代码,你慢慢就会明白其中的含义.<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">public final void acquire(int arg) {
-    if (!tryAcquire(arg) &amp;&amp; &#x2F;&#x2F;tryAcquire先尝试获取&quot;锁&quot;,&#x2F;&#x2F;如果成功,直接返回,失败继续执行后续代码
-        &#x2F;&#x2F;addWaiter是给当前线程创建一个节点,并将其加入等待队列
-        &#x2F;&#x2F;acquireQueued是当线程已经加入等待队列之后的行为.
-        acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
-        selfInterrupt();
-}
-</code></pre></p>
-<p> <code>tryAcquire</code>,<code>addWaiter</code>和<code>acquireQueued</code>都是十分重要的函数,我们接下来依次学习一下这些函数,理解它们的作用.<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F;AQS类中的变量.
-private volatile int state;
-&#x2F;&#x2F;这是FairSync的实现,AQS中未实现,子类按照自己的需要实现该类
-protected final boolean tryAcquire(int acquires) {
-    final Thread current = Thread.currentThread();
-    &#x2F;&#x2F;获取AQS中的state变量,代表抽象概念的锁.
-    int c = getState();
-    if (c == 0) { &#x2F;&#x2F;值为0,那么当前独占性变量还未被线程占有
-        if (!hasQueuedPredecessors() &amp;&amp; &#x2F;&#x2F;如果当前阻塞队列上没有先来的线程在等待,UnfairSync这里的实现就不一致
-            compareAndSetState(0, acquires)) {
-            &#x2F;&#x2F;成功cas,那么代表当前线程获得该变量的所有权,也就是说成功获得锁
-            setExclusiveOwnerThread(current);
-            return true;
-        }
-    }
-    else if (current == getExclusiveOwnerThread()) {
-        &#x2F;&#x2F;如果该线程已经获取了独占性变量的所有权,那么根据重入性
-        &#x2F;&#x2F;原理,将state值进行加1,表示多次lock
-        &#x2F;&#x2F;由于已经获得锁,该段代码只会被一个线程同时执行,所以不需要
-        &#x2F;&#x2F;进行任何并行处理
-        int nextc = c + acquires;
-        if (nextc &lt; 0)
-            throw new Error(&quot;Maximum lock count exceeded&quot;);
-        setState(nextc);
-        return true;
-    }
-    &#x2F;&#x2F;上述情况都不符合,说明获取锁失败
-    return false;
-}
-</code></pre></p>
+<h3 id="lock操作"><a href="#lock操作" class="headerlink" title="lock操作"></a>lock操作</h3><p> <code>ReentranLock</code>的<code>lock</code>函数如下所示,直接调用了<code>sync</code>的<code>lock</code>函数.也就是调用了<code>FairSync</code>的<code>lock</code>函数.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">//ReentranLock</span><br><span class="line">public void lock() &#123;</span><br><span class="line">    sync.lock();</span><br><span class="line">&#125;</span><br><span class="line">//FairSync</span><br><span class="line">final void lock() &#123;</span><br><span class="line">    acquire(1);//调用了AQS的acquire函数,这是关键函数之一</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p> 好,我们接下来就正式开始<code>AQS</code>相关的源码分析了,<code>acquire</code>函数你可以将其理解为获取一个同一时间只能有一个函数获取的量,这个量就是锁概念的抽象化.我们先分析代码,你慢慢就会明白其中的含义.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">acquire</span><span class="params">(<span class="keyword">int</span> arg)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!tryAcquire(arg) &amp;&amp; <span class="comment">//tryAcquire先尝试获取"锁",//如果成功,直接返回,失败继续执行后续代码</span></span><br><span class="line">        <span class="comment">//addWaiter是给当前线程创建一个节点,并将其加入等待队列</span></span><br><span class="line">        <span class="comment">//acquireQueued是当线程已经加入等待队列之后的行为.</span></span><br><span class="line">        acquireQueued(addWaiter(Node.EXCLUSIVE), arg))</span><br><span class="line">        selfInterrupt();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p> <code>tryAcquire</code>,<code>addWaiter</code>和<code>acquireQueued</code>都是十分重要的函数,我们接下来依次学习一下这些函数,理解它们的作用.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">//AQS类中的变量.</span><br><span class="line">private volatile int state;</span><br><span class="line">//这是FairSync的实现,AQS中未实现,子类按照自己的需要实现该类</span><br><span class="line">protected final boolean tryAcquire(int acquires) &#123;</span><br><span class="line">    final Thread current = Thread.currentThread();</span><br><span class="line">    //获取AQS中的state变量,代表抽象概念的锁.</span><br><span class="line">    int c = getState();</span><br><span class="line">    if (c == 0) &#123; //值为0,那么当前独占性变量还未被线程占有</span><br><span class="line">        if (!hasQueuedPredecessors() &amp;&amp; //如果当前阻塞队列上没有先来的线程在等待,UnfairSync这里的实现就不一致</span><br><span class="line">            compareAndSetState(0, acquires)) &#123;</span><br><span class="line">            //成功cas,那么代表当前线程获得该变量的所有权,也就是说成功获得锁</span><br><span class="line">            setExclusiveOwnerThread(current);</span><br><span class="line">            return true;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    else if (current == getExclusiveOwnerThread()) &#123;</span><br><span class="line">        //如果该线程已经获取了独占性变量的所有权,那么根据重入性</span><br><span class="line">        //原理,将state值进行加1,表示多次lock</span><br><span class="line">        //由于已经获得锁,该段代码只会被一个线程同时执行,所以不需要</span><br><span class="line">        //进行任何并行处理</span><br><span class="line">        int nextc = c + acquires;</span><br><span class="line">        if (nextc &lt; 0)</span><br><span class="line">            throw new Error(&quot;Maximum lock count exceeded&quot;);</span><br><span class="line">        setState(nextc);</span><br><span class="line">        return true;</span><br><span class="line">    &#125;</span><br><span class="line">    //上述情况都不符合,说明获取锁失败</span><br><span class="line">    return false;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p> 由上述代码我们可以发现,<code>tryAcquire</code>就是尝试获取那个线程独占的变量<code>state</code>.state的值表示其状态:如果是0,那么当前还没有线程独占此变量;否在就是已经有线程独占了这个变量,也就是代表已经有线程获得了锁.但是这个时候要再进行一次判断,看是否是当前线程自己获得的这个锁,如果是,那么就增加state的值.</p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201746-aqs-AQS1.png" alt="ReentranLock获得锁"></p>
 <p> 这里有几点需要说明一下,首先是<code>compareAndSetState</code>函数,这是使用CAS操作来设置<code>state</code>的值,而且state值设置了<code>volatile</code>修饰符,通过这两点来确保修改state的值不会出现多线程问题.然后是公平锁和非公平锁的区别问题,在<code>UnfairSync</code>的<code>nonfairTryAcquire</code>函数中不会在相同的位置上调用<code>hasQueuedPredecessors</code>来判断当前是否已经有线程在排队等待获得锁.<br> 如果<code>tryAcquire</code>返回<code>true</code>,那么就是获取锁成功,如果返回false,那么就是未获得锁.需要加入阻塞等待队列.我们下面就来看一下<code>addWaiter</code>的相关操作</p>
-<h3 id="等待锁的阻塞队列"><a href="#等待锁的阻塞队列" class="headerlink" title="等待锁的阻塞队列"></a>等待锁的阻塞队列</h3><p> 将保存当前线程信息的节点加入到等待队列的相关函数中涉及到了无锁队列的相关算法,由于在<code>AQS</code>中只是将节点添加到队尾,使用到的无锁算法也相对简单.真正的无锁队列的算法我们等到分析<code>ConcurrentSkippedListMap</code>时在进行讲解.<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">private Node addWaiter(Node mode) {
-    Node node = new Node(Thread.currentThread(), mode);
-    &#x2F;&#x2F;先使用快速如列法来尝试一下,如果失败,则进行更加完备的如列算法.
-    Node pred = tail;&#x2F;&#x2F;列尾指针
-    if (pred != null) {
-        node.prev = pred; &#x2F;&#x2F;步骤1:该节点的前趋指针指向tail
-        if (compareAndSetTail(pred, node)){ &#x2F;&#x2F;步骤二:cas将尾指针指向该节点
-            pred.next = node;&#x2F;&#x2F;步骤三:如果成果,让旧列尾节点的next指针指向该节点.
-            return node;
-        }
-    }
-    &#x2F;&#x2F;cas失败,或在pred == null时调用enq
-    enq(node);
-    return node;
-}
-private Node enq(final Node node) {
-    for (;;) { &#x2F;&#x2F;cas无锁算法的标准for循环,不停的尝试
-        Node t = tail;
-        if (t == null) { &#x2F;&#x2F;初始化
-            if (compareAndSetHead(new Node())) &#x2F;&#x2F;需要注意的是head是一个哨兵的作用,并不代表某个要获取锁的线程节点
-                tail = head;
-        } else {
-            &#x2F;&#x2F;和addWaiter中一致,不过有了外侧的无限循环,不停的尝试,自旋锁
-            node.prev = t;
-            if (compareAndSetTail(t, node)) {
-                t.next = node;
-                return t;
-            }
-        }
-    }
-}
-</code></pre></p>
+<h3 id="等待锁的阻塞队列"><a href="#等待锁的阻塞队列" class="headerlink" title="等待锁的阻塞队列"></a>等待锁的阻塞队列</h3><p> 将保存当前线程信息的节点加入到等待队列的相关函数中涉及到了无锁队列的相关算法,由于在<code>AQS</code>中只是将节点添加到队尾,使用到的无锁算法也相对简单.真正的无锁队列的算法我们等到分析<code>ConcurrentSkippedListMap</code>时在进行讲解.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">private Node addWaiter(Node mode) &#123;</span><br><span class="line">    Node node = new Node(Thread.currentThread(), mode);</span><br><span class="line">    //先使用快速如列法来尝试一下,如果失败,则进行更加完备的如列算法.</span><br><span class="line">    Node pred = tail;//列尾指针</span><br><span class="line">    if (pred != null) &#123;</span><br><span class="line">        node.prev = pred; //步骤1:该节点的前趋指针指向tail</span><br><span class="line">        if (compareAndSetTail(pred, node))&#123; //步骤二:cas将尾指针指向该节点</span><br><span class="line">            pred.next = node;//步骤三:如果成果,让旧列尾节点的next指针指向该节点.</span><br><span class="line">            return node;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    //cas失败,或在pred == null时调用enq</span><br><span class="line">    enq(node);</span><br><span class="line">    return node;</span><br><span class="line">&#125;</span><br><span class="line">private Node enq(final Node node) &#123;</span><br><span class="line">    for (;;) &#123; //cas无锁算法的标准for循环,不停的尝试</span><br><span class="line">        Node t = tail;</span><br><span class="line">        if (t == null) &#123; //初始化</span><br><span class="line">            if (compareAndSetHead(new Node())) //需要注意的是head是一个哨兵的作用,并不代表某个要获取锁的线程节点</span><br><span class="line">                tail = head;</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            //和addWaiter中一致,不过有了外侧的无限循环,不停的尝试,自旋锁</span><br><span class="line">            node.prev = t;</span><br><span class="line">            if (compareAndSetTail(t, node)) &#123;</span><br><span class="line">                t.next = node;</span><br><span class="line">                return t;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p> 通过调用<code>addWaiter</code>函数,<code>AQS</code>将当前线程加入到了等待队列,但是还没有阻塞当前线程的执行,接下来我们就来分析一下<code>acquireQueued</code>函数.</p>
-<h3 id="等待队列节点的操作"><a href="#等待队列节点的操作" class="headerlink" title="等待队列节点的操作"></a>等待队列节点的操作</h3><p> 由于进入阻塞状态的操作会降低执行效率,所以,<code>AQS</code>会尽力避免试图获取独占性变量的线程进入阻塞状态.所以,当线程加入等待队列之后,<code>acquireQueued</code>会执行一个for循环,每次都判断当前节点是否应该获得这个变量(在队首了),如果不应该获取或在再次尝试获取失败,那么就调用<code>shouldParkAfterFailedAcquire</code>判断是否应该进入阻塞状态,如果当前节点之前的节点已经进入阻塞状态了,那么就可以判定当前节点不可能获取到锁,为了防止CPU不停的执行for循环,消耗CPU资源,调用<code>parkAndCheckInterrupt</code>函数来进入阻塞状态.<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">final boolean acquireQueued(final Node node, int arg) {
-    boolean failed = true;
-    try {
-        boolean interrupted = false;
-        for (;;) { &#x2F;&#x2F;一直执行,知道获取锁,返回.
-            final Node p = node.predecessor(); 
-            &#x2F;&#x2F;node的前驱是head,就说明,node是将要获取锁的下一个节点.
-            if (p == head &amp;&amp; tryAcquire(arg)) { &#x2F;&#x2F;所以再次尝试获取独占性变量
-                setHead(node); &#x2F;&#x2F;如果成果,那么就将自己设置为head
-                p.next = null; &#x2F;&#x2F; help GC
-                failed = false;
-                return interrupted;&#x2F;&#x2F;此时,还没有进入阻塞状态,所以直接返回false,表示不需要中断
-            }
-            &#x2F;&#x2F;判断是否要进入阻塞状态.如果`shouldParkAfterFailedAcquire`返回true,表示需要进入阻塞
-            &#x2F;&#x2F;调用parkAndCheckInterrupt,否在表示还可以再次尝试获取锁,继续进行for循环
-            if (shouldParkAfterFailedAcquire(p, node) &amp;&amp;
-                parkAndCheckInterrupt())
-                &#x2F;&#x2F;调用parkAndCheckInterrupt进行阻塞,然后返回是否为中断状态
-                interrupted = true;
-        }
-    } finally {
-        if (failed)
-            cancelAcquire(node);
-    }
-}
-private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
-    int ws = pred.waitStatus;
-    if (ws == Node.SIGNAL) &#x2F;&#x2F;前一个节点在等待独占性变量释放的通知,所以,当前节点可以阻塞
-        return true;
-    if (ws &gt; 0) { &#x2F;&#x2F;前一个节点处于取消获取独占性变量的状态,所以,可以跳过去
-        &#x2F;&#x2F;返回false
-        do {
-            node.prev = pred = pred.prev;
-        } while (pred.waitStatus &gt; 0);
-        pred.next = node;
-    } else {
-        &#x2F;&#x2F;将上一个节点的状态设置为signal,返回false,
-        compareAndSetWaitStatus(pred, ws, Node.SIGNAL);
-    }
-    return false;
-}
-private final boolean parkAndCheckInterrupt() {
-    LockSupport.park(this); &#x2F;&#x2F;将AQS对象自己传入
-    return Thread.interrupted();
-}
-</code></pre></p>
-<h3 id="阻塞和中断"><a href="#阻塞和中断" class="headerlink" title="阻塞和中断"></a>阻塞和中断</h3><p> 由上述分析,我们知道了<code>AQS</code>通过调用<code>LockSupport</code>的<code>park</code>方法来执行阻塞当前进程的操作.其实,这里的阻塞就是线程不再执行的含义.通过调用这个函数,线程进入阻塞状态,上述的<code>lock</code>操作也就阻塞了.等待中断或在独占性变量被释放.<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">public static void park(Object blocker) {
-    Thread t = Thread.currentThread();
-    setBlocker(t, blocker);&#x2F;&#x2F;设置阻塞对象,用来记录线程被谁阻塞的,用于线程监控和分析工具来定位
-    UNSAFE.park(false, 0L);&#x2F;&#x2F;让当前线程不再被线程调度,就是当前线程不再执行.
-    setBlocker(t, null);
-}
-</code></pre></p>
+<h3 id="等待队列节点的操作"><a href="#等待队列节点的操作" class="headerlink" title="等待队列节点的操作"></a>等待队列节点的操作</h3><p> 由于进入阻塞状态的操作会降低执行效率,所以,<code>AQS</code>会尽力避免试图获取独占性变量的线程进入阻塞状态.所以,当线程加入等待队列之后,<code>acquireQueued</code>会执行一个for循环,每次都判断当前节点是否应该获得这个变量(在队首了),如果不应该获取或在再次尝试获取失败,那么就调用<code>shouldParkAfterFailedAcquire</code>判断是否应该进入阻塞状态,如果当前节点之前的节点已经进入阻塞状态了,那么就可以判定当前节点不可能获取到锁,为了防止CPU不停的执行for循环,消耗CPU资源,调用<code>parkAndCheckInterrupt</code>函数来进入阻塞状态.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">acquireQueued</span><span class="params">(<span class="keyword">final</span> Node node, <span class="keyword">int</span> arg)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">boolean</span> failed = <span class="keyword">true</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">boolean</span> interrupted = <span class="keyword">false</span>;</span><br><span class="line">        <span class="keyword">for</span> (;;) &#123; <span class="comment">//一直执行,知道获取锁,返回.</span></span><br><span class="line">            <span class="keyword">final</span> Node p = node.predecessor(); </span><br><span class="line">            <span class="comment">//node的前驱是head,就说明,node是将要获取锁的下一个节点.</span></span><br><span class="line">            <span class="keyword">if</span> (p == head &amp;&amp; tryAcquire(arg)) &#123; <span class="comment">//所以再次尝试获取独占性变量</span></span><br><span class="line">                setHead(node); <span class="comment">//如果成果,那么就将自己设置为head</span></span><br><span class="line">                p.next = <span class="keyword">null</span>; <span class="comment">// help GC</span></span><br><span class="line">                failed = <span class="keyword">false</span>;</span><br><span class="line">                <span class="keyword">return</span> interrupted;<span class="comment">//此时,还没有进入阻塞状态,所以直接返回false,表示不需要中断</span></span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//判断是否要进入阻塞状态.如果`shouldParkAfterFailedAcquire`返回true,表示需要进入阻塞</span></span><br><span class="line">            <span class="comment">//调用parkAndCheckInterrupt,否在表示还可以再次尝试获取锁,继续进行for循环</span></span><br><span class="line">            <span class="keyword">if</span> (shouldParkAfterFailedAcquire(p, node) &amp;&amp;</span><br><span class="line">                parkAndCheckInterrupt())</span><br><span class="line">                <span class="comment">//调用parkAndCheckInterrupt进行阻塞,然后返回是否为中断状态</span></span><br><span class="line">                interrupted = <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (failed)</span><br><span class="line">            cancelAcquire(node);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">shouldParkAfterFailedAcquire</span><span class="params">(Node pred, Node node)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> ws = pred.waitStatus;</span><br><span class="line">    <span class="keyword">if</span> (ws == Node.SIGNAL) <span class="comment">//前一个节点在等待独占性变量释放的通知,所以,当前节点可以阻塞</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    <span class="keyword">if</span> (ws &gt; <span class="number">0</span>) &#123; <span class="comment">//前一个节点处于取消获取独占性变量的状态,所以,可以跳过去</span></span><br><span class="line">        <span class="comment">//返回false</span></span><br><span class="line">        <span class="keyword">do</span> &#123;</span><br><span class="line">            node.prev = pred = pred.prev;</span><br><span class="line">        &#125; <span class="keyword">while</span> (pred.waitStatus &gt; <span class="number">0</span>);</span><br><span class="line">        pred.next = node;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">//将上一个节点的状态设置为signal,返回false,</span></span><br><span class="line">        compareAndSetWaitStatus(pred, ws, Node.SIGNAL);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">parkAndCheckInterrupt</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    LockSupport.park(<span class="keyword">this</span>); <span class="comment">//将AQS对象自己传入</span></span><br><span class="line">    <span class="keyword">return</span> Thread.interrupted();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="阻塞和中断"><a href="#阻塞和中断" class="headerlink" title="阻塞和中断"></a>阻塞和中断</h3><p> 由上述分析,我们知道了<code>AQS</code>通过调用<code>LockSupport</code>的<code>park</code>方法来执行阻塞当前进程的操作.其实,这里的阻塞就是线程不再执行的含义.通过调用这个函数,线程进入阻塞状态,上述的<code>lock</code>操作也就阻塞了.等待中断或在独占性变量被释放.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">park</span><span class="params">(Object blocker)</span> </span>&#123;</span><br><span class="line">    Thread t = Thread.currentThread();</span><br><span class="line">    setBlocker(t, blocker);<span class="comment">//设置阻塞对象,用来记录线程被谁阻塞的,用于线程监控和分析工具来定位</span></span><br><span class="line">    UNSAFE.park(<span class="keyword">false</span>, <span class="number">0L</span>);<span class="comment">//让当前线程不再被线程调度,就是当前线程不再执行.</span></span><br><span class="line">    setBlocker(t, <span class="keyword">null</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p> 关于中断的相关知识,我们以后再说,就继续沿着<code>AQS</code>的主线,看一下释放独占性变量的相关操作吧.</p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201746-aqs-AQS2.png" alt="ReentrantLock未获得阻塞,加入队列"></p>
-<h3 id="unlock操作"><a href="#unlock操作" class="headerlink" title="unlock操作"></a>unlock操作</h3><p> 与<code>lock</code>操作类似,<code>unlock</code>操作调用了<code>AQS</code>的<code>relase</code>方法,参数和调用<code>acquire</code>时一样,都是1.<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public final boolean release(int arg) {
-    if (tryRelease(arg)) { &#x2F;&#x2F;释放独占性变量,起始就是将status的值减1,因为acquire时是加1
-        Node h = head;
-        if (h != null &amp;&amp; h.waitStatus != 0)
-            unparkSuccessor(h);&#x2F;&#x2F;唤醒head的后继节点
-        return true;
-    }
-    return false;
-}
-</code></pre></p>
-<p> 由上述代码可知,release就是先调用<code>tryRelease</code>来释放独占性变量,如果成果,那么就看一下是否有等待锁的阻塞线程,如果有,就调用<code>unparkSuccessor</code>来唤醒他们.<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">protected final boolean tryRelease(int releases) {
-    &#x2F;&#x2F;由于只有一个线程可以获得独占先变量,所以,所有操作不需要考虑多线程
-    int c = getState() - releases; 
-    if (Thread.currentThread() != getExclusiveOwnerThread())
-        throw new IllegalMonitorStateException();
-    boolean free = false;
-    if (c == 0) { &#x2F;&#x2F;如果等于0,那么说明锁应该被释放了,否在表示当前线程有多次lock操作.
-        free = true;
-        setExclusiveOwnerThread(null);
-    }
-    setState(c);
-    return free;
-}
-</code></pre></p>
-<p> 我们可以看到<code>tryRelease</code>中的逻辑也体现了可重入锁的概念,只有等到<code>state</code>的值为1时,才代表锁真正被释放了.所以独占性变量<code>state</code>的值就代表锁的有无.当<code>state=0</code>时,表示锁未被占有,否在表示当前锁已经被占有.<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">private void unparkSuccessor(Node node) {
-    .....
-     &#x2F;&#x2F;一般来说,需要唤醒的线程就是head的下一个节点,但是如果它获取锁的操作被取消,或在节点为null时
-     &#x2F;&#x2F;就直接继续往后遍历,找到第一个未取消的后继节点.
-    Node s = node.next;
-    if (s == null || s.waitStatus &gt; 0) {
-        s = null;
-        for (Node t = tail; t != null &amp;&amp; t != node; t = t.prev)
-            if (t.waitStatus &lt;= 0)
-                s = t;
-    }
-    if (s != null)
-        LockSupport.unpark(s.thread);
-}
-</code></pre></p>
+<h3 id="unlock操作"><a href="#unlock操作" class="headerlink" title="unlock操作"></a>unlock操作</h3><p> 与<code>lock</code>操作类似,<code>unlock</code>操作调用了<code>AQS</code>的<code>relase</code>方法,参数和调用<code>acquire</code>时一样,都是1.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">public final boolean release(int arg) &#123;</span><br><span class="line">    if (tryRelease(arg)) &#123; //释放独占性变量,起始就是将status的值减1,因为acquire时是加1</span><br><span class="line">        Node h = head;</span><br><span class="line">        if (h != null &amp;&amp; h.waitStatus != 0)</span><br><span class="line">            unparkSuccessor(h);//唤醒head的后继节点</span><br><span class="line">        return true;</span><br><span class="line">    &#125;</span><br><span class="line">    return false;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p> 由上述代码可知,release就是先调用<code>tryRelease</code>来释放独占性变量,如果成果,那么就看一下是否有等待锁的阻塞线程,如果有,就调用<code>unparkSuccessor</code>来唤醒他们.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">protected final boolean tryRelease(int releases) &#123;</span><br><span class="line">    //由于只有一个线程可以获得独占先变量,所以,所有操作不需要考虑多线程</span><br><span class="line">    int c = getState() - releases; </span><br><span class="line">    if (Thread.currentThread() != getExclusiveOwnerThread())</span><br><span class="line">        throw new IllegalMonitorStateException();</span><br><span class="line">    boolean free = false;</span><br><span class="line">    if (c == 0) &#123; //如果等于0,那么说明锁应该被释放了,否在表示当前线程有多次lock操作.</span><br><span class="line">        free = true;</span><br><span class="line">        setExclusiveOwnerThread(null);</span><br><span class="line">    &#125;</span><br><span class="line">    setState(c);</span><br><span class="line">    return free;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p> 我们可以看到<code>tryRelease</code>中的逻辑也体现了可重入锁的概念,只有等到<code>state</code>的值为1时,才代表锁真正被释放了.所以独占性变量<code>state</code>的值就代表锁的有无.当<code>state=0</code>时,表示锁未被占有,否在表示当前锁已经被占有.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">unparkSuccessor</span><span class="params">(Node node)</span> </span>&#123;</span><br><span class="line">    .....</span><br><span class="line">     <span class="comment">//一般来说,需要唤醒的线程就是head的下一个节点,但是如果它获取锁的操作被取消,或在节点为null时</span></span><br><span class="line">     <span class="comment">//就直接继续往后遍历,找到第一个未取消的后继节点.</span></span><br><span class="line">    Node s = node.next;</span><br><span class="line">    <span class="keyword">if</span> (s == <span class="keyword">null</span> || s.waitStatus &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        s = <span class="keyword">null</span>;</span><br><span class="line">        <span class="keyword">for</span> (Node t = tail; t != <span class="keyword">null</span> &amp;&amp; t != node; t = t.prev)</span><br><span class="line">            <span class="keyword">if</span> (t.waitStatus &lt;= <span class="number">0</span>)</span><br><span class="line">                s = t;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (s != <span class="keyword">null</span>)</span><br><span class="line">        LockSupport.unpark(s.thread);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p> 调用了<code>unpark</code>方法后,进行<code>lock</code>操作被阻塞的线程就恢复到运行状态,就会再次执行<code>acquireQueued</code>中的无限for循环中的操作,再次尝试获取锁.</p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201746-aqs-AQS3.png" alt="ReentrantLock释放锁并通知阻塞线程恢复执行"></p>
 <h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p> 有关<code>AQS</code>和<code>ReentrantLock</code>的分析就差不多结束了,不得不说,我第一次看到AQS的实现时真是震惊,以前都认为<code>Synchronized</code>和<code>ReentrantLock</code>的实现原理是一致的,都是依靠java虚拟机的功能实现的,没有想到还有<code>AQS</code>这样一个背后大Boss在提供帮助啊.学习了这个类的原理,我们对JUC的很多类的分析就简单了很多,此外,<code>AQS</code>涉及的<code>CAS</code>操作和无锁队列的算法也为我们学习其他无锁算法提供了基础.<strong><em>知识的海洋是无限的啊!</em></strong></p>
@@ -1201,7 +737,7 @@ private final boolean parkAndCheckInterrupt() {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/d2edd1b8/" data-id="ck6531e2d000f6psekug3y4e9" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/d2edd1b8/" data-id="ck6535m69000d9ksecvvtsfxg" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1347,146 +883,19 @@ private final boolean parkAndCheckInterrupt() {
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201742-netty-0_1280551287S777.gif" alt="Asynchronous I/O"></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201742-netty-0_1280551552NVgW.gif" alt="对比"></p>
 <h3 id="Java-NIO的Linux底层实现"><a href="#Java-NIO的Linux底层实现" class="headerlink" title="Java NIO的Linux底层实现"></a>Java NIO的Linux底层实现</h3><p> 我们都知道Netty通过JNI的方式提供了Native Socket Transport，为什么<code>Netty</code>要提供自己的Native版本的NIO呢？明明Java NIO底层也是基于<code>epoll</code>调用(最新的版本)的．这里，我们先不明说，大家想一想可能的情况．下列的源码都来自于OpenJDK-8u40-b25版本．</p>
-<h4 id="open方法"><a href="#open方法" class="headerlink" title="open方法"></a>open方法</h4><p>&emsp;如果我们顺着<code>Selector.open()</code>方法一个类一个类的找下去，很容易就发现<code>Selector</code>的初始化是由<code>DefaultSelectorProvider</code>根据不同操作系统平台生成的不同的<code>SelectorProvider</code>，对于Linux系统，它会生成<code>EPollSelectorProvider</code>实例，而这个实例会生成<code>EPollSelectorImpl</code>作为最终的<code>Selector</code>实现．<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">class EPollSelectorImpl extends SelectorImpl
-{
-    .....
-    &#x2F;&#x2F; The poll object
-    EPollArrayWrapper pollWrapper;
-    .....
-    EPollSelectorImpl(SelectorProvider sp) throws IOException {
-        .....
-        pollWrapper = new EPollArrayWrapper();
-        pollWrapper.initInterrupt(fd0, fd1);
-        .....
-    }
-    .....
-}
-</code></pre></p>
-<p>&emsp;<code>EpollArrayWapper</code>将Linux的epoll相关系统调用封装成了native方法供<code>EpollSelectorImpl</code>使用．<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">    private native int epollCreate();
-    private native void epollCtl(int epfd, int opcode, int fd, int events);
-    private native int epollWait(long pollAddress, int numfds, long timeout,
-                                 int epfd) throws IOException;
-</code></pre></p>
-<p> 上述三个native方法就对应Linux下epoll相关的三个系统调用<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">&#x2F;&#x2F;创建一个epoll句柄，size是这个监听的数目的最大值．
-int epoll_create(int size);
-&#x2F;&#x2F;事件注册函数，告诉内核epoll监听什么类型的事件，参数是感兴趣的事件类型，回调和监听的fd
-int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
-&#x2F;&#x2F;等待事件的产生，类似于select调用，events参数用来从内核得到事件的集合
-int epoll_wait(int epfd, struct epoll_event * events, int maxevents, int timeout);
-</code></pre></p>
+<h4 id="open方法"><a href="#open方法" class="headerlink" title="open方法"></a>open方法</h4><p>&emsp;如果我们顺着<code>Selector.open()</code>方法一个类一个类的找下去，很容易就发现<code>Selector</code>的初始化是由<code>DefaultSelectorProvider</code>根据不同操作系统平台生成的不同的<code>SelectorProvider</code>，对于Linux系统，它会生成<code>EPollSelectorProvider</code>实例，而这个实例会生成<code>EPollSelectorImpl</code>作为最终的<code>Selector</code>实现．<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">class EPollSelectorImpl extends SelectorImpl</span><br><span class="line">&#123;</span><br><span class="line">    .....</span><br><span class="line">    // The poll object</span><br><span class="line">    EPollArrayWrapper pollWrapper;</span><br><span class="line">    .....</span><br><span class="line">    EPollSelectorImpl(SelectorProvider sp) throws IOException &#123;</span><br><span class="line">        .....</span><br><span class="line">        pollWrapper = new EPollArrayWrapper();</span><br><span class="line">        pollWrapper.initInterrupt(fd0, fd1);</span><br><span class="line">        .....</span><br><span class="line">    &#125;</span><br><span class="line">    .....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;<code>EpollArrayWapper</code>将Linux的epoll相关系统调用封装成了native方法供<code>EpollSelectorImpl</code>使用．<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">private native int epollCreate();</span><br><span class="line">private native void epollCtl(int epfd, int opcode, int fd, int events);</span><br><span class="line">private native int epollWait(long pollAddress, int numfds, long timeout,</span><br><span class="line">                             int epfd) throws IOException;</span><br></pre></td></tr></table></figure></p>
+<p> 上述三个native方法就对应Linux下epoll相关的三个系统调用<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//创建一个epoll句柄，size是这个监听的数目的最大值．</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_create</span><span class="params">(<span class="keyword">int</span> size)</span></span>;</span><br><span class="line"><span class="comment">//事件注册函数，告诉内核epoll监听什么类型的事件，参数是感兴趣的事件类型，回调和监听的fd</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_ctl</span><span class="params">(<span class="keyword">int</span> epfd, <span class="keyword">int</span> op, <span class="keyword">int</span> fd, struct epoll_event *event)</span></span>;</span><br><span class="line"><span class="comment">//等待事件的产生，类似于select调用，events参数用来从内核得到事件的集合</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_wait</span><span class="params">(<span class="keyword">int</span> epfd, struct epoll_event * events, <span class="keyword">int</span> maxevents, <span class="keyword">int</span> timeout)</span></span>;</span><br></pre></td></tr></table></figure></p>
 <p>&emsp;所以，我们会发现在<code>EpollArrayWapper</code>的构造函数中调用了<code>epollCreate</code>方法，创建了一个epoll的句柄．这样，<code>Selector</code>对象就算创造完毕了．</p>
-<h4 id="register方法"><a href="#register方法" class="headerlink" title="register方法"></a>register方法</h4><p>&emsp;与<code>open</code>类似，<code>ServerSocketChannel</code>的<code>register</code>函数底层是调用了<code>SelectorImpl</code>类的<code>register</code>方法，这个<code>SelectorImpl</code>就是<code>EPollSelectorImpl</code>的父类．<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">protected final SelectionKey register(AbstractSelectableChannel ch,
-                                      int ops,
-                                      Object attachment)
-{
-    if (!(ch instanceof SelChImpl))
-        throw new IllegalSelectorException();
-    &#x2F;&#x2F;生成SelectorKey来存储到hashmap中，一共之后获取
-    SelectionKeyImpl k = new SelectionKeyImpl((SelChImpl)ch, this);
-    &#x2F;&#x2F;attach用户想要存储的对象
-    k.attach(attachment);
-    &#x2F;&#x2F;调用子类的implRegister方法
-    synchronized (publicKeys) {
-        implRegister(k);
-    }
-    &#x2F;&#x2F;设置关注的option
-    k.interestOps(ops);
-    return k;
-}
-</code></pre></p>
-<p>&emsp;<code>EpollSelectorImpl</code>的相应的方法实现如下，它调用了<code>EPollArrayWrapper</code>的<code>add</code>方法，记录下Channel所对应的fd值,然后将ski添加到<code>keys</code>变量中．在<code>EPollArrayWrapper</code>中有一个byte数组<code>eventLow</code>记录所有的channel的fd值.<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">    protected void implRegister(SelectionKeyImpl ski) {
-        if (closed)
-            throw new ClosedSelectorException();
-        SelChImpl ch = ski.channel;
-        &#x2F;&#x2F;获取Channel所对应的fd,因为在linux下socket会被当作一个文件，也会有fd
-        int fd = Integer.valueOf(ch.getFDVal());
-        fdToKey.put(fd, ski);
-        &#x2F;&#x2F;调用pollWrapper的add方法,将channel的fd添加到监控列表中
-        pollWrapper.add(fd);
-        &#x2F;&#x2F;保存到HashSet中，keys是SelectorImpl的成员变量
-        keys.add(ski);
-    }
-</code></pre></p>
+<h4 id="register方法"><a href="#register方法" class="headerlink" title="register方法"></a>register方法</h4><p>&emsp;与<code>open</code>类似，<code>ServerSocketChannel</code>的<code>register</code>函数底层是调用了<code>SelectorImpl</code>类的<code>register</code>方法，这个<code>SelectorImpl</code>就是<code>EPollSelectorImpl</code>的父类．<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">final</span> SelectionKey <span class="title">register</span><span class="params">(AbstractSelectableChannel ch,</span></span></span><br><span class="line"><span class="function"><span class="params">                                      <span class="keyword">int</span> ops,</span></span></span><br><span class="line"><span class="function"><span class="params">                                      Object attachment)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!(ch <span class="keyword">instanceof</span> SelChImpl))</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalSelectorException();</span><br><span class="line">    <span class="comment">//生成SelectorKey来存储到hashmap中，一共之后获取</span></span><br><span class="line">    SelectionKeyImpl k = <span class="keyword">new</span> SelectionKeyImpl((SelChImpl)ch, <span class="keyword">this</span>);</span><br><span class="line">    <span class="comment">//attach用户想要存储的对象</span></span><br><span class="line">    k.attach(attachment);</span><br><span class="line">    <span class="comment">//调用子类的implRegister方法</span></span><br><span class="line">    <span class="keyword">synchronized</span> (publicKeys) &#123;</span><br><span class="line">        implRegister(k);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//设置关注的option</span></span><br><span class="line">    k.interestOps(ops);</span><br><span class="line">    <span class="keyword">return</span> k;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;<code>EpollSelectorImpl</code>的相应的方法实现如下，它调用了<code>EPollArrayWrapper</code>的<code>add</code>方法，记录下Channel所对应的fd值,然后将ski添加到<code>keys</code>变量中．在<code>EPollArrayWrapper</code>中有一个byte数组<code>eventLow</code>记录所有的channel的fd值.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">implRegister</span><span class="params">(SelectionKeyImpl ski)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (closed)</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ClosedSelectorException();</span><br><span class="line">    SelChImpl ch = ski.channel;</span><br><span class="line">    <span class="comment">//获取Channel所对应的fd,因为在linux下socket会被当作一个文件，也会有fd</span></span><br><span class="line">    <span class="keyword">int</span> fd = Integer.valueOf(ch.getFDVal());</span><br><span class="line">    fdToKey.put(fd, ski);</span><br><span class="line">    <span class="comment">//调用pollWrapper的add方法,将channel的fd添加到监控列表中</span></span><br><span class="line">    pollWrapper.add(fd);</span><br><span class="line">    <span class="comment">//保存到HashSet中，keys是SelectorImpl的成员变量</span></span><br><span class="line">    keys.add(ski);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>&emsp;我们会发现,调用<code>register</code>方法并没有涉及到<code>EpollArrayWrapper</code>中的native方法<code>epollCtl</code>的调用,这是因为他们将这个方法的调用推迟到<code>Select</code>方法中去了.<br>&emsp;</p>
-<h4 id="Select方法"><a href="#Select方法" class="headerlink" title="Select方法"></a>Select方法</h4><p>&emsp;和<code>register</code>方法类似,<code>SelectorImpl</code>中的<code>select</code>方法最终调用了其子类<code>EpollSelectorImpl</code>的<code>doSelect</code>方法<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">protected int doSelect(long timeout) throws IOException {
-    .....
-    try {
-        ....
-        &#x2F;&#x2F;调用了poll方法,底层调用了native的epollCtl和epollWait方法
-        pollWrapper.poll(timeout);
-    } finally {
-        ....
-    }
-    ....
-    &#x2F;&#x2F;更新selectedKeys,为之后的selectedKeys函数做准备
-    int numKeysUpdated = updateSelectedKeys();
-    ....
-    return numKeysUpdated;
-}
-</code></pre></p>
+<h4 id="Select方法"><a href="#Select方法" class="headerlink" title="Select方法"></a>Select方法</h4><p>&emsp;和<code>register</code>方法类似,<code>SelectorImpl</code>中的<code>select</code>方法最终调用了其子类<code>EpollSelectorImpl</code>的<code>doSelect</code>方法<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">int</span> <span class="title">doSelect</span><span class="params">(<span class="keyword">long</span> timeout)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    .....</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ....</span><br><span class="line">        <span class="comment">//调用了poll方法,底层调用了native的epollCtl和epollWait方法</span></span><br><span class="line">        pollWrapper.poll(timeout);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        ....</span><br><span class="line">    &#125;</span><br><span class="line">    ....</span><br><span class="line">    <span class="comment">//更新selectedKeys,为之后的selectedKeys函数做准备</span></span><br><span class="line">    <span class="keyword">int</span> numKeysUpdated = updateSelectedKeys();</span><br><span class="line">    ....</span><br><span class="line">    <span class="keyword">return</span> numKeysUpdated;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p> 由上述的代码，可以看到，<code>EPollSelectorImpl</code>先调用<code>EPollArrayWapper</code>的<code>poll</code>方法,然后在更新<code>SelectedKeys</code>．其中<code>poll</code>方法会先调用<code>epollCtl</code>来注册先前在<code>register</code>方法中保存的Channel的fd和感兴趣的事件类型，然后<code>epollWait</code>方法等待感兴趣事件的生成,导致线程阻塞.</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">int poll(long timeout) throws IOException {
-    updateRegistrations(); &#x2F;&#x2F;&#x2F;&#x2F;先调用epollCtl,更新关注的事件类型
-    &#x2F;&#x2F;&#x2F;&#x2F;导致阻塞，等待事件产生
-    updated = epollWait(pollArrayAddress, NUM_EPOLLEVENTS, timeout, epfd);
-    .....
-    return updated;
-}
-</code></pre>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">poll</span><span class="params">(<span class="keyword">long</span> timeout)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    updateRegistrations(); <span class="comment">////先调用epollCtl,更新关注的事件类型</span></span><br><span class="line">    <span class="comment">////导致阻塞，等待事件产生</span></span><br><span class="line">    updated = epollWait(pollArrayAddress, NUM_EPOLLEVENTS, timeout, epfd);</span><br><span class="line">    .....</span><br><span class="line">    <span class="keyword">return</span> updated;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>&emsp;等待关注的事件产生之后(或在等待时间超过预先设置的最大时间),<code>epollWait</code>函数就会返回.<code>select</code>函数从阻塞状态恢复.</p>
-<h4 id="selectedKeys方法"><a href="#selectedKeys方法" class="headerlink" title="selectedKeys方法"></a>selectedKeys方法</h4><p>&emsp;我们先来看<code>SelectorImpl</code>中的<code>selectedKeys</code>方法.<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">&#x2F;&#x2F;是通过Util.ungrowableSet生成的,不能添加,只能减少
-private Set&lt;SelectionKey&gt; publicSelectedKeys;
-public Set&lt;SelectionKey&gt; selectedKeys() {
-    ....
-    return publicSelectedKeys;
-}
-</code></pre></p>
-<p>&emsp;很奇怪啊,怎麽直接就返回<code>publicSelectedKeys</code>了,难道在<code>select</code>函数的执行过程中有修改过这个变量吗?<br>&emsp;<code>publicSelectedKeys</code>这个对象其实是<code>selectedKeys</code>变量的一份副本,你可以在<code>SelectorImpl</code>的构造函数中找到它们俩的关系,我们再回头看一下<code>select</code>中<code>updateSelectedKeys</code>方法.<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">private int updateSelectedKeys() {
-    &#x2F;&#x2F;更新了的keys的个数,或在说是产生的事件的个数
-    int entries = pollWrapper.updated; 
-    int numKeysUpdated = 0;
-    for (int i=0; i&lt;entries; i++) {
-        &#x2F;&#x2F;对应的channel的fd
-        int nextFD = pollWrapper.getDescriptor(i);
-        &#x2F;&#x2F;通过fd找到对应的SelectionKey
-        SelectionKeyImpl ski = fdToKey.get(Integer.valueOf(nextFD));
-        if (ski != null) {
-            int rOps = pollWrapper.getEventOps(i);
-            &#x2F;&#x2F;更新selectedKey变量,并通知响应的channel来做响应的处理
-            if (selectedKeys.contains(ski)) {
-                if (ski.channel.translateAndSetReadyOps(rOps, ski)) {
-                    numKeysUpdated++;
-                }
-            } else {
-                ski.channel.translateAndSetReadyOps(rOps, ski);
-                if ((ski.nioReadyOps() &amp; ski.nioInterestOps()) != 0) {
-                    selectedKeys.add(ski);
-                    numKeysUpdated++;
-                }
-            }
-        }
-    }
-    return numKeysUpdated;
-}
-</code></pre></p>
+<h4 id="selectedKeys方法"><a href="#selectedKeys方法" class="headerlink" title="selectedKeys方法"></a>selectedKeys方法</h4><p>&emsp;我们先来看<code>SelectorImpl</code>中的<code>selectedKeys</code>方法.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//是通过Util.ungrowableSet生成的,不能添加,只能减少</span></span><br><span class="line"><span class="keyword">private</span> Set&lt;SelectionKey&gt; publicSelectedKeys;</span><br><span class="line"><span class="function"><span class="keyword">public</span> Set&lt;SelectionKey&gt; <span class="title">selectedKeys</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    ....</span><br><span class="line">    <span class="keyword">return</span> publicSelectedKeys;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;很奇怪啊,怎麽直接就返回<code>publicSelectedKeys</code>了,难道在<code>select</code>函数的执行过程中有修改过这个变量吗?<br>&emsp;<code>publicSelectedKeys</code>这个对象其实是<code>selectedKeys</code>变量的一份副本,你可以在<code>SelectorImpl</code>的构造函数中找到它们俩的关系,我们再回头看一下<code>select</code>中<code>updateSelectedKeys</code>方法.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">updateSelectedKeys</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">//更新了的keys的个数,或在说是产生的事件的个数</span></span><br><span class="line">    <span class="keyword">int</span> entries = pollWrapper.updated; </span><br><span class="line">    <span class="keyword">int</span> numKeysUpdated = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i=<span class="number">0</span>; i&lt;entries; i++) &#123;</span><br><span class="line">        <span class="comment">//对应的channel的fd</span></span><br><span class="line">        <span class="keyword">int</span> nextFD = pollWrapper.getDescriptor(i);</span><br><span class="line">        <span class="comment">//通过fd找到对应的SelectionKey</span></span><br><span class="line">        SelectionKeyImpl ski = fdToKey.get(Integer.valueOf(nextFD));</span><br><span class="line">        <span class="keyword">if</span> (ski != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">int</span> rOps = pollWrapper.getEventOps(i);</span><br><span class="line">            <span class="comment">//更新selectedKey变量,并通知响应的channel来做响应的处理</span></span><br><span class="line">            <span class="keyword">if</span> (selectedKeys.contains(ski)) &#123;</span><br><span class="line">                <span class="keyword">if</span> (ski.channel.translateAndSetReadyOps(rOps, ski)) &#123;</span><br><span class="line">                    numKeysUpdated++;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                ski.channel.translateAndSetReadyOps(rOps, ski);</span><br><span class="line">                <span class="keyword">if</span> ((ski.nioReadyOps() &amp; ski.nioInterestOps()) != <span class="number">0</span>) &#123;</span><br><span class="line">                    selectedKeys.add(ski);</span><br><span class="line">                    numKeysUpdated++;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> numKeysUpdated;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;看到这里,详细大家都已经了解到了NIO的底层实现了吧.这里我想在说两个问题.<br>&emsp;一是为什么Netty自己又从新实现了一边native相关的NIO底层方法? 听听Netty的创始人是怎麽说的吧<a href="http://stackoverflow.com/questions/23465401/why-native-epoll-support-is-introduced-in-netty" target="_blank" rel="noopener">链接</a><br>&emsp;二是看这么多源码,花费这么多时间有什么作用呢?我感觉如果从非功利的角度来看,那么就是纯粹的希望了解的更多,有时候看完源码或在理解了底层原理之后,都会用一种恍然大悟的感觉,比如说<code>AQS</code>的原理.如果从目的性的角度来看,那么就是你知道底层原理之后,你的把握性就更强了,如果出了问题,你可以更快的找出来,并且解决.除此之外,你还可以按照具体的现实情况,以源码为模板在自己造轮子,实现一个更加符合你当前需求的版本.<br>&emsp;后续如果有时间,我希望好好了解一下epoll的操作系统级别的实现原理.</p>
 
         
@@ -1498,7 +907,7 @@ public Set&lt;SelectionKey&gt; selectedKeys() {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/dbc01bc2/" data-id="ck6531e3e002p6psetw44a5s6" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/dbc01bc2/" data-id="ck6535m7a002t9kseyb9tovbb" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1652,7 +1061,7 @@ ServerBootstrap b = new ServerBootstrap();
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/815dc153/" data-id="ck6531e3e002s6pseig5slr0z" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/815dc153/" data-id="ck6535m78002m9kseyumm3qaw" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1778,62 +1187,22 @@ ServerBootstrap b = new ServerBootstrap();
 <li>Netty的Pool原理,轻量对象池</li>
 </ul>
 <h3 id="Buffer"><a href="#Buffer" class="headerlink" title="Buffer"></a>Buffer</h3><p> Java NIO中的Buffer用于和NIO通道进行交互,数据可以从通道读入缓冲区,也可以从缓冲区写入到通道中.所以说,Buffer其实就是一块可以读写数据的内存,我们将其包装为一个Java对象来提供一系列读写操作.<br> Netty并没有直接使用Java NIO的Buffer实现,而是自己实现了一套Buffer框架来满足自己的业务或者性能需求.</p>
-<h3 id="ByteBuf的基本原理"><a href="#ByteBuf的基本原理" class="headerlink" title="ByteBuf的基本原理"></a>ByteBuf的基本原理</h3><h4 id="读写指针的作用"><a href="#读写指针的作用" class="headerlink" title="读写指针的作用"></a>读写指针的作用</h4><p> 不同于NIO Buffer的读写指针共用原理,ByteBuf拥有<code>readerIndex</code>,<code>writerIndex</code>两个指针.下面我们就来详细的讲解一下ByteBuf的内部原理.<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">     +-------------------+------------------+------------------+
-     | discardable bytes |  readable bytes  |  writable bytes  |
-     |                   |     (CONTENT)    |                  |
-     +-------------------+------------------+------------------+
-     |                   |                  |                  |
-     0      &lt;=      readerIndex   &lt;=   writerIndex    &lt;=    capacity
-</code></pre></p>
+<h3 id="ByteBuf的基本原理"><a href="#ByteBuf的基本原理" class="headerlink" title="ByteBuf的基本原理"></a>ByteBuf的基本原理</h3><h4 id="读写指针的作用"><a href="#读写指针的作用" class="headerlink" title="读写指针的作用"></a>读写指针的作用</h4><p> 不同于NIO Buffer的读写指针共用原理,ByteBuf拥有<code>readerIndex</code>,<code>writerIndex</code>两个指针.下面我们就来详细的讲解一下ByteBuf的内部原理.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">+-------------------+------------------+------------------+</span><br><span class="line">| discardable bytes |  readable bytes  |  writable bytes  |</span><br><span class="line">|                   |     (CONTENT)    |                  |</span><br><span class="line">+-------------------+------------------+------------------+</span><br><span class="line">|                   |                  |                  |</span><br><span class="line">0      &lt;=      readerIndex   &lt;=   writerIndex    &lt;=    capacity</span><br></pre></td></tr></table></figure></p>
 <p> 从示意图中我们可以看出<code>readerIndex</code>和<code>writerIndex</code>最多可以将整个内容空间划分为三块:<code>废弃区</code>,<code>可读区</code>和<code>可写区</code>.下面我们就来看一下不同操作下的两个指针的变化.</p>
 <ul>
 <li><p>在初始化状态下,假设capacity为20,<code>readerIndex</code>和<code>writerIndex</code>都为0,整个空间中只存在可写区.此时只能写,不能读,进行读操作会抛出异常.</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">       +---------------------------------------------------------+
-       |             writable bytes (got more space)             |
-       +---------------------------------------------------------+
-       |                                                         |
- readerIndex(0)
-  writerIndex(0)                   &lt;=                   capacity
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">      +---------------------------------------------------------+</span><br><span class="line">      |             writable bytes (got more space)             |</span><br><span class="line">      +---------------------------------------------------------+</span><br><span class="line">      |                                                         |</span><br><span class="line">readerIndex(0)</span><br><span class="line"> writerIndex(0)                   &lt;=                   capacity</span><br></pre></td></tr></table></figure>
 </li>
 <li><p>写入10个字节的数据,<code>writerIndex</code>指向10,<code>readerIndex</code>不会改变,所有内容空间中有可读区和可写区.大小都是10字节.</p>
 </li>
 </ul>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">       +-------------------+------------------+------------------+
-       |  readable bytes  |  writable bytes                      |
-       |     (CONTENT)    |                                      |
-       +--------- --------+------------------+------------------
-       |                  |                                      |
-     readerIndex(0) &lt;= writerIndex(10)           &lt;=        capacity
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">  +-------------------+------------------+------------------+</span><br><span class="line">  |  readable bytes  |  writable bytes                      |</span><br><span class="line">  |     (CONTENT)    |                                      |</span><br><span class="line">  +--------- --------+------------------+------------------</span><br><span class="line">  |                  |                                      |</span><br><span class="line">readerIndex(0) &lt;= writerIndex(10)           &lt;=        capacity</span><br></pre></td></tr></table></figure>
 <ul>
 <li>读取5个字节的内容,<code>writerIndex</code>不变,<code>readerIndex</code>加5,指向了5.此时内容空间分为了5字节的废弃区,5字节的可读区和10字节的可写区.</li>
 </ul>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">
- +-------------------+------------------+------------------+
- | discardable bytes |  readable bytes  |  writable bytes  |
- |                   |     (CONTENT)    |                  |
- +-------------------+------------------+------------------+
- |                   |                  |                  |
- 0      &lt;=      readerIndex(5)   &lt;=   writerIndex(10)    &lt;=  capacity
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">+-------------------+------------------+------------------+</span><br><span class="line">| discardable bytes |  readable bytes  |  writable bytes  |</span><br><span class="line">|                   |     (CONTENT)    |                  |</span><br><span class="line">+-------------------+------------------+------------------+</span><br><span class="line">|                   |                  |                  |</span><br><span class="line">0      &lt;=      readerIndex(5)   &lt;=   writerIndex(10)    &lt;=  capacity</span><br></pre></td></tr></table></figure>
 <ul>
-<li>调用<code>discardReadBytes</code>方法后,将废弃区的内容舍弃掉,<code>readerIndex</code>又指向了0,<code>writerIndex</code>指向了5,相当于可读区和可写区整体向左平移了5个字节.
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">       +------------------+--------------------------------------+
-       |  readable bytes  |    writable bytes (got more space)   |
-       +------------------+--------------------------------------+
-       |                  |                                      |
-  readerIndex (0) &lt;= writerIndex (5)              &lt;=        capacity
-</code></pre>
+<li>调用<code>discardReadBytes</code>方法后,将废弃区的内容舍弃掉,<code>readerIndex</code>又指向了0,<code>writerIndex</code>指向了5,相当于可读区和可写区整体向左平移了5个字节.<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">     +------------------+--------------------------------------+</span><br><span class="line">     |  readable bytes  |    writable bytes (got more space)   |</span><br><span class="line">     +------------------+--------------------------------------+</span><br><span class="line">     |                  |                                      |</span><br><span class="line">readerIndex (0) &lt;= writerIndex (5)              &lt;=        capacity</span><br></pre></td></tr></table></figure>
 </li>
 </ul>
 <h4 id="零拷贝"><a href="#零拷贝" class="headerlink" title="零拷贝"></a>零拷贝</h4><p> OS层次上<code>Zero-copy</code>,就是在操作数据时,不需要将数据buffer从一个内存区域拷贝到另一个内存区域,因为减少了一次内存的拷贝,因此CPU的效率得到了提升.<br> <code>Netty</code>的<code>zero-copy</code>体现在很多方面.比如Buffer的compose,duplicate,slice操作时不会拷贝底层的数据.而是通过ByteBuf对象的组合来实现上述的操作</p>
@@ -1860,7 +1229,7 @@ ServerBootstrap b = new ServerBootstrap();
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/bf1a30e4/" data-id="ck6531e3c002k6psemmmjsxfx" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/bf1a30e4/" data-id="ck6535m79002q9ksekenp410e" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1988,105 +1357,10 @@ ServerBootstrap b = new ServerBootstrap();
 <h3 id="MVP示例"><a href="#MVP示例" class="headerlink" title="MVP示例"></a>MVP示例</h3><p> 关于MVP架构的实例有很多，比如<a href="https://github.com/googlesamples/android-architecture" target="_blank" rel="noopener">google官方架构</a>。这里我就给出一下我重构项目一个模块的类图，然后大致说一下实现。</p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017312-mvp-webwxgetmsgimg.jpg" alt="webwxgetmsgimg.jpg"></p>
 <p>&emsp;首先定义了<code>BaseView</code>和<code>BasePresenter</code>两个接口，实现了<code>BaseActivity</code>和<code>BaseFragment</code>两个基础类。需要注意的是，因为每个View都需要持有一个特定类型的presenter对象，所以，在<code>BaseView</code>定义时，使用了范型。除此之外，你可以在<code>initPresenter</code>函数中构造出所需要的presenter对象。<code>showLoading</code>和<code>stopLoading</code>函数是所有视图进行网络数据加载时所需要的方法，其具体使用场景后边可以看到，这里这两个接口是在<code>BaseActivity</code>中实现的。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">public interface BaseView&lt;T&gt; {
-    void showLoading();
-    void stopLoading();
-    void initPresnter();
-    T getPresenter();
-}
-
-public interface BasePresenter {
-
-}
-
-public class BaseActivity extends Activity{
-    public void showLoading() {
-    }
-
-    public void stopLoading() {
-    }
-}
-
-public class BaseFragment extends Fragment {
-    public void showLoading() {
-
-    }
-
-    public void stopLoading() {
-
-    }
-}
-</code></pre>
-<p>&emsp;然后是data模块中的相关类和接口的定义。我们在<code>DataContract</code>接口中定义所有相关的view和data。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">public interface DataContract {
-    interface DataView extends BaseView&lt;DataPresenter&gt; {
-        void showFragment(BaseFragment fragment);
-    }
-    interface DataPresenter extends BasePresenter {
-        void switchToDataList();
-        void switchToDataTree();
-    }
-    interface DataListView extends BaseView&lt;DataListPresenter&gt; {
-        void showDataList(List&lt;String&gt; data);
-    }
-    interface DataListPresenter extends BasePresenter {
-        void loadDataList();
-    }
-    interface DataTreeView extends BaseView&lt;DataTreePresenter&gt; {}
-    interface DataTreePresenter extends BasePresenter {}
-}
-</code></pre></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">BaseView</span>&lt;<span class="title">T</span>&gt; </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">showLoading</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">stopLoading</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">initPresnter</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="function">T <span class="title">getPresenter</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">BasePresenter</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BaseActivity</span> <span class="keyword">extends</span> <span class="title">Activity</span></span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">showLoading</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">stopLoading</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BaseFragment</span> <span class="keyword">extends</span> <span class="title">Fragment</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">showLoading</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">stopLoading</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;然后是data模块中的相关类和接口的定义。我们在<code>DataContract</code>接口中定义所有相关的view和data。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">DataContract</span> </span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">interface</span> <span class="title">DataView</span> <span class="keyword">extends</span> <span class="title">BaseView</span>&lt;<span class="title">DataPresenter</span>&gt; </span>&#123;</span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">showFragment</span><span class="params">(BaseFragment fragment)</span></span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="class"><span class="keyword">interface</span> <span class="title">DataPresenter</span> <span class="keyword">extends</span> <span class="title">BasePresenter</span> </span>&#123;</span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">switchToDataList</span><span class="params">()</span></span>;</span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">switchToDataTree</span><span class="params">()</span></span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="class"><span class="keyword">interface</span> <span class="title">DataListView</span> <span class="keyword">extends</span> <span class="title">BaseView</span>&lt;<span class="title">DataListPresenter</span>&gt; </span>&#123;</span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">showDataList</span><span class="params">(List&lt;String&gt; data)</span></span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="class"><span class="keyword">interface</span> <span class="title">DataListPresenter</span> <span class="keyword">extends</span> <span class="title">BasePresenter</span> </span>&#123;</span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">loadDataList</span><span class="params">()</span></span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="class"><span class="keyword">interface</span> <span class="title">DataTreeView</span> <span class="keyword">extends</span> <span class="title">BaseView</span>&lt;<span class="title">DataTreePresenter</span>&gt; </span>&#123;&#125;</span><br><span class="line">    <span class="class"><span class="keyword">interface</span> <span class="title">DataTreePresenter</span> <span class="keyword">extends</span> <span class="title">BasePresenter</span> </span>&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>&emsp;在<code>DataContract</code>接口中，我们可以清晰的看到这个模块中所有的view和presenter类型和他们的接口。这样无疑可以帮助其他程序员快速了解本模块的业务逻辑。下面，我们来看一下<code>DataListFragmnet</code>和<code>DataListPresenter</code>的实现。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">public class DataListFragment extends BaseFragment implements DataContract.DataListView {
-    private DataContract.DataListPresenter mPresenter;
-    @Override
-    public void initPresnter() {
-        mPresenter = new DataListPresenter(this);
-    }
-    @Override
-    public DataContract.DataListPresenter getPresenter() {
-        return mPresenter;
-    }
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        initPresnter();
-        &#x2F;&#x2F;需要加载数据或者接收到界面点击事件时，调用presenter接口进行初始化或者响应。
-        mPresenter.loadDataList();
-    }
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_data_list, container, false);
-    }
-    @Override
-    public void showDataList(List&lt;String&gt; data) {
-        &#x2F;&#x2F;将数据传给adapter等数据展示的视图
-    }
-}
-
-public class DataListPresenter implements DataContract.DataListPresenter {
-    private DataContract.DataListView mView;
-    public DataListPresenter(DataContract.DataListView view) {
-        super();
-        this.mView = view;
-    }
-
-    @Override
-    public void loadDataList() {
-        &#x2F;&#x2F;调用baseview的接口，这些接口实现在baseFragment或者BaseActivity中
-        mView.showLoading();
-        &#x2F;&#x2F;getdata from network
-        mView.stopLoading();
-        mView.showDataList(Arrays.asList(&quot;a&quot;,&quot;b&quot;,&quot;c&quot;));
-    }
-}
-</code></pre>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DataListFragment</span> <span class="keyword">extends</span> <span class="title">BaseFragment</span> <span class="keyword">implements</span> <span class="title">DataContract</span>.<span class="title">DataListView</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> DataContract.DataListPresenter mPresenter;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">initPresnter</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        mPresenter = <span class="keyword">new</span> DataListPresenter(<span class="keyword">this</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> DataContract.<span class="function">DataListPresenter <span class="title">getPresenter</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> mPresenter;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onCreate</span><span class="params">(Bundle savedInstanceState)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">super</span>.onCreate(savedInstanceState);</span><br><span class="line">        initPresnter();</span><br><span class="line">        <span class="comment">//需要加载数据或者接收到界面点击事件时，调用presenter接口进行初始化或者响应。</span></span><br><span class="line">        mPresenter.loadDataList();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> View <span class="title">onCreateView</span><span class="params">(LayoutInflater inflater, ViewGroup container,</span></span></span><br><span class="line"><span class="function"><span class="params">                             Bundle savedInstanceState)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> inflater.inflate(R.layout.fragment_data_list, container, <span class="keyword">false</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">showDataList</span><span class="params">(List&lt;String&gt; data)</span> </span>&#123;</span><br><span class="line">        <span class="comment">//将数据传给adapter等数据展示的视图</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DataListPresenter</span> <span class="keyword">implements</span> <span class="title">DataContract</span>.<span class="title">DataListPresenter</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> DataContract.DataListView mView;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">DataListPresenter</span><span class="params">(DataContract.DataListView view)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">super</span>();</span><br><span class="line">        <span class="keyword">this</span>.mView = view;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">loadDataList</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="comment">//调用baseview的接口，这些接口实现在baseFragment或者BaseActivity中</span></span><br><span class="line">        mView.showLoading();</span><br><span class="line">        <span class="comment">//getdata from network</span></span><br><span class="line">        mView.stopLoading();</span><br><span class="line">        mView.showDataList(Arrays.asList(<span class="string">"a"</span>,<span class="string">"b"</span>,<span class="string">"c"</span>));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>&emsp;上述代码中有很多可以好好思考的地方。首先是<code>showLoading</code>和<code>stopLoading</code>这两个函数。这两个函数接口定义在<code>BaseView</code>,实现在<code>BaseFragment</code>，所以当<code>DataListFragment</code>继承了<code>BaseFragment</code>并且实现了<code>BaseView</code>时，它并不需要再次定义上述两个接口，毕竟在一个app中，网络加载时的laoding动画一般都是一致的。然后是view和presenter之间函数调用的问题。首先，view在需要初始化或者需要处理点击事件时，需要调用presenter的函数，而不是自己来进行处理。而且二者之间的数据传递必须是presenter调用view的接口传递给view数据，而不是view调用presenter接口获得数据然后自己展示。</p>
 <h3 id="MVP实践中的问题和思考"><a href="#MVP实践中的问题和思考" class="headerlink" title="MVP实践中的问题和思考"></a>MVP实践中的问题和思考</h3><p>&emsp;在实现MVP的过程中，我发现有些模块的代码很容易重构为MVP模式，而有些模块的代码却需要花费大量的时间。那些难重构的模块的所有代码都写在了Activity类中，而那些容易重构的模块已经做了逻辑代码和视图代码的分离。可以说，MVP模式不就是将视图和逻辑分离嘛，你不使用MVP模式，也可以按照自己的理解进行良好的设计。但是，当一个团队开发项目时，问题就变得不同了。不同程序员的水平有一定差异，你无法通过他们的水平来确保他们代码都是良好设计的。<strong>你必须通过MVP模式来强制他们去思考如何分离界面和逻辑,否则，他们估计会把所有代码都写在Activity类中</strong>。我认为这是所谓模式和框架的第一层好处，也就是<strong>强迫程序员使用一个种良好的思维方式去思考如何进行代码组织</strong>。<br>&emsp;第二点的思考是，模式其实就是良好的代码思考的结晶，如何写出内聚的函数？如何写入内聚的类？如何让模块之间耦合小？如何命名？很多模式都是对这些问题思考结果的总和。<br>&emsp;如果大家对MVP或者移动开发框架有什么思考，欢迎在文章底下进行评论。</p>
 
@@ -2099,7 +1373,7 @@ public class DataListPresenter implements DataContract.DataListPresenter {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/eca06a79/" data-id="ck6531e51005v6pseehfub5h5" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/eca06a79/" data-id="ck6535m8y00609ksepysiet8z" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2259,7 +1533,7 @@ public class DataListPresenter implements DataContract.DataListPresenter {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/b3904609/" data-id="ck6531e4u005f6pse3456r511" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/b3904609/" data-id="ck6535m8q005h9kseyh05ftnp" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2388,13 +1662,7 @@ public class DataListPresenter implements DataContract.DataListPresenter {
 <p>&emsp;然后点击个人应用中心按钮，等待个人中心页面显示出来，然后再次点击那个按钮，DDMS就会自动显示出如图2的界面。</p>
 <p>&emsp;第一种方法很方便，但是精准度不够，当你希望有更加精确的检测时，你就可以使用第二种方法。在你要检测的代码过程中开始调用<code>android.os.Debug.startMethodTracing()</code>方法,然后在过程的末尾调用<code>android.os.Debug.stopMethodTracing()</code>方法。等到这段代码执行完之后，系统就会在手机的<code>/sdcard</code>文件夹下生成一个trace文件。你可以使用DDMS或者adb将其复制到你的电脑上，然后用DDMS工具打开。<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/20161231-tools-data.png" alt="图2:TraceView数据展示"></p>
 <h3 id="TraceView各项数据分析"><a href="#TraceView各项数据分析" class="headerlink" title="TraceView各项数据分析"></a>TraceView各项数据分析</h3><p>&emsp;我很久之前就接触过TraceView，但是当时并没有完全理解它所展示的所有数据的具体含义，没有感受到它的强大之处。下面，我总结一下它的各项数据的含义和自己的理解。<br>&emsp;首先，我们可以看到一行表头，其中不同的项代表不同的内容。我们接下来一一进行解释。</p>
-<h4 id="Incl-Cpu-Time"><a href="#Incl-Cpu-Time" class="headerlink" title="Incl Cpu Time"></a>Incl Cpu Time</h4><p><code>Incl Cpu Time</code>表示这个函数从开始被执行到执行结束的时间。这个时间包括这个函数中调用其他函数所花费的时间。也就是说，这个函数和函数中所有子函数的一共执行时间。举个例子：<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">  public void example() {
-    a();
-    b();
-  }
-</code></pre></p>
+<h4 id="Incl-Cpu-Time"><a href="#Incl-Cpu-Time" class="headerlink" title="Incl Cpu Time"></a>Incl Cpu Time</h4><p><code>Incl Cpu Time</code>表示这个函数从开始被执行到执行结束的时间。这个时间包括这个函数中调用其他函数所花费的时间。也就是说，这个函数和函数中所有子函数的一共执行时间。举个例子：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">public void example() &#123;</span><br><span class="line">  a();</span><br><span class="line">  b();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>&emsp;<code>Incl Cpu Time</code>就表示<code>example</code>函数执行的总时间，假如说<code>example</code>方法执行的时间为10ms,函数a执行了3ms,方法b执行了６ms，调用<code>example</code>方法的函数执行的总时间为100ms。最终计算出来的<code>Incl Cpu Time</code>比率为：</p>
 <ul>
 <li>example 10%</li>
@@ -2422,7 +1690,7 @@ public class DataListPresenter implements DataContract.DataListPresenter {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/e21717d9/" data-id="ck6531e2o00106psemcboxkga" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/e21717d9/" data-id="ck6535m6m00129kseoep1uomv" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2499,7 +1767,7 @@ public class DataListPresenter implements DataContract.DataListPresenter {
 
 
     <nav id="page-nav">
-        <a class="extend prev" rel="prev" href="/page/4/">&laquo; Anterior</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><a class="page-number" href="/page/4/">4</a><span class="page-number current">5</span><a class="page-number" href="/page/6/">6</a><a class="page-number" href="/page/7/">7</a><span class="space">&hellip;</span><a class="page-number" href="/page/9/">9</a><a class="extend next" rel="next" href="/page/6/">Siguiente  &raquo;</a>
+        <a class="extend prev" rel="prev" href="/page/4/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><a class="page-number" href="/page/4/">4</a><span class="page-number current">5</span><a class="page-number" href="/page/6/">6</a><a class="page-number" href="/page/7/">7</a><span class="space">&hellip;</span><a class="page-number" href="/page/9/">9</a><a class="extend next" rel="next" href="/page/6/">Next &raquo;</a>
     </nav>
 </section>
             
@@ -2508,7 +1776,7 @@ public class DataListPresenter implements DataContract.DataListPresenter {
    
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Recientes</h3>
+        <h3 class="widget-title">recent</h3>
         <div class="widget">
             <ul id="recent-post" class="">
                 
@@ -2614,7 +1882,7 @@ public class DataListPresenter implements DataContract.DataListPresenter {
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Categorias</h3>
+        <h3 class="widget-title">categories</h3>
         <div class="widget">
             <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">25</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MySQL/">MySQL</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Netty/">Netty</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Redis/">Redis</a><span class="category-list-count">16</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SICP/">SICP</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/docker/">docker</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/java-persistent/">java persistent</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/plan/">plan</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">2</span></li></ul>
         </div>
@@ -2623,7 +1891,7 @@ public class DataListPresenter implements DataContract.DataListPresenter {
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Archivos</h3>
+        <h3 class="widget-title">archives</h3>
         <div class="widget">
             <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
         </div>
@@ -2632,7 +1900,7 @@ public class DataListPresenter implements DataContract.DataListPresenter {
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Nube de etiquetas</h3>
+        <h3 class="widget-title">tag cloud</h3>
         <div class="widget tagcloud">
             <a href="/tags/AOP/" style="font-size: 15px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 20px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/Netty/" style="font-size: 20px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 15px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 15px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 20px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 15px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/persistent/" style="font-size: 15px;">persistent</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 15px;">第三方库</a> <a href="/tags/算法/" style="font-size: 20px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 15px;">限流</a>
         </div>
@@ -2641,7 +1909,7 @@ public class DataListPresenter implements DataContract.DataListPresenter {
     
         
     <div class="widget-wrap widget-list">
-        <h3 class="widget-title">Links</h3>
+        <h3 class="widget-title">links</h3>
         <div class="widget">
             <ul>
                 

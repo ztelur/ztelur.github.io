@@ -35,18 +35,27 @@
     
     
     
-        <script type="text/javascript">
-(function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
-(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-ga('create', 'UA-118574570-1', 'auto');
-ga('send', 'pageview');
-
+    
+    
+        <script>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
 </script>
-    
-    
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
     
 
 
@@ -90,7 +99,7 @@ ga('send', 'pageview');
             <div id="search-form-wrap">
 
     <form class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
         <button type="submit" class="search-form-submit"></button>
     </form>
     <div class="ins-search">
@@ -109,10 +118,10 @@ ga('send', 'pageview');
 (function (window) {
     var INSIGHT_CONFIG = {
         TRANSLATION: {
-            POSTS: 'Entradas',
+            POSTS: 'Posts',
             PAGES: 'Pages',
-            CATEGORIES: 'Categorias',
-            TAGS: 'Etiquetas',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
             UNTITLED: '(Untitled)',
         },
         ROOT_URL: '/',
@@ -145,7 +154,7 @@ ga('send', 'pageview');
                 <td>
                     
     <div class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
     </div>
 
                 </td>
@@ -171,11 +180,11 @@ ga('send', 'pageview');
         <div class="article-info profile-block">
             <div class="article-info-block">
                 90
-                <span>Entradas</span>
+                <span>posts</span>
             </div>
             <div class="article-info-block">
                 61
-                <span>Etiquetas</span>
+                <span>tags</span>
             </div>
         </div>
         
@@ -277,94 +286,15 @@ ga('send', 'pageview');
 </ul>
 <p> 大家会发现，为什么<code>onMeasure</code>先调用了两次，然后再调用<code>onLayout</code>函数，最后还有在依次调用<code>onMeasure</code>,<code>onLayout</code>和<code>onDraw</code>函数呢？</p>
 <h4 id="ViewGroup的measure"><a href="#ViewGroup的measure" class="headerlink" title="ViewGroup的measure"></a>ViewGroup的measure</h4><p> 大家应该都知道，有些<code>ViewGroup</code>可能会让自己的子视图测量两次。比如说，父视图先让每个子视图自己测量，使用<code>View.MeasureSpec.UNSPECIFIED</code>，然后在根据每个子视图希望得到的大小不超过父视图的一些限制，就让子视图得到自己希望的大小，否则就用其他尺寸来重新测量子视图。这一类的视图有<code>FrameLayout</code>,<code>RelativeLayout</code>等。<br> 在《Android视图结构》中，我们已经知道Android视图树的根节点是<code>DecorView</code>,而它是<code>FrameLayout</code>的子类，所以就会让其子视图绘制两次，所以<code>onMeasure</code>函数会先被调用两次。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">&#x2F;&#x2F; FrameLayout的onMeasure函数，DecorView的onMeasure会调用这个函数。
-@Override
-protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-    int count = getChildCount();
-    .....
-    for (int i = 0; i &lt; count; i++) {
-        final View child = getChildAt(i);
-        if (mMeasureAllChildren || child.getVisibility() != GONE) {
-            measureChildWithMargins(child, widthMeasureSpec, 0, heightMeasureSpec, 0);
-            ......
-        }
-    }
-    ........
-    count = mMatchParentChildren.size();
-    if (count &gt; 1) {
-        for (int i = 0; i &lt; count; i++) {
-            ........
-            child.measure(childWidthMeasureSpec, childHeightMeasureSpec);
-        }
-    }
-}
-</code></pre>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// FrameLayout的onMeasure函数，DecorView的onMeasure会调用这个函数。</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onMeasure</span><span class="params">(<span class="keyword">int</span> widthMeasureSpec, <span class="keyword">int</span> heightMeasureSpec)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> count = getChildCount();</span><br><span class="line">    .....</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; count; i++) &#123;</span><br><span class="line">        <span class="keyword">final</span> View child = getChildAt(i);</span><br><span class="line">        <span class="keyword">if</span> (mMeasureAllChildren || child.getVisibility() != GONE) &#123;</span><br><span class="line">            measureChildWithMargins(child, widthMeasureSpec, <span class="number">0</span>, heightMeasureSpec, <span class="number">0</span>);</span><br><span class="line">            ......</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ........</span><br><span class="line">    count = mMatchParentChildren.size();</span><br><span class="line">    <span class="keyword">if</span> (count &gt; <span class="number">1</span>) &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; count; i++) &#123;</span><br><span class="line">            ........</span><br><span class="line">            child.measure(childWidthMeasureSpec, childHeightMeasureSpec);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>&emsp;你以为到了这里就能解释通View初始化时的三次measure,两次layout却只一次draw吗？那你就太天真了！我们都知道，视图结构中不仅仅是<code>DecorView</code>是<code>FrameLayout</code>,还有其他的需要两次measure子视图的<code>ViewGroup</code>,如果每次都导致子视图两次measure,那效率就太低了。所以<code>View</code>的<code>measure</code>函数中有相关的机制来防止这种情况。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">
-public final void measure(int widthMeasureSpec, int heightMeasureSpec) {
-  ......
-  &#x2F;&#x2F; 当FLAG_FORCE_LAYOUT位为１时，就是当前视图请求一次布局操作
-  &#x2F;&#x2F;或者当前当前widthSpec和heightSpec不等于上次调用时传入的参数的时候
-  &#x2F;&#x2F;才进行从新绘制。
-    if (forceLayout || !matchingSize &amp;&amp;
-            (widthMeasureSpec != mOldWidthMeasureSpec ||
-                    heightMeasureSpec != mOldHeightMeasureSpec)) {
-            ......
-            onMeasure(widthMeasureSpec, heightMeasureSpec);
-            ......
-    }
-    ......
-}
-</code></pre>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">measure</span><span class="params">(<span class="keyword">int</span> widthMeasureSpec, <span class="keyword">int</span> heightMeasureSpec)</span> </span>&#123;</span><br><span class="line">  ......</span><br><span class="line">  <span class="comment">// 当FLAG_FORCE_LAYOUT位为１时，就是当前视图请求一次布局操作</span></span><br><span class="line">  <span class="comment">//或者当前当前widthSpec和heightSpec不等于上次调用时传入的参数的时候</span></span><br><span class="line">  <span class="comment">//才进行从新绘制。</span></span><br><span class="line">    <span class="keyword">if</span> (forceLayout || !matchingSize &amp;&amp;</span><br><span class="line">            (widthMeasureSpec != mOldWidthMeasureSpec ||</span><br><span class="line">                    heightMeasureSpec != mOldHeightMeasureSpec)) &#123;</span><br><span class="line">            ......</span><br><span class="line">            onMeasure(widthMeasureSpec, heightMeasureSpec);</span><br><span class="line">            ......</span><br><span class="line">    &#125;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>&emsp;源码看到这里，我几乎失望的眼泪掉下来！没办法，只能再想其他的方法来分析这个问题。</p>
 <h4 id="断点调试大法好"><a href="#断点调试大法好" class="headerlink" title="断点调试大法好"></a>断点调试大法好</h4><p>&emsp;为了分析函数调用的层级关系，我想到了断点调试法。于是，我果断在<code>onMeasure</code>和<code>onLayout</code>函数中设置了断点，然后进行调试。</p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20161030-blog-measure1.png" alt="函数调用帧"></p>
 <p>&emsp;在《Android视图架构》一文中，我们知道<code>ViewRoot</code>是<code>DecorView</code>的父视图，虽然它自己并不是一个<code>View</code>，但是它实现了<code>ViewParent</code>的接口，Android正是通过它来实现整个视图系统的初始化工作。而它的<code>performTraversals</code>函数就是视图初始化的关键函数。<br>&emsp;对比两次<code>onMeasure</code>被调用时的函数调用帧，我们可以轻易发现<code>ViewRootImpl</code>的<code>performTraversals</code>函数中直接和间接的调用了两次<code>performMeasure</code>函数，从而导致了<code>View</code>最开始的两次measure过程。<br>&emsp;然后在相同的<code>performTraversals</code>函数中会调用<code>performLayout</code>函数，从而导致<code>View</code>进行一轮layout过程。<br>&emsp;但是为什么这次<code>performTraversals</code>并没有触发<code>View</code>的draw过程呢?反而是<code>View</code>又将重新进行一轮measure,layout过程之后才进行draw。</p>
 <h4 id="两次performTraversals"><a href="#两次performTraversals" class="headerlink" title="两次performTraversals"></a>两次performTraversals</h4><p>&emsp;通过断点调试，我们发现在<code>View</code>初始化的过程中，系统调用了两次<code>performTraversals</code>函数，第一次<code>performTraversals</code>函数导致了View的前两次的<code>onMeasure</code>函数调用和第一次的<code>onLayout</code>函数调用。后一次的<code>performTraversals</code>函数导致了最后的<code>onMeasure</code>,<code>onLayout</code>,和<code>onDraw</code>函数的调用。但是，第二次<code>performTraversals</code>为什么会被触发呢？我们研究一下其源码就可知道。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">
-private void performTraversals() {
-    ......
-    boolean newSurface = false;
-    &#x2F;&#x2F;TODO:决定是否让newSurface为true,导致后边是否让performDraw无法被调用，而是重新scheduleTraversals
-    if (!hadSurface) {
-        if (mSurface.isValid()) {
-            &#x2F;&#x2F; If we are creating a new surface, then we need to
-            &#x2F;&#x2F; completely redraw it.  Also, when we get to the
-            &#x2F;&#x2F; point of drawing it we will hold off and schedule
-            &#x2F;&#x2F; a new traversal instead.  This is so we can tell the
-            &#x2F;&#x2F; window manager about all of the windows being displayed
-            &#x2F;&#x2F; before actually drawing them, so it can display then
-            &#x2F;&#x2F; all at once.
-            newSurface = true;
-                    .....
-        }
-    }
-            ......
-    if (!cancelDraw &amp;&amp; !newSurface) {
-        if (!skipDraw || mReportNextDraw) {
-            ......
-            performDraw();
-        }
-    } else {
-        if (viewVisibility == View.VISIBLE) {
-            &#x2F;&#x2F; Try again
-            scheduleTraversals();
-        } else if (mPendingTransitions != null &amp;&amp; mPendingTransitions.size() &gt; 0) {
-            for (int i = 0; i &lt; mPendingTransitions.size(); ++i) {
-                mPendingTransitions.get(i).endChangingAnimations();
-            }
-            mPendingTransitions.clear();
-        }
-    }
-    ......
-}
-</code></pre>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">performTraversals</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    ......</span><br><span class="line">    <span class="keyword">boolean</span> newSurface = <span class="keyword">false</span>;</span><br><span class="line">    <span class="comment">//<span class="doctag">TODO:</span>决定是否让newSurface为true,导致后边是否让performDraw无法被调用，而是重新scheduleTraversals</span></span><br><span class="line">    <span class="keyword">if</span> (!hadSurface) &#123;</span><br><span class="line">        <span class="keyword">if</span> (mSurface.isValid()) &#123;</span><br><span class="line">            <span class="comment">// If we are creating a new surface, then we need to</span></span><br><span class="line">            <span class="comment">// completely redraw it.  Also, when we get to the</span></span><br><span class="line">            <span class="comment">// point of drawing it we will hold off and schedule</span></span><br><span class="line">            <span class="comment">// a new traversal instead.  This is so we can tell the</span></span><br><span class="line">            <span class="comment">// window manager about all of the windows being displayed</span></span><br><span class="line">            <span class="comment">// before actually drawing them, so it can display then</span></span><br><span class="line">            <span class="comment">// all at once.</span></span><br><span class="line">            newSurface = <span class="keyword">true</span>;</span><br><span class="line">                    .....</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">            ......</span><br><span class="line">    <span class="keyword">if</span> (!cancelDraw &amp;&amp; !newSurface) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!skipDraw || mReportNextDraw) &#123;</span><br><span class="line">            ......</span><br><span class="line">            performDraw();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (viewVisibility == View.VISIBLE) &#123;</span><br><span class="line">            <span class="comment">// Try again</span></span><br><span class="line">            scheduleTraversals();</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (mPendingTransitions != <span class="keyword">null</span> &amp;&amp; mPendingTransitions.size() &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; mPendingTransitions.size(); ++i) &#123;</span><br><span class="line">                mPendingTransitions.get(i).endChangingAnimations();</span><br><span class="line">            &#125;</span><br><span class="line">            mPendingTransitions.clear();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>&emsp;由源代码可以看出，当<code>newSurface</code>为真时，<code>performTraversals</code>函数并不会调用<code>performDraw</code>函数，而是调用<code>scheduleTraversals</code>函数，从而再次调用一次<code>performTraversals</code>函数，从而再次进行一次测量，布局和绘制过程。<br>&emsp;我们由断点调试可以轻易看到，第一次<code>performTraversals</code>时的<code>newSurface</code>为真，而第二次时是假。</p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20161030-%E7%AC%AC%E4%B8%80%E6%AC%A1.png" alt="断点调试截图"></p>
 <h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>&emsp;虽然我已经通过源码得知View初始化时measure三次，layout两次，draw一次的原因，但是Android系统设计时，为什么要将整个初始化过程设计成这样？我却还没有明白，为什么当<code>Surface</code>为新的时候，要推迟绘制，重新进行一轮初始化，这些可能都要涉及到<code>Surface</code>的相关内容，我之后要继续学习相关内容！</p>
@@ -378,7 +308,7 @@ private void performTraversals() {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/251abaf9/" data-id="ck6531e4n00526pse080zt0yo" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/251abaf9/" data-id="ck6535m8i00549kseo2xff0qw" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -581,7 +511,7 @@ private void performTraversals() {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/fd3a41af/" data-id="ck6531e5p007s6psehjnyxf8h" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/fd3a41af/" data-id="ck6535m9n007u9kse9gs7hc2q" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -701,45 +631,12 @@ private void performTraversals() {
         
             
             <p>&emsp;之前一段时间，我都在研究Android自定义View的相关知识，随着逐渐的深入，渐渐了解到了一些Android图像处理的知识，主要是<code>Bitmap</code>,<code>Canvas</code>,<code>Shader</code>,<code>Matric</code>,<code>ColorFilter</code>和<code>Xfermode</code>的使用。所以准备写一系列文章介绍一下这些方面的知识。</p>
-<h4 id="图像处理相关概念介绍"><a href="#图像处理相关概念介绍" class="headerlink" title="图像处理相关概念介绍"></a>图像处理相关概念介绍</h4><p>&emsp;要想了解Shader的概念，首先要了解Android图像处理中几个比较重要的概念：bitmap,canvas,drawing primitive,paint。需要注意的是，上述四个词并不指android中的类，而是四个概念。<br>&emsp;bitmap指画布。画家画图时都需要一块画布，然后才会在画布上绘制各种形状和颜色，Android中的<code>Bitmap</code>就有画布的功能。比如下面这段代码。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">
-    static Bitmap makeSrc(int w,int h) {
-            Bitmap bm = Bitmap.createBitmap(w,h, Bitmap.Config.ARGB_8888);
-            Canvas c = new Canvas(bm);
-            Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-    
-            p.setColor(0xFF66AAFF);
-            c.drawRect(100,100,100,100,p);
-            return bm;
-
-}
-</code></pre></p>
+<h4 id="图像处理相关概念介绍"><a href="#图像处理相关概念介绍" class="headerlink" title="图像处理相关概念介绍"></a>图像处理相关概念介绍</h4><p>&emsp;要想了解Shader的概念，首先要了解Android图像处理中几个比较重要的概念：bitmap,canvas,drawing primitive,paint。需要注意的是，上述四个词并不指android中的类，而是四个概念。<br>&emsp;bitmap指画布。画家画图时都需要一块画布，然后才会在画布上绘制各种形状和颜色，Android中的<code>Bitmap</code>就有画布的功能。比如下面这段代码。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">static</span> Bitmap <span class="title">makeSrc</span><span class="params">(<span class="keyword">int</span> w,<span class="keyword">int</span> h)</span> </span>&#123;</span><br><span class="line">            Bitmap bm = Bitmap.createBitmap(w,h, Bitmap.Config.ARGB_8888);</span><br><span class="line">            Canvas c = <span class="keyword">new</span> Canvas(bm);</span><br><span class="line">            Paint p = <span class="keyword">new</span> Paint(Paint.ANTI_ALIAS_FLAG);</span><br><span class="line">    </span><br><span class="line">            p.setColor(<span class="number">0xFF66AAFF</span>);</span><br><span class="line">            c.drawRect(<span class="number">100</span>,<span class="number">100</span>,<span class="number">100</span>,<span class="number">100</span>,p);</span><br><span class="line">            <span class="keyword">return</span> bm;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>&emsp;Bitmap这里就充当一个画布的作用，之后Canvas的操作都是在这个Bitmap画布进行绘制。<br>&emsp;canvas是绘制操作的集合，你可以把它理解成画家的手，通过它你可以在画布上绘制各种图像和颜色。相应的在Android的<code>Canvas</code>类中就封装了绘制相关的各种操作，比如<code>drawXXX</code>系列。<br>&emsp;drawing primitive指绘制实体或者原始内容，比如画家绘画时可能会画一个苹果，也可能只是绘制一些线段，矩形等。这些都是绘制实体。在Android中，<code>Path</code>,<code>Rect</code>,<code>Text</code>,<code>Bitmap</code>都可以充当drawing primitive的角色，因为你都可以把它们绘制到画布上。你也可以这样理解，<code>Canvas</code>中的<code>drawXXX</code>系列函数中的XXX都是指drawing primitive。<br>&emsp;paint就是指画家的神奇画笔啦。Android中的<code>Paint</code>类就充当这个角色，我们可以通过<code>Paint</code>来配置画笔的颜色，粗细，纹理等。我们系列文章主要讲解的<code>Shader</code>,<code>ColorFilter</code>,<code>Xfermode</code>三个类都和<code>Paint</code>直接相关。</p>
-<h4 id="Shader概念介绍"><a href="#Shader概念介绍" class="headerlink" title="Shader概念介绍"></a>Shader概念介绍</h4><p>&emsp;Shader,也就是所谓的着色器。它应用于计算机图形学领域，指一组提供计算机图像资源在执行绘制任务时使用的指令，<strong>用于计算图像的颜色和明暗</strong>。从技术角度来看，着色器是渲染器的一部分，它负责计算目标的颜色。以我的理解，<code>Paint</code>就是渲染器，<code>Paint.setShader</code>这个函数展示了着色器和渲染器之间的关系。下面这段代码显示了<code>Shader</code>的使用方式。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">
-    String text = &quot;Shader&quot;;
-    Bitmap bitmap = BitmapFactory.decodeResource(getResources(),R.drawable.photo);
-    BitmapShader bitmapShader = new BitmapShader(bitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
-    Paint paint = new Paint();
-    paint.setShader(bitmapShader);
-    paint.setTextSize(100);
-    paint.setStrokeWidth(50);
-    canvas.drawText(text,0,text.length(),150,400,paint);
-</code></pre></p>
+<h4 id="Shader概念介绍"><a href="#Shader概念介绍" class="headerlink" title="Shader概念介绍"></a>Shader概念介绍</h4><p>&emsp;Shader,也就是所谓的着色器。它应用于计算机图形学领域，指一组提供计算机图像资源在执行绘制任务时使用的指令，<strong>用于计算图像的颜色和明暗</strong>。从技术角度来看，着色器是渲染器的一部分，它负责计算目标的颜色。以我的理解，<code>Paint</code>就是渲染器，<code>Paint.setShader</code>这个函数展示了着色器和渲染器之间的关系。下面这段代码显示了<code>Shader</code>的使用方式。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">String text = <span class="string">"Shader"</span>;</span><br><span class="line">Bitmap bitmap = BitmapFactory.decodeResource(getResources(),R.drawable.photo);</span><br><span class="line">BitmapShader bitmapShader = <span class="keyword">new</span> BitmapShader(bitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);</span><br><span class="line">Paint paint = <span class="keyword">new</span> Paint();</span><br><span class="line">paint.setShader(bitmapShader);</span><br><span class="line">paint.setTextSize(<span class="number">100</span>);</span><br><span class="line">paint.setStrokeWidth(<span class="number">50</span>);</span><br><span class="line">canvas.drawText(text,<span class="number">0</span>,text.length(),<span class="number">150</span>,<span class="number">400</span>,paint);</span><br></pre></td></tr></table></figure></p>
 <p>&emsp;上边的代码片段使用了<code>BitmapShader</code>，也就是说使用图片上相应位置的颜色进行着色。就相当于使用这个图片作为背景，字体颜色是透明色，字体在(150,400)位置进行绘制，字体最终显示的颜色就是图片中相应位置的颜色。<br>&emsp;<code>Shader.TileMode</code>是指平铺模式，一共有三种类型：<code>CLAMP</code>,<code>MIRROR</code>,<code>REPEAT</code>。构造函数中后两个参数分别规定了当绘制实体的x或ｙ轴范围超过一定范围时(比如<code>BitmapShader</code>中<code>Bitmap</code>的大小，<code>LinearGradient</code>中构造函数传入的x,y值)，着色器填充的行为。我们以<code>BitmapShader</code>为例，来讲述三种模式的区别。原图如下所示，来自于<a href="http://www.cnblogs.com/tianzhijiexian/p/4298660.html" target="_blank" rel="noopener">这个博客</a>。</p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-img.png" alt="使用的bitmap原图"></p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">
-    Bitmap bitmap = BitmapFactory.decodeResource(getResources(),R.drawable.img);
-    BitmapShader bitmapShader = new BitmapShader(bitmap, Shader.TileMode.XXX, Shader.TileMode.XXXX);
-    Paint paint = new Paint();
-    paint.setShader(bitmapShader);
-    canvas.drawColor(Color.GRAY);
-    canvas.drawRect(0,0,800,800,paint);
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">Bitmap bitmap = BitmapFactory.decodeResource(getResources(),R.drawable.img);</span><br><span class="line">BitmapShader bitmapShader = new BitmapShader(bitmap, Shader.TileMode.XXX, Shader.TileMode.XXXX);</span><br><span class="line">Paint paint = new Paint();</span><br><span class="line">paint.setShader(bitmapShader);</span><br><span class="line">canvas.drawColor(Color.GRAY);</span><br><span class="line">canvas.drawRect(0,0,800,800,paint);</span><br></pre></td></tr></table></figure>
 <p>&emsp;<code>Shader.TileMode.CLAMP</code>是边缘拉伸模式，它会拉伸边缘的一个像素来填充其他区域。效果图如下所示，我们可以看到，超出bitmap大小的范围都被图片边缘的颜色所填充。</p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-clamp.png" alt="clamp效果图"></p>
 <p>&emsp;<code>Shader.TileMode.MIRROR</code>是镜像模式，也就是说它通过镜像变化来填充其他区域。需要注意的是，<strong>TileMode是先处理y轴方向的操作，然后在进行x轴方向的操作。也就是说先进行y轴方向的镜像操作，然后在进行x轴方向上的镜像操作</strong>。不过我觉得好像先进行哪个方向上的操作并没有什么区别，最终效果是一样的。其效果图如下所示:<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-mirror.png" alt="mirror效果图"><br>&emsp;<code>Shader.TileMode.REPEAT</code>是重复模式，通过复制来填充其他区域<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-repeta.png" alt="repeat效果图"><br>&emsp;你也可以对x,y轴使用不同的<code>TileMode</code>,可以得到不同的效果。<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-clammirror.png" alt="clamp+mirro效果图"></p>
@@ -760,11 +657,7 @@ private void performTraversals() {
             int centerColor, int edgeColor, TileMode tileMode)</code></p>
 </blockquote>
 <p>&emsp;在构造函数的参数中，(centerX,centerY)表示径向渐变中的圆点，radius表示圆的半径长度，centerColor表示圆点颜色，edgeColor表示圆周颜色，titleMode表示平铺模式，<strong>它的作用方向是沿着半径方向</strong>。下图就是一个有红色到黄色的径向渐变，平铺模式为CLAMP,所以超出圆周的范围的点的颜色就都是圆周的颜色黄色。<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/201608026-shader-radialgradient.png" alt="radialsweep"></p>
-<h4 id="ComposeShader"><a href="#ComposeShader" class="headerlink" title="ComposeShader"></a>ComposeShader</h4><p>&emsp;<code>ComposeShader</code>用来组合不同的Shader,可以将两个不同的Shader组合在一起，它有两个构造函数:<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">ComposeShader (Shader shaderA, Shader shaderB, Xfermode mode)  
-ComposeShader (Shader shaderA, Shader shaderB, PorterDuff.Mode mode)  
-</code></pre></p>
+<h4 id="ComposeShader"><a href="#ComposeShader" class="headerlink" title="ComposeShader"></a>ComposeShader</h4><p>&emsp;<code>ComposeShader</code>用来组合不同的Shader,可以将两个不同的Shader组合在一起，它有两个构造函数:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ComposeShader (Shader shaderA, Shader shaderB, Xfermode mode)  </span><br><span class="line">ComposeShader (Shader shaderA, Shader shaderB, PorterDuff.Mode mode)</span><br></pre></td></tr></table></figure></p>
 <p>&emsp;二者的区别就是一个使用PorterDuff的模式，另一个可以使用所有的Xfermode。这两个混合模式我们在之后的文章中将会详细讲到。</p>
 <h4 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h4><p>&emsp;这里只是简单介绍了一下Shader的概念和基本用法，之后会多加一些实际使用的情况，希望大家持续关注。</p>
 
@@ -777,7 +670,7 @@ ComposeShader (Shader shaderA, Shader shaderB, PorterDuff.Mode mode)
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/321580a2/" data-id="ck6531e2p00136psenc79o6aw" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/321580a2/" data-id="ck6535m6l00109ksej5jpnpcg" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -903,206 +796,15 @@ ComposeShader (Shader shaderA, Shader shaderB, PorterDuff.Mode mode)
 </ul>
 <p>&emsp;先贴一下本篇文章实现的自定义Span和动画的效果图<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-FireWorkSpan.gif" alt="demo"></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-MutiableForegroundSpan.gif" alt="demo"></p>
-<h4 id="自定义Span"><a href="#自定义Span" class="headerlink" title="自定义Span"></a>自定义Span</h4><p>&emsp;我们都知道，自定义View有两种方式，一种是继承特定的视图类,比如你希望修改<code>TextView</code>的行为，所以继承了<code>TextView</code>;另一种就是直接继承<code>View</code>或者<code>ViewGroup</code>,这样可以实现全新的视图和行为。如同自定义View一样，你有两种自定义Span的方法，一种直接继承特定类型的Span类，比如<code>ForegroundColorSpan</code>等，这样你可以在这些类的基础上进行修改；另一种就是继承<code>ReplaceSpan</code>这样的抽象类或者实现<code>LetterLineBackgroundSpan</code>这样的接口，你只要实现它给出的接口，就可以实现新的效果。<br>&emsp;我们先来讲解第一种方式。直接继承现有的<code>Span</code>。文章开头时展示的<code>ActionBar</code>动画就是通过继承<code>ForegroundSpan</code>来实现的。<br>&emsp;我们主要重载了<code>updateDrawsState</code>和<code>getForegroundColor</code>,这样就可以通过改变<code>setAlpha</code>函数来改变颜色，让字体从透明(alpha为0)到某个特定颜色。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public class MutableForegroundColorSpan extends ForegroundColorSpan {
-    private int mAlpha = 255;
-    private int mForegroundColor;
-    public MutableForegroundColorSpan(int alpha,int color) {
-        super(color);
-        mAlpha = alpha;
-        mForegroundColor = color;
-    }
-    @Override
-    public void updateDrawState(TextPaint ds) {
-        ds.setColor(getForegroundColor());
-    }
-    public void setAlpha(int alpha) {
-        mAlpha = alpha;
-    }
-    public void setForegroundColor(int foregroundColor) {
-        mForegroundColor = foregroundColor;
-    }
-    public float getAlpha() {
-        return mAlpha;
-    }
-    @Override
-    public int getForegroundColor() {
-        return Color.argb(mAlpha,Color.red(mForegroundColor),Color.green(mForegroundColor),Color.blue(mForegroundColor));
-    }
-}
-</code></pre></p>
+<h4 id="自定义Span"><a href="#自定义Span" class="headerlink" title="自定义Span"></a>自定义Span</h4><p>&emsp;我们都知道，自定义View有两种方式，一种是继承特定的视图类,比如你希望修改<code>TextView</code>的行为，所以继承了<code>TextView</code>;另一种就是直接继承<code>View</code>或者<code>ViewGroup</code>,这样可以实现全新的视图和行为。如同自定义View一样，你有两种自定义Span的方法，一种直接继承特定类型的Span类，比如<code>ForegroundColorSpan</code>等，这样你可以在这些类的基础上进行修改；另一种就是继承<code>ReplaceSpan</code>这样的抽象类或者实现<code>LetterLineBackgroundSpan</code>这样的接口，你只要实现它给出的接口，就可以实现新的效果。<br>&emsp;我们先来讲解第一种方式。直接继承现有的<code>Span</code>。文章开头时展示的<code>ActionBar</code>动画就是通过继承<code>ForegroundSpan</code>来实现的。<br>&emsp;我们主要重载了<code>updateDrawsState</code>和<code>getForegroundColor</code>,这样就可以通过改变<code>setAlpha</code>函数来改变颜色，让字体从透明(alpha为0)到某个特定颜色。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">public class MutableForegroundColorSpan extends ForegroundColorSpan &#123;</span><br><span class="line">    private int mAlpha = 255;</span><br><span class="line">    private int mForegroundColor;</span><br><span class="line">    public MutableForegroundColorSpan(int alpha,int color) &#123;</span><br><span class="line">        super(color);</span><br><span class="line">        mAlpha = alpha;</span><br><span class="line">        mForegroundColor = color;</span><br><span class="line">    &#125;</span><br><span class="line">    @Override</span><br><span class="line">    public void updateDrawState(TextPaint ds) &#123;</span><br><span class="line">        ds.setColor(getForegroundColor());</span><br><span class="line">    &#125;</span><br><span class="line">    public void setAlpha(int alpha) &#123;</span><br><span class="line">        mAlpha = alpha;</span><br><span class="line">    &#125;</span><br><span class="line">    public void setForegroundColor(int foregroundColor) &#123;</span><br><span class="line">        mForegroundColor = foregroundColor;</span><br><span class="line">    &#125;</span><br><span class="line">    public float getAlpha() &#123;</span><br><span class="line">        return mAlpha;</span><br><span class="line">    &#125;</span><br><span class="line">    @Override</span><br><span class="line">    public int getForegroundColor() &#123;</span><br><span class="line">        return Color.argb(mAlpha,Color.red(mForegroundColor),Color.green(mForegroundColor),Color.blue(mForegroundColor));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>&emsp;第二种方法是继承<code>Span</code>架构中的抽象类或者是实现特定接口。需要注意的是，在上一篇文章中说的<code>CharacterStyle</code>,<code>ParagraphStyle</code>.<code>UpdateAppearance</code>和<code>UpdateLayout</code>都是没有函数的，所以，我们无法直接继承或者实现它们。除了第一篇文章中所介绍的那些<code>Span</code>可以使用第一种方法进行继承。我们一般都继承或者实现<code>MetricAffectingSpan</code>,<code>ReplacementSpan</code>或者<code>LineBackgroundSpan</code>。<br>&emsp;比如我们想给每个字都添加一个不同颜色的背景，我们就可以继承<code>ReplacementSpan</code></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-BuddleSpan.png" alt="demo"></p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public class BubbleSpan extends ReplacementSpan {
-    private Paint mPaint;
-    static Random random = new Random();
-    private int mWidth = -1;
-    private RectF mRectF = new RectF();
-
-    private int[] mColors = new int[20];
-
-    public BubbleSpan() {
-        initPaint();
-        initColors();
-    }
-
-    private void initPaint() {
-        mPaint = new Paint();
-        mPaint.setColor(Color.rgb(random.nextInt(255), random.nextInt(255), random.nextInt(255)));
-        mPaint.setAntiAlias(true);
-    }
-
-    private void initColors() {
-        for(int index = 0 ; index &lt; mColors.length ; index++) {
-            mColors[index] = Color.rgb(random.nextInt(255), random.nextInt(255), random.nextInt(255));
-        }
-    }
-
-    @Override
-    public int getSize(Paint paint, CharSequence text, int start, int end, Paint.FontMetricsInt fm) {
-        &#x2F;&#x2F;return text with relative to the Paint
-		mWidth = (int) paint.measureText(text, start, end);
-        return mWidth;
-    }
-
-    @Override
-    public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint paint) {
-        float charx = x;
-        for(int i = start ; i&lt;end; i++) {
-            String charAt = extractText(text, i, i + 1);
-            float charWidth = paint.measureText(charAt);
-            mRectF.set(charx, top, charx += charWidth, bottom);
-            mPaint.setColor(mColors[i % mColors.length]);
-            &#x2F;&#x2F;根据每个字的位置绘制背景
-            canvas.drawOval(mRectF, mPaint);
-        }
-        &#x2F;&#x2F;绘制字体，如果不掉用这个函数，就不会显示字体啦。
-        canvas.drawText(text, start, end, x, y, paint);
-    }
-
-    private String extractText(CharSequence text, int start, int end) {
-        return text.subSequence(start, end).toString();
-    }
-}
-</code></pre>
-<p>&emsp;我们可以看到，我们要实现两个函数:<code>getSize</code>和<code>draw</code>。<code>getSize</code>是获得字体的长度的，所以一般都是直接使用<code>paint.measureText</code>,然后<code>draw</code>中进行绘制，你可以在这里把每个字的背景绘制出来，而且你必须也要把字体给绘制出来。如果你只想绘制背景，不想涉及字体的绘制，那么就可以直接实现<code>LineBackgroundSpan</code>接口。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public class RectSpan extends ReplacementSpan {
-    private final Paint mPaint;
-    private int mWidth;
-
-    public RectSpan() {
-        mPaint = new Paint();
-        mPaint.setStyle(Paint.Style.STROKE);
-        mPaint.setColor(Color.BLUE);
-        mPaint.setAntiAlias(true);
-    }
-
-    @Override
-    public int getSize(Paint paint, CharSequence text, int start, int end, Paint.FontMetricsInt fm) {
-        &#x2F;&#x2F;return text with relative to the Paint
-        mWidth = (int) paint.measureText(text, start, end);
-        return mWidth;
-    }
-
-    @Override
-    public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint paint) {
-        &#x2F;&#x2F;只绘制了外围矩形，没有绘制文字。
-        canvas.drawRect(x, top, x + mWidth, bottom, mPaint);
-    }
-}
-</code></pre></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">public class BubbleSpan extends ReplacementSpan &#123;</span><br><span class="line">    private Paint mPaint;</span><br><span class="line">    static Random random = new Random();</span><br><span class="line">    private int mWidth = -1;</span><br><span class="line">    private RectF mRectF = new RectF();</span><br><span class="line"></span><br><span class="line">    private int[] mColors = new int[20];</span><br><span class="line"></span><br><span class="line">    public BubbleSpan() &#123;</span><br><span class="line">        initPaint();</span><br><span class="line">        initColors();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private void initPaint() &#123;</span><br><span class="line">        mPaint = new Paint();</span><br><span class="line">        mPaint.setColor(Color.rgb(random.nextInt(255), random.nextInt(255), random.nextInt(255)));</span><br><span class="line">        mPaint.setAntiAlias(true);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private void initColors() &#123;</span><br><span class="line">        for(int index = 0 ; index &lt; mColors.length ; index++) &#123;</span><br><span class="line">            mColors[index] = Color.rgb(random.nextInt(255), random.nextInt(255), random.nextInt(255));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public int getSize(Paint paint, CharSequence text, int start, int end, Paint.FontMetricsInt fm) &#123;</span><br><span class="line">        //return text with relative to the Paint</span><br><span class="line">		mWidth = (int) paint.measureText(text, start, end);</span><br><span class="line">        return mWidth;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint paint) &#123;</span><br><span class="line">        float charx = x;</span><br><span class="line">        for(int i = start ; i&lt;end; i++) &#123;</span><br><span class="line">            String charAt = extractText(text, i, i + 1);</span><br><span class="line">            float charWidth = paint.measureText(charAt);</span><br><span class="line">            mRectF.set(charx, top, charx += charWidth, bottom);</span><br><span class="line">            mPaint.setColor(mColors[i % mColors.length]);</span><br><span class="line">            //根据每个字的位置绘制背景</span><br><span class="line">            canvas.drawOval(mRectF, mPaint);</span><br><span class="line">        &#125;</span><br><span class="line">        //绘制字体，如果不掉用这个函数，就不会显示字体啦。</span><br><span class="line">        canvas.drawText(text, start, end, x, y, paint);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private String extractText(CharSequence text, int start, int end) &#123;</span><br><span class="line">        return text.subSequence(start, end).toString();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;我们可以看到，我们要实现两个函数:<code>getSize</code>和<code>draw</code>。<code>getSize</code>是获得字体的长度的，所以一般都是直接使用<code>paint.measureText</code>,然后<code>draw</code>中进行绘制，你可以在这里把每个字的背景绘制出来，而且你必须也要把字体给绘制出来。如果你只想绘制背景，不想涉及字体的绘制，那么就可以直接实现<code>LineBackgroundSpan</code>接口。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">public class RectSpan extends ReplacementSpan &#123;</span><br><span class="line">    private final Paint mPaint;</span><br><span class="line">    private int mWidth;</span><br><span class="line"></span><br><span class="line">    public RectSpan() &#123;</span><br><span class="line">        mPaint = new Paint();</span><br><span class="line">        mPaint.setStyle(Paint.Style.STROKE);</span><br><span class="line">        mPaint.setColor(Color.BLUE);</span><br><span class="line">        mPaint.setAntiAlias(true);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public int getSize(Paint paint, CharSequence text, int start, int end, Paint.FontMetricsInt fm) &#123;</span><br><span class="line">        //return text with relative to the Paint</span><br><span class="line">        mWidth = (int) paint.measureText(text, start, end);</span><br><span class="line">        return mWidth;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint paint) &#123;</span><br><span class="line">        //只绘制了外围矩形，没有绘制文字。</span><br><span class="line">        canvas.drawRect(x, top, x + mWidth, bottom, mPaint);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-RectSpan.png" alt="demo"></p>
-<h4 id="通过Span实现动画"><a href="#通过Span实现动画" class="headerlink" title="通过Span实现动画"></a>通过Span实现动画</h4><p>&emsp;在上一节中，我们已经实现了<code>MutableForegroundColorSpan</code>类，那么如何使用它来实现动画呢？这里我们就要使用到<code>ObjectAnimator</code>和<code>Property&lt;T1,T2&gt;</code>。我们首先定义<code>MutableForegroundColorSpan</code>使用的<code>property</code>。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">private static final Property&lt;MutableForegroundColorSpan, Integer&gt; MUTABLE_FOREGROUND_COLOR_SPAN_PROPERTY =
-        new Property&lt;MutableForegroundColorSpan, Integer&gt;(Integer.class, &quot;MUTABLE_FOREGROUND_COLOR_SPAN_FC_PROPERTY&quot;) {
-
-        @Override
-                public void set(MutableForegroundColorSpan alphaForegroundColorSpanGroup, Integer value) {
-                        alphaForegroundColorSpanGroup.setForegroundColor(value);
-                }
-
-        @Override
-                public Integer get(MutableForegroundColorSpan span) {
-                        return span.getForegroundColor();
-                }
-};
-</code></pre></p>
-<p>&emsp;然后我们就可以使用<code>ObjectAnimator</code>对<code>MutableForegroundColorSpan</code>实现属性动画了。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">MutableForegroundColorSpan span = new MutableForegroundColorSpan(255, Color.BLUE);
-final SpannableString spannableString = new SpannableString(CONTENT);
-spannableString.setSpan(span, 0,4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-ObjectAnimator objectAnimator = ObjectAnimator.ofInt(span, MUTABLE_FOREGROUND_COLOR_SPAN_PROPERTY, Color.BLACK, Color.RED);
-objectAnimator.setEvaluator(new ArgbEvaluator());
-objectAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-        @Override
-        public void onAnimationUpdate(ValueAnimator animation) {
-        &#x2F;&#x2F;refresh
-                mTvTextView.setText(spannableString);
-        }       
-});
-objectAnimator.setInterpolator(mSmoothInterpolator);
-objectAnimator.setDuration(600);
-objectAnimator.start();
-</code></pre></p>
-<p>&emsp;这里还只是单独一个<code>Span</code>实例的动画效果，你可以对多个Span实例进行属性动画，从而实现更加复杂的动画效果。就比如文章开始时的文字逐渐显示的动画效果。<br>&emsp;我们可以给每个字都设置一个<code>MutableForegroundColorSpan</code>实例,并将这些实例都添加到一个对象中，然后在属性动画过程中，乱序设置每个实例的<code>alpha</code>的值，从而达到文字逐渐显现的动画。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public class FireWorkGroup {
-    private final float mProgress;
-    private final ArrayList&lt;MutableForegroundColorSpan&gt; mSpans;
-    private final ArrayList&lt;Integer&gt; mSpanIndexes;
-
-    public FireWorkGroup() {
-        mProgress = 0;
-        mSpans  = new ArrayList&lt;&gt;();
-        mSpanIndexes = new ArrayList&lt;&gt;();
-    }
-
-    public void addSpan(MutableForegroundColorSpan span) {
-        span.setAlpha(0);
-        mSpanIndexes.add(mSpans.size());
-        mSpans.add(span);
-    }
-    public void init() {
-        Collections.shuffle(mSpans);
-    }
-    public void setProgress(float progress) {
-        int size = mSpans.size();
-        float total  = 1.0f * size * progress;
-        for (int index = 0 ; index &lt; size ; index++) {
-            MutableForegroundColorSpan span = mSpans.get(index);
-            if (total &gt; 1.0f) {
-                span.setAlpha(255);
-                total -= 1.0f;
-            } else {
-                span.setAlpha((int)(total * 255));
-                total = 0.0f;
-            }
-        }
-    }
-    public float getProgress() {
-        return mProgress;
-    }
-    public static final Property&lt;FireWorkGroup, Float&gt; FIREWORKS_GROUP_PROGRESS_PROPERTY =
-            new Property&lt;FireWorkGroup, Float&gt;(Float.class, &quot;FIREWORKS_GROUP_PROGRESS_PROPERTY&quot;) {
-
-                @Override
-                public void set(FireWorkGroup spanGroup, Float value) {
-                    spanGroup.setProgress(value);
-                }
-
-                @Override
-                public Float get(FireWorkGroup spanGroup) {
-                    return spanGroup.getProgress();
-                }
-            };
-}
-</code></pre></p>
+<h4 id="通过Span实现动画"><a href="#通过Span实现动画" class="headerlink" title="通过Span实现动画"></a>通过Span实现动画</h4><p>&emsp;在上一节中，我们已经实现了<code>MutableForegroundColorSpan</code>类，那么如何使用它来实现动画呢？这里我们就要使用到<code>ObjectAnimator</code>和<code>Property&lt;T1,T2&gt;</code>。我们首先定义<code>MutableForegroundColorSpan</code>使用的<code>property</code>。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">private static final Property&lt;MutableForegroundColorSpan, Integer&gt; MUTABLE_FOREGROUND_COLOR_SPAN_PROPERTY =</span><br><span class="line">        new Property&lt;MutableForegroundColorSpan, Integer&gt;(Integer.class, &quot;MUTABLE_FOREGROUND_COLOR_SPAN_FC_PROPERTY&quot;) &#123;</span><br><span class="line"></span><br><span class="line">        @Override</span><br><span class="line">                public void set(MutableForegroundColorSpan alphaForegroundColorSpanGroup, Integer value) &#123;</span><br><span class="line">                        alphaForegroundColorSpanGroup.setForegroundColor(value);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">        @Override</span><br><span class="line">                public Integer get(MutableForegroundColorSpan span) &#123;</span><br><span class="line">                        return span.getForegroundColor();</span><br><span class="line">                &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;然后我们就可以使用<code>ObjectAnimator</code>对<code>MutableForegroundColorSpan</code>实现属性动画了。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">MutableForegroundColorSpan span = new MutableForegroundColorSpan(255, Color.BLUE);</span><br><span class="line">final SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span, 0,4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">ObjectAnimator objectAnimator = ObjectAnimator.ofInt(span, MUTABLE_FOREGROUND_COLOR_SPAN_PROPERTY, Color.BLACK, Color.RED);</span><br><span class="line">objectAnimator.setEvaluator(new ArgbEvaluator());</span><br><span class="line">objectAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() &#123;</span><br><span class="line">        @Override</span><br><span class="line">        public void onAnimationUpdate(ValueAnimator animation) &#123;</span><br><span class="line">        //refresh</span><br><span class="line">                mTvTextView.setText(spannableString);</span><br><span class="line">        &#125;       </span><br><span class="line">&#125;);</span><br><span class="line">objectAnimator.setInterpolator(mSmoothInterpolator);</span><br><span class="line">objectAnimator.setDuration(600);</span><br><span class="line">objectAnimator.start();</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;这里还只是单独一个<code>Span</code>实例的动画效果，你可以对多个Span实例进行属性动画，从而实现更加复杂的动画效果。就比如文章开始时的文字逐渐显示的动画效果。<br>&emsp;我们可以给每个字都设置一个<code>MutableForegroundColorSpan</code>实例,并将这些实例都添加到一个对象中，然后在属性动画过程中，乱序设置每个实例的<code>alpha</code>的值，从而达到文字逐渐显现的动画。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line">public class FireWorkGroup &#123;</span><br><span class="line">    private final float mProgress;</span><br><span class="line">    private final ArrayList&lt;MutableForegroundColorSpan&gt; mSpans;</span><br><span class="line">    private final ArrayList&lt;Integer&gt; mSpanIndexes;</span><br><span class="line"></span><br><span class="line">    public FireWorkGroup() &#123;</span><br><span class="line">        mProgress = 0;</span><br><span class="line">        mSpans  = new ArrayList&lt;&gt;();</span><br><span class="line">        mSpanIndexes = new ArrayList&lt;&gt;();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void addSpan(MutableForegroundColorSpan span) &#123;</span><br><span class="line">        span.setAlpha(0);</span><br><span class="line">        mSpanIndexes.add(mSpans.size());</span><br><span class="line">        mSpans.add(span);</span><br><span class="line">    &#125;</span><br><span class="line">    public void init() &#123;</span><br><span class="line">        Collections.shuffle(mSpans);</span><br><span class="line">    &#125;</span><br><span class="line">    public void setProgress(float progress) &#123;</span><br><span class="line">        int size = mSpans.size();</span><br><span class="line">        float total  = 1.0f * size * progress;</span><br><span class="line">        for (int index = 0 ; index &lt; size ; index++) &#123;</span><br><span class="line">            MutableForegroundColorSpan span = mSpans.get(index);</span><br><span class="line">            if (total &gt; 1.0f) &#123;</span><br><span class="line">                span.setAlpha(255);</span><br><span class="line">                total -= 1.0f;</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                span.setAlpha((int)(total * 255));</span><br><span class="line">                total = 0.0f;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    public float getProgress() &#123;</span><br><span class="line">        return mProgress;</span><br><span class="line">    &#125;</span><br><span class="line">    public static final Property&lt;FireWorkGroup, Float&gt; FIREWORKS_GROUP_PROGRESS_PROPERTY =</span><br><span class="line">            new Property&lt;FireWorkGroup, Float&gt;(Float.class, &quot;FIREWORKS_GROUP_PROGRESS_PROPERTY&quot;) &#123;</span><br><span class="line"></span><br><span class="line">                @Override</span><br><span class="line">                public void set(FireWorkGroup spanGroup, Float value) &#123;</span><br><span class="line">                    spanGroup.setProgress(value);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                @Override</span><br><span class="line">                public Float get(FireWorkGroup spanGroup) &#123;</span><br><span class="line">                    return spanGroup.getProgress();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <h4 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h4><p>&emsp;上述的这些动画都是我在第一篇文章提到的那篇博文中实现过的效果，我在学习过程中又发现了一个实现了很多<code>TextView</code>相关动画的开源项目<a href="https://github.com/hanks-zyh/HTextView" target="_blank" rel="noopener">HTextView</a>。所以接下来的任务就是想使用<code>Span</code>机制去实现这个项目中的一些动画效果。希望大家继续支持我的文章，并积极指出文中的错误。<br>&emsp;!!!源码都在<a href="https://github.com/ztelur/AndroidSpan" target="_blank" rel="noopener">我的github</a>里。</p>
 
         
@@ -1114,7 +816,7 @@ objectAnimator.start();
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/283058df/" data-id="ck6531e2l000u6pse9o26eamx" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/283058df/" data-id="ck6535m6j000w9kse46vxq7x5" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1234,13 +936,7 @@ objectAnimator.start();
         
             
             <p>&emsp;前几天在微博上看到一个人评论Android Span机制相当强大，有必要细心研究一下，于是就google了一下，发现了一篇很好的文章<a href="http://flavienlaurent.com/blog/2014/01/31/spans/" target="_blank" rel="noopener">Spans, a Powerful Concept.</a>，然后以这篇文章为基础研究了一下Android Span的用法。于是决定写几篇文章来总结一下。</p>
-<h3 id="Android-Span-介绍"><a href="#Android-Span-介绍" class="headerlink" title="Android Span 介绍"></a>Android Span 介绍</h3><p>&emsp;对于<code>Span</code>，大家首先想起的应用场景就是同一个<code>TextView</code>中显示不同颜色的字体。对于这种需求，我们会用到<code>ForegroundColorSpan</code><br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">ForegroundColorSpan span = new ForegroundColorSpan(Color.RED);
-SpannableString spannableString = new SpannableString(CONTENT);
-spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-mTvTextView.setText(spannableString);
-</code></pre></p>
+<h3 id="Android-Span-介绍"><a href="#Android-Span-介绍" class="headerlink" title="Android Span 介绍"></a>Android Span 介绍</h3><p>&emsp;对于<code>Span</code>，大家首先想起的应用场景就是同一个<code>TextView</code>中显示不同颜色的字体。对于这种需求，我们会用到<code>ForegroundColorSpan</code><br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ForegroundColorSpan span = <span class="keyword">new</span> ForegroundColorSpan(Color.RED);</span><br><span class="line">SpannableString spannableString = <span class="keyword">new</span> SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,<span class="number">0</span>,spannableString.length()/<span class="number">2</span>,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure></p>
 <p>&emsp;上面这段代码可能就是大家对Android Span的全部了解了，但是Android Span有着和Drawable同样强大的能力，希望我的这几篇文章可以带领大家初探Android Span的强大能力。</p>
 <h3 id="Android-Span-框架"><a href="#Android-Span-框架" class="headerlink" title="Android Span 框架"></a>Android Span 框架</h3><p>&emsp;Android Span 框架涉及的类遵循一下四个定义规则:</p>
 <ul>
@@ -1253,161 +949,65 @@ mTvTextView.setText(spannableString);
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-cdupdateappearance.png" alt="UpdateAppearance相关类图"></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-cdupdatelayout.png" alt="UpdateLayout相关类图"></p>
 <h3 id="Android-Span类型介绍"><a href="#Android-Span类型介绍" class="headerlink" title="Android Span类型介绍"></a>Android Span类型介绍</h3><p>&emsp;Android Span的相关原理和机制以后再讲，我们先来了解一下当前Android预设的<code>Span</code>类型的用法吧。</p>
-<p>####　<strong>android.text.style.BulletSpan</strong><br>&emsp;<code>BulletSpan</code>影响<strong>段落层次</strong>文字的格式，它让你在段落开头添加一个黑圆点。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">BulletSpan span = new BulletSpan(15,Color.RED);
-SpannableString spannableString = new SpannableString(CONTENT);
-spannableString.setSpan(span,0,1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-mTvTextView.setText(spannableString);
-</code></pre></p>
+<p>####　<strong>android.text.style.BulletSpan</strong><br>&emsp;<code>BulletSpan</code>影响<strong>段落层次</strong>文字的格式，它让你在段落开头添加一个黑圆点。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">BulletSpan span = new BulletSpan(15,Color.RED);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-BulletSpan.png" alt="BulletSpan效果图"></p>
 <p>####　<strong>android.text.style.QuoteSpan</strong></p>
 <p>&emsp;<code>QuoteSpan</code>影响<strong>段落层次</strong>文字的格式，它可以在段落前边添加一个竖直的引用线。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">QuoteSpan span = new QuoteSpan(Color.RED);
-SpannableString spannableString = new SpannableString(CONTENT);
-spannableString.setSpan(span,0,2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-mTvTextView.setText(spannableString);
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">QuoteSpan span = new QuoteSpan(Color.RED);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-QuoteSpan.png" alt="QuoteSpan效果图"></p>
 <p>####　<strong>android.text.style.AlignmentSpan</strong></p>
-<p>&emsp;<code>AlignSpan.Standard</code>影响<strong>段落层次</strong>文字的格式，它允许你控制段落的对齐方式，有居中对齐，右侧对齐和左侧对齐。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">AlignmentSpan.Standard span = new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER);
-SpannableString spannableString = new SpannableString(CONTENT);
-spannableString.setSpan(span,0,0,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-mTvTextView.setText(spannableString);
-</code></pre></p>
+<p>&emsp;<code>AlignSpan.Standard</code>影响<strong>段落层次</strong>文字的格式，它允许你控制段落的对齐方式，有居中对齐，右侧对齐和左侧对齐。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">AlignmentSpan.Standard span = new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,0,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-AliginSpan.png" alt="AlignSpan效果图"></p>
 <p>####　<strong>android.text.style.UnderlineSpan</strong></p>
 <p>&emsp;<code>UnderlineSpan</code>影响<strong>字符层次</strong>文字的格式，它可以在文字下方添加下划线。其内部实现其实就是使用<code>Paint.setUnderlineText(true)</code>实现的。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">UnderlineSpan span = new UnderlineSpan();
-SpannableString spannableString = new SpannableString(CONTENT);
-spannableString.setSpan(span,0,spannableString.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-mTvTextView.setText(spannableString);
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">UnderlineSpan span = new UnderlineSpan();</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-UnderlineSpan.png" alt="UnderlineSpan效果图"></p>
 <p>####　<strong>android.text.style.StrikethroughSpan</strong></p>
 <p>&emsp;<code>StrikethroughSpan</code>影响<strong>字符层次</strong>上的文字的格式，它允许你在文字上添加删除线。它内部使用<code>Paint.setStrikeThruText(true))</code>来实现。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">StrikethroughSpan span = new StrikethroughSpan();
-SpannableString spannableString = new SpannableString(CONTENT);
-spannableString.setSpan(span,0,spannableString.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-mTvTextView.setText(spannableString);
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">StrikethroughSpan span = new StrikethroughSpan();</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-StrikeSpan.png" alt="StrikethroughSpan效果图"></p>
 <p>####　<strong>android.text.style.SubscriptSpan</strong></p>
 <p>&emsp;<code>SubscriptSpan</code>影响<strong>字符层次</strong>上的文字的格式，它允许你把文字作为下标进行显示。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">SubscriptSpan span = new SubscriptSpan();
-SpannableString spannableString = new SpannableString(CONTENT);
-spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-mTvTextView.setText(spannableString);
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SubscriptSpan span = new SubscriptSpan();</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-SubscriptSpan.png" alt="SubscriptSpan效果图"></p>
 <p>####　<strong>android.text.style.SuperscriptSpan</strong></p>
 <p>&emsp;``影响<strong>字符层次</strong>上的文字的格式，它允许你把文字作为上标进行显示。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">SuperscriptSpan span = new SuperscriptSpan();
-SpannableString spannableString = new SpannableString(CONTENT);
-spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-mTvTextView.setText(spannableString);
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SuperscriptSpan span = new SuperscriptSpan();</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-SupscriptSpan.png" alt="SuperscriptSpan效果图"></p>
 <p>####　<strong>android.text.style.BackgroundColorSpan</strong></p>
 <p>&emsp;<code>BackgroundColorSpan</code>影响<strong>字符层次</strong>上的文字的格式，你可以使用它设置文字的背景颜色。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">BackgroundColorSpan span = new BackgroundColorSpan(Color.RED);
-SpannableString spannableString = new SpannableString(CONTENT);
-spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-mTvTextView.setText(spannableString);
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">BackgroundColorSpan span = new BackgroundColorSpan(Color.RED);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-BackgroundSpan.png" alt="BackgroundColorSpan效果图"></p>
 <p>####　<strong>android.text.style.ForegroundColorSpan</strong></p>
 <p>&emsp;<code>ForegroundColorSpan</code>影响<strong>字符层次</strong>上的文字的格式，你可以使用它设置文字的自己的颜色。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">ForegroundColorSpan span = new ForegroundColorSpan(Color.RED);
-SpannableString spannableString = new SpannableString(CONTENT);
-spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-mTvTextView.setText(spannableString);
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ForegroundColorSpan span = new ForegroundColorSpan(Color.RED);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-ForegroundSpan.png" alt="ForegroundColorSpan效果图"></p>
 <p>####　<strong>android.text.style.ImageSpan</strong></p>
 <p>&emsp;<code>ImageSpan</code>影响<strong>字符层次</strong>上的文字的格式，你可以使用它在文字中间添加图片。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">ImageSpan span = new ImageSpan(this,R.mipmap.ic_launcher);
-SpannableString spannableString = new SpannableString(CONTENT);
-spannableString.setSpan(span,0,1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-mTvTextView.setText(spannableString);
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ImageSpan span = new ImageSpan(this,R.mipmap.ic_launcher);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-ImageSpan.png" alt="ImageSpan效果图"></p>
 <p>####　<strong>android.text.style.StyleSpan</strong></p>
 <p>&emsp;<code>StyleSpan</code>影响<strong>字符层次</strong>上的文字的格式。它允许你设置文字的类型(bold, italic, normal)</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">StyleSpan span = new StyleSpan(Typeface.BOLD);
-SpannableString spannableString = new SpannableString(CONTENT);
-spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-mTvTextView.setText(spannableString);
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">StyleSpan span = new StyleSpan(Typeface.BOLD);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-StyleSpan.png" alt="StyleSpan效果图"></p>
 <p>####　<strong>android.text.style.TypefaceSpan</strong></p>
 <p>&emsp;<code>TypefaceSpan</code>影响<strong>字符层次</strong>上的文字的格式。它允许你设置文字的字体族(monospace, serif等)</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">TypefaceSpan span = new TypefaceSpan(&quot;serif&quot;);
-SpannableString spannableString = new SpannableString(CONTENT);
-spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-mTvTextView.setText(spannableString);
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">TypefaceSpan span = new TypefaceSpan(&quot;serif&quot;);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-TypefaceSpan.png" alt="TypefaceSpan效果图"></p>
 <p>####　<strong>android.text.style.AbsoluteSizeSpan</strong></p>
 <p>&emsp;<code>AbsoluteSizeSpan</code>影响<strong>字符层次</strong>上的文字的格式。它允许你设置文字的绝对字体大小。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">AbsoluteSizeSpan span = new AbsoluteSizeSpan(24,true);
-SpannableString spannableString = new SpannableString(CONTENT);
-spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-mTvTextView.setText(spannableString);
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">AbsoluteSizeSpan span = new AbsoluteSizeSpan(24,true);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-AbsolutSizeSpan.png" alt="AbsoluteSizeSpan效果图"></p>
 <p>####　<strong>android.text.style.RelativeSizeSpan</strong></p>
 <p>&emsp;<code>RelativeSizeSpan</code>影响<strong>字符层次</strong>上的文字的格式。它允许你设置文字的相对字体大小。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">RelativeSizeSpan span = new RelativeSizeSpan(2.0f);
-SpannableString spannableString = new SpannableString(CONTENT);
-spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-mTvTextView.setText(spannableString);
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">RelativeSizeSpan span = new RelativeSizeSpan(2.0f);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-RelativeSizeSpan.png" alt="RelativeSizeSpan效果图"></p>
 <p>####　<strong>android.text.style.ScaleXSpan</strong></p>
-<p><code>&amp;emsp;</code>ScaleXSpan`影响<strong>字符层次</strong>上的文字的格式。它让你让文字在ｘ方向上进行缩放。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">ScaleXSpan span = new ScaleXSpan(2.0f);
-SpannableString spannableString = new SpannableString(CONTENT);
-spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-mTvTextView.setText(spannableString);
-</code></pre></p>
+<p><code>&amp;emsp;</code>ScaleXSpan`影响<strong>字符层次</strong>上的文字的格式。它让你让文字在ｘ方向上进行缩放。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ScaleXSpan span = new ScaleXSpan(2.0f);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-ScaleSpan.png" alt="ScaleXSpan效果图"></p>
 <p>####　<strong>android.text.style.MaskFilterSpan</strong></p>
 <p>&emsp;<code>MaskFilterSpan</code>影响<strong>字符层次</strong>上的文字的格式。它让你在文字上设置<code>android.graphics.MaskFilter</code></p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F;Blur a character
-span = new MaskFilterSpan(new BlurMaskFilter(density*2, BlurMaskFilter.Blur.NORMAL));
-&#x2F;&#x2F;Emboss a character
-span = new MaskFilterSpan(new EmbossMaskFilter(new float[] { 1, 1, 1 }, 0.4f, 6, 3.5f));
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">//Blur a character</span><br><span class="line">span = new MaskFilterSpan(new BlurMaskFilter(density*2, BlurMaskFilter.Blur.NORMAL));</span><br><span class="line">//Emboss a character</span><br><span class="line">span = new MaskFilterSpan(new EmbossMaskFilter(new float[] &#123; 1, 1, 1 &#125;, 0.4f, 6, 3.5f));</span><br></pre></td></tr></table></figure>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-maskfilterblur.png" alt="BlurMaskFilter效果图"></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-maskfilteremboss.png" alt="EmbossMaskFilter效果图"></p>
 <h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;本篇文章只是简单介绍Android Span的使用，接下来的文章会介绍Span更加高级的用法和它的原理。希望大家继续支持。</p>
@@ -1421,7 +1021,7 @@ span = new MaskFilterSpan(new EmbossMaskFilter(new float[] { 1, 1, 1 }, 0.4f, 6,
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/29372fe3/" data-id="ck6531e2i000q6pseicxor675" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/29372fe3/" data-id="ck6535m6i000u9ksedcvlc1xz" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1556,57 +1156,10 @@ span = new MaskFilterSpan(new EmbossMaskFilter(new float[] { 1, 1, 1 }, 0.4f, 6,
 <li><code>onSaveInstanceState</code></li>
 <li><code>onRestoreInstanceState</code></li>
 </ul>
-<p>&emsp;首先就是<code>onMeasure</code>函数，用于确定自定义视图的长和高。对于本文的Switch,我们让其高为宽的固定比例大小就可以了，所以重构函数实现得十分简单。<strong>这个函数确定的只是测量的长和高，并不是最终视图所显示的长和高</strong>。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">@Override
-protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-    super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-    int width = MeasureSpec.getSize(widthMeasureSpec);
-    int height = (int) (width * DEFAULT_WIDTH_HEIGHT_PERCENT);
-    setMeasuredDimension(width,height);
-}
-</code></pre></p>
+<p>&emsp;首先就是<code>onMeasure</code>函数，用于确定自定义视图的长和高。对于本文的Switch,我们让其高为宽的固定比例大小就可以了，所以重构函数实现得十分简单。<strong>这个函数确定的只是测量的长和高，并不是最终视图所显示的长和高</strong>。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onMeasure</span><span class="params">(<span class="keyword">int</span> widthMeasureSpec, <span class="keyword">int</span> heightMeasureSpec)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>.onMeasure(widthMeasureSpec, heightMeasureSpec);</span><br><span class="line">    <span class="keyword">int</span> width = MeasureSpec.getSize(widthMeasureSpec);</span><br><span class="line">    <span class="keyword">int</span> height = (<span class="keyword">int</span>) (width * DEFAULT_WIDTH_HEIGHT_PERCENT);</span><br><span class="line">    setMeasuredDimension(width,height);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>&emsp;然后就是视图确定真正大小(<code>onLayout</code>)之后要调用的<code>onSizeChanged</code>函数了。这个函数调用之后，<code>draw</code>函数就可能被调用，所以，一般我们在这个函数中计算绘制时所需要的数据。<br>&emsp;接着是<code>draw</code>函数，在这个函数中，我们绘制各种图像来构成视图的UI。需要注意的是，这个函数会被频繁的调用，所以不要在函数内执行耗时的操作。<br>&emsp;最后是<code>onTouchEvent</code>函数，这个函数是用户触摸屏幕时才会被调用的，主要进行视图的触摸处理，由于我们的自定义Switch支持的触摸事件比较简单，只是支持点击事件，所以此函数的实现也比较简单。<br>&emsp;最后就是涉及到视图状态保存的两个函数。我们都知道，一定情况下，activity会被销毁，然后重新建立，比如你旋转屏幕时。这个时候，你需要保存视图的一些属性数据，以备重新建立视图时使用，来恢复之前的视图。<strong>你需要注意的是，光重载这两个函数还是不够的，还需要设置View ID和调用setSaveEnabled函数</strong>。<br>&emsp;我们接下来就一步一步的来实现这个自定义组件吧。</p>
 <h4 id="田径场式背景"><a href="#田径场式背景" class="headerlink" title="田径场式背景"></a>田径场式背景</h4><p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160715-boke1.png" alt="田径场背景"></p>
-<p>&emsp;我们先来看一下这个Switch的背景，它是一个形如田径场跑道的形状，由两个半圆和一个矩形组成，我们先来看一下如何来绘制出这样的图案。我们使用<code>Path</code>来构造出这样的图案，然后再进行绘制，代码如下所示:<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">    @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        super.onSizeChanged(w, h, oldw, oldh);
-        &#x2F;&#x2F;TODO：还有padding的问题偶！！！
-        mWidth = w;
-        mHeight = h;
-        float top = 0;
-        float left = 0;
-        float bottom = h*0.8f; &#x2F;&#x2F;下边预留0.2空间来画阴影
-        float right = w;
-
-        RectF backgroundRecf = new RectF(left,top,bottom,bottom);
-        mBackgroundPath = new Path();
-        &#x2F;&#x2F;TODO:???????????
-        mBackgroundPath.arcTo(backgroundRecf,90,180);
-
-        backgroundRecf.left = right - bottom;
-        backgroundRecf.right = right;
-        mBackgroundPath.arcTo(backgroundRecf,270,180);
-        mBackgroundPath.close();
-        ........
-    }
-
-    @Override
-    protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
-        drawBackground(canvas);
-        drawForeground(canvas);
-    }
-
-    private void drawBackground(Canvas canvas) {
-        mPaint.setColor(mCurrentColor);
-        mPaint.setStyle(Paint.Style.FILL);
-        canvas.drawPath(mBackgroundPath,mPaint);
-        mPaint.reset();
-    }
-</code></pre></p>
+<p>&emsp;我们先来看一下这个Switch的背景，它是一个形如田径场跑道的形状，由两个半圆和一个矩形组成，我们先来看一下如何来绘制出这样的图案。我们使用<code>Path</code>来构造出这样的图案，然后再进行绘制，代码如下所示:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onSizeChanged</span><span class="params">(<span class="keyword">int</span> w, <span class="keyword">int</span> h, <span class="keyword">int</span> oldw, <span class="keyword">int</span> oldh)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>.onSizeChanged(w, h, oldw, oldh);</span><br><span class="line">    <span class="comment">//TODO：还有padding的问题偶！！！</span></span><br><span class="line">    mWidth = w;</span><br><span class="line">    mHeight = h;</span><br><span class="line">    <span class="keyword">float</span> top = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">float</span> left = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">float</span> bottom = h*<span class="number">0.8f</span>; <span class="comment">//下边预留0.2空间来画阴影</span></span><br><span class="line">    <span class="keyword">float</span> right = w;</span><br><span class="line"></span><br><span class="line">    RectF backgroundRecf = <span class="keyword">new</span> RectF(left,top,bottom,bottom);</span><br><span class="line">    mBackgroundPath = <span class="keyword">new</span> Path();</span><br><span class="line">    <span class="comment">//<span class="doctag">TODO:</span>???????????</span></span><br><span class="line">    mBackgroundPath.arcTo(backgroundRecf,<span class="number">90</span>,<span class="number">180</span>);</span><br><span class="line"></span><br><span class="line">    backgroundRecf.left = right - bottom;</span><br><span class="line">    backgroundRecf.right = right;</span><br><span class="line">    mBackgroundPath.arcTo(backgroundRecf,<span class="number">270</span>,<span class="number">180</span>);</span><br><span class="line">    mBackgroundPath.close();</span><br><span class="line">    ........</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onDraw</span><span class="params">(Canvas canvas)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>.onDraw(canvas);</span><br><span class="line">    drawBackground(canvas);</span><br><span class="line">    drawForeground(canvas);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">drawBackground</span><span class="params">(Canvas canvas)</span> </span>&#123;</span><br><span class="line">    mPaint.setColor(mCurrentColor);</span><br><span class="line">    mPaint.setStyle(Paint.Style.FILL);</span><br><span class="line">    canvas.drawPath(mBackgroundPath,mPaint);</span><br><span class="line">    mPaint.reset();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>&emsp;我们使用<code>arcTo(RectF oval, float startAngle, float sweepAngle)</code>这儿函数来绘制田径场图案。这个函数，需要传入一个RectF对象，将要绘制的圆是这个对象所代表矩形的内切圆，我们只要计算出来这个矩形的上下左右四点的坐标就可以了。我们先计算绘制左侧半圆所需要的矩形，然后函数后两个参数为90,和180。注意的是，这个函数中，角度的正方向是顺时针的，<code>startAngle</code>为90,也就是我们数学坐标系中角度为270所代表的方向。<br>&emsp;由于Path会自动连接绘制个点之间的连线，所以，我们只需要再绘制出右侧半圆的曲线即可。<br>&emsp;我们只需要将绘制左侧圆曲线的矩形进行一定距离的平移，就可以绘制出右侧曲线。所以矩形的右边界就等于整个视图的<code>right</code>，由于矩形的长为<code>bottom</code>,所以矩形的左边界就为<code>right-bottom</code>。然后再次调用<code>arcTo</code>函数，这次的起始角度就变成270了。<br>&emsp;最后调用<code>Path</code>的<code>close</code>函数，让上边画的两段圆弧连接起来，就形成了上述的田径场图案。</p>
 <h4 id="绘制脸部图形"><a href="#绘制脸部图形" class="headerlink" title="绘制脸部图形"></a>绘制脸部图形</h4><p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160715-smileface.png" alt="脸部图形"></p>
 <p>&emsp;笑脸图案看似复杂，其实就是几个图形组合在一起。首先是一个大圆，然后是里边的两个椭圆型的眼睛，然后是嘴巴。我们只要在正确的位置将这些图形绘制出来即可。<br>&emsp;和绘制背景图形的顺序类似，我们首先在<code>onSizeChanged</code>函数中进行相关函数的计算。<br>&emsp;首先是大圆脸的绘制，我们还是使用<code>drawPath</code>函数，只不过这次<code>Path</code>对象只绘制一个圆；而双眼则是使用<code>drawOval</code>函数来花椭圆；最后使用<code>drawRect</code>来绘制矩形。</p>
@@ -1616,76 +1169,12 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 <li>脸部图形的平移和转动(可以看出相当于脸部水平转动了360度)。</li>
 <li>脸部表情动画，眨眼睛和嘴巴咧开。</li>
 </ul>
-<p>&emsp;由于动画涉及的操作比较多，所以我们选择使用<code>ValueAnimator</code>+<code>AnimatorUpdateListener</code>的动画实现方式，在<code>onAnimationUpdate</code>函数中记录下来当前的<code>animatedValue</code>，然后调用<code>invalidate</code>函数来让界面重绘，在绘制界面计算数据过程中，使用记录下来的数值，从而产生动画效果。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">    private void startCloseAnimation() {
-        mValueAnimator = ValueAnimator.ofFloat(NORMAL_ANIM_MAX_FRACTION,0);
-        mValueAnimator.setDuration(mOffAnimationDuration);
-        mValueAnimator.addUpdateListener(this);
-        mValueAnimator.addListener(this);
-        mValueAnimator.setInterpolator(mInterpolator);
-        mValueAnimator.start();
-        startColorAnimation();
-    }
-    @Override
-    public void onAnimationUpdate(ValueAnimator animation) {
-        mAnimationFraction = (float)animation.getAnimatedValue();
-        invalidate(); &#x2F;&#x2F;产生动画的关键步骤
-    }
-</code></pre></p>
+<p>&emsp;由于动画涉及的操作比较多，所以我们选择使用<code>ValueAnimator</code>+<code>AnimatorUpdateListener</code>的动画实现方式，在<code>onAnimationUpdate</code>函数中记录下来当前的<code>animatedValue</code>，然后调用<code>invalidate</code>函数来让界面重绘，在绘制界面计算数据过程中，使用记录下来的数值，从而产生动画效果。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">startCloseAnimation</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    mValueAnimator = ValueAnimator.ofFloat(NORMAL_ANIM_MAX_FRACTION,<span class="number">0</span>);</span><br><span class="line">    mValueAnimator.setDuration(mOffAnimationDuration);</span><br><span class="line">    mValueAnimator.addUpdateListener(<span class="keyword">this</span>);</span><br><span class="line">    mValueAnimator.addListener(<span class="keyword">this</span>);</span><br><span class="line">    mValueAnimator.setInterpolator(mInterpolator);</span><br><span class="line">    mValueAnimator.start();</span><br><span class="line">    startColorAnimation();</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onAnimationUpdate</span><span class="params">(ValueAnimator animation)</span> </span>&#123;</span><br><span class="line">    mAnimationFraction = (<span class="keyword">float</span>)animation.getAnimatedValue();</span><br><span class="line">    invalidate(); <span class="comment">//产生动画的关键步骤</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>&emsp;所以，最终动画问题又变成了绘制静态图像问题，我们根据不同的<code>mAnimationFraction</code>的值来绘制不同的图像。<br>&emsp;接下来我们就来描述一下几个比较关键的动画的逻辑。</p>
-<h4 id="脸部转动动画"><a href="#脸部转动动画" class="headerlink" title="脸部转动动画"></a>脸部转动动画</h4><p>&emsp;其实这个脸部动画还是比较难实现的，主要是转动的这个效果没有直接的API可以实现。我们的动画只是让用户产生脸部转动的假象。由于脸部图案就是一个大圆加上充当眼睛和嘴巴的椭圆和矩形，我们可以让眼睛和嘴巴向转动方向平移，让它们平移出大圆，然后在一定时间后从另外一个方向再平移进入大圆，最终回到原来位置。这样就实现了一种脸部转动的效果。<br>&emsp;如何让眼睛和嘴巴移动到大圆边缘就消失呢？而且是随着移动渐渐的一部分一部分的消失呢？我们这里使用了另外一种思路，使用<code>clipPath</code>函数，将画布进行裁剪，只留下大圆范围内的图案。这样的话，当眼睛和嘴巴移动出大圆时，就会逐渐消失。<br>&emsp;至于眼睛和嘴巴如何平移呢？大家首先想到的方法一定是根据<code>mAnimationFraction</code>来计算它们的位置，然后在相应位置上将它们绘制出来，但是这样不是最优的方法，我们可以在绘制这些图像时，对画布进行平移，这样的话，我们绘制眼睛和嘴巴的函数就不会涉及到<code>mAnimationFraction</code>，实现比较简单。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">public void drawFace(Canvas canvas,float fraction) {
-        mPaint.setAntiAlias(true);
-        &#x2F;&#x2F;面部背景
-        mPaint.setColor(mFaceColor);
-        mPaint.setStyle(Paint.Style.FILL);
-        canvas.drawPath(mFacePath,mPaint);
-		&#x2F;&#x2F;先裁剪并平移画布，然后再绘制眼部五官
-        translateAndClipFace(canvas,fraction);
-        drawEye(canvas,fraction);
-        drawMouth(canvas,fraction);
-    }
-
-    private void translateAndClipFace(Canvas canvas,float fraction) {
-        &#x2F;&#x2F;截掉超出face的部分。
-        canvas.clipPath(mFacePath);
-
-        float faceTransition ;
-        &#x2F;&#x2F;TODO：合理的转动区间，眼睛出现和消失的时间比为1：1,所以当fraction=0.25时，应该只显示侧脸,计算faceTransition。
-        if (fraction &gt;=0.0f &amp;&amp; fraction &lt;0.5f) {
-            faceTransition = fraction * mFaceRadius *4;
-        } else if (fraction &lt;=NORMAL_ANIM_MAX_FRACTION){
-            faceTransition = - (NORMAL_ANIM_MAX_FRACTION - fraction) * mFaceRadius * 4;
-        } else if (fraction &lt;=(NORMAL_ANIM_MAX_FRACTION+FACE_ANIM_MAX_FRACTION)&#x2F;2) {
-            faceTransition =  (fraction - NORMAL_ANIM_MAX_FRACTION) * mFaceRadius * 2;
-        } else {
-            faceTransition = (FACE_ANIM_MAX_FRACTION - fraction) * mFaceRadius * 2;
-        }
-        canvas.translate(faceTransition,0);
-    }
-</code></pre></p>
+<h4 id="脸部转动动画"><a href="#脸部转动动画" class="headerlink" title="脸部转动动画"></a>脸部转动动画</h4><p>&emsp;其实这个脸部动画还是比较难实现的，主要是转动的这个效果没有直接的API可以实现。我们的动画只是让用户产生脸部转动的假象。由于脸部图案就是一个大圆加上充当眼睛和嘴巴的椭圆和矩形，我们可以让眼睛和嘴巴向转动方向平移，让它们平移出大圆，然后在一定时间后从另外一个方向再平移进入大圆，最终回到原来位置。这样就实现了一种脸部转动的效果。<br>&emsp;如何让眼睛和嘴巴移动到大圆边缘就消失呢？而且是随着移动渐渐的一部分一部分的消失呢？我们这里使用了另外一种思路，使用<code>clipPath</code>函数，将画布进行裁剪，只留下大圆范围内的图案。这样的话，当眼睛和嘴巴移动出大圆时，就会逐渐消失。<br>&emsp;至于眼睛和嘴巴如何平移呢？大家首先想到的方法一定是根据<code>mAnimationFraction</code>来计算它们的位置，然后在相应位置上将它们绘制出来，但是这样不是最优的方法，我们可以在绘制这些图像时，对画布进行平移，这样的话，我们绘制眼睛和嘴巴的函数就不会涉及到<code>mAnimationFraction</code>，实现比较简单。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">drawFace</span><span class="params">(Canvas canvas,<span class="keyword">float</span> fraction)</span> </span>&#123;</span><br><span class="line">        mPaint.setAntiAlias(<span class="keyword">true</span>);</span><br><span class="line">        <span class="comment">//面部背景</span></span><br><span class="line">        mPaint.setColor(mFaceColor);</span><br><span class="line">        mPaint.setStyle(Paint.Style.FILL);</span><br><span class="line">        canvas.drawPath(mFacePath,mPaint);</span><br><span class="line">		<span class="comment">//先裁剪并平移画布，然后再绘制眼部五官</span></span><br><span class="line">        translateAndClipFace(canvas,fraction);</span><br><span class="line">        drawEye(canvas,fraction);</span><br><span class="line">        drawMouth(canvas,fraction);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">translateAndClipFace</span><span class="params">(Canvas canvas,<span class="keyword">float</span> fraction)</span> </span>&#123;</span><br><span class="line">        <span class="comment">//截掉超出face的部分。</span></span><br><span class="line">        canvas.clipPath(mFacePath);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">float</span> faceTransition ;</span><br><span class="line">        <span class="comment">//TODO：合理的转动区间，眼睛出现和消失的时间比为1：1,所以当fraction=0.25时，应该只显示侧脸,计算faceTransition。</span></span><br><span class="line">        <span class="keyword">if</span> (fraction &gt;=<span class="number">0.0f</span> &amp;&amp; fraction &lt;<span class="number">0.5f</span>) &#123;</span><br><span class="line">            faceTransition = fraction * mFaceRadius *<span class="number">4</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (fraction &lt;=NORMAL_ANIM_MAX_FRACTION)&#123;</span><br><span class="line">            faceTransition = - (NORMAL_ANIM_MAX_FRACTION - fraction) * mFaceRadius * <span class="number">4</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (fraction &lt;=(NORMAL_ANIM_MAX_FRACTION+FACE_ANIM_MAX_FRACTION)/<span class="number">2</span>) &#123;</span><br><span class="line">            faceTransition =  (fraction - NORMAL_ANIM_MAX_FRACTION) * mFaceRadius * <span class="number">2</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            faceTransition = (FACE_ANIM_MAX_FRACTION - fraction) * mFaceRadius * <span class="number">2</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        canvas.translate(faceTransition,<span class="number">0</span>);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
 <h4 id="眨眼睛和变笑脸动画"><a href="#眨眼睛和变笑脸动画" class="headerlink" title="眨眼睛和变笑脸动画"></a>眨眼睛和变笑脸动画</h4><p>&emsp;眨眼睛动画十分简单，我们只要在绘制眼睛之前对画布进行缩放即可，然后在绘制玩眼睛之后，在将画布转变回来。但是后来我发现，画布缩放的中心点不容易确认，所以，采取了使用<code>mAnimationValue</code>计算椭圆数据的方式来进行椭圆大小的缩放。<br>&emsp;变笑脸动画主要就是嘴巴的动画效果，在静止情况下，我们使用<code>drawRect</code>来绘制嘴部图形；但在动画过程中，我们使用<code>drawPath</code>和<code>quadTo</code>来共同绘制嘴巴形状。<br>&emsp;<code>Path</code>的<code>quadTo</code>是用来绘制贝塞尔曲线，具体使用方法请查看<a href="https://github.com/GcsSloop/AndroidNote/blob/master/CustomView/Advance/%5B6%5DPath_Bezier.md" target="_blank" rel="noopener">Path之贝塞尔曲线</a>。我们主要使用其二阶曲线版本，即两个数据点，一个控制点。我们计算出A,B这两个数据点，也就是静止状态下矩形的左上点和右上点，然后根据<code>mAnimationValue</code>来计算控制点c的坐标，然后完成绘制。</p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160715-quadTo.jpg" alt="贝塞尔曲线原理图"></p>
-<p>&emsp;嘴部图案的绘制如下所示。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">    private void drawMouth(Canvas canvas,float fraction) {
-		.......
-        &#x2F;&#x2F;嘴巴
-        if (fraction &lt;=0.75) { &#x2F;&#x2F;
-            canvas.drawRect(mouthLeft, mouthTop, mouthLeft + mouthWidth, mouthTop + mouthHeight, mPaint);
-        } else {
-            Path path = new Path();
-            path.moveTo(mouthLeft,mouthTop);
-            float controlX = mouthLeft + mouthWidth&#x2F;2;
-            float controlY = mouthTop + mouthHeight + mouthHeight * 15 * (fraction - 0.75f);
-        path.quadTo(controlX,controlY,mouthLeft+mouthWidth,mouthTop);
-            path.close();
-            canvas.drawPath(path,mPaint);
-        }
-    }
-</code></pre></p>
+<p>&emsp;嘴部图案的绘制如下所示。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">  <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">drawMouth</span><span class="params">(Canvas canvas,<span class="keyword">float</span> fraction)</span> </span>&#123;</span><br><span class="line">.......</span><br><span class="line">      <span class="comment">//嘴巴</span></span><br><span class="line">      <span class="keyword">if</span> (fraction &lt;=<span class="number">0.75</span>) &#123; <span class="comment">//</span></span><br><span class="line">          canvas.drawRect(mouthLeft, mouthTop, mouthLeft + mouthWidth, mouthTop + mouthHeight, mPaint);</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          Path path = <span class="keyword">new</span> Path();</span><br><span class="line">          path.moveTo(mouthLeft,mouthTop);</span><br><span class="line">          <span class="keyword">float</span> controlX = mouthLeft + mouthWidth/<span class="number">2</span>;</span><br><span class="line">          <span class="keyword">float</span> controlY = mouthTop + mouthHeight + mouthHeight * <span class="number">15</span> * (fraction - <span class="number">0.75f</span>);</span><br><span class="line">      path.quadTo(controlX,controlY,mouthLeft+mouthWidth,mouthTop);</span><br><span class="line">          path.close();</span><br><span class="line">          canvas.drawPath(path,mPaint);</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
 <h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>&emsp;其实还有一些细节问题我没有在这篇文章上讲出，一方面是因为讲述起来太过复杂，还是大家自己查阅代码比较好，另一方面是，我觉得自己实现的方式也不是很好，就不在这里献丑了。<br>&emsp;项目还没有完全完成，比如自定义监听器和自定义属性的相关逻辑都没有添加，希望感兴趣的同学可以自行研究代码并完善它。项目地址摸我<a href="https://github.com/ztelur/FunSwitch" target="_blank" rel="noopener">我的github</a>。</p>
 
         
@@ -1697,7 +1186,7 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/413b422c/" data-id="ck6531e5j007c6psep7popn4m" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/413b422c/" data-id="ck6535m9d00769ksee2a4b6c7" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1862,7 +1351,7 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/69b8b4a1/" data-id="ck6531e3l00386psegy1lzw21" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/69b8b4a1/" data-id="ck6535m7m00369ksefzud9gcz" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2017,7 +1506,7 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/a5f1cf16/" data-id="ck6531e46004i6pse5dc7iphx" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/a5f1cf16/" data-id="ck6535m87004m9ksezmaizhta" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2204,7 +1693,7 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/b849cb4a/" data-id="ck6531e4i004r6pseu6khdq4j" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/b849cb4a/" data-id="ck6535m89004o9kseyhdz9fz2" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2324,94 +1813,11 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         
             
             <p>&emsp;这段时间本人在学习<code>Android Service</code>相关的内容，临时需要一个可以提供文件上传和下载功能的服务器，于是上网查找了一个简单服务器的python实现代码，本着温顾一下HTTP协议的想法，于是深入研究了一下其中的代码，发现大家对<code>SimpleHTTPRequestsHandler</code>中的<code>self.headers.plisttext.split(&quot;=&quot;)[1]</code>语句的含义不是很理解，于是自己查阅了一下python源码定义和相关HTTP协议文档，理解了这段代码的含义。</p>
-<h4 id="源码定义"><a href="#源码定义" class="headerlink" title="源码定义"></a>源码定义</h4><p>&emsp;我们先来看一下关于<code>plisttext</code>的源码定义。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-python">#https:&#x2F;&#x2F;svn.python.org&#x2F;projects&#x2F;python&#x2F;branches&#x2F;alpha100&#x2F;Lib&#x2F;mimetools.py
-class Message(rfc822.Message):
-	def __init__(self, fp):
-    ....
-		self.typeheader = \
-			self.getheader(&#39;content-type&#39;)
-		....
-	def parsetype(self):
-		str = self.typeheader
-		if str == None:
-			str = &#39;text&#x2F;plain&#39;
-		if &#39;;&#39; in str:
-			i = string.index(str, &#39;;&#39;)
-			self.plisttext = str[i:]
-			str = str[:i]
-		else:
-			self.plisttext = &#39;&#39;
-		....
-</code></pre></p>
-<p>&emsp;从源码中可以得出，<code>plisttext</code>与HTTP头部<code>content-type</code>有关，这里我们就要回想一下<code>content-type</code>的有关定义了。<br>&emsp;在<a href="https://www.w3.org/Protocols/rfc1341/4_Content-Type.html" target="_blank" rel="noopener">w3c的文档</a>给出了<code>content-type</code>的格式定义,我们可以发现，<code>content-type</code>对的值有可选的内容，使用<code>；</code>隔开，所以<code>plisttext</code>的值就是<code>parameter</code>的内容。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">Content-Type := type &quot;&#x2F;&quot; subtype *[&quot;;&quot; parameter] 
-
-type :=          &quot;application&quot;     &#x2F; &quot;audio&quot; 
-          &#x2F; &quot;image&quot;           &#x2F; &quot;message&quot; 
-          &#x2F; &quot;multipart&quot;  &#x2F; &quot;text&quot; 
-          &#x2F; &quot;video&quot;           &#x2F; x-token 
-
-x-token := &lt;The two characters &quot;X-&quot; followed, with no 
-           intervening white space, by any token&gt; 
-
-subtype := token 
-
-parameter := attribute &quot;=&quot; value 
-
-attribute := token 
-
-value := token &#x2F; quoted-string 
-
-token := 1*&lt;any CHAR except SPACE, CTLs, or tspecials&gt; 
-
-tspecials :=  &quot;(&quot; &#x2F; &quot;)&quot; &#x2F; &quot;&lt;&quot; &#x2F; &quot;&gt;&quot; &#x2F; &quot;@&quot;  ; Must be in 
-           &#x2F;  &quot;,&quot; &#x2F; &quot;;&quot; &#x2F; &quot;:&quot; &#x2F; &quot;\&quot; &#x2F; &lt;&quot;&gt;  ; quoted-string, 
-           &#x2F;  &quot;&#x2F;&quot; &#x2F; &quot;[&quot; &#x2F; &quot;]&quot; &#x2F; &quot;?&quot; &#x2F; &quot;.&quot;  ; to use within 
-           &#x2F;  &quot;=&quot;                        ; parameter values 
-</code></pre></p>
-<h4 id="使用原理"><a href="#使用原理" class="headerlink" title="使用原理"></a>使用原理</h4><p>&emsp;知道了<code>plisttext</code>代表的含义，我们再来看一下它在文件上传过程中的作用吧。我们先来看一下它在处理文件上传的<code>post</code>请求时的作用吧。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-python">boundary = self.headers.plisttext.split(&quot;=&quot;)[1]
-remainbytes = int(self.headers[&#39;content-length&#39;])
-line = self.rfile.readline()
-remainbytes -= len(line)
-if not boundary in line:
-    return (False,&quot;Content NOT begin with boundary&quot;)
-line = self.rfile.readline()
-remainbytes -= len(line)
-filename = re.findall(r&#39;Content-Disposition.*name=&quot;file&quot;; filename=&quot;(.*)&quot;&#39;,line)
-if not fn:
-    return (False,&quot;Can&#39;t find out file name&quot;)
-</code></pre></p>
+<h4 id="源码定义"><a href="#源码定义" class="headerlink" title="源码定义"></a>源码定义</h4><p>&emsp;我们先来看一下关于<code>plisttext</code>的源码定义。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#https://svn.python.org/projects/python/branches/alpha100/Lib/mimetools.py</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Message</span><span class="params">(rfc822.Message)</span>:</span></span><br><span class="line">	<span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, fp)</span>:</span></span><br><span class="line">    ....</span><br><span class="line">		self.typeheader = \</span><br><span class="line">			self.getheader(<span class="string">'content-type'</span>)</span><br><span class="line">		....</span><br><span class="line">	<span class="function"><span class="keyword">def</span> <span class="title">parsetype</span><span class="params">(self)</span>:</span></span><br><span class="line">		str = self.typeheader</span><br><span class="line">		<span class="keyword">if</span> str == <span class="keyword">None</span>:</span><br><span class="line">			str = <span class="string">'text/plain'</span></span><br><span class="line">		<span class="keyword">if</span> <span class="string">';'</span> <span class="keyword">in</span> str:</span><br><span class="line">			i = string.index(str, <span class="string">';'</span>)</span><br><span class="line">			self.plisttext = str[i:]</span><br><span class="line">			str = str[:i]</span><br><span class="line">		<span class="keyword">else</span>:</span><br><span class="line">			self.plisttext = <span class="string">''</span></span><br><span class="line">		....</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;从源码中可以得出，<code>plisttext</code>与HTTP头部<code>content-type</code>有关，这里我们就要回想一下<code>content-type</code>的有关定义了。<br>&emsp;在<a href="https://www.w3.org/Protocols/rfc1341/4_Content-Type.html" target="_blank" rel="noopener">w3c的文档</a>给出了<code>content-type</code>的格式定义,我们可以发现，<code>content-type</code>对的值有可选的内容，使用<code>；</code>隔开，所以<code>plisttext</code>的值就是<code>parameter</code>的内容。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">Content-Type := type &quot;/&quot; subtype *[&quot;;&quot; parameter] </span><br><span class="line"></span><br><span class="line">type :=          &quot;application&quot;     / &quot;audio&quot; </span><br><span class="line">          / &quot;image&quot;           / &quot;message&quot; </span><br><span class="line">          / &quot;multipart&quot;  / &quot;text&quot; </span><br><span class="line">          / &quot;video&quot;           / x-token </span><br><span class="line"></span><br><span class="line">x-token := &lt;The two characters &quot;X-&quot; followed, with no </span><br><span class="line">           intervening white space, by any token&gt; </span><br><span class="line"></span><br><span class="line">subtype := token </span><br><span class="line"></span><br><span class="line">parameter := attribute &quot;=&quot; value </span><br><span class="line"></span><br><span class="line">attribute := token </span><br><span class="line"></span><br><span class="line">value := token / quoted-string </span><br><span class="line"></span><br><span class="line">token := 1*&lt;any CHAR except SPACE, CTLs, or tspecials&gt; </span><br><span class="line"></span><br><span class="line">tspecials :=  &quot;(&quot; / &quot;)&quot; / &quot;&lt;&quot; / &quot;&gt;&quot; / &quot;@&quot;  ; Must be in </span><br><span class="line">           /  &quot;,&quot; / &quot;;&quot; / &quot;:&quot; / &quot;\&quot; / &lt;&quot;&gt;  ; quoted-string, </span><br><span class="line">           /  &quot;/&quot; / &quot;[&quot; / &quot;]&quot; / &quot;?&quot; / &quot;.&quot;  ; to use within </span><br><span class="line">           /  &quot;=&quot;                        ; parameter values</span><br></pre></td></tr></table></figure></p>
+<h4 id="使用原理"><a href="#使用原理" class="headerlink" title="使用原理"></a>使用原理</h4><p>&emsp;知道了<code>plisttext</code>代表的含义，我们再来看一下它在文件上传过程中的作用吧。我们先来看一下它在处理文件上传的<code>post</code>请求时的作用吧。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">boundary = self.headers.plisttext.split(<span class="string">"="</span>)[<span class="number">1</span>]</span><br><span class="line">remainbytes = int(self.headers[<span class="string">'content-length'</span>])</span><br><span class="line">line = self.rfile.readline()</span><br><span class="line">remainbytes -= len(line)</span><br><span class="line"><span class="keyword">if</span> <span class="keyword">not</span> boundary <span class="keyword">in</span> line:</span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">False</span>,<span class="string">"Content NOT begin with boundary"</span>)</span><br><span class="line">line = self.rfile.readline()</span><br><span class="line">remainbytes -= len(line)</span><br><span class="line">filename = re.findall(<span class="string">r'Content-Disposition.*name="file"; filename="(.*)"'</span>,line)</span><br><span class="line"><span class="keyword">if</span> <span class="keyword">not</span> fn:</span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">False</span>,<span class="string">"Can't find out file name"</span>)</span><br></pre></td></tr></table></figure></p>
 <p>&emsp;我们都知道当通过<code>html</code>的<code>form</code>来进行文件提交时，浏览器会发送<code>POST</code>请求，并且content-type为<code>multipart/form-data; boundary=----WebKitFormBoundaryqdHXHkzdBEGWWZka</code>,所以，<code>plisttext</code>的值为<code>boundary=----WebKitFormBoundaryqdHXHkzdBEGWWZka</code>。<code>boundary</code>在<code>HTTP</code>的body中会使用到，因为post请求提交了很多类型的数据，所以必须使用<code>boundary</code>进行间隔，也就是所谓的<a href="https://www.w3.org/Protocols/rfc1341/7_2_Multipart.html" target="_blank" rel="noopener">Multipart Content-Type时的body格式</a>。详细的body的格式在w3c的文档中有详细的介绍。</p>
-<p>&emsp;这里贴一张wireShark截获的tcp包的信息，来帮助大家理解一下这段python代码的原理。通过<code>form</code>提交一份文件和一个名为other的字符串。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike"> POST &#x2F; HTTP&#x2F;1.1
-Host: localhost:8080
-Connection: keep-alive
-Content-Length: 269353
-Cache-Control: max-age=0
-Accept: text&#x2F;html,application&#x2F;xhtml+xml,application&#x2F;xml;q=0.9,image&#x2F;webp,*&#x2F;*;q=0.8
-Origin: http:&#x2F;&#x2F;localhost:8080
-User-Agent: Mozilla&#x2F;5.0 (X11; Linux i686) AppleWebKit&#x2F;537.36 (KHTML, like Gecko) Ubuntu Chromium&#x2F;43.0.2357.81 Chrome&#x2F;43.0.2357.81 Safari&#x2F;537.36
-Content-Type: multipart&#x2F;form-data; boundary=----WebKitFormBoundaryqdHXHkzdBEGWWZka
-Referer: http:&#x2F;&#x2F;localhost:8080&#x2F;
-Accept-Encoding: gzip, deflate
-Accept-Language: en-US,en;q=0.8,zh-CN;q=0.6,zh;q=0.4
-
-------WebKitFormBoundaryqdHXHkzdBEGWWZka
-Content-Disposition: form-data; name=&quot;file&quot;; filename=&quot;AndroidStudy.png&quot;
-Content-Type: image&#x2F;png
-..... &#x2F;&#x2F;图片内容
-------WebKitFormBoundaryqdHXHkzdBEGWWZka
-Content-Disposition: form-data; name=&quot;other&quot;
-
-ddd
-------WebKitFormBoundaryqdHXHkzdBEGWWZka--
-</code></pre></p>
+<p>&emsp;这里贴一张wireShark截获的tcp包的信息，来帮助大家理解一下这段python代码的原理。通过<code>form</code>提交一份文件和一个名为other的字符串。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"> POST / HTTP/1.1</span><br><span class="line">Host: localhost:8080</span><br><span class="line">Connection: keep-alive</span><br><span class="line">Content-Length: 269353</span><br><span class="line">Cache-Control: max-age=0</span><br><span class="line">Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8</span><br><span class="line">Origin: http://localhost:8080</span><br><span class="line">User-Agent: Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/43.0.2357.81 Chrome/43.0.2357.81 Safari/537.36</span><br><span class="line">Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryqdHXHkzdBEGWWZka</span><br><span class="line">Referer: http://localhost:8080/</span><br><span class="line">Accept-Encoding: gzip, deflate</span><br><span class="line">Accept-Language: en-US,en;q=0.8,zh-CN;q=0.6,zh;q=0.4</span><br><span class="line"></span><br><span class="line">------WebKitFormBoundaryqdHXHkzdBEGWWZka</span><br><span class="line">Content-Disposition: form-data; name=&quot;file&quot;; filename=&quot;AndroidStudy.png&quot;</span><br><span class="line">Content-Type: image/png</span><br><span class="line">..... //图片内容</span><br><span class="line">------WebKitFormBoundaryqdHXHkzdBEGWWZka</span><br><span class="line">Content-Disposition: form-data; name=&quot;other&quot;</span><br><span class="line"></span><br><span class="line">ddd</span><br><span class="line">------WebKitFormBoundaryqdHXHkzdBEGWWZka--</span><br></pre></td></tr></table></figure></p>
 
         
         </div>
@@ -2422,7 +1828,7 @@ ddd
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/64e12480/" data-id="ck6531e3j00356pse2phux8c0" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/64e12480/" data-id="ck6535m7l00339kse1anm56vq" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2499,7 +1905,7 @@ ddd
 
 
     <nav id="page-nav">
-        <a class="extend prev" rel="prev" href="/page/5/">&laquo; Anterior</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><a class="page-number" href="/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/page/7/">7</a><a class="page-number" href="/page/8/">8</a><a class="page-number" href="/page/9/">9</a><a class="extend next" rel="next" href="/page/7/">Siguiente  &raquo;</a>
+        <a class="extend prev" rel="prev" href="/page/5/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><a class="page-number" href="/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/page/7/">7</a><a class="page-number" href="/page/8/">8</a><a class="page-number" href="/page/9/">9</a><a class="extend next" rel="next" href="/page/7/">Next &raquo;</a>
     </nav>
 </section>
             
@@ -2508,7 +1914,7 @@ ddd
    
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Recientes</h3>
+        <h3 class="widget-title">recent</h3>
         <div class="widget">
             <ul id="recent-post" class="">
                 
@@ -2614,7 +2020,7 @@ ddd
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Categorias</h3>
+        <h3 class="widget-title">categories</h3>
         <div class="widget">
             <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">25</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MySQL/">MySQL</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Netty/">Netty</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Redis/">Redis</a><span class="category-list-count">16</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SICP/">SICP</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/docker/">docker</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/java-persistent/">java persistent</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/plan/">plan</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">2</span></li></ul>
         </div>
@@ -2623,7 +2029,7 @@ ddd
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Archivos</h3>
+        <h3 class="widget-title">archives</h3>
         <div class="widget">
             <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
         </div>
@@ -2632,7 +2038,7 @@ ddd
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Nube de etiquetas</h3>
+        <h3 class="widget-title">tag cloud</h3>
         <div class="widget tagcloud">
             <a href="/tags/AOP/" style="font-size: 15px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 20px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/Netty/" style="font-size: 20px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 15px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 15px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 20px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 15px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/persistent/" style="font-size: 15px;">persistent</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 15px;">第三方库</a> <a href="/tags/算法/" style="font-size: 20px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 15px;">限流</a>
         </div>
@@ -2641,7 +2047,7 @@ ddd
     
         
     <div class="widget-wrap widget-list">
-        <h3 class="widget-title">Links</h3>
+        <h3 class="widget-title">links</h3>
         <div class="widget">
             <ul>
                 
