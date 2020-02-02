@@ -297,26 +297,273 @@ var _hmt = _hmt || [];
 <h3 id="Guava-RateLimiter"><a href="#Guava-RateLimiter" class="headerlink" title="Guava RateLimiter"></a>Guava RateLimiter</h3><p>&emsp;<code>Guava</code>是Java领域优秀的开源项目，它包含了Google在Java项目中使用一些核心库，包含集合(Collections)，缓存(Caching)，并发编程库(Concurrency)，常用注解(Common annotations)，String操作，I/O操作方面的众多非常实用的函数。<br>&emsp;Guava的<code>RateLimiter</code>提供了令牌桶算法实现：平滑突发限流(SmoothBursty)和平滑预热限流(SmoothWarmingUp)实现。</p>
 <p><img src="/images/19_923/image4.webp" alt="类图"></p>
 <p>&emsp;<code>RateLimiter</code>的类图如上所示，其中<code>RateLimiter</code>是入口类，它提供了两套工厂方法来创建出两个子类。这很符合《Effective Java》中的用静态工厂方法代替构造函数的建议，毕竟该书的作者也正是Guava库的主要维护者，二者配合”食用”更佳。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">// RateLimiter提供了两个工厂方法，最终会调用下面两个函数，生成RateLimiter的两个子类。</span><br><span class="line">static RateLimiter create(SleepingStopwatch stopwatch, double permitsPerSecond) &#123;</span><br><span class="line">    RateLimiter rateLimiter = new SmoothBursty(stopwatch, 1.0 /* maxBurstSeconds */);</span><br><span class="line">    rateLimiter.setRate(permitsPerSecond);</span><br><span class="line">    return rateLimiter;</span><br><span class="line">&#125;</span><br><span class="line">static RateLimiter create(</span><br><span class="line">    SleepingStopwatch stopwatch, double permitsPerSecond, long warmupPeriod, TimeUnit unit,</span><br><span class="line">    double coldFactor) &#123;</span><br><span class="line">    RateLimiter rateLimiter = new SmoothWarmingUp(stopwatch, warmupPeriod, unit, coldFactor);</span><br><span class="line">    rateLimiter.setRate(permitsPerSecond);</span><br><span class="line">    return rateLimiter;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h4 id="平滑突发限流"><a href="#平滑突发限流" class="headerlink" title="平滑突发限流"></a>平滑突发限流</h4><p>&emsp;使用<code>RateLimiter</code>的静态方法创建一个限流器，设置每秒放置的令牌数为5个。返回的RateLimiter对象可以保证1秒内不会给超过5个令牌，并且以固定速率进行放置，达到平滑输出的效果。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">public void testSmoothBursty() &#123;</span><br><span class="line">    RateLimiter r = RateLimiter.create(5);</span><br><span class="line">    while (true) &#123;</span><br><span class="line">      System.out.println(&quot;get 1 tokens: &quot; + r.acquire() + &quot;s&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">    /**</span><br><span class="line">     * output: 基本上都是0.2s执行一次，符合一秒发放5个令牌的设定。</span><br><span class="line">     * get 1 tokens: 0.0s </span><br><span class="line">     * get 1 tokens: 0.182014s</span><br><span class="line">     * get 1 tokens: 0.188464s</span><br><span class="line">     * get 1 tokens: 0.198072s</span><br><span class="line">     * get 1 tokens: 0.196048s</span><br><span class="line">     * get 1 tokens: 0.197538s</span><br><span class="line">     * get 1 tokens: 0.196049s</span><br><span class="line">     */</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; RateLimiter提供了两个工厂方法，最终会调用下面两个函数，生成RateLimiter的两个子类。
+static RateLimiter create(SleepingStopwatch stopwatch, double permitsPerSecond) {
+    RateLimiter rateLimiter = new SmoothBursty(stopwatch, 1.0 &#x2F;* maxBurstSeconds *&#x2F;);
+    rateLimiter.setRate(permitsPerSecond);
+    return rateLimiter;
+}
+static RateLimiter create(
+    SleepingStopwatch stopwatch, double permitsPerSecond, long warmupPeriod, TimeUnit unit,
+    double coldFactor) {
+    RateLimiter rateLimiter = new SmoothWarmingUp(stopwatch, warmupPeriod, unit, coldFactor);
+    rateLimiter.setRate(permitsPerSecond);
+    return rateLimiter;
+}
+</code></pre>
+<h4 id="平滑突发限流"><a href="#平滑突发限流" class="headerlink" title="平滑突发限流"></a>平滑突发限流</h4><p>&emsp;使用<code>RateLimiter</code>的静态方法创建一个限流器，设置每秒放置的令牌数为5个。返回的RateLimiter对象可以保证1秒内不会给超过5个令牌，并且以固定速率进行放置，达到平滑输出的效果。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public void testSmoothBursty() {
+    RateLimiter r = RateLimiter.create(5);
+    while (true) {
+      System.out.println(&quot;get 1 tokens: &quot; + r.acquire() + &quot;s&quot;);
+    }
+    &#x2F;**
+     * output: 基本上都是0.2s执行一次，符合一秒发放5个令牌的设定。
+     * get 1 tokens: 0.0s 
+     * get 1 tokens: 0.182014s
+     * get 1 tokens: 0.188464s
+     * get 1 tokens: 0.198072s
+     * get 1 tokens: 0.196048s
+     * get 1 tokens: 0.197538s
+     * get 1 tokens: 0.196049s
+     *&#x2F;
+}
+</code></pre></p>
 <p>&emsp;<code>RateLimiter</code>使用令牌桶算法，会进行令牌的累积，如果获取令牌的频率比较低，则不会导致等待，直接获取令牌。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">public void testSmoothBursty2() &#123;</span><br><span class="line">    RateLimiter r = RateLimiter.create(2);</span><br><span class="line">    while (true)</span><br><span class="line">    &#123;</span><br><span class="line">      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);</span><br><span class="line">      try &#123;</span><br><span class="line">        Thread.sleep(2000);</span><br><span class="line">      &#125; catch (Exception e) &#123;&#125;</span><br><span class="line">      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);</span><br><span class="line">      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);</span><br><span class="line">      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);</span><br><span class="line">      System.out.println(&quot;end&quot;);</span><br><span class="line">      /**</span><br><span class="line">       * output:</span><br><span class="line">       * get 1 tokens: 0.0s</span><br><span class="line">       * get 1 tokens: 0.0s</span><br><span class="line">       * get 1 tokens: 0.0s</span><br><span class="line">       * get 1 tokens: 0.0s</span><br><span class="line">       * end</span><br><span class="line">       * get 1 tokens: 0.499796s</span><br><span class="line">       * get 1 tokens: 0.0s</span><br><span class="line">       * get 1 tokens: 0.0s</span><br><span class="line">       * get 1 tokens: 0.0s</span><br><span class="line">       */</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>&emsp;<code>RateLimiter</code>由于会累积令牌，所以可以应对突发流量。在下面代码中，有一个请求会直接请求5个令牌，但是由于此时令牌桶中有累积的令牌，足以快速响应。<br>&emsp;<code>RateLimiter</code>在没有足够令牌发放时，采用滞后处理的方式，也就是前一个请求获取令牌所需等待的时间由下一次请求来承受，也就是代替前一个请求进行等待。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">public void testSmoothBursty3() &#123;</span><br><span class="line">    RateLimiter r = RateLimiter.create(5);</span><br><span class="line">    while (true)</span><br><span class="line">    &#123;</span><br><span class="line">      System.out.println(&quot;get 5 tokens: &quot; + r.acquire(5) + &quot;s&quot;);</span><br><span class="line">      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);</span><br><span class="line">      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);</span><br><span class="line">      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);</span><br><span class="line">      System.out.println(&quot;end&quot;);</span><br><span class="line">      /**</span><br><span class="line">       * output:</span><br><span class="line">       * get 5 tokens: 0.0s</span><br><span class="line">       * get 1 tokens: 0.996766s 滞后效应，需要替前一个请求进行等待</span><br><span class="line">       * get 1 tokens: 0.194007s</span><br><span class="line">       * get 1 tokens: 0.196267s</span><br><span class="line">       * end</span><br><span class="line">       * get 5 tokens: 0.195756s</span><br><span class="line">       * get 1 tokens: 0.995625s 滞后效应，需要替前一个请求进行等待</span><br><span class="line">       * get 1 tokens: 0.194603s</span><br><span class="line">       * get 1 tokens: 0.196866s</span><br><span class="line">       */</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public void testSmoothBursty2() {
+    RateLimiter r = RateLimiter.create(2);
+    while (true)
+    {
+      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
+      try {
+        Thread.sleep(2000);
+      } catch (Exception e) {}
+      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
+      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
+      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
+      System.out.println(&quot;end&quot;);
+      &#x2F;**
+       * output:
+       * get 1 tokens: 0.0s
+       * get 1 tokens: 0.0s
+       * get 1 tokens: 0.0s
+       * get 1 tokens: 0.0s
+       * end
+       * get 1 tokens: 0.499796s
+       * get 1 tokens: 0.0s
+       * get 1 tokens: 0.0s
+       * get 1 tokens: 0.0s
+       *&#x2F;
+    }
+}
+</code></pre>
+<p>&emsp;<code>RateLimiter</code>由于会累积令牌，所以可以应对突发流量。在下面代码中，有一个请求会直接请求5个令牌，但是由于此时令牌桶中有累积的令牌，足以快速响应。<br>&emsp;<code>RateLimiter</code>在没有足够令牌发放时，采用滞后处理的方式，也就是前一个请求获取令牌所需等待的时间由下一次请求来承受，也就是代替前一个请求进行等待。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public void testSmoothBursty3() {
+    RateLimiter r = RateLimiter.create(5);
+    while (true)
+    {
+      System.out.println(&quot;get 5 tokens: &quot; + r.acquire(5) + &quot;s&quot;);
+      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
+      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
+      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
+      System.out.println(&quot;end&quot;);
+      &#x2F;**
+       * output:
+       * get 5 tokens: 0.0s
+       * get 1 tokens: 0.996766s 滞后效应，需要替前一个请求进行等待
+       * get 1 tokens: 0.194007s
+       * get 1 tokens: 0.196267s
+       * end
+       * get 5 tokens: 0.195756s
+       * get 1 tokens: 0.995625s 滞后效应，需要替前一个请求进行等待
+       * get 1 tokens: 0.194603s
+       * get 1 tokens: 0.196866s
+       *&#x2F;
+    }
+}
+</code></pre></p>
 <h4 id="平滑预热限流"><a href="#平滑预热限流" class="headerlink" title="平滑预热限流"></a>平滑预热限流</h4><p>&emsp;<code>RateLimiter</code>的<code>SmoothWarmingUp</code>是带有预热期的平滑限流，它启动后会有一段预热期，逐步将分发频率提升到配置的速率。<br>&emsp;比如下面代码中的例子，创建一个平均分发令牌速率为2，预热期为3分钟。由于设置了预热时间是3秒，令牌桶一开始并不会0.5秒发一个令牌，而是形成一个平滑线性下降的坡度，频率越来越高，在3秒钟之内达到原本设置的频率，以后就以固定的频率输出。这种功能适合系统刚启动需要一点时间来“热身”的场景。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">public void testSmoothwarmingUp() &#123;</span><br><span class="line">    RateLimiter r = RateLimiter.create(2, 3, TimeUnit.SECONDS);</span><br><span class="line">    while (true)</span><br><span class="line">    &#123;</span><br><span class="line">      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);</span><br><span class="line">      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);</span><br><span class="line">      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);</span><br><span class="line">      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);</span><br><span class="line">      System.out.println(&quot;end&quot;);</span><br><span class="line">      /**</span><br><span class="line">       * output:</span><br><span class="line">       * get 1 tokens: 0.0s</span><br><span class="line">       * get 1 tokens: 1.329289s</span><br><span class="line">       * get 1 tokens: 0.994375s</span><br><span class="line">       * get 1 tokens: 0.662888s  上边三次获取的时间相加正好为3秒</span><br><span class="line">       * end</span><br><span class="line">       * get 1 tokens: 0.49764s  正常速率0.5秒一个令牌</span><br><span class="line">       * get 1 tokens: 0.497828s</span><br><span class="line">       * get 1 tokens: 0.49449s</span><br><span class="line">       * get 1 tokens: 0.497522s</span><br><span class="line">       */</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h3><p>&emsp;看完了<code>RateLimiter</code>的基本使用示例后，我们来学习一下它的实现原理。先了解一下几个比较重要的成员变量的含义。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">//SmoothRateLimiter.java</span><br><span class="line">//当前存储令牌数</span><br><span class="line">double storedPermits;</span><br><span class="line">//最大存储令牌数</span><br><span class="line">double maxPermits;</span><br><span class="line">//添加令牌时间间隔</span><br><span class="line">double stableIntervalMicros;</span><br><span class="line">/**</span><br><span class="line"> * 下一次请求可以获取令牌的起始时间</span><br><span class="line"> * 由于RateLimiter允许预消费，上次请求预消费令牌后</span><br><span class="line"> * 下次请求需要等待相应的时间到nextFreeTicketMicros时刻才可以获取令牌</span><br><span class="line"> */</span><br><span class="line">private long nextFreeTicketMicros = 0L;</span><br></pre></td></tr></table></figure></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public void testSmoothwarmingUp() {
+    RateLimiter r = RateLimiter.create(2, 3, TimeUnit.SECONDS);
+    while (true)
+    {
+      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
+      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
+      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
+      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
+      System.out.println(&quot;end&quot;);
+      &#x2F;**
+       * output:
+       * get 1 tokens: 0.0s
+       * get 1 tokens: 1.329289s
+       * get 1 tokens: 0.994375s
+       * get 1 tokens: 0.662888s  上边三次获取的时间相加正好为3秒
+       * end
+       * get 1 tokens: 0.49764s  正常速率0.5秒一个令牌
+       * get 1 tokens: 0.497828s
+       * get 1 tokens: 0.49449s
+       * get 1 tokens: 0.497522s
+       *&#x2F;
+    }
+}
+</code></pre>
+<h3 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h3><p>&emsp;看完了<code>RateLimiter</code>的基本使用示例后，我们来学习一下它的实现原理。先了解一下几个比较重要的成员变量的含义。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F;SmoothRateLimiter.java
+&#x2F;&#x2F;当前存储令牌数
+double storedPermits;
+&#x2F;&#x2F;最大存储令牌数
+double maxPermits;
+&#x2F;&#x2F;添加令牌时间间隔
+double stableIntervalMicros;
+&#x2F;**
+ * 下一次请求可以获取令牌的起始时间
+ * 由于RateLimiter允许预消费，上次请求预消费令牌后
+ * 下次请求需要等待相应的时间到nextFreeTicketMicros时刻才可以获取令牌
+ *&#x2F;
+private long nextFreeTicketMicros = 0L;
+</code></pre></p>
 <h4 id="平滑突发限流-1"><a href="#平滑突发限流-1" class="headerlink" title="平滑突发限流"></a>平滑突发限流</h4><p>&emsp;<code>RateLimiter</code>的原理就是每次调用<code>acquire</code>时用当前时间和<code>nextFreeTicketMicros</code>进行比较，根据二者的间隔和添加单位令牌的时间间隔<code>stableIntervalMicros</code>来刷新存储令牌数<code>storedPermits</code>。然后acquire会进行休眠，直到<code>nextFreeTicketMicros</code>。</p>
-<p>&emsp;<code>acquire</code>函数如下所示，它会调用<code>reserve</code>函数计算获取目标令牌数所需等待的时间，然后使用<code>SleepStopwatch</code>进行休眠，最后返回等待时间。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">public double acquire(int permits) &#123;</span><br><span class="line">    // 计算获取令牌所需等待的时间</span><br><span class="line">    long microsToWait = reserve(permits);</span><br><span class="line">    // 进行线程sleep</span><br><span class="line">    stopwatch.sleepMicrosUninterruptibly(microsToWait);</span><br><span class="line">    return 1.0 * microsToWait / SECONDS.toMicros(1L);</span><br><span class="line">&#125;</span><br><span class="line">final long reserve(int permits) &#123;</span><br><span class="line">    checkPermits(permits);</span><br><span class="line">    // 由于涉及并发操作，所以使用synchronized进行并发操作</span><br><span class="line">    synchronized (mutex()) &#123;</span><br><span class="line">      return reserveAndGetWaitLength(permits, stopwatch.readMicros());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">final long reserveAndGetWaitLength(int permits, long nowMicros) &#123;</span><br><span class="line">    // 计算从当前时间开始，能够获取到目标数量令牌时的时间</span><br><span class="line">    long momentAvailable = reserveEarliestAvailable(permits, nowMicros);</span><br><span class="line">    // 两个时间相减，获得需要等待的时间</span><br><span class="line">    return max(momentAvailable - nowMicros, 0);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;<code>acquire</code>函数如下所示，它会调用<code>reserve</code>函数计算获取目标令牌数所需等待的时间，然后使用<code>SleepStopwatch</code>进行休眠，最后返回等待时间。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public double acquire(int permits) {
+    &#x2F;&#x2F; 计算获取令牌所需等待的时间
+    long microsToWait = reserve(permits);
+    &#x2F;&#x2F; 进行线程sleep
+    stopwatch.sleepMicrosUninterruptibly(microsToWait);
+    return 1.0 * microsToWait &#x2F; SECONDS.toMicros(1L);
+}
+final long reserve(int permits) {
+    checkPermits(permits);
+    &#x2F;&#x2F; 由于涉及并发操作，所以使用synchronized进行并发操作
+    synchronized (mutex()) {
+      return reserveAndGetWaitLength(permits, stopwatch.readMicros());
+    }
+}
+final long reserveAndGetWaitLength(int permits, long nowMicros) {
+    &#x2F;&#x2F; 计算从当前时间开始，能够获取到目标数量令牌时的时间
+    long momentAvailable = reserveEarliestAvailable(permits, nowMicros);
+    &#x2F;&#x2F; 两个时间相减，获得需要等待的时间
+    return max(momentAvailable - nowMicros, 0);
+}
+</code></pre></p>
 <p>&emsp;<code>reserveEarliestAvailable</code>是刷新令牌数和下次获取令牌时间<code>nextFreeTicketMicros</code>的关键函数。它有三个步骤，一是调用<code>resync</code>函数增加令牌数，二是计算预支付令牌所需额外等待的时间，三是更新下次获取令牌时间<code>nextFreeTicketMicros</code>和存储令牌数<code>storedPermits</code>。</p>
-<p>&emsp;这里涉及<code>RateLimiter</code>的一个特性，也就是可以预先支付令牌，并且所需等待的时间在下次获取令牌时再实际执行。详细的代码逻辑的解释请看注释。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">final long reserveEarliestAvailable(int requiredPermits, long nowMicros) &#123;</span><br><span class="line">    // 刷新令牌数，相当于每次acquire时在根据时间进行令牌的刷新</span><br><span class="line">    resync(nowMicros);</span><br><span class="line">    long returnValue = nextFreeTicketMicros;</span><br><span class="line">    // 获取当前已有的令牌数和需要获取的目标令牌数进行比较，计算出可以目前即可得到的令牌数。</span><br><span class="line">    double storedPermitsToSpend = min(requiredPermits, this.storedPermits);</span><br><span class="line">    // freshPermits是需要预先支付的令牌，也就是目标令牌数减去目前即可得到的令牌数</span><br><span class="line">    double freshPermits = requiredPermits - storedPermitsToSpend;</span><br><span class="line">    // 因为会突然涌入大量请求，而现有令牌数又不够用，因此会预先支付一定的令牌数</span><br><span class="line">    // waitMicros即是产生预先支付令牌的数量时间，则将下次要添加令牌的时间应该计算时间加上watiMicros</span><br><span class="line">    long waitMicros = storedPermitsToWaitTime(this.storedPermits, storedPermitsToSpend)</span><br><span class="line">        + (long) (freshPermits * stableIntervalMicros);</span><br><span class="line">    // storedPermitsToWaitTime在SmoothWarmingUp和SmoothBuresty的实现不同，用于实现预热缓冲期</span><br><span class="line">    // SmoothBuresty的storedPermitsToWaitTime直接返回0，所以watiMicros就是预先支付的令牌所需等待的时间</span><br><span class="line">    try &#123;</span><br><span class="line">      // 更新nextFreeTicketMicros,本次预先支付的令牌所需等待的时间让下一次请求来实际等待。</span><br><span class="line">      this.nextFreeTicketMicros = LongMath.checkedAdd(nextFreeTicketMicros, waitMicros);</span><br><span class="line">    &#125; catch (ArithmeticException e) &#123;</span><br><span class="line">      this.nextFreeTicketMicros = Long.MAX_VALUE;</span><br><span class="line">    &#125;</span><br><span class="line">    // 更新令牌数，最低数量为0</span><br><span class="line">    this.storedPermits -= storedPermitsToSpend;</span><br><span class="line">    // 返回旧的nextFreeTicketMicros数值，无需为预支付的令牌多加等待时间。</span><br><span class="line">    return returnValue;</span><br><span class="line">&#125;</span><br><span class="line">// SmoothBurest</span><br><span class="line">long storedPermitsToWaitTime(double storedPermits, double permitsToTake) &#123;</span><br><span class="line">    return 0L;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;这里涉及<code>RateLimiter</code>的一个特性，也就是可以预先支付令牌，并且所需等待的时间在下次获取令牌时再实际执行。详细的代码逻辑的解释请看注释。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">final long reserveEarliestAvailable(int requiredPermits, long nowMicros) {
+    &#x2F;&#x2F; 刷新令牌数，相当于每次acquire时在根据时间进行令牌的刷新
+    resync(nowMicros);
+    long returnValue = nextFreeTicketMicros;
+    &#x2F;&#x2F; 获取当前已有的令牌数和需要获取的目标令牌数进行比较，计算出可以目前即可得到的令牌数。
+    double storedPermitsToSpend = min(requiredPermits, this.storedPermits);
+    &#x2F;&#x2F; freshPermits是需要预先支付的令牌，也就是目标令牌数减去目前即可得到的令牌数
+    double freshPermits = requiredPermits - storedPermitsToSpend;
+    &#x2F;&#x2F; 因为会突然涌入大量请求，而现有令牌数又不够用，因此会预先支付一定的令牌数
+    &#x2F;&#x2F; waitMicros即是产生预先支付令牌的数量时间，则将下次要添加令牌的时间应该计算时间加上watiMicros
+    long waitMicros = storedPermitsToWaitTime(this.storedPermits, storedPermitsToSpend)
+        + (long) (freshPermits * stableIntervalMicros);
+    &#x2F;&#x2F; storedPermitsToWaitTime在SmoothWarmingUp和SmoothBuresty的实现不同，用于实现预热缓冲期
+    &#x2F;&#x2F; SmoothBuresty的storedPermitsToWaitTime直接返回0，所以watiMicros就是预先支付的令牌所需等待的时间
+    try {
+      &#x2F;&#x2F; 更新nextFreeTicketMicros,本次预先支付的令牌所需等待的时间让下一次请求来实际等待。
+      this.nextFreeTicketMicros = LongMath.checkedAdd(nextFreeTicketMicros, waitMicros);
+    } catch (ArithmeticException e) {
+      this.nextFreeTicketMicros = Long.MAX_VALUE;
+    }
+    &#x2F;&#x2F; 更新令牌数，最低数量为0
+    this.storedPermits -= storedPermitsToSpend;
+    &#x2F;&#x2F; 返回旧的nextFreeTicketMicros数值，无需为预支付的令牌多加等待时间。
+    return returnValue;
+}
+&#x2F;&#x2F; SmoothBurest
+long storedPermitsToWaitTime(double storedPermits, double permitsToTake) {
+    return 0L;
+}
+</code></pre></p>
 <p>&emsp;<code>resync</code>函数用于增加存储令牌，核心逻辑就是<code>(nowMicros - nextFreeTicketMicros) / stableIntervalMicros</code>。当前时间大于<code>nextFreeTicketMicros</code>时进行刷新，否则直接返回。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">void resync(long nowMicros) &#123;</span><br><span class="line">    // 当前时间晚于nextFreeTicketMicros，所以刷新令牌和nextFreeTicketMicros</span><br><span class="line">    if (nowMicros &gt; nextFreeTicketMicros) &#123;</span><br><span class="line">      // coolDownIntervalMicros函数获取每机秒生成一个令牌，SmoothWarmingUp和SmoothBuresty的实现不同</span><br><span class="line">      // SmoothBuresty的coolDownIntervalMicros直接返回stableIntervalMicros</span><br><span class="line">      // 当前时间减去要更新令牌的时间获取时间间隔，再除以添加令牌时间间隔获取这段时间内要添加的令牌数</span><br><span class="line">      storedPermits = min(maxPermits,</span><br><span class="line">          storedPermits</span><br><span class="line">            + (nowMicros - nextFreeTicketMicros) / coolDownIntervalMicros());</span><br><span class="line">      nextFreeTicketMicros = nowMicros;</span><br><span class="line">    &#125;</span><br><span class="line">    // 如果当前时间早于nextFreeTicketMicros，则获取令牌的线程要一直等待到nextFreeTicketMicros,该线程获取令牌所需</span><br><span class="line">    // 额外等待的时间由下一次获取的线程来代替等待。</span><br><span class="line">&#125;</span><br><span class="line">double coolDownIntervalMicros() &#123;</span><br><span class="line">    return stableIntervalMicros;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">void resync(long nowMicros) {
+    &#x2F;&#x2F; 当前时间晚于nextFreeTicketMicros，所以刷新令牌和nextFreeTicketMicros
+    if (nowMicros &gt; nextFreeTicketMicros) {
+      &#x2F;&#x2F; coolDownIntervalMicros函数获取每机秒生成一个令牌，SmoothWarmingUp和SmoothBuresty的实现不同
+      &#x2F;&#x2F; SmoothBuresty的coolDownIntervalMicros直接返回stableIntervalMicros
+      &#x2F;&#x2F; 当前时间减去要更新令牌的时间获取时间间隔，再除以添加令牌时间间隔获取这段时间内要添加的令牌数
+      storedPermits = min(maxPermits,
+          storedPermits
+            + (nowMicros - nextFreeTicketMicros) &#x2F; coolDownIntervalMicros());
+      nextFreeTicketMicros = nowMicros;
+    }
+    &#x2F;&#x2F; 如果当前时间早于nextFreeTicketMicros，则获取令牌的线程要一直等待到nextFreeTicketMicros,该线程获取令牌所需
+    &#x2F;&#x2F; 额外等待的时间由下一次获取的线程来代替等待。
+}
+double coolDownIntervalMicros() {
+    return stableIntervalMicros;
+}
+</code></pre>
 <p>&emsp;下面我们举个例子，让大家更好的理解<code>resync</code>和<code>reserveEarliestAvailable</code>函数的逻辑。</p>
 <p>&emsp;比如<code>RateLimiter</code>的<code>stableIntervalMicros</code>为500，也就是1秒发两个令牌，storedPermits为0，nextFreeTicketMicros为155391849<code>57</code>48。线程一acquire(2)，当前时间为155391849<code>62</code>48，首先<code>resync</code>函数计算，(1553918496248 - 1553918495748)/500 = 1，所以当前可获取令牌数为1，但是由于可以预支付，所以nextFreeTicketMicros= nextFreeTicketMicro + 1 * 500 = 155391849<code>67</code>48。线程一无需等待。</p>
 <p>&emsp;紧接着，线程二也来acquire(2)，首先<code>resync</code>函数发现当前时间早于<code>nextFreeTicketMicros</code>，所以无法增加令牌数，所以需要预支付2个令牌，nextFreeTicketMicros= nextFreeTicketMicro + 2 * 500 = 155391849<code>77</code>48。线程二需要等待155391849<code>67</code>48时刻，也就是线程一获取时计算的nextFreeTicketMicros时刻。同样的，线程三获取令牌时也需要等待到线程二计算的nextFreeTicketMicros时刻。</p>
 <h4 id="平滑预热限流-1"><a href="#平滑预热限流-1" class="headerlink" title="平滑预热限流"></a>平滑预热限流</h4><p>&emsp;上述就是平滑突发限流RateLimiter的实现，下面我们来看一下加上预热缓冲期的实现原理。<br>&emsp;<code>SmoothWarmingUp</code>实现预热缓冲的关键在于其分发令牌的速率会随时间和令牌数而改变，速率会先慢后快。表现形式如下图所示，令牌刷新的时间间隔由长逐渐变短。等存储令牌数从maxPermits到达thresholdPermits时，发放令牌的时间价格也由coldInterval降低到了正常的stableInterval。</p>
 <p><img src="/images/19_923/image5.webp" alt="image.png"></p>
-<p>&emsp;<code>SmoothWarmingUp</code>的相关代码如下所示，相关的逻辑都写在注释中。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">// SmoothWarmingUp，等待时间就是计算上图中梯形或者正方形的面积。</span><br><span class="line">long storedPermitsToWaitTime(double storedPermits, double permitsToTake) &#123;</span><br><span class="line">    /**</span><br><span class="line">    * 当前permits超出阈值的部分</span><br><span class="line">    */</span><br><span class="line">    double availablePermitsAboveThreshold = storedPermits - thresholdPermits;</span><br><span class="line">    long micros = 0;</span><br><span class="line">    /**</span><br><span class="line">    * 如果当前存储的令牌数超出thresholdPermits</span><br><span class="line">    */</span><br><span class="line">    if (availablePermitsAboveThreshold &gt; 0.0) &#123;</span><br><span class="line">    /**</span><br><span class="line">     * 在阈值右侧并且需要被消耗的令牌数量</span><br><span class="line">     */</span><br><span class="line">    double permitsAboveThresholdToTake = min(availablePermitsAboveThreshold, permitsToTake);</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">        * 梯形的面积</span><br><span class="line">        *</span><br><span class="line">        * 高 * (顶 * 底) / 2</span><br><span class="line">        *</span><br><span class="line">        * 高是 permitsAboveThresholdToTake 也就是右侧需要消费的令牌数</span><br><span class="line">        * 底 较长 permitsToTime(availablePermitsAboveThreshold)</span><br><span class="line">        * 顶 较短 permitsToTime(availablePermitsAboveThreshold - permitsAboveThresholdToTake)</span><br><span class="line">        */</span><br><span class="line">    micros = (long) (permitsAboveThresholdToTake</span><br><span class="line">        * (permitsToTime(availablePermitsAboveThreshold)</span><br><span class="line">        + permitsToTime(availablePermitsAboveThreshold - permitsAboveThresholdToTake)) / 2.0);</span><br><span class="line">    /**</span><br><span class="line">        * 减去已经获取的在阈值右侧的令牌数</span><br><span class="line">        */</span><br><span class="line">    permitsToTake -= permitsAboveThresholdToTake;</span><br><span class="line">    &#125;</span><br><span class="line">    /**</span><br><span class="line">    * 平稳时期的面积，正好是长乘宽</span><br><span class="line">    */</span><br><span class="line">    micros += (stableIntervalMicros * permitsToTake);</span><br><span class="line">    return micros;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">double coolDownIntervalMicros() &#123;</span><br><span class="line">    /**</span><br><span class="line">    * 每秒增加的令牌数为 warmup时间/maxPermits. 这样的话，在warmuptime时间内，就就增张的令牌数量</span><br><span class="line">    * 为 maxPermits</span><br><span class="line">    */</span><br><span class="line">    return warmupPeriodMicros / maxPermits;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;<code>SmoothWarmingUp</code>的相关代码如下所示，相关的逻辑都写在注释中。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; SmoothWarmingUp，等待时间就是计算上图中梯形或者正方形的面积。
+long storedPermitsToWaitTime(double storedPermits, double permitsToTake) {
+    &#x2F;**
+    * 当前permits超出阈值的部分
+    *&#x2F;
+    double availablePermitsAboveThreshold = storedPermits - thresholdPermits;
+    long micros = 0;
+    &#x2F;**
+    * 如果当前存储的令牌数超出thresholdPermits
+    *&#x2F;
+    if (availablePermitsAboveThreshold &gt; 0.0) {
+    &#x2F;**
+     * 在阈值右侧并且需要被消耗的令牌数量
+     *&#x2F;
+    double permitsAboveThresholdToTake = min(availablePermitsAboveThreshold, permitsToTake);
+
+    &#x2F;**
+        * 梯形的面积
+        *
+        * 高 * (顶 * 底) &#x2F; 2
+        *
+        * 高是 permitsAboveThresholdToTake 也就是右侧需要消费的令牌数
+        * 底 较长 permitsToTime(availablePermitsAboveThreshold)
+        * 顶 较短 permitsToTime(availablePermitsAboveThreshold - permitsAboveThresholdToTake)
+        *&#x2F;
+    micros = (long) (permitsAboveThresholdToTake
+        * (permitsToTime(availablePermitsAboveThreshold)
+        + permitsToTime(availablePermitsAboveThreshold - permitsAboveThresholdToTake)) &#x2F; 2.0);
+    &#x2F;**
+        * 减去已经获取的在阈值右侧的令牌数
+        *&#x2F;
+    permitsToTake -= permitsAboveThresholdToTake;
+    }
+    &#x2F;**
+    * 平稳时期的面积，正好是长乘宽
+    *&#x2F;
+    micros += (stableIntervalMicros * permitsToTake);
+    return micros;
+}
+
+double coolDownIntervalMicros() {
+    &#x2F;**
+    * 每秒增加的令牌数为 warmup时间&#x2F;maxPermits. 这样的话，在warmuptime时间内，就就增张的令牌数量
+    * 为 maxPermits
+    *&#x2F;
+    return warmupPeriodMicros &#x2F; maxPermits;
+}
+</code></pre></p>
 <h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp; <code>RateLimiter</code>只能用于单机的限流，如果想要集群限流，则需要引入<code>redis</code>或者阿里开源的<code>sentinel</code>中间件，请大家继续关注。</p>
 <p><img src="/images/logo.png" alt=""></p>
 <h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
@@ -333,7 +580,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/7d8dbf1c/" data-id="ck6535m9n007x9ksexsuiasxj" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/7d8dbf1c/" data-id="ck6540jba007ulhserjtg491d" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -639,6 +886,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 

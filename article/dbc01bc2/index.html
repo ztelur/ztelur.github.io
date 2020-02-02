@@ -300,19 +300,146 @@ var _hmt = _hmt || [];
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201742-netty-0_1280551287S777.gif" alt="Asynchronous I/O"></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201742-netty-0_1280551552NVgW.gif" alt="对比"></p>
 <h3 id="Java-NIO的Linux底层实现"><a href="#Java-NIO的Linux底层实现" class="headerlink" title="Java NIO的Linux底层实现"></a>Java NIO的Linux底层实现</h3><p> 我们都知道Netty通过JNI的方式提供了Native Socket Transport，为什么<code>Netty</code>要提供自己的Native版本的NIO呢？明明Java NIO底层也是基于<code>epoll</code>调用(最新的版本)的．这里，我们先不明说，大家想一想可能的情况．下列的源码都来自于OpenJDK-8u40-b25版本．</p>
-<h4 id="open方法"><a href="#open方法" class="headerlink" title="open方法"></a>open方法</h4><p>&emsp;如果我们顺着<code>Selector.open()</code>方法一个类一个类的找下去，很容易就发现<code>Selector</code>的初始化是由<code>DefaultSelectorProvider</code>根据不同操作系统平台生成的不同的<code>SelectorProvider</code>，对于Linux系统，它会生成<code>EPollSelectorProvider</code>实例，而这个实例会生成<code>EPollSelectorImpl</code>作为最终的<code>Selector</code>实现．<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">class EPollSelectorImpl extends SelectorImpl</span><br><span class="line">&#123;</span><br><span class="line">    .....</span><br><span class="line">    // The poll object</span><br><span class="line">    EPollArrayWrapper pollWrapper;</span><br><span class="line">    .....</span><br><span class="line">    EPollSelectorImpl(SelectorProvider sp) throws IOException &#123;</span><br><span class="line">        .....</span><br><span class="line">        pollWrapper = new EPollArrayWrapper();</span><br><span class="line">        pollWrapper.initInterrupt(fd0, fd1);</span><br><span class="line">        .....</span><br><span class="line">    &#125;</span><br><span class="line">    .....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;<code>EpollArrayWapper</code>将Linux的epoll相关系统调用封装成了native方法供<code>EpollSelectorImpl</code>使用．<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">private native int epollCreate();</span><br><span class="line">private native void epollCtl(int epfd, int opcode, int fd, int events);</span><br><span class="line">private native int epollWait(long pollAddress, int numfds, long timeout,</span><br><span class="line">                             int epfd) throws IOException;</span><br></pre></td></tr></table></figure></p>
-<p> 上述三个native方法就对应Linux下epoll相关的三个系统调用<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//创建一个epoll句柄，size是这个监听的数目的最大值．</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_create</span><span class="params">(<span class="keyword">int</span> size)</span></span>;</span><br><span class="line"><span class="comment">//事件注册函数，告诉内核epoll监听什么类型的事件，参数是感兴趣的事件类型，回调和监听的fd</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_ctl</span><span class="params">(<span class="keyword">int</span> epfd, <span class="keyword">int</span> op, <span class="keyword">int</span> fd, struct epoll_event *event)</span></span>;</span><br><span class="line"><span class="comment">//等待事件的产生，类似于select调用，events参数用来从内核得到事件的集合</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_wait</span><span class="params">(<span class="keyword">int</span> epfd, struct epoll_event * events, <span class="keyword">int</span> maxevents, <span class="keyword">int</span> timeout)</span></span>;</span><br></pre></td></tr></table></figure></p>
+<h4 id="open方法"><a href="#open方法" class="headerlink" title="open方法"></a>open方法</h4><p>&emsp;如果我们顺着<code>Selector.open()</code>方法一个类一个类的找下去，很容易就发现<code>Selector</code>的初始化是由<code>DefaultSelectorProvider</code>根据不同操作系统平台生成的不同的<code>SelectorProvider</code>，对于Linux系统，它会生成<code>EPollSelectorProvider</code>实例，而这个实例会生成<code>EPollSelectorImpl</code>作为最终的<code>Selector</code>实现．<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">class EPollSelectorImpl extends SelectorImpl
+{
+    .....
+    &#x2F;&#x2F; The poll object
+    EPollArrayWrapper pollWrapper;
+    .....
+    EPollSelectorImpl(SelectorProvider sp) throws IOException {
+        .....
+        pollWrapper = new EPollArrayWrapper();
+        pollWrapper.initInterrupt(fd0, fd1);
+        .....
+    }
+    .....
+}
+</code></pre></p>
+<p>&emsp;<code>EpollArrayWapper</code>将Linux的epoll相关系统调用封装成了native方法供<code>EpollSelectorImpl</code>使用．<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">    private native int epollCreate();
+    private native void epollCtl(int epfd, int opcode, int fd, int events);
+    private native int epollWait(long pollAddress, int numfds, long timeout,
+                                 int epfd) throws IOException;
+</code></pre></p>
+<p> 上述三个native方法就对应Linux下epoll相关的三个系统调用<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-c">&#x2F;&#x2F;创建一个epoll句柄，size是这个监听的数目的最大值．
+int epoll_create(int size);
+&#x2F;&#x2F;事件注册函数，告诉内核epoll监听什么类型的事件，参数是感兴趣的事件类型，回调和监听的fd
+int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
+&#x2F;&#x2F;等待事件的产生，类似于select调用，events参数用来从内核得到事件的集合
+int epoll_wait(int epfd, struct epoll_event * events, int maxevents, int timeout);
+</code></pre></p>
 <p>&emsp;所以，我们会发现在<code>EpollArrayWapper</code>的构造函数中调用了<code>epollCreate</code>方法，创建了一个epoll的句柄．这样，<code>Selector</code>对象就算创造完毕了．</p>
-<h4 id="register方法"><a href="#register方法" class="headerlink" title="register方法"></a>register方法</h4><p>&emsp;与<code>open</code>类似，<code>ServerSocketChannel</code>的<code>register</code>函数底层是调用了<code>SelectorImpl</code>类的<code>register</code>方法，这个<code>SelectorImpl</code>就是<code>EPollSelectorImpl</code>的父类．<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">final</span> SelectionKey <span class="title">register</span><span class="params">(AbstractSelectableChannel ch,</span></span></span><br><span class="line"><span class="function"><span class="params">                                      <span class="keyword">int</span> ops,</span></span></span><br><span class="line"><span class="function"><span class="params">                                      Object attachment)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!(ch <span class="keyword">instanceof</span> SelChImpl))</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalSelectorException();</span><br><span class="line">    <span class="comment">//生成SelectorKey来存储到hashmap中，一共之后获取</span></span><br><span class="line">    SelectionKeyImpl k = <span class="keyword">new</span> SelectionKeyImpl((SelChImpl)ch, <span class="keyword">this</span>);</span><br><span class="line">    <span class="comment">//attach用户想要存储的对象</span></span><br><span class="line">    k.attach(attachment);</span><br><span class="line">    <span class="comment">//调用子类的implRegister方法</span></span><br><span class="line">    <span class="keyword">synchronized</span> (publicKeys) &#123;</span><br><span class="line">        implRegister(k);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//设置关注的option</span></span><br><span class="line">    k.interestOps(ops);</span><br><span class="line">    <span class="keyword">return</span> k;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;<code>EpollSelectorImpl</code>的相应的方法实现如下，它调用了<code>EPollArrayWrapper</code>的<code>add</code>方法，记录下Channel所对应的fd值,然后将ski添加到<code>keys</code>变量中．在<code>EPollArrayWrapper</code>中有一个byte数组<code>eventLow</code>记录所有的channel的fd值.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">implRegister</span><span class="params">(SelectionKeyImpl ski)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (closed)</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ClosedSelectorException();</span><br><span class="line">    SelChImpl ch = ski.channel;</span><br><span class="line">    <span class="comment">//获取Channel所对应的fd,因为在linux下socket会被当作一个文件，也会有fd</span></span><br><span class="line">    <span class="keyword">int</span> fd = Integer.valueOf(ch.getFDVal());</span><br><span class="line">    fdToKey.put(fd, ski);</span><br><span class="line">    <span class="comment">//调用pollWrapper的add方法,将channel的fd添加到监控列表中</span></span><br><span class="line">    pollWrapper.add(fd);</span><br><span class="line">    <span class="comment">//保存到HashSet中，keys是SelectorImpl的成员变量</span></span><br><span class="line">    keys.add(ski);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="register方法"><a href="#register方法" class="headerlink" title="register方法"></a>register方法</h4><p>&emsp;与<code>open</code>类似，<code>ServerSocketChannel</code>的<code>register</code>函数底层是调用了<code>SelectorImpl</code>类的<code>register</code>方法，这个<code>SelectorImpl</code>就是<code>EPollSelectorImpl</code>的父类．<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">protected final SelectionKey register(AbstractSelectableChannel ch,
+                                      int ops,
+                                      Object attachment)
+{
+    if (!(ch instanceof SelChImpl))
+        throw new IllegalSelectorException();
+    &#x2F;&#x2F;生成SelectorKey来存储到hashmap中，一共之后获取
+    SelectionKeyImpl k = new SelectionKeyImpl((SelChImpl)ch, this);
+    &#x2F;&#x2F;attach用户想要存储的对象
+    k.attach(attachment);
+    &#x2F;&#x2F;调用子类的implRegister方法
+    synchronized (publicKeys) {
+        implRegister(k);
+    }
+    &#x2F;&#x2F;设置关注的option
+    k.interestOps(ops);
+    return k;
+}
+</code></pre></p>
+<p>&emsp;<code>EpollSelectorImpl</code>的相应的方法实现如下，它调用了<code>EPollArrayWrapper</code>的<code>add</code>方法，记录下Channel所对应的fd值,然后将ski添加到<code>keys</code>变量中．在<code>EPollArrayWrapper</code>中有一个byte数组<code>eventLow</code>记录所有的channel的fd值.<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">    protected void implRegister(SelectionKeyImpl ski) {
+        if (closed)
+            throw new ClosedSelectorException();
+        SelChImpl ch = ski.channel;
+        &#x2F;&#x2F;获取Channel所对应的fd,因为在linux下socket会被当作一个文件，也会有fd
+        int fd = Integer.valueOf(ch.getFDVal());
+        fdToKey.put(fd, ski);
+        &#x2F;&#x2F;调用pollWrapper的add方法,将channel的fd添加到监控列表中
+        pollWrapper.add(fd);
+        &#x2F;&#x2F;保存到HashSet中，keys是SelectorImpl的成员变量
+        keys.add(ski);
+    }
+</code></pre></p>
 <p>&emsp;我们会发现,调用<code>register</code>方法并没有涉及到<code>EpollArrayWrapper</code>中的native方法<code>epollCtl</code>的调用,这是因为他们将这个方法的调用推迟到<code>Select</code>方法中去了.<br>&emsp;</p>
-<h4 id="Select方法"><a href="#Select方法" class="headerlink" title="Select方法"></a>Select方法</h4><p>&emsp;和<code>register</code>方法类似,<code>SelectorImpl</code>中的<code>select</code>方法最终调用了其子类<code>EpollSelectorImpl</code>的<code>doSelect</code>方法<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">int</span> <span class="title">doSelect</span><span class="params">(<span class="keyword">long</span> timeout)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    .....</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ....</span><br><span class="line">        <span class="comment">//调用了poll方法,底层调用了native的epollCtl和epollWait方法</span></span><br><span class="line">        pollWrapper.poll(timeout);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        ....</span><br><span class="line">    &#125;</span><br><span class="line">    ....</span><br><span class="line">    <span class="comment">//更新selectedKeys,为之后的selectedKeys函数做准备</span></span><br><span class="line">    <span class="keyword">int</span> numKeysUpdated = updateSelectedKeys();</span><br><span class="line">    ....</span><br><span class="line">    <span class="keyword">return</span> numKeysUpdated;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="Select方法"><a href="#Select方法" class="headerlink" title="Select方法"></a>Select方法</h4><p>&emsp;和<code>register</code>方法类似,<code>SelectorImpl</code>中的<code>select</code>方法最终调用了其子类<code>EpollSelectorImpl</code>的<code>doSelect</code>方法<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">protected int doSelect(long timeout) throws IOException {
+    .....
+    try {
+        ....
+        &#x2F;&#x2F;调用了poll方法,底层调用了native的epollCtl和epollWait方法
+        pollWrapper.poll(timeout);
+    } finally {
+        ....
+    }
+    ....
+    &#x2F;&#x2F;更新selectedKeys,为之后的selectedKeys函数做准备
+    int numKeysUpdated = updateSelectedKeys();
+    ....
+    return numKeysUpdated;
+}
+</code></pre></p>
 <p> 由上述的代码，可以看到，<code>EPollSelectorImpl</code>先调用<code>EPollArrayWapper</code>的<code>poll</code>方法,然后在更新<code>SelectedKeys</code>．其中<code>poll</code>方法会先调用<code>epollCtl</code>来注册先前在<code>register</code>方法中保存的Channel的fd和感兴趣的事件类型，然后<code>epollWait</code>方法等待感兴趣事件的生成,导致线程阻塞.</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">poll</span><span class="params">(<span class="keyword">long</span> timeout)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    updateRegistrations(); <span class="comment">////先调用epollCtl,更新关注的事件类型</span></span><br><span class="line">    <span class="comment">////导致阻塞，等待事件产生</span></span><br><span class="line">    updated = epollWait(pollArrayAddress, NUM_EPOLLEVENTS, timeout, epfd);</span><br><span class="line">    .....</span><br><span class="line">    <span class="keyword">return</span> updated;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">int poll(long timeout) throws IOException {
+    updateRegistrations(); &#x2F;&#x2F;&#x2F;&#x2F;先调用epollCtl,更新关注的事件类型
+    &#x2F;&#x2F;&#x2F;&#x2F;导致阻塞，等待事件产生
+    updated = epollWait(pollArrayAddress, NUM_EPOLLEVENTS, timeout, epfd);
+    .....
+    return updated;
+}
+</code></pre>
 <p>&emsp;等待关注的事件产生之后(或在等待时间超过预先设置的最大时间),<code>epollWait</code>函数就会返回.<code>select</code>函数从阻塞状态恢复.</p>
-<h4 id="selectedKeys方法"><a href="#selectedKeys方法" class="headerlink" title="selectedKeys方法"></a>selectedKeys方法</h4><p>&emsp;我们先来看<code>SelectorImpl</code>中的<code>selectedKeys</code>方法.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//是通过Util.ungrowableSet生成的,不能添加,只能减少</span></span><br><span class="line"><span class="keyword">private</span> Set&lt;SelectionKey&gt; publicSelectedKeys;</span><br><span class="line"><span class="function"><span class="keyword">public</span> Set&lt;SelectionKey&gt; <span class="title">selectedKeys</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    ....</span><br><span class="line">    <span class="keyword">return</span> publicSelectedKeys;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;很奇怪啊,怎麽直接就返回<code>publicSelectedKeys</code>了,难道在<code>select</code>函数的执行过程中有修改过这个变量吗?<br>&emsp;<code>publicSelectedKeys</code>这个对象其实是<code>selectedKeys</code>变量的一份副本,你可以在<code>SelectorImpl</code>的构造函数中找到它们俩的关系,我们再回头看一下<code>select</code>中<code>updateSelectedKeys</code>方法.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">updateSelectedKeys</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">//更新了的keys的个数,或在说是产生的事件的个数</span></span><br><span class="line">    <span class="keyword">int</span> entries = pollWrapper.updated; </span><br><span class="line">    <span class="keyword">int</span> numKeysUpdated = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i=<span class="number">0</span>; i&lt;entries; i++) &#123;</span><br><span class="line">        <span class="comment">//对应的channel的fd</span></span><br><span class="line">        <span class="keyword">int</span> nextFD = pollWrapper.getDescriptor(i);</span><br><span class="line">        <span class="comment">//通过fd找到对应的SelectionKey</span></span><br><span class="line">        SelectionKeyImpl ski = fdToKey.get(Integer.valueOf(nextFD));</span><br><span class="line">        <span class="keyword">if</span> (ski != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">int</span> rOps = pollWrapper.getEventOps(i);</span><br><span class="line">            <span class="comment">//更新selectedKey变量,并通知响应的channel来做响应的处理</span></span><br><span class="line">            <span class="keyword">if</span> (selectedKeys.contains(ski)) &#123;</span><br><span class="line">                <span class="keyword">if</span> (ski.channel.translateAndSetReadyOps(rOps, ski)) &#123;</span><br><span class="line">                    numKeysUpdated++;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                ski.channel.translateAndSetReadyOps(rOps, ski);</span><br><span class="line">                <span class="keyword">if</span> ((ski.nioReadyOps() &amp; ski.nioInterestOps()) != <span class="number">0</span>) &#123;</span><br><span class="line">                    selectedKeys.add(ski);</span><br><span class="line">                    numKeysUpdated++;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> numKeysUpdated;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="selectedKeys方法"><a href="#selectedKeys方法" class="headerlink" title="selectedKeys方法"></a>selectedKeys方法</h4><p>&emsp;我们先来看<code>SelectorImpl</code>中的<code>selectedKeys</code>方法.<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">&#x2F;&#x2F;是通过Util.ungrowableSet生成的,不能添加,只能减少
+private Set&lt;SelectionKey&gt; publicSelectedKeys;
+public Set&lt;SelectionKey&gt; selectedKeys() {
+    ....
+    return publicSelectedKeys;
+}
+</code></pre></p>
+<p>&emsp;很奇怪啊,怎麽直接就返回<code>publicSelectedKeys</code>了,难道在<code>select</code>函数的执行过程中有修改过这个变量吗?<br>&emsp;<code>publicSelectedKeys</code>这个对象其实是<code>selectedKeys</code>变量的一份副本,你可以在<code>SelectorImpl</code>的构造函数中找到它们俩的关系,我们再回头看一下<code>select</code>中<code>updateSelectedKeys</code>方法.<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">private int updateSelectedKeys() {
+    &#x2F;&#x2F;更新了的keys的个数,或在说是产生的事件的个数
+    int entries = pollWrapper.updated; 
+    int numKeysUpdated = 0;
+    for (int i=0; i&lt;entries; i++) {
+        &#x2F;&#x2F;对应的channel的fd
+        int nextFD = pollWrapper.getDescriptor(i);
+        &#x2F;&#x2F;通过fd找到对应的SelectionKey
+        SelectionKeyImpl ski = fdToKey.get(Integer.valueOf(nextFD));
+        if (ski != null) {
+            int rOps = pollWrapper.getEventOps(i);
+            &#x2F;&#x2F;更新selectedKey变量,并通知响应的channel来做响应的处理
+            if (selectedKeys.contains(ski)) {
+                if (ski.channel.translateAndSetReadyOps(rOps, ski)) {
+                    numKeysUpdated++;
+                }
+            } else {
+                ski.channel.translateAndSetReadyOps(rOps, ski);
+                if ((ski.nioReadyOps() &amp; ski.nioInterestOps()) != 0) {
+                    selectedKeys.add(ski);
+                    numKeysUpdated++;
+                }
+            }
+        }
+    }
+    return numKeysUpdated;
+}
+</code></pre></p>
 <h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;看到这里,详细大家都已经了解到了NIO的底层实现了吧.这里我想在说两个问题.<br>&emsp;一是为什么Netty自己又从新实现了一边native相关的NIO底层方法? 听听Netty的创始人是怎麽说的吧<a href="http://stackoverflow.com/questions/23465401/why-native-epoll-support-is-introduced-in-netty" target="_blank" rel="noopener">链接</a><br>&emsp;二是看这么多源码,花费这么多时间有什么作用呢?我感觉如果从非功利的角度来看,那么就是纯粹的希望了解的更多,有时候看完源码或在理解了底层原理之后,都会用一种恍然大悟的感觉,比如说<code>AQS</code>的原理.如果从目的性的角度来看,那么就是你知道底层原理之后,你的把握性就更强了,如果出了问题,你可以更快的找出来,并且解决.除此之外,你还可以按照具体的现实情况,以源码为模板在自己造轮子,实现一个更加符合你当前需求的版本.<br>&emsp;后续如果有时间,我希望好好了解一下epoll的操作系统级别的实现原理.</p>
 
         
@@ -324,7 +451,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/dbc01bc2/" data-id="ck6535m7a002t9kseyb9tovbb" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/dbc01bc2/" data-id="ck6540j8q002mlhses5hycqam" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -630,6 +757,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 

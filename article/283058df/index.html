@@ -279,15 +279,206 @@ var _hmt = _hmt || [];
 </ul>
 <p>&emsp;先贴一下本篇文章实现的自定义Span和动画的效果图<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-FireWorkSpan.gif" alt="demo"></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-MutiableForegroundSpan.gif" alt="demo"></p>
-<h4 id="自定义Span"><a href="#自定义Span" class="headerlink" title="自定义Span"></a>自定义Span</h4><p>&emsp;我们都知道，自定义View有两种方式，一种是继承特定的视图类,比如你希望修改<code>TextView</code>的行为，所以继承了<code>TextView</code>;另一种就是直接继承<code>View</code>或者<code>ViewGroup</code>,这样可以实现全新的视图和行为。如同自定义View一样，你有两种自定义Span的方法，一种直接继承特定类型的Span类，比如<code>ForegroundColorSpan</code>等，这样你可以在这些类的基础上进行修改；另一种就是继承<code>ReplaceSpan</code>这样的抽象类或者实现<code>LetterLineBackgroundSpan</code>这样的接口，你只要实现它给出的接口，就可以实现新的效果。<br>&emsp;我们先来讲解第一种方式。直接继承现有的<code>Span</code>。文章开头时展示的<code>ActionBar</code>动画就是通过继承<code>ForegroundSpan</code>来实现的。<br>&emsp;我们主要重载了<code>updateDrawsState</code>和<code>getForegroundColor</code>,这样就可以通过改变<code>setAlpha</code>函数来改变颜色，让字体从透明(alpha为0)到某个特定颜色。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">public class MutableForegroundColorSpan extends ForegroundColorSpan &#123;</span><br><span class="line">    private int mAlpha = 255;</span><br><span class="line">    private int mForegroundColor;</span><br><span class="line">    public MutableForegroundColorSpan(int alpha,int color) &#123;</span><br><span class="line">        super(color);</span><br><span class="line">        mAlpha = alpha;</span><br><span class="line">        mForegroundColor = color;</span><br><span class="line">    &#125;</span><br><span class="line">    @Override</span><br><span class="line">    public void updateDrawState(TextPaint ds) &#123;</span><br><span class="line">        ds.setColor(getForegroundColor());</span><br><span class="line">    &#125;</span><br><span class="line">    public void setAlpha(int alpha) &#123;</span><br><span class="line">        mAlpha = alpha;</span><br><span class="line">    &#125;</span><br><span class="line">    public void setForegroundColor(int foregroundColor) &#123;</span><br><span class="line">        mForegroundColor = foregroundColor;</span><br><span class="line">    &#125;</span><br><span class="line">    public float getAlpha() &#123;</span><br><span class="line">        return mAlpha;</span><br><span class="line">    &#125;</span><br><span class="line">    @Override</span><br><span class="line">    public int getForegroundColor() &#123;</span><br><span class="line">        return Color.argb(mAlpha,Color.red(mForegroundColor),Color.green(mForegroundColor),Color.blue(mForegroundColor));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="自定义Span"><a href="#自定义Span" class="headerlink" title="自定义Span"></a>自定义Span</h4><p>&emsp;我们都知道，自定义View有两种方式，一种是继承特定的视图类,比如你希望修改<code>TextView</code>的行为，所以继承了<code>TextView</code>;另一种就是直接继承<code>View</code>或者<code>ViewGroup</code>,这样可以实现全新的视图和行为。如同自定义View一样，你有两种自定义Span的方法，一种直接继承特定类型的Span类，比如<code>ForegroundColorSpan</code>等，这样你可以在这些类的基础上进行修改；另一种就是继承<code>ReplaceSpan</code>这样的抽象类或者实现<code>LetterLineBackgroundSpan</code>这样的接口，你只要实现它给出的接口，就可以实现新的效果。<br>&emsp;我们先来讲解第一种方式。直接继承现有的<code>Span</code>。文章开头时展示的<code>ActionBar</code>动画就是通过继承<code>ForegroundSpan</code>来实现的。<br>&emsp;我们主要重载了<code>updateDrawsState</code>和<code>getForegroundColor</code>,这样就可以通过改变<code>setAlpha</code>函数来改变颜色，让字体从透明(alpha为0)到某个特定颜色。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public class MutableForegroundColorSpan extends ForegroundColorSpan {
+    private int mAlpha = 255;
+    private int mForegroundColor;
+    public MutableForegroundColorSpan(int alpha,int color) {
+        super(color);
+        mAlpha = alpha;
+        mForegroundColor = color;
+    }
+    @Override
+    public void updateDrawState(TextPaint ds) {
+        ds.setColor(getForegroundColor());
+    }
+    public void setAlpha(int alpha) {
+        mAlpha = alpha;
+    }
+    public void setForegroundColor(int foregroundColor) {
+        mForegroundColor = foregroundColor;
+    }
+    public float getAlpha() {
+        return mAlpha;
+    }
+    @Override
+    public int getForegroundColor() {
+        return Color.argb(mAlpha,Color.red(mForegroundColor),Color.green(mForegroundColor),Color.blue(mForegroundColor));
+    }
+}
+</code></pre></p>
 <p>&emsp;第二种方法是继承<code>Span</code>架构中的抽象类或者是实现特定接口。需要注意的是，在上一篇文章中说的<code>CharacterStyle</code>,<code>ParagraphStyle</code>.<code>UpdateAppearance</code>和<code>UpdateLayout</code>都是没有函数的，所以，我们无法直接继承或者实现它们。除了第一篇文章中所介绍的那些<code>Span</code>可以使用第一种方法进行继承。我们一般都继承或者实现<code>MetricAffectingSpan</code>,<code>ReplacementSpan</code>或者<code>LineBackgroundSpan</code>。<br>&emsp;比如我们想给每个字都添加一个不同颜色的背景，我们就可以继承<code>ReplacementSpan</code></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-BuddleSpan.png" alt="demo"></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">public class BubbleSpan extends ReplacementSpan &#123;</span><br><span class="line">    private Paint mPaint;</span><br><span class="line">    static Random random = new Random();</span><br><span class="line">    private int mWidth = -1;</span><br><span class="line">    private RectF mRectF = new RectF();</span><br><span class="line"></span><br><span class="line">    private int[] mColors = new int[20];</span><br><span class="line"></span><br><span class="line">    public BubbleSpan() &#123;</span><br><span class="line">        initPaint();</span><br><span class="line">        initColors();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private void initPaint() &#123;</span><br><span class="line">        mPaint = new Paint();</span><br><span class="line">        mPaint.setColor(Color.rgb(random.nextInt(255), random.nextInt(255), random.nextInt(255)));</span><br><span class="line">        mPaint.setAntiAlias(true);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private void initColors() &#123;</span><br><span class="line">        for(int index = 0 ; index &lt; mColors.length ; index++) &#123;</span><br><span class="line">            mColors[index] = Color.rgb(random.nextInt(255), random.nextInt(255), random.nextInt(255));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public int getSize(Paint paint, CharSequence text, int start, int end, Paint.FontMetricsInt fm) &#123;</span><br><span class="line">        //return text with relative to the Paint</span><br><span class="line">		mWidth = (int) paint.measureText(text, start, end);</span><br><span class="line">        return mWidth;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint paint) &#123;</span><br><span class="line">        float charx = x;</span><br><span class="line">        for(int i = start ; i&lt;end; i++) &#123;</span><br><span class="line">            String charAt = extractText(text, i, i + 1);</span><br><span class="line">            float charWidth = paint.measureText(charAt);</span><br><span class="line">            mRectF.set(charx, top, charx += charWidth, bottom);</span><br><span class="line">            mPaint.setColor(mColors[i % mColors.length]);</span><br><span class="line">            //根据每个字的位置绘制背景</span><br><span class="line">            canvas.drawOval(mRectF, mPaint);</span><br><span class="line">        &#125;</span><br><span class="line">        //绘制字体，如果不掉用这个函数，就不会显示字体啦。</span><br><span class="line">        canvas.drawText(text, start, end, x, y, paint);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private String extractText(CharSequence text, int start, int end) &#123;</span><br><span class="line">        return text.subSequence(start, end).toString();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>&emsp;我们可以看到，我们要实现两个函数:<code>getSize</code>和<code>draw</code>。<code>getSize</code>是获得字体的长度的，所以一般都是直接使用<code>paint.measureText</code>,然后<code>draw</code>中进行绘制，你可以在这里把每个字的背景绘制出来，而且你必须也要把字体给绘制出来。如果你只想绘制背景，不想涉及字体的绘制，那么就可以直接实现<code>LineBackgroundSpan</code>接口。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">public class RectSpan extends ReplacementSpan &#123;</span><br><span class="line">    private final Paint mPaint;</span><br><span class="line">    private int mWidth;</span><br><span class="line"></span><br><span class="line">    public RectSpan() &#123;</span><br><span class="line">        mPaint = new Paint();</span><br><span class="line">        mPaint.setStyle(Paint.Style.STROKE);</span><br><span class="line">        mPaint.setColor(Color.BLUE);</span><br><span class="line">        mPaint.setAntiAlias(true);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public int getSize(Paint paint, CharSequence text, int start, int end, Paint.FontMetricsInt fm) &#123;</span><br><span class="line">        //return text with relative to the Paint</span><br><span class="line">        mWidth = (int) paint.measureText(text, start, end);</span><br><span class="line">        return mWidth;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint paint) &#123;</span><br><span class="line">        //只绘制了外围矩形，没有绘制文字。</span><br><span class="line">        canvas.drawRect(x, top, x + mWidth, bottom, mPaint);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public class BubbleSpan extends ReplacementSpan {
+    private Paint mPaint;
+    static Random random = new Random();
+    private int mWidth = -1;
+    private RectF mRectF = new RectF();
+
+    private int[] mColors = new int[20];
+
+    public BubbleSpan() {
+        initPaint();
+        initColors();
+    }
+
+    private void initPaint() {
+        mPaint = new Paint();
+        mPaint.setColor(Color.rgb(random.nextInt(255), random.nextInt(255), random.nextInt(255)));
+        mPaint.setAntiAlias(true);
+    }
+
+    private void initColors() {
+        for(int index = 0 ; index &lt; mColors.length ; index++) {
+            mColors[index] = Color.rgb(random.nextInt(255), random.nextInt(255), random.nextInt(255));
+        }
+    }
+
+    @Override
+    public int getSize(Paint paint, CharSequence text, int start, int end, Paint.FontMetricsInt fm) {
+        &#x2F;&#x2F;return text with relative to the Paint
+		mWidth = (int) paint.measureText(text, start, end);
+        return mWidth;
+    }
+
+    @Override
+    public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint paint) {
+        float charx = x;
+        for(int i = start ; i&lt;end; i++) {
+            String charAt = extractText(text, i, i + 1);
+            float charWidth = paint.measureText(charAt);
+            mRectF.set(charx, top, charx += charWidth, bottom);
+            mPaint.setColor(mColors[i % mColors.length]);
+            &#x2F;&#x2F;根据每个字的位置绘制背景
+            canvas.drawOval(mRectF, mPaint);
+        }
+        &#x2F;&#x2F;绘制字体，如果不掉用这个函数，就不会显示字体啦。
+        canvas.drawText(text, start, end, x, y, paint);
+    }
+
+    private String extractText(CharSequence text, int start, int end) {
+        return text.subSequence(start, end).toString();
+    }
+}
+</code></pre>
+<p>&emsp;我们可以看到，我们要实现两个函数:<code>getSize</code>和<code>draw</code>。<code>getSize</code>是获得字体的长度的，所以一般都是直接使用<code>paint.measureText</code>,然后<code>draw</code>中进行绘制，你可以在这里把每个字的背景绘制出来，而且你必须也要把字体给绘制出来。如果你只想绘制背景，不想涉及字体的绘制，那么就可以直接实现<code>LineBackgroundSpan</code>接口。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public class RectSpan extends ReplacementSpan {
+    private final Paint mPaint;
+    private int mWidth;
+
+    public RectSpan() {
+        mPaint = new Paint();
+        mPaint.setStyle(Paint.Style.STROKE);
+        mPaint.setColor(Color.BLUE);
+        mPaint.setAntiAlias(true);
+    }
+
+    @Override
+    public int getSize(Paint paint, CharSequence text, int start, int end, Paint.FontMetricsInt fm) {
+        &#x2F;&#x2F;return text with relative to the Paint
+        mWidth = (int) paint.measureText(text, start, end);
+        return mWidth;
+    }
+
+    @Override
+    public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint paint) {
+        &#x2F;&#x2F;只绘制了外围矩形，没有绘制文字。
+        canvas.drawRect(x, top, x + mWidth, bottom, mPaint);
+    }
+}
+</code></pre></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160808-Span-RectSpan.png" alt="demo"></p>
-<h4 id="通过Span实现动画"><a href="#通过Span实现动画" class="headerlink" title="通过Span实现动画"></a>通过Span实现动画</h4><p>&emsp;在上一节中，我们已经实现了<code>MutableForegroundColorSpan</code>类，那么如何使用它来实现动画呢？这里我们就要使用到<code>ObjectAnimator</code>和<code>Property&lt;T1,T2&gt;</code>。我们首先定义<code>MutableForegroundColorSpan</code>使用的<code>property</code>。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">private static final Property&lt;MutableForegroundColorSpan, Integer&gt; MUTABLE_FOREGROUND_COLOR_SPAN_PROPERTY =</span><br><span class="line">        new Property&lt;MutableForegroundColorSpan, Integer&gt;(Integer.class, &quot;MUTABLE_FOREGROUND_COLOR_SPAN_FC_PROPERTY&quot;) &#123;</span><br><span class="line"></span><br><span class="line">        @Override</span><br><span class="line">                public void set(MutableForegroundColorSpan alphaForegroundColorSpanGroup, Integer value) &#123;</span><br><span class="line">                        alphaForegroundColorSpanGroup.setForegroundColor(value);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">        @Override</span><br><span class="line">                public Integer get(MutableForegroundColorSpan span) &#123;</span><br><span class="line">                        return span.getForegroundColor();</span><br><span class="line">                &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;然后我们就可以使用<code>ObjectAnimator</code>对<code>MutableForegroundColorSpan</code>实现属性动画了。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">MutableForegroundColorSpan span = new MutableForegroundColorSpan(255, Color.BLUE);</span><br><span class="line">final SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span, 0,4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">ObjectAnimator objectAnimator = ObjectAnimator.ofInt(span, MUTABLE_FOREGROUND_COLOR_SPAN_PROPERTY, Color.BLACK, Color.RED);</span><br><span class="line">objectAnimator.setEvaluator(new ArgbEvaluator());</span><br><span class="line">objectAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() &#123;</span><br><span class="line">        @Override</span><br><span class="line">        public void onAnimationUpdate(ValueAnimator animation) &#123;</span><br><span class="line">        //refresh</span><br><span class="line">                mTvTextView.setText(spannableString);</span><br><span class="line">        &#125;       </span><br><span class="line">&#125;);</span><br><span class="line">objectAnimator.setInterpolator(mSmoothInterpolator);</span><br><span class="line">objectAnimator.setDuration(600);</span><br><span class="line">objectAnimator.start();</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;这里还只是单独一个<code>Span</code>实例的动画效果，你可以对多个Span实例进行属性动画，从而实现更加复杂的动画效果。就比如文章开始时的文字逐渐显示的动画效果。<br>&emsp;我们可以给每个字都设置一个<code>MutableForegroundColorSpan</code>实例,并将这些实例都添加到一个对象中，然后在属性动画过程中，乱序设置每个实例的<code>alpha</code>的值，从而达到文字逐渐显现的动画。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line">public class FireWorkGroup &#123;</span><br><span class="line">    private final float mProgress;</span><br><span class="line">    private final ArrayList&lt;MutableForegroundColorSpan&gt; mSpans;</span><br><span class="line">    private final ArrayList&lt;Integer&gt; mSpanIndexes;</span><br><span class="line"></span><br><span class="line">    public FireWorkGroup() &#123;</span><br><span class="line">        mProgress = 0;</span><br><span class="line">        mSpans  = new ArrayList&lt;&gt;();</span><br><span class="line">        mSpanIndexes = new ArrayList&lt;&gt;();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void addSpan(MutableForegroundColorSpan span) &#123;</span><br><span class="line">        span.setAlpha(0);</span><br><span class="line">        mSpanIndexes.add(mSpans.size());</span><br><span class="line">        mSpans.add(span);</span><br><span class="line">    &#125;</span><br><span class="line">    public void init() &#123;</span><br><span class="line">        Collections.shuffle(mSpans);</span><br><span class="line">    &#125;</span><br><span class="line">    public void setProgress(float progress) &#123;</span><br><span class="line">        int size = mSpans.size();</span><br><span class="line">        float total  = 1.0f * size * progress;</span><br><span class="line">        for (int index = 0 ; index &lt; size ; index++) &#123;</span><br><span class="line">            MutableForegroundColorSpan span = mSpans.get(index);</span><br><span class="line">            if (total &gt; 1.0f) &#123;</span><br><span class="line">                span.setAlpha(255);</span><br><span class="line">                total -= 1.0f;</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                span.setAlpha((int)(total * 255));</span><br><span class="line">                total = 0.0f;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    public float getProgress() &#123;</span><br><span class="line">        return mProgress;</span><br><span class="line">    &#125;</span><br><span class="line">    public static final Property&lt;FireWorkGroup, Float&gt; FIREWORKS_GROUP_PROGRESS_PROPERTY =</span><br><span class="line">            new Property&lt;FireWorkGroup, Float&gt;(Float.class, &quot;FIREWORKS_GROUP_PROGRESS_PROPERTY&quot;) &#123;</span><br><span class="line"></span><br><span class="line">                @Override</span><br><span class="line">                public void set(FireWorkGroup spanGroup, Float value) &#123;</span><br><span class="line">                    spanGroup.setProgress(value);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                @Override</span><br><span class="line">                public Float get(FireWorkGroup spanGroup) &#123;</span><br><span class="line">                    return spanGroup.getProgress();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="通过Span实现动画"><a href="#通过Span实现动画" class="headerlink" title="通过Span实现动画"></a>通过Span实现动画</h4><p>&emsp;在上一节中，我们已经实现了<code>MutableForegroundColorSpan</code>类，那么如何使用它来实现动画呢？这里我们就要使用到<code>ObjectAnimator</code>和<code>Property&lt;T1,T2&gt;</code>。我们首先定义<code>MutableForegroundColorSpan</code>使用的<code>property</code>。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">private static final Property&lt;MutableForegroundColorSpan, Integer&gt; MUTABLE_FOREGROUND_COLOR_SPAN_PROPERTY =
+        new Property&lt;MutableForegroundColorSpan, Integer&gt;(Integer.class, &quot;MUTABLE_FOREGROUND_COLOR_SPAN_FC_PROPERTY&quot;) {
+
+        @Override
+                public void set(MutableForegroundColorSpan alphaForegroundColorSpanGroup, Integer value) {
+                        alphaForegroundColorSpanGroup.setForegroundColor(value);
+                }
+
+        @Override
+                public Integer get(MutableForegroundColorSpan span) {
+                        return span.getForegroundColor();
+                }
+};
+</code></pre></p>
+<p>&emsp;然后我们就可以使用<code>ObjectAnimator</code>对<code>MutableForegroundColorSpan</code>实现属性动画了。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">MutableForegroundColorSpan span = new MutableForegroundColorSpan(255, Color.BLUE);
+final SpannableString spannableString = new SpannableString(CONTENT);
+spannableString.setSpan(span, 0,4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+ObjectAnimator objectAnimator = ObjectAnimator.ofInt(span, MUTABLE_FOREGROUND_COLOR_SPAN_PROPERTY, Color.BLACK, Color.RED);
+objectAnimator.setEvaluator(new ArgbEvaluator());
+objectAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+        @Override
+        public void onAnimationUpdate(ValueAnimator animation) {
+        &#x2F;&#x2F;refresh
+                mTvTextView.setText(spannableString);
+        }       
+});
+objectAnimator.setInterpolator(mSmoothInterpolator);
+objectAnimator.setDuration(600);
+objectAnimator.start();
+</code></pre></p>
+<p>&emsp;这里还只是单独一个<code>Span</code>实例的动画效果，你可以对多个Span实例进行属性动画，从而实现更加复杂的动画效果。就比如文章开始时的文字逐渐显示的动画效果。<br>&emsp;我们可以给每个字都设置一个<code>MutableForegroundColorSpan</code>实例,并将这些实例都添加到一个对象中，然后在属性动画过程中，乱序设置每个实例的<code>alpha</code>的值，从而达到文字逐渐显现的动画。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public class FireWorkGroup {
+    private final float mProgress;
+    private final ArrayList&lt;MutableForegroundColorSpan&gt; mSpans;
+    private final ArrayList&lt;Integer&gt; mSpanIndexes;
+
+    public FireWorkGroup() {
+        mProgress = 0;
+        mSpans  = new ArrayList&lt;&gt;();
+        mSpanIndexes = new ArrayList&lt;&gt;();
+    }
+
+    public void addSpan(MutableForegroundColorSpan span) {
+        span.setAlpha(0);
+        mSpanIndexes.add(mSpans.size());
+        mSpans.add(span);
+    }
+    public void init() {
+        Collections.shuffle(mSpans);
+    }
+    public void setProgress(float progress) {
+        int size = mSpans.size();
+        float total  = 1.0f * size * progress;
+        for (int index = 0 ; index &lt; size ; index++) {
+            MutableForegroundColorSpan span = mSpans.get(index);
+            if (total &gt; 1.0f) {
+                span.setAlpha(255);
+                total -= 1.0f;
+            } else {
+                span.setAlpha((int)(total * 255));
+                total = 0.0f;
+            }
+        }
+    }
+    public float getProgress() {
+        return mProgress;
+    }
+    public static final Property&lt;FireWorkGroup, Float&gt; FIREWORKS_GROUP_PROGRESS_PROPERTY =
+            new Property&lt;FireWorkGroup, Float&gt;(Float.class, &quot;FIREWORKS_GROUP_PROGRESS_PROPERTY&quot;) {
+
+                @Override
+                public void set(FireWorkGroup spanGroup, Float value) {
+                    spanGroup.setProgress(value);
+                }
+
+                @Override
+                public Float get(FireWorkGroup spanGroup) {
+                    return spanGroup.getProgress();
+                }
+            };
+}
+</code></pre></p>
 <h4 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h4><p>&emsp;上述的这些动画都是我在第一篇文章提到的那篇博文中实现过的效果，我在学习过程中又发现了一个实现了很多<code>TextView</code>相关动画的开源项目<a href="https://github.com/hanks-zyh/HTextView" target="_blank" rel="noopener">HTextView</a>。所以接下来的任务就是想使用<code>Span</code>机制去实现这个项目中的一些动画效果。希望大家继续支持我的文章，并积极指出文中的错误。<br>&emsp;!!!源码都在<a href="https://github.com/ztelur/AndroidSpan" target="_blank" rel="noopener">我的github</a>里。</p>
 
         
@@ -299,7 +490,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/283058df/" data-id="ck6535m6j000w9kse46vxq7x5" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/283058df/" data-id="ck6540j7y000wlhsej2i0p359" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -605,6 +796,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 

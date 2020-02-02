@@ -321,7 +321,19 @@ var _hmt = _hmt || [];
 <h3 id="Guava的布隆过滤器"><a href="#Guava的布隆过滤器" class="headerlink" title="Guava的布隆过滤器"></a>Guava的布隆过滤器</h3><p>&emsp;这就又要提起我们的Guava了，它是Google开源的Java包，提供了很多常用的功能，比如说我们之前总结的<a href="https://mp.weixin.qq.com/s?__biz=MzU2MDYwMDMzNQ==&amp;mid=2247483781&amp;idx=1&amp;sn=05a2de89cf9b2185292708bcb4431d09&amp;chksm=fc04c5e5cb734cf32b0ea6bc85f58e2b9ddfa78586dd06246089aec01335ab0e205b7d5df08d&amp;token=948342140&amp;lang=zh_CN#rd" target="_blank" rel="noopener">超详细的Guava RateLimiter限流原理解析
 </a>。</p>
 <p>&emsp;Guava中，布隆过滤器的实现主要涉及到2个类，<code>BloomFilter</code>和<code>BloomFilterStrategies</code>，首先来看一下<code>BloomFilter</code>的成员变量。需要注意的是不同Guava版本的<code>BloomFilter</code>实现不同。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">/** guava实现的以CAS方式设置每个bit位的bit数组 */</span><br><span class="line"> private final LockFreeBitArray bits;</span><br><span class="line"> /** hash函数的个数 */</span><br><span class="line"> private final int numHashFunctions;</span><br><span class="line"> /** guava中将对象转换为byte的通道 */</span><br><span class="line"> private final Funnel&lt;? super T&gt; funnel;</span><br><span class="line"> /**</span><br><span class="line">  * 将byte转换为n个bit的策略，也是bloomfilter hash映射的具体实现</span><br><span class="line">  */</span><br><span class="line"> private final Strategy strategy;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike"> &#x2F;** guava实现的以CAS方式设置每个bit位的bit数组 *&#x2F;
+  private final LockFreeBitArray bits;
+  &#x2F;** hash函数的个数 *&#x2F;
+  private final int numHashFunctions;
+  &#x2F;** guava中将对象转换为byte的通道 *&#x2F;
+  private final Funnel&lt;? super T&gt; funnel;
+  &#x2F;**
+   * 将byte转换为n个bit的策略，也是bloomfilter hash映射的具体实现
+   *&#x2F;
+  private final Strategy strategy;
+</code></pre>
 <p>&emsp;这是它的4个成员变量:</p>
 <ul>
 <li><code>LockFreeBitArray</code>是定义在<code>BloomFilterStrategies</code>中的内部类，封装了布隆过滤器底层bit数组的操作。</li>
@@ -329,15 +341,102 @@ var _hmt = _hmt || [];
 <li><code>Funnel</code>，它和<code>PrimitiveSink</code>配套使用，能将任意类型的对象转化成Java基本数据类型，默认用<code>java.nio.ByteBuffer</code>实现，最终均转化为byte数组。</li>
 <li><code>Strategy</code>是定义在<code>BloomFilter</code>类内部的接口，代码如下，主要有2个方法，<code>put</code>和<code>mightContain</code>。</li>
 </ul>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">interface Strategy extends java.io.Serializable &#123;</span><br><span class="line">    /** 设置元素 */</span><br><span class="line">    &lt;T&gt; boolean put(T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits);</span><br><span class="line">    /** 判断元素是否存在*/</span><br><span class="line">    &lt;T&gt; boolean mightContain(</span><br><span class="line">    T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits);</span><br><span class="line">    .....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">interface Strategy extends java.io.Serializable {
+    &#x2F;** 设置元素 *&#x2F;
+    &lt;T&gt; boolean put(T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits);
+    &#x2F;** 判断元素是否存在*&#x2F;
+    &lt;T&gt; boolean mightContain(
+    T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits);
+    .....
+}
+</code></pre>
 <p>&emsp;创建布隆过滤器，<code>BloomFilter</code>并没有公有的构造函数，只有一个私有构造函数，而对外它提供了5个重载的<code>create</code>方法，在缺省情况下误判率设定为3%，采用<code>BloomFilterStrategies.MURMUR128_MITZ_64</code>的实现。</p>
 <p>&emsp;<code>BloomFilterStrategies.MURMUR128_MITZ_64</code>是<code>Strategy</code>的两个实现之一，Guava以枚举的方式提供这两个实现，这也是《Effective Java》书中推荐的提供对象的方法之一。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">enum BloomFilterStrategies implements BloomFilter.Strategy &#123;</span><br><span class="line">    MURMUR128_MITZ_32() &#123;//....&#125;</span><br><span class="line">    MURMUR128_MITZ_64() &#123;//....&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">enum BloomFilterStrategies implements BloomFilter.Strategy {
+    MURMUR128_MITZ_32() {&#x2F;&#x2F;....}
+    MURMUR128_MITZ_64() {&#x2F;&#x2F;....}
+}
+</code></pre>
 <p>&emsp;二者对应了32位哈希映射函数，和64位哈希映射函数，后者使用了murmur3 hash生成的所有128位，具有更大的空间，不过原理是相通的，我们选择相对简单的<code>MURMUR128_MITZ_32</code>来分析。</p>
-<p>&emsp;先来看一下它的<code>put</code>方法，它用两个hash函数来模拟多个hash函数的情况，这是布隆过滤器的一种优化。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">public &lt;T&gt; boolean put(</span><br><span class="line">    T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits) &#123;</span><br><span class="line">    long bitSize = bits.bitSize();</span><br><span class="line">    // 先利用murmur3 hash对输入的funnel计算得到128位的哈希值，funnel现将object转换为byte数组，</span><br><span class="line">    // 然后在使用哈希函数转换为long</span><br><span class="line">    long hash64 = Hashing.murmur3_128().hashObject(object, funnel).asLong();</span><br><span class="line">    // 根据hash值的高低位算出hash1和hash2</span><br><span class="line">    int hash1 = (int) hash64;</span><br><span class="line">    int hash2 = (int) (hash64 &gt;&gt;&gt; 32);</span><br><span class="line"></span><br><span class="line">    boolean bitsChanged = false;</span><br><span class="line">    // 循环体内采用了2个函数模拟其他函数的思想,相当于每次累加hash2</span><br><span class="line">    for (int i = 1; i &lt;= numHashFunctions; i++) &#123;</span><br><span class="line">    int combinedHash = hash1 + (i * hash2);</span><br><span class="line">    // 如果是负数就变为正数</span><br><span class="line">    if (combinedHash &lt; 0) &#123;</span><br><span class="line">        combinedHash = ~combinedHash;</span><br><span class="line">    &#125;</span><br><span class="line">    // 通过基于bitSize取模的方式获取bit数组中的索引，然后调用set函数设置。</span><br><span class="line">    bitsChanged |= bits.set(combinedHash % bitSize);</span><br><span class="line">    &#125;</span><br><span class="line">    return bitsChanged;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;在<code>put</code>方法中，先是将索引位置上的二进制置为1，然后用<code>bitsChanged</code>记录插入结果，如果返回true表明没有重复插入成功，而<code>mightContain</code>方法则是将索引位置上的数值取出，并判断是否为0，只要其中出现一个0，那么立即判断为不存在。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">public &lt;T&gt; boolean mightContain(</span><br><span class="line">    T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits) &#123;</span><br><span class="line">    long bitSize = bits.bitSize();</span><br><span class="line">    long hash64 = Hashing.murmur3_128().hashObject(object, funnel).asLong();</span><br><span class="line">    int hash1 = (int) hash64;</span><br><span class="line">    int hash2 = (int) (hash64 &gt;&gt;&gt; 32);</span><br><span class="line"></span><br><span class="line">    for (int i = 1; i &lt;= numHashFunctions; i++) &#123;</span><br><span class="line">    int combinedHash = hash1 + (i * hash2);</span><br><span class="line">    // Flip all the bits if it&apos;s negative (guaranteed positive number)</span><br><span class="line">    if (combinedHash &lt; 0) &#123;</span><br><span class="line">        combinedHash = ~combinedHash;</span><br><span class="line">    &#125;</span><br><span class="line">    // 和put的区别就在这里，从set转换为get，来判断是否存在</span><br><span class="line">    if (!bits.get(combinedHash % bitSize)) &#123;</span><br><span class="line">        return false;</span><br><span class="line">    &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    return true;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;先来看一下它的<code>put</code>方法，它用两个hash函数来模拟多个hash函数的情况，这是布隆过滤器的一种优化。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public &lt;T&gt; boolean put(
+    T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits) {
+    long bitSize = bits.bitSize();
+    &#x2F;&#x2F; 先利用murmur3 hash对输入的funnel计算得到128位的哈希值，funnel现将object转换为byte数组，
+    &#x2F;&#x2F; 然后在使用哈希函数转换为long
+    long hash64 = Hashing.murmur3_128().hashObject(object, funnel).asLong();
+    &#x2F;&#x2F; 根据hash值的高低位算出hash1和hash2
+    int hash1 = (int) hash64;
+    int hash2 = (int) (hash64 &gt;&gt;&gt; 32);
+
+    boolean bitsChanged = false;
+    &#x2F;&#x2F; 循环体内采用了2个函数模拟其他函数的思想,相当于每次累加hash2
+    for (int i = 1; i &lt;= numHashFunctions; i++) {
+    int combinedHash = hash1 + (i * hash2);
+    &#x2F;&#x2F; 如果是负数就变为正数
+    if (combinedHash &lt; 0) {
+        combinedHash = ~combinedHash;
+    }
+    &#x2F;&#x2F; 通过基于bitSize取模的方式获取bit数组中的索引，然后调用set函数设置。
+    bitsChanged |= bits.set(combinedHash % bitSize);
+    }
+    return bitsChanged;
+}
+</code></pre></p>
+<p>&emsp;在<code>put</code>方法中，先是将索引位置上的二进制置为1，然后用<code>bitsChanged</code>记录插入结果，如果返回true表明没有重复插入成功，而<code>mightContain</code>方法则是将索引位置上的数值取出，并判断是否为0，只要其中出现一个0，那么立即判断为不存在。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public &lt;T&gt; boolean mightContain(
+    T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits) {
+    long bitSize = bits.bitSize();
+    long hash64 = Hashing.murmur3_128().hashObject(object, funnel).asLong();
+    int hash1 = (int) hash64;
+    int hash2 = (int) (hash64 &gt;&gt;&gt; 32);
+
+    for (int i = 1; i &lt;= numHashFunctions; i++) {
+    int combinedHash = hash1 + (i * hash2);
+    &#x2F;&#x2F; Flip all the bits if it&#39;s negative (guaranteed positive number)
+    if (combinedHash &lt; 0) {
+        combinedHash = ~combinedHash;
+    }
+    &#x2F;&#x2F; 和put的区别就在这里，从set转换为get，来判断是否存在
+    if (!bits.get(combinedHash % bitSize)) {
+        return false;
+    }
+    }
+    return true;
+}
+</code></pre></p>
 <p>&emsp;<code>Guava</code>为了提供效率，自己实现了<code>LockFreeBitArray</code>来提供bit数组的无锁设置和读取。我们只来看一下它的<code>put</code>函数。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">boolean set(long bitIndex) &#123;</span><br><span class="line">    if (get(bitIndex)) &#123;</span><br><span class="line">    return false;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    int longIndex = (int) (bitIndex &gt;&gt;&gt; LONG_ADDRESSABLE_BITS);</span><br><span class="line">    long mask = 1L &lt;&lt; bitIndex; // only cares about low 6 bits of bitIndex</span><br><span class="line"></span><br><span class="line">    long oldValue;</span><br><span class="line">    long newValue;</span><br><span class="line">    // 经典的CAS自旋重试机制</span><br><span class="line">    do &#123;</span><br><span class="line">    oldValue = data.get(longIndex);</span><br><span class="line">    newValue = oldValue | mask;</span><br><span class="line">    if (oldValue == newValue) &#123;</span><br><span class="line">        return false;</span><br><span class="line">    &#125;</span><br><span class="line">    &#125; while (!data.compareAndSet(longIndex, oldValue, newValue));</span><br><span class="line"></span><br><span class="line">    bitCount.increment();</span><br><span class="line">    return true;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">boolean set(long bitIndex) {
+    if (get(bitIndex)) {
+    return false;
+    }
+
+    int longIndex = (int) (bitIndex &gt;&gt;&gt; LONG_ADDRESSABLE_BITS);
+    long mask = 1L &lt;&lt; bitIndex; &#x2F;&#x2F; only cares about low 6 bits of bitIndex
+
+    long oldValue;
+    long newValue;
+    &#x2F;&#x2F; 经典的CAS自旋重试机制
+    do {
+    oldValue = data.get(longIndex);
+    newValue = oldValue | mask;
+    if (oldValue == newValue) {
+        return false;
+    }
+    } while (!data.compareAndSet(longIndex, oldValue, newValue));
+
+    bitCount.increment();
+    return true;
+}
+</code></pre>
 <h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;欢迎大家留言和持续关注我。</p>
 <p><img src="/images/logo.png" alt=""></p>
 <h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
@@ -358,7 +457,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/5863fc60/" data-id="ck6535m6z001u9kset92la6yo" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/5863fc60/" data-id="ck6540j8d001rlhsepe6ug4kk" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -664,6 +763,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 

@@ -284,7 +284,48 @@ var _hmt = _hmt || [];
 <p><img src="/images/19_1125/image2.webp" alt=""></p>
 <p>如上图所示，Java 程序只依赖于 JDBC API，通过 DriverManager 来获取驱动，并且针对不同的数据库可以使用不同的驱动。这是典型的桥接的设计模式，把抽象 Abstraction 与行为实现Implementation 分离开来，从而可以保持各部分的独立性以及应对他们的功能扩展。</p>
 <h3 id="JDBC-基础代码示例"><a href="#JDBC-基础代码示例" class="headerlink" title="JDBC 基础代码示例"></a>JDBC 基础代码示例</h3><p>单纯使用 JDBC 的代码逻辑十分简单，我们就以最为常用的MySQL 为例，展示一下使用 JDBC 来建立数据库连接、执行查询语句和遍历结果的过程。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">public static void connectionTest()&#123;</span><br><span class="line"></span><br><span class="line">    Connection connection = null;</span><br><span class="line">    Statement statement = null;</span><br><span class="line">    ResultSet resultSet = null;</span><br><span class="line"></span><br><span class="line">    try &#123;</span><br><span class="line">        // 1. 加载并注册 MySQL 的驱动</span><br><span class="line">        Class.forName(&quot;com.mysql.cj.jdbc.Driver&quot;).newInstance();</span><br><span class="line"></span><br><span class="line">        // 2. 根据特定的数据库连接URL，返回与此URL的所匹配的数据库驱动对象</span><br><span class="line">        Driver driver = DriverManager.getDriver(URL);</span><br><span class="line">        // 3. 传入参数，比如说用户名和密码</span><br><span class="line">        Properties props = new Properties();</span><br><span class="line">        props.put(&quot;user&quot;, USER_NAME);</span><br><span class="line">        props.put(&quot;password&quot;, PASSWORD);</span><br><span class="line"></span><br><span class="line">        // 4. 使用数据库驱动创建数据库连接 Connection</span><br><span class="line">        connection = driver.connect(URL, props);</span><br><span class="line"></span><br><span class="line">        // 5. 从数据库连接 connection 中获得 Statement 对象</span><br><span class="line">        statement = connection.createStatement();</span><br><span class="line">        // 6. 执行 sql 语句，返回结果</span><br><span class="line">        resultSet = statement.executeQuery(&quot;select * from activity&quot;);</span><br><span class="line">        // 7. 处理结果，取出数据</span><br><span class="line">        while(resultSet.next())</span><br><span class="line">        &#123;</span><br><span class="line">            System.out.println(resultSet.getString(2));</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        .....</span><br><span class="line">    &#125;finally&#123;</span><br><span class="line">        // 8.关闭链接，释放资源  按照JDBC的规范，使用完成后管理链接，</span><br><span class="line">        // 释放资源，释放顺序应该是： ResultSet -&gt;Statement -&gt;Connection</span><br><span class="line">        resultSet.close();</span><br><span class="line">        statement.close();</span><br><span class="line">        connection.close();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public static void connectionTest(){
+
+    Connection connection = null;
+    Statement statement = null;
+    ResultSet resultSet = null;
+
+    try {
+        &#x2F;&#x2F; 1. 加载并注册 MySQL 的驱动
+        Class.forName(&quot;com.mysql.cj.jdbc.Driver&quot;).newInstance();
+
+        &#x2F;&#x2F; 2. 根据特定的数据库连接URL，返回与此URL的所匹配的数据库驱动对象
+        Driver driver = DriverManager.getDriver(URL);
+        &#x2F;&#x2F; 3. 传入参数，比如说用户名和密码
+        Properties props = new Properties();
+        props.put(&quot;user&quot;, USER_NAME);
+        props.put(&quot;password&quot;, PASSWORD);
+
+        &#x2F;&#x2F; 4. 使用数据库驱动创建数据库连接 Connection
+        connection = driver.connect(URL, props);
+
+        &#x2F;&#x2F; 5. 从数据库连接 connection 中获得 Statement 对象
+        statement = connection.createStatement();
+        &#x2F;&#x2F; 6. 执行 sql 语句，返回结果
+        resultSet = statement.executeQuery(&quot;select * from activity&quot;);
+        &#x2F;&#x2F; 7. 处理结果，取出数据
+        while(resultSet.next())
+        {
+            System.out.println(resultSet.getString(2));
+        }
+
+        .....
+    }finally{
+        &#x2F;&#x2F; 8.关闭链接，释放资源  按照JDBC的规范，使用完成后管理链接，
+        &#x2F;&#x2F; 释放资源，释放顺序应该是： ResultSet -&gt;Statement -&gt;Connection
+        resultSet.close();
+        statement.close();
+        connection.close();
+    }
+}
+</code></pre>
 <p>代码中有详细的注释描述每一步的过程，相信大家也都对这段代码十分熟悉。</p>
 <p>唯一要提醒的是使用完之后的资源释放顺序。按照 JDBC 规范，应该依次释放 ResultSet，Statement 和 Connection。当然这只是规范，很多开源框架都没有严格的执行，但是 HikariCP却严格准守了，它可以带来很多优势，这些会在之后的文章中讲解。</p>
 <p><img src="/images/19_1125/image3.webp" alt=""></p>
@@ -296,17 +337,78 @@ var _hmt = _hmt || [];
 <p>接下来，我们依次看一下这几个类及其涉及的操作的原理和源码实现。</p>
 <h3 id="载入-Driver-实现"><a href="#载入-Driver-实现" class="headerlink" title="载入 Driver 实现"></a>载入 Driver 实现</h3><p>可以直接使用 Class#forName的方式来载入驱动实现，或者在 JDBC 4.0 后则基于 SPI 机制来导入驱动实现，通过在 META-INF/services/java.sql.Driver 文件中指定实现类的方式来导入驱动实现，下面我们就来看一下两种方式的实现原理。</p>
 <p>Class#forName 作用是要求 JVM 查找并加载指定的类，如果在类中有静态初始化器的话，JVM 会执行该类的静态代码段。加载具体 Driver 实现时，就会执行 Driver 中的静态代码段，将该 Driver 实现注册到 DriverManager 中。我们来看一下 MySQL 对应 Driver 的具体代码。它就是直接调用了 DriverManager的 registerDriver 方法将自己注册到其维护的驱动列表中。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">public class Driver extends NonRegisteringDriver implements java.sql.Driver &#123;</span><br><span class="line">    public Driver() throws SQLException &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    static &#123;</span><br><span class="line">        // 直接调用 DriverManager的 registerDriver 将自己注册到其中</span><br><span class="line">        DriverManager.registerDriver(new Driver());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public class Driver extends NonRegisteringDriver implements java.sql.Driver {
+    public Driver() throws SQLException {
+    }
+
+    static {
+        &#x2F;&#x2F; 直接调用 DriverManager的 registerDriver 将自己注册到其中
+        DriverManager.registerDriver(new Driver());
+    }
+}
+</code></pre>
 <p>SPI 机制使用 ServiceLoader 类来提供服务发现机制，动态地为某个接口寻找服务实现。当服务的提供者提供了服务接口的一种实现之后，必须根据 SPI 约定在 META-INF/services 目录下创建一个以服务接口命名的文件，在该文件中写入实现该服务接口的具体实现类。当服务调用 ServiceLoader 的 load 方法的时候，ServiceLoader 能够通过约定的目录找到指定的文件，并装载实例化，完成服务的发现。</p>
 <p>DriverManager 中的 loadInitialDrivers 方法会使用 ServiceLoader 的 load 方法加载目前项目路径下的所有 Driver 实现。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">public class DriverManager &#123;</span><br><span class="line">    // 程序中已经注册的Driver具体实现信息列表。registerDriver类就是将Driver加入到这个列表</span><br><span class="line">    private final static CopyOnWriteArrayList&lt;DriverInfo&gt; registeredDrivers = new CopyOnWriteArrayList&lt;&gt;();</span><br><span class="line">    // 使用ServiceLoader 加载具体的jdbc driver实现</span><br><span class="line">    static &#123;</span><br><span class="line">        loadInitialDrivers();</span><br><span class="line">    &#125;</span><br><span class="line">    private static void loadInitialDrivers() &#123;</span><br><span class="line">        // 省略了异常处理</span><br><span class="line">        // 获得系统属性 jdbc.drivers 配置的值</span><br><span class="line">        String drivers = AccessController.doPrivileged(new PrivilegedAction&lt;String&gt;() &#123;</span><br><span class="line">            public String run() &#123;</span><br><span class="line">                return System.getProperty(&quot;jdbc.drivers&quot;);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line"></span><br><span class="line">        AccessController.doPrivileged(new PrivilegedAction&lt;Void&gt;() &#123;</span><br><span class="line">            public Void run() &#123;</span><br><span class="line"></span><br><span class="line">                ServiceLoader&lt;Driver&gt; loadedDrivers = ServiceLoader.load(Driver.class);</span><br><span class="line">                Iterator&lt;Driver&gt; driversIterator = loadedDrivers.iterator();</span><br><span class="line">                // 通过 ServiceLoader 获取到Driver的具体实现类，然后加载这些类，会调用其静态代码块</span><br><span class="line">                while(driversIterator.hasNext()) &#123;</span><br><span class="line">                    driversIterator.next();</span><br><span class="line">                &#125;</span><br><span class="line">                return null;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line"></span><br><span class="line">        String[] driversList = drivers.split(&quot;:&quot;);</span><br><span class="line">        // for 循环加载系统属性中的Driver类。</span><br><span class="line">        for (String aDriver : driversList) &#123;</span><br><span class="line">            println(&quot;DriverManager.Initialize: loading &quot; + aDriver);</span><br><span class="line">            Class.forName(aDriver, true,</span><br><span class="line">                    ClassLoader.getSystemClassLoader());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public class DriverManager {
+    &#x2F;&#x2F; 程序中已经注册的Driver具体实现信息列表。registerDriver类就是将Driver加入到这个列表
+    private final static CopyOnWriteArrayList&lt;DriverInfo&gt; registeredDrivers = new CopyOnWriteArrayList&lt;&gt;();
+    &#x2F;&#x2F; 使用ServiceLoader 加载具体的jdbc driver实现
+    static {
+        loadInitialDrivers();
+    }
+    private static void loadInitialDrivers() {
+        &#x2F;&#x2F; 省略了异常处理
+        &#x2F;&#x2F; 获得系统属性 jdbc.drivers 配置的值
+        String drivers = AccessController.doPrivileged(new PrivilegedAction&lt;String&gt;() {
+            public String run() {
+                return System.getProperty(&quot;jdbc.drivers&quot;);
+            }
+        });
+
+        AccessController.doPrivileged(new PrivilegedAction&lt;Void&gt;() {
+            public Void run() {
+
+                ServiceLoader&lt;Driver&gt; loadedDrivers = ServiceLoader.load(Driver.class);
+                Iterator&lt;Driver&gt; driversIterator = loadedDrivers.iterator();
+                &#x2F;&#x2F; 通过 ServiceLoader 获取到Driver的具体实现类，然后加载这些类，会调用其静态代码块
+                while(driversIterator.hasNext()) {
+                    driversIterator.next();
+                }
+                return null;
+            }
+        });
+
+        String[] driversList = drivers.split(&quot;:&quot;);
+        &#x2F;&#x2F; for 循环加载系统属性中的Driver类。
+        for (String aDriver : driversList) {
+            println(&quot;DriverManager.Initialize: loading &quot; + aDriver);
+            Class.forName(aDriver, true,
+                    ClassLoader.getSystemClassLoader());
+        }
+    }
+}
+</code></pre>
 <p>比如说，项目引用了 MySQL 的 jar包 mysql-connector-java，在这个 jar 包的 META-INF/services 文件夹下有一个叫 java.sql.Driver 的文件，文件的内容为 com.mysql.cj.jdbc.Driver。而 ServiceLoader 的 load 方法找到这个文件夹下的文件，读取文件的内容，然后加载出文件内容所指定的 Driver 实现。而正如之前所分析的，这个 Driver 类被加载时，会调用 DriverManager 的 registerDriver 方法，从而完成了驱动的加载。</p>
 <h3 id="Connection、Statement-和-ResultSet"><a href="#Connection、Statement-和-ResultSet" class="headerlink" title="Connection、Statement 和 ResultSet"></a>Connection、Statement 和 ResultSet</h3><p>当程序加载完具体驱动实现后，接下来就是建立与数据库的连接，执行 SQL 语句并且处理返回结果了，其过程如下图所示。</p>
 <p><img src="/images/19_1125/image5.webp" alt=""></p>
 <h4 id="建立-Connection"><a href="#建立-Connection" class="headerlink" title="建立 Connection"></a>建立 Connection</h4><p>创建 Connection 连接对象，可以使用 Driver 的 connect 方法，也可以使用 DriverManager 提供的 getConnection 方法，此方法通过 url 自动匹配对应的驱动 Driver 实例，然后还是调用对应的 connect 方法返回 Connection 对象实例。</p>
 <p>建立 Connection 会涉及到与数据库进行网络请求等大量费时的操作，为了提升性能，往往都会引入数据库连接池，也就是说复用 Connection，免去每次都创建 Connection 所消耗的时间和系统资源。</p>
 <p>Connection 默认情况下，对于创建的 Statement 执行的 SQL 语句都是自动提交事务的，即在 Statement 语句执行完后，自动执行 commit 操作，将事务提交，结果影响到物理数据库。为了满足更好地事务控制需求，我们也可以手动地控制事务，手动地在Statement 的 SQL 语句执行后进行 commit 或者rollback。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">connection = driver.connect(URL, props);</span><br><span class="line">// 将自动提交关闭</span><br><span class="line">connection.setAutoCommit(false);</span><br><span class="line"></span><br><span class="line">statement = connection.createStatement();</span><br><span class="line">statement.execute(&quot;INSERT INTO activity (activity_id, activity_name, product_id, start_time, end_time, total, status, sec_speed, buy_limit, buy_rate) VALUES (1, &apos;香蕉大甩卖&apos;, 1, 530871061, 530872061, 20, 0, 1, 1, 0.20);&quot;);</span><br><span class="line">// 执行后手动 commit</span><br><span class="line">statement.getConnection().commit();</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">connection = driver.connect(URL, props);
+&#x2F;&#x2F; 将自动提交关闭
+connection.setAutoCommit(false);
+
+statement = connection.createStatement();
+statement.execute(&quot;INSERT INTO activity (activity_id, activity_name, product_id, start_time, end_time, total, status, sec_speed, buy_limit, buy_rate) VALUES (1, &#39;香蕉大甩卖&#39;, 1, 530871061, 530872061, 20, 0, 1, 1, 0.20);&quot;);
+&#x2F;&#x2F; 执行后手动 commit
+statement.getConnection().commit();
+</code></pre>
 <h3 id="Statement"><a href="#Statement" class="headerlink" title="Statement"></a>Statement</h3><p>Statement 的功能在于根据传入的 SQL 语句，将传入 SQL 经过整理组合成数据库能够识别的执行语句(对于静态的 SQL 语句，不需要整理组合；而对于预编译SQL 语句和批量语句，则需要整理)，然后传递 SQL 请求，之后会得到返回的结果。对于查询 SQL，结果会以 ResultSet 的形式返回。</p>
 <p>当你创建了一个 Statement 对象之后，你可以用它的三个执行方法的任一方法来执行 SQL 语句。</p>
 <ul>
@@ -339,11 +441,32 @@ var _hmt = _hmt || [];
 </tbody>
 </table>
 <p>Statement 主要用于执行静态SQL语句，即内容固定不变的SQL语句。Statement每执行一次都要对传入的SQL语句编译一次，效率较差。而 PreparedStatement则解决了这个问题，它会对 SQL 进行预编译，提高了执行效率。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">PreparedStatement pstmt = null;</span><br><span class="line">    try &#123;</span><br><span class="line">        String SQL = &quot;Update activity SET activity_name = ? WHERE activity_id = ?&quot;;</span><br><span class="line">        pstmt = connection.prepareStatement(SQL);</span><br><span class="line">        pstmt.setString(1, &quot;测试&quot;);</span><br><span class="line">        pstmt.setInt(2, 1);</span><br><span class="line">        pstmt.executeUpdate();</span><br><span class="line">    &#125;</span><br><span class="line">    catch (SQLException e) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">    finally &#123;</span><br><span class="line">        pstmt.close();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">PreparedStatement pstmt = null;
+    try {
+        String SQL = &quot;Update activity SET activity_name = ? WHERE activity_id = ?&quot;;
+        pstmt = connection.prepareStatement(SQL);
+        pstmt.setString(1, &quot;测试&quot;);
+        pstmt.setInt(2, 1);
+        pstmt.executeUpdate();
+    }
+    catch (SQLException e) {
+    }
+    finally {
+        pstmt.close();
+    }
+}
+</code></pre>
 <p>除此之外， PreparedStatement 还可以预防 SQL 注入，因为 PreparedStatement 不允许在插入参数时改变 SQL 语句的逻辑结构。</p>
 <p>PreparedStatement 传入任何数据不会和原 SQL 语句发生匹配关系，无需对输入的数据做过滤。如果用户将”or 1 = 1”传入赋值给占位符，下述SQL 语句将无法执行：select * from t where username = ? and password = ?。</p>
 <h3 id="ResultSet"><a href="#ResultSet" class="headerlink" title="ResultSet"></a>ResultSet</h3><p>当 Statement 查询 SQL 执行后，会得到 ResultSet 对象，ResultSet 对象是 SQL语句查询的结果集合。ResultSet 对从数据库返回的结果进行了封装，使用迭代器的模式可以逐条取出结果集中的记录。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">while(resultSet.next()) &#123;</span><br><span class="line">    System.out.println(resultSet.getString(2));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">while(resultSet.next()) {
+    System.out.println(resultSet.getString(2));
+}
+</code></pre>
 <p>ResultSet 一般也建议使用完毕直接 close 掉，但是需要注意的是关闭 ResultSet 对象不关闭其持有的 Blob、Clob 或 NClob 对象。 Blob、Clob 或 NClob 对象在它们被创建的的事务期间会一直持有效，除非其 free 函数被调用。</p>
 <p><img src="/images/logo.png" alt=""></p>
 <h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
@@ -360,7 +483,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/8c16d4e4/" data-id="ck6535m70001y9kse4kb3swrs" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/8c16d4e4/" data-id="ck6540j8f001ulhsetbt9n2y5" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -666,6 +789,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 

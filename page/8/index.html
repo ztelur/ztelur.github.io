@@ -273,7 +273,27 @@ var _hmt = _hmt || [];
 <ul>
 <li><strong>javax.annotation.processing.SupportedAnnotationTypes</strong>：这个注解用来注册注解处理器要处理的注解类型。有效值为完全限定名（就是带所在包名和路径的类全名）-通配符（此次英语原文为Wildcards,就是？这个符号代表的类型。比如说<code>List&lt;? extends String</code>,想要深入了解，可以看一下<a href="http://stackoverflow.com/questions/18176594/when-to-use-generic-methods-and-when-to-use-wild-card" target="_blank" rel="noopener">这里</a>）也可以。</li>
 <li><strong>javax.annotation.processing.SupportedSourceVersion</strong>:这是用来注册注解处理器要处理的源代码版本。</li>
-<li><strong>javax.annotation.processing.SupportedOptions</strong>:这个注解用来注册可能通过命令行传递给处理器的操作选项。<br>(译者语：对于android注解处理器，第一个注解比较有用，另外两个了解就可)<br> 最后，我们提供<code>process()</code>方法的实现。<h4 id="实现我们第一个注解处理器"><a href="#实现我们第一个注解处理器" class="headerlink" title="实现我们第一个注解处理器"></a>实现我们第一个注解处理器</h4> 让我们开始第一个注解处理器的实现。按照之前章节的知识，我们实现了下面这个类来处理第一篇博文中的<code>Complexity</code>注解：<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> sdc.assets.annotations.processors;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">import</span> …</span><br><span class="line"></span><br><span class="line">   <span class="meta">@SupportedAnnotationTypes</span>(<span class="string">"sdc.assets.annotations.Complexity"</span>)</span><br><span class="line">   <span class="meta">@SupportedSourceVersion</span>(SourceVersion.RELEASE_6)</span><br><span class="line">   <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ComplexityProcessor</span> <span class="keyword">extends</span> <span class="title">AbstractProcessor</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="title">ComplexityProcessor</span><span class="params">()</span> </span>&#123;</span><br><span class="line">           <span class="keyword">super</span>();</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       <span class="meta">@Override</span></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">process</span><span class="params">(Set&lt;? extends TypeElement&gt; annotations,</span></span></span><br><span class="line"><span class="function"><span class="params">                              RoundEnvironment roundEnv)</span> </span>&#123;</span><br><span class="line">           <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">       &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+<li><strong>javax.annotation.processing.SupportedOptions</strong>:这个注解用来注册可能通过命令行传递给处理器的操作选项。<br>(译者语：对于android注解处理器，第一个注解比较有用，另外两个了解就可)<br> 最后，我们提供<code>process()</code>方法的实现。<h4 id="实现我们第一个注解处理器"><a href="#实现我们第一个注解处理器" class="headerlink" title="实现我们第一个注解处理器"></a>实现我们第一个注解处理器</h4> 让我们开始第一个注解处理器的实现。按照之前章节的知识，我们实现了下面这个类来处理第一篇博文中的<code>Complexity</code>注解：
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java"> package sdc.assets.annotations.processors;
+
+    import …
+
+    @SupportedAnnotationTypes(&quot;sdc.assets.annotations.Complexity&quot;)
+    @SupportedSourceVersion(SourceVersion.RELEASE_6)
+    public class ComplexityProcessor extends AbstractProcessor {
+
+        public ComplexityProcessor() {
+            super();
+        }
+
+        @Override
+        public boolean process(Set&lt;? extends TypeElement&gt; annotations,
+                               RoundEnvironment roundEnv) {
+            return true;
+        }
+    }
+</code></pre>
 </li>
 </ul>
 <p> 这个未完全完成的类，尽管没有任何操作，但是注册可以支持处理<code>sdc.assets.annotations.Complexity</code>注解类型。因此，每次java编译器遇到一个被<code>Complexity</code>标记的类都有执行这个处理器，假设这个处理器在那个路径中可以被获得（具体原由之后会看到）。<br> <code>process()</code>方法会受到两个输入参数：</p>
@@ -281,7 +301,14 @@ var _hmt = _hmt || [];
 <li><strong>Set&lt;? extends TypeElement&gt;</strong>：注解处理需要执行一次或者多次。每次执行时，处理器方法被调用，并且传入了当前要处理的注解类型。</li>
 <li><strong>RoundEnvironment</strong>:这个对象提供当前或者上一次注解处理中被注解标注的源文件元素。（简单点说，就是可以获得所有被标注的元素，无论是类，参数，函数还是变量）<br> 除了上述两个参数之外，<code>ProcessingEnvironment</code>对象也可以通过<code>processingEnv</code>实例获得。这个对象可以提供一些关于日志，文件读写的通用工具类；它的一些功能之后会讨论到。<br> 使用<code>RoundEnvironment</code>对象和<code>Element</code>接口的反射相关的函数，我们可以实现一个打印<code>Complexity</code>标注元素名的注解处理器。</li>
 </ul>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (Element elem :roundEnv.getElementsAnnotatedWith(Complexity.class)) &#123;     </span><br><span class="line">  Complexity complexity = elem.getAnnotation(Complexity.class);     </span><br><span class="line">  String message = <span class="string">"annotation found in "</span> + elem.getSimpleName()                     + <span class="string">" with complexity "</span> + complexity.value();       processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, message); </span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">true</span>; <span class="comment">// no further processing of this annotation type</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">for (Element elem :roundEnv.getElementsAnnotatedWith(Complexity.class)) {     
+  Complexity complexity = elem.getAnnotation(Complexity.class);     
+  String message = &quot;annotation found in &quot; + elem.getSimpleName()                     + &quot; with complexity &quot; + complexity.value();       processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, message); 
+  return true; &#x2F;&#x2F; no further processing of this annotation type
+}
+</code></pre>
 <h4 id="打包并且注册注解处理器"><a href="#打包并且注册注解处理器" class="headerlink" title="打包并且注册注解处理器"></a>打包并且注册注解处理器</h4><p> 自定义注解处理器的最后一步就是打包并且向java编译器获取其他可以识别处理器的工具进行注册。</p>
 <p> 注册处理器的最简单方法就是使用标注java服务机制：</p>
 <ul>
@@ -292,8 +319,29 @@ var _hmt = _hmt || [];
 </ul>
 <p> java编译器或者其他工具会搜索这个文件中标记的所有处理器，并且在注解处理过程中使用。<br> 在我们这个例子中，目录结构和文件内容如下：<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/apt-apt1.png" alt="picture1.png"></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/apt-apt2.png" alt="picture2.png"><br> 一旦打包完成，我们就准备使用它。<br>(译者语：关于android平台的自动打包和使用，可以参考butterknife的方法，就是使用<a href="https://github.com/google/auto/tree/master/service" target="_blank" rel="noopener">AutoService</a>,这个详细知识之后我会单独博文讲解)</p>
-<h4 id="使用javac运行处理器"><a href="#使用javac运行处理器" class="headerlink" title="使用javac运行处理器"></a>使用javac运行处理器</h4><p> 想象一下你在一个项目中使用了一些自定义注解并且可以使用注解处理器。在java 5中，编译和注解处理是不同的两步，但是在java 6中，两个任务都集成到java编译器工具javac中。<br> 如果你把注解处理器加入到javac的路径中并且他们使用服务机制进行了注册，他们就会被javac执行调用啦。<br> 在我们这个例子中，下边这个命令会编译并且执行注解处理：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&gt;javac -cp sdc.assets.annotations-1.0-SNAPSHOT.jar;  </span><br><span class="line">sdc.assets.annotations.processors-1.0-SNAPSHOT.jar    </span><br><span class="line">SimpleAnnotationsTest.java</span><br></pre></td></tr></table></figure></p>
-<p> 用于处理的java类文件内容如下：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> sdc.startupassets.annotations.base.client; </span><br><span class="line"><span class="keyword">import</span> ... </span><br><span class="line"><span class="meta">@Complexity</span>(ComplexityLevel.VERY_SIMPLE) </span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SimpleAnnotationsTest</span> </span>&#123; </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="title">SimpleAnnotationsTest</span><span class="params">()</span> </span></span><br><span class="line"><span class="function">  </span>&#123; </span><br><span class="line">    <span class="keyword">super</span>(); </span><br><span class="line">  &#125; </span><br><span class="line">  <span class="meta">@Complexity</span>() <span class="comment">// this annotation type applies also to methods //   the default value 'ComplexityLevel.MEDIUM' is assumed </span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">theMethod</span><span class="params">()</span> </span></span><br><span class="line"><span class="function">  </span>&#123; </span><br><span class="line">    System.out.println(<span class="string">"consoleut"</span>); </span><br><span class="line">  &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="使用javac运行处理器"><a href="#使用javac运行处理器" class="headerlink" title="使用javac运行处理器"></a>使用javac运行处理器</h4><p> 想象一下你在一个项目中使用了一些自定义注解并且可以使用注解处理器。在java 5中，编译和注解处理是不同的两步，但是在java 6中，两个任务都集成到java编译器工具javac中。<br> 如果你把注解处理器加入到javac的路径中并且他们使用服务机制进行了注册，他们就会被javac执行调用啦。<br> 在我们这个例子中，下边这个命令会编译并且执行注解处理：<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&gt;javac -cp sdc.assets.annotations-1.0-SNAPSHOT.jar;  
+sdc.assets.annotations.processors-1.0-SNAPSHOT.jar    
+SimpleAnnotationsTest.java
+</code></pre></p>
+<p> 用于处理的java类文件内容如下：<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">package sdc.startupassets.annotations.base.client; 
+import ... 
+@Complexity(ComplexityLevel.VERY_SIMPLE) 
+public class SimpleAnnotationsTest { 
+  public SimpleAnnotationsTest() 
+  { 
+    super(); 
+  } 
+  @Complexity() &#x2F;&#x2F; this annotation type applies also to methods &#x2F;&#x2F;   the default value &#39;ComplexityLevel.MEDIUM&#39; is assumed 
+public void theMethod() 
+  { 
+    System.out.println(&quot;consoleut&quot;); 
+  } 
+}
+</code></pre></p>
 <p> 上述执行结果如下：</p>
 <p><img src="http://upload-images.jianshu.io/upload_images/623378-17ebea47a83ec437.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="picture3.png"></p>
 <p> 有一些javac的选项可以在一些特殊的情况下使用：</p>
@@ -314,7 +362,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/404d11f/" data-id="ck6535m9h007h9kse5zau67qt" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/404d11f/" data-id="ck6540jb5007klhsexc0t3ib7" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -443,11 +491,41 @@ var _hmt = _hmt || [];
 <li>学习如何<code>Apache Velocity</code>模版来生成代码</li>
 </ul>
 <h4 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h4><p>&emsp;注解首先在第三版<code>Java Language Specification</code>中被提出，并在<code>java 5</code>中被实现。<br>&emsp;使用注解我们可以给源代码添加元数据信息，比如构造或者部署信息，配置属性，编译特性或者代码质量检查。<br>&emsp;不像<code>Javadocs</code>，注解是强类型的，每个注解都对应一个预先定义好的注解类型。除此之外，程序可以在运行时获得注解信息，<code>Javadocs</code>不行。</p>
-<h4 id="注解语法"><a href="#注解语法" class="headerlink" title="注解语法"></a>注解语法</h4><p>&emsp;注解通常出现在被注解代码片段之前，单独成行，并且和代码片段有相同的缩进。<br>&emsp;注解可以应用到包，类型（类，接口，枚举，注解类型），变量（对象，局部变量-包括定义在循环结构中的变量），构造函数，方法，和参数。<br>&emsp;注解的最简单形式是不带任何元素，比如：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span>()</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">theMethod</span><span class="params">()</span> </span>&#123;…&#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;在这种情况下，括号可以被省略。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">theMethod</span><span class="params">()</span> </span>&#123;…&#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;注解可以包括通过冒号分离的键值对数据，类型可以是基础类型，字符串，枚举，和数组：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Author</span>(name = <span class="string">"Albert"</span>,</span><br><span class="line">            created = <span class="string">"17/09/2010"</span>,</span><br><span class="line">            revision = <span class="number">3</span>,</span><br><span class="line">            reviewers = &#123;<span class="string">"George"</span>, <span class="string">"Fred"</span>&#125;)</span><br><span class="line">    <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SimpleAnnotationsTest</span> </span>&#123;…&#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;当注解只有一个元素并且其名字是value，那么它就可以被省略：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@WorkProduct</span>(<span class="string">"WP00000182"</span>)</span><br><span class="line">    <span class="meta">@Complexity</span>(ComplexityLevel.VERY_SIMPLE)</span><br><span class="line">    <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SimpleAnnotationsTest</span> </span>&#123;…&#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;注解可以定义它的元素的默认值，有默认值的元素可以在注解声明使用时被省略。<br>&emsp;比如，假设注解<code>Author</code>定义了<code>revision</code>（默认为1）和<code>reviewers</code>(默认为空的字符串数组)，下边的两个注释声明是相同的：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Author</span>(name = <span class="string">"Albert"</span>,</span><br><span class="line">            created = <span class="string">"17/09/2010"</span>,</span><br><span class="line">            revision = <span class="number">1</span>,</span><br><span class="line">            reviewers = &#123;&#125;)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> class <span class="title">SimpleAnnotationsTest</span><span class="params">()</span> </span>&#123;…&#125;</span><br><span class="line">    <span class="meta">@Author</span>(name = <span class="string">"Albert"</span>,        <span class="comment">// defaults are revision 1</span></span><br><span class="line">            created = <span class="string">"17/09/2010"</span>) <span class="comment">// and no reviewers</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> class <span class="title">SimpleAnnotationsTest</span><span class="params">()</span> </span>&#123;…&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="注解语法"><a href="#注解语法" class="headerlink" title="注解语法"></a>注解语法</h4><p>&emsp;注解通常出现在被注解代码片段之前，单独成行，并且和代码片段有相同的缩进。<br>&emsp;注解可以应用到包，类型（类，接口，枚举，注解类型），变量（对象，局部变量-包括定义在循环结构中的变量），构造函数，方法，和参数。<br>&emsp;注解的最简单形式是不带任何元素，比如：<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">@Override()
+    public void theMethod() {…}
+</code></pre></p>
+<p>&emsp;在这种情况下，括号可以被省略。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">@Override
+    public void theMethod() {…}
+</code></pre></p>
+<p>&emsp;注解可以包括通过冒号分离的键值对数据，类型可以是基础类型，字符串，枚举，和数组：<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">@Author(name = &quot;Albert&quot;,
+            created = &quot;17&#x2F;09&#x2F;2010&quot;,
+            revision = 3,
+            reviewers = {&quot;George&quot;, &quot;Fred&quot;})
+    public class SimpleAnnotationsTest {…}
+</code></pre></p>
+<p>&emsp;当注解只有一个元素并且其名字是value，那么它就可以被省略：<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">@WorkProduct(&quot;WP00000182&quot;)
+    @Complexity(ComplexityLevel.VERY_SIMPLE)
+    public class SimpleAnnotationsTest {…}
+</code></pre></p>
+<p>&emsp;注解可以定义它的元素的默认值，有默认值的元素可以在注解声明使用时被省略。<br>&emsp;比如，假设注解<code>Author</code>定义了<code>revision</code>（默认为1）和<code>reviewers</code>(默认为空的字符串数组)，下边的两个注释声明是相同的：<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">@Author(name = &quot;Albert&quot;,
+            created = &quot;17&#x2F;09&#x2F;2010&quot;,
+            revision = 1,
+            reviewers = {})
+    public class SimpleAnnotationsTest() {…}
+    @Author(name = &quot;Albert&quot;,        &#x2F;&#x2F; defaults are revision 1
+            created = &quot;17&#x2F;09&#x2F;2010&quot;) &#x2F;&#x2F; and no reviewers
+    public class SimpleAnnotationsTest() {…}
+</code></pre></p>
 <h4 id="注解的典型使用"><a href="#注解的典型使用" class="headerlink" title="注解的典型使用"></a>注解的典型使用</h4><p>&emsp;有三类注解类型在<code>Java Language Specification</code>中被定义，它们提供给java的编译器使用：</p>
 <ul>
 <li><strong>@Deprecated</strong>:表明被标记的元素不应该再被使用。当你使用被标记元素时，编译器会给出警告。也可以使用在<code>Javadoc</code>中，解释标记元素不能在使用的原因。</li>
@@ -461,14 +539,35 @@ var _hmt = _hmt || [];
 <li>Seam, Weld, Guice.</li>
 <li>Apache Struts 2.</li>
 </ul>
-<h4 id="注解类型"><a href="#注解类型" class="headerlink" title="注解类型"></a>注解类型</h4><p>&emsp;注解类型(<code>Annotation Type</code>)是定义自定义注解的特殊接口（<code>interface</code>）。<br>&emsp;一个注解类型使用<code>@interface</code>来定义：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> Author &#123;</span><br><span class="line">        <span class="function">String <span class="title">name</span><span class="params">()</span></span>;</span><br><span class="line">        <span class="function">String <span class="title">created</span><span class="params">()</span></span>;</span><br><span class="line">        <span class="function"><span class="keyword">int</span> <span class="title">revision</span><span class="params">()</span> <span class="keyword">default</span> 1</span>;</span><br><span class="line">        String[] reviewers() <span class="keyword">default</span> &#123;&#125;;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="meta">@interface</span> Complexity &#123;</span><br><span class="line">        <span class="function">ComplexityLevel <span class="title">value</span><span class="params">()</span> <span class="keyword">default</span> ComplexityLevel.MEDIUM</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">enum</span> ComplexityLevel &#123;</span><br><span class="line">        VERY_SIMPLE, SIMPLE, MEDIUM, COMPLEX, VERY_COMPLEX;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="注解类型"><a href="#注解类型" class="headerlink" title="注解类型"></a>注解类型</h4><p>&emsp;注解类型(<code>Annotation Type</code>)是定义自定义注解的特殊接口（<code>interface</code>）。<br>&emsp;一个注解类型使用<code>@interface</code>来定义：<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">public @interface Author {
+        String name();
+        String created();
+        int revision() default 1;
+        String[] reviewers() default {};
+    }
+    public @interface Complexity {
+        ComplexityLevel value() default ComplexityLevel.MEDIUM;
+    }
+    public enum ComplexityLevel {
+        VERY_SIMPLE, SIMPLE, MEDIUM, COMPLEX, VERY_COMPLEX;
+    }
+</code></pre></p>
 <p>&emsp;注解类型和常规的接口有一些不同的地方：</p>
 <ul>
 <li>只有基础类型，字符串，枚举，类常量和上述类型的数组允许在注解定义中使用，一般的类和对象不允许使用，双重数组也不允许。</li>
 <li>注解元素的定义语法和类方法的语法相似，但是注意，注解元素的定义不包括修饰符和参数。</li>
 <li>默认值是使用<code>default</code>关键字定义的，其后的值必须是字面量，数组初始器和枚举值。</li>
 </ul>
-<p>&emsp;枚举类型可以在注解内部进行定义：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> Complexity &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">enum</span> Level &#123;</span><br><span class="line">            VERY_SIMPLE, SIMPLE, MEDIUM, COMPLEX, VERY_COMPLEX;</span><br><span class="line">        &#125;</span><br><span class="line">    …</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;枚举类型可以在注解内部进行定义：<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">public @interface Complexity {
+        public enum Level {
+            VERY_SIMPLE, SIMPLE, MEDIUM, COMPLEX, VERY_COMPLEX;
+        }
+    …
+</code></pre></p>
 <h4 id="用来定义注解的注解"><a href="#用来定义注解的注解" class="headerlink" title="用来定义注解的注解"></a>用来定义注解的注解</h4><p>&emsp;JDK中预先定义了一些用来修改自定义注解行为的注解：</p>
 <ul>
 <li><strong>@Retention</strong>：表明被标记的注解信息会保存多长时间，一些可能的值如下：<code>CLASS</code> (默认选项，注解信息保存到class文件中，但是无法在运行时获得), <code>SOURCE</code> (当class文件被创建时被编译器抛弃) and <code>RUNTIME</code> (在程序运行时可以获得).</li>
@@ -486,7 +585,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/61b08834/" data-id="ck6535m8w005u9ksetj2jdijz" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/61b08834/" data-id="ck6540jag005tlhsewrexx28n" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -625,7 +724,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/ceec219e/" data-id="ck6535m94006i9ksencxb09d1" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/ceec219e/" data-id="ck6540jao006ilhseimhnn0be" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -763,7 +862,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/1fdadf09/" data-id="ck6535m95006m9ksex04heesb" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/1fdadf09/" data-id="ck6540jap006mlhsef1bnbv9f" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -884,11 +983,24 @@ var _hmt = _hmt || [];
             
             <p>&emsp;临近过年，我离开了实习了4个多月的扇贝。临走前，导师赠送给我一本《Redis设计和实现》，于是心血来潮，想读一读这本书，然后仿照书中介绍的原理实现一个小型的数据库。这是redis系列的第一篇博文，希望我可以坚持下去，不要虎头蛇尾。</p>
 <h4 id="简单动态字符串"><a href="#简单动态字符串" class="headerlink" title="简单动态字符串"></a>简单动态字符串</h4><p>&emsp;我们都知道Redis是由纯c代码编写而成的，而c语言中的原生字符串有很多的缺陷，不利于大型工程的使用。于是Redis的作者便自己实现一套字符串数据结构，就是sds.h/sdshdr结构。</p>
-<h4 id="SDS的定义"><a href="#SDS的定义" class="headerlink" title="SDS的定义"></a>SDS的定义</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sdshdr</span> &#123;</span></span><br><span class="line">  <span class="comment">// 记录sdshdr中数组已经使用的数量</span></span><br><span class="line">  <span class="keyword">int</span> len;</span><br><span class="line">  <span class="comment">// 记录sdshdr中数组未使用的数量</span></span><br><span class="line">  <span class="keyword">int</span> <span class="built_in">free</span>;</span><br><span class="line">  <span class="keyword">char</span> buf[];</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<h4 id="SDS的定义"><a href="#SDS的定义" class="headerlink" title="SDS的定义"></a>SDS的定义</h4>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-c">struct sdshdr {
+  &#x2F;&#x2F; 记录sdshdr中数组已经使用的数量
+  int len;
+  &#x2F;&#x2F; 记录sdshdr中数组未使用的数量
+  int free;
+  char buf[];
+};
+</code></pre>
 <p>&emsp;<code>sdshdr</code>的定义如代码所示，其中<code>buf</code>属性为一个char类型的数组，数组的前五个字节分别保存着’R’,’e’,’d’,’i’,’s’五个字符，最后一个字符则保存则空字符串’\0’。之所以在数组尾部保存空字符，是为了可以使用一些c语言的字符串函数库中的函数。</p>
 <h4 id="SDS与c字符串的区别"><a href="#SDS与c字符串的区别" class="headerlink" title="SDS与c字符串的区别"></a>SDS与c字符串的区别</h4><h5 id="常数时间内获得字符串长度"><a href="#常数时间内获得字符串长度" class="headerlink" title="常数时间内获得字符串长度"></a>常数时间内获得字符串长度</h5><p>&emsp;我们都知道，在c中，字符串就是一个末尾有一个’\0’的一维数组，它并不记录本身的长度。所以，每次想要获取其长度时，都需要遍历整个数组，时间复杂度就为O(n)；而SDS因为本身就有<code>len</code>这个字段，并且在SDS被修改时，会自动改变<code>len</code>字段，所以获得字符串长度的时间复杂度为O(1).</p>
 <h5 id="杜绝缓冲区溢出"><a href="#杜绝缓冲区溢出" class="headerlink" title="杜绝缓冲区溢出"></a>杜绝缓冲区溢出</h5><p>&emsp;因为c的字符串没有任何安全保证，当我们使用<code>strcat</code>函数来拼接字符串时，如果目标字符串没有被分配足够空间的话，就会造成缓冲区溢出。而在SDS中，当然是每次修改都会进行缓冲区溢出检测，所以不会出现类似问题。</p>
-<h5 id="减少修改字符串时带来的内存重新分配次数"><a href="#减少修改字符串时带来的内存重新分配次数" class="headerlink" title="减少修改字符串时带来的内存重新分配次数"></a>减少修改字符串时带来的内存重新分配次数</h5><p>&emsp;这一条应该是使用SDS最大的优势所在啦。因为c语言中的字符串都是无法修改的，所以每次拼接或者裁剪字符串都会导致新的字符串数据结构的生成，从而需要新的内存分配或者释放部分内存。由于内存分配很消耗时间，所以使用c语言的字符串会导致数据库性能低下。<br>&emsp;而SDS会通过空间预分配和惰性空间释放来减少内存分配或者释放的次数。<br>&emsp;内存预分配是指每次需要对SDS进行空间扩展时，程序不仅分配SDS所必须要的空间，还会额外分配一些空间，将其大小赋值给’free’属性。如果需要分配的大小为n，额外分配的空间为e，总共分配空间为t,那么(默认单位为字节)<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">e = n &lt; 1MB ? n:1MB</span><br><span class="line">t = n &lt; 1MB ? n + n + 1 ? n + 1MB + 1</span><br></pre></td></tr></table></figure></p>
+<h5 id="减少修改字符串时带来的内存重新分配次数"><a href="#减少修改字符串时带来的内存重新分配次数" class="headerlink" title="减少修改字符串时带来的内存重新分配次数"></a>减少修改字符串时带来的内存重新分配次数</h5><p>&emsp;这一条应该是使用SDS最大的优势所在啦。因为c语言中的字符串都是无法修改的，所以每次拼接或者裁剪字符串都会导致新的字符串数据结构的生成，从而需要新的内存分配或者释放部分内存。由于内存分配很消耗时间，所以使用c语言的字符串会导致数据库性能低下。<br>&emsp;而SDS会通过空间预分配和惰性空间释放来减少内存分配或者释放的次数。<br>&emsp;内存预分配是指每次需要对SDS进行空间扩展时，程序不仅分配SDS所必须要的空间，还会额外分配一些空间，将其大小赋值给’free’属性。如果需要分配的大小为n，额外分配的空间为e，总共分配空间为t,那么(默认单位为字节)<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">  e = n &lt; 1MB ? n:1MB
+  t = n &lt; 1MB ? n + n + 1 ? n + 1MB + 1
+</code></pre></p>
 <p>&emsp;这样的话，下次再进行字符串拼接时，额外的空间就会被使用上，从而避免额外的一次内存分配。<br>&emsp;而惰性内存回收则是指裁剪字符串时，释放出来的额外空间并不会立刻被回收，而是继续保存，只是修改<code>len</code>和’free’属性，等到字符串再次被修改时使用。</p>
 <h5 id="二进制安全"><a href="#二进制安全" class="headerlink" title="二进制安全"></a>二进制安全</h5><p>&emsp;由于c语言字符串以’\0’来判断字符串的结束，所以无法保存一些图片，音频，视频这些可能写入’\0’的二进制数据。</p>
 <h4 id="后续"><a href="#后续" class="headerlink" title="后续"></a>后续</h4><p>&emsp;书里的内容很简单，希望自己也可以实现一个简单的string类型吧，不过不清楚java中String对象的实现欧，以后可以了解一下。</p>
@@ -902,7 +1014,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/9be565e7/" data-id="ck6535m8l00579ksee5r1dh2x" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/9be565e7/" data-id="ck6540ja40054lhset3fbjsbf" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1031,7 +1143,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/f1b0f003/" data-id="ck6535m97006s9kseqol6t9jq" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/f1b0f003/" data-id="ck6540jaq006plhsep2fkzvvr" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1236,7 +1348,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/217ca59f/" data-id="ck6535m74002a9kse14jgdl5o" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/217ca59f/" data-id="ck6540j8l002alhse2qvhog5w" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1358,7 +1470,15 @@ var _hmt = _hmt || [];
             <p>&emsp;最近一段时间,工作和学习方面都比较忙,所以,博客方面有一段时间没有投入时间啦,今天学习了一下android文件存储方面的知识,主要是<code>Internal Storage</code>和<code>External Storage</code>的相关特性.主要知识来自android的官方文档和其他人的博客.</p>
 <h4 id="Internal-Storage"><a href="#Internal-Storage" class="headerlink" title="Internal Storage"></a>Internal Storage</h4><p>&emsp;一般来说,你可以直接存储文件在机器的internal storage中,存储在这个位置的文件是私有的,其他应用无法获得.但是当用户卸载你的应用时,文件就被删除啦.</p>
 <blockquote>
-<p>通过<code>openFileOutput()</code>传入文件的名字和操作模式,就可以获得<code>FileOutputStream</code>,然后就可以<code>write()</code>,然后<code>close</code>啦.<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">String FILENAME = <span class="string">"hello_file"</span>;</span><br><span class="line">String string = <span class="string">"hello world!"</span>;</span><br><span class="line"></span><br><span class="line">FileOutputStream fos = openFileOutput(FILENAME, Context.MODE_PRIVATE);</span><br><span class="line">fos.write(string.getBytes());</span><br><span class="line">fos.close();</span><br></pre></td></tr></table></figure></p>
+<p>通过<code>openFileOutput()</code>传入文件的名字和操作模式,就可以获得<code>FileOutputStream</code>,然后就可以<code>write()</code>,然后<code>close</code>啦.<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">String FILENAME = &quot;hello_file&quot;;
+String string = &quot;hello world!&quot;;
+
+FileOutputStream fos = openFileOutput(FILENAME, Context.MODE_PRIVATE);
+fos.write(string.getBytes());
+fos.close();
+</code></pre></p>
 <p><code>MODE_PRIVATE</code>模式会创建或者替换同名文件,并让文件变为私有的,其他的一些模式还有<code>MODE_APPEND</code>(追加模式),<code>MODE_WORLD_READABLE</code>(全局可读)和<code>MODE_WORLD_WRITEABLE</code>(全局可写).<br>通过<code>OpenFileInput()</code>函数可以进行文件的读取.</p>
 </blockquote>
 <p>&emsp;Android的内部存储路径为/data/data/packagename/,加入你的应用名为com.example.test,那么这个路径就为/data/data/com.example.test,这个路径下一般会有files,cache和你自己生成的文件夹.那么如下的操作返回的路径如下</p>
@@ -1370,7 +1490,27 @@ var _hmt = _hmt || [];
 <li>Context.getCacheDir(),该方法返回的是/data/data/com.example.test/cache的File对象.当Android的内部存储容量过低时,android会自动清除缓存文件.</li>
 <li>getDir(String name,int mode),返回的是/data/data/com.example.test/下指定名称的文件夹的File对象</li>
 </ul>
-<h4 id="External-Storage"><a href="#External-Storage" class="headerlink" title="External Storage"></a>External Storage</h4><p>&emsp;所有android设备都会提供外部存储,你可以用来保存文件,但是存储在外部存储的文件是完全公开的,并且可以被用户修改,外部存储可能无法获得,并且存储的文件的安全性很低,会被修改或者删除.<br>&emsp;获得    外部存储的访问权必须需要申请<code>READ_EXTERNAL_STORAGE</code>或者<code>WRITE_EXTERNAL_STORAGE</code>权限,如果申请了写权限,那么相应的读权限也获得啦.如果是Android 6.0,那么权限的申请可能就更加麻烦 :<a href="http://jijiaxin89.com/2015/08/30/Android-s-Runtime-Permission/" target="_blank" rel="noopener">6.0新的权限管理系统</a><br>&emsp;在使用外部存储设备之前,必须先检查外部存储设备的挂载情况,然后再进行文件操作<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Checks if external storage is available for read and write */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">isExternalStorageWritable</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String state = Environment.getExternalStorageState();</span><br><span class="line">    <span class="keyword">if</span> (Environment.MEDIA_MOUNTED.equals(state)) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* Checks if external storage is available to at least read */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">isExternalStorageReadable</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    String state = Environment.getExternalStorageState();</span><br><span class="line">    <span class="keyword">if</span> (Environment.MEDIA_MOUNTED.equals(state) ||</span><br><span class="line">        Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="External-Storage"><a href="#External-Storage" class="headerlink" title="External Storage"></a>External Storage</h4><p>&emsp;所有android设备都会提供外部存储,你可以用来保存文件,但是存储在外部存储的文件是完全公开的,并且可以被用户修改,外部存储可能无法获得,并且存储的文件的安全性很低,会被修改或者删除.<br>&emsp;获得    外部存储的访问权必须需要申请<code>READ_EXTERNAL_STORAGE</code>或者<code>WRITE_EXTERNAL_STORAGE</code>权限,如果申请了写权限,那么相应的读权限也获得啦.如果是Android 6.0,那么权限的申请可能就更加麻烦 :<a href="http://jijiaxin89.com/2015/08/30/Android-s-Runtime-Permission/" target="_blank" rel="noopener">6.0新的权限管理系统</a><br>&emsp;在使用外部存储设备之前,必须先检查外部存储设备的挂载情况,然后再进行文件操作<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">&#x2F;* Checks if external storage is available for read and write *&#x2F;
+public boolean isExternalStorageWritable() {
+    String state = Environment.getExternalStorageState();
+    if (Environment.MEDIA_MOUNTED.equals(state)) {
+        return true;
+    }
+    return false;
+}
+
+&#x2F;* Checks if external storage is available to at least read *&#x2F;
+public boolean isExternalStorageReadable() {
+    String state = Environment.getExternalStorageState();
+    if (Environment.MEDIA_MOUNTED.equals(state) ||
+        Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+        return true;
+    }
+    return false;
+}
+</code></pre></p>
 <p>&emsp;如果你想存储一些可以和其他应用共享的文件时,一般存储在共享的文件夹中,比如<code>Music/</code>,’Pictures/‘,’Ringtones/‘通过<code>Environment.getExternalStoragePublicDirectory</code>,传递给其文件夹的类型,比如<code>DIRECTORY_MUSIC</code>,<code>DIRECTORY_PICTURES</code>,就可以获得响应文件夹的File对象.<br>&emsp;当你不想其他应用读取你的文件时,你可能需要使用私有文件夹.通过<code>getExternalFilesDir()</code>,并传递给其子文件夹的type,就可以打开响应的文件夹,在4.4之后,读取私有文件夹下的文件,是不需要外部存储设备权限的.<br>&emsp;外部存储设备的路径一般都以/mnt/sdcard开始,如下的一些函数获得路径如下:</p>
 <ul>
 <li>getExternalCacheDir() 获得/mnt/sdcard/Android/data/com.example.test/cache 文件夹的File对象</li>
@@ -1394,7 +1534,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/b17c24a6/" data-id="ck6535m6n00169ksezlgzxnym" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/b17c24a6/" data-id="ck6540j840016lhsep9qaezb2" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1514,13 +1654,168 @@ var _hmt = _hmt || [];
         
             
             <p>&emps;这是OkHttp系列博文的第一篇，之前写过一篇草稿，介绍OkHttp的整体框架，但是感觉涉及的知识太多，无法在一篇中讲述清楚，所以，之后的博文都只关注某一方面的知识，争取文章短小精悍。<br>&emsp;今天主要研究一下OkHttp发送<code>Http</code>请求过程中的重定向和出错重试，主要涉及的源码文件有<code>Call.java``HttpEngine.java</code>。<br>&emsp;我们今天研究<code>Call</code>的<code>Response getResponse(Request request, boolean forWebSocket) throws IOException</code>函数，它是你调用<code>Call.execute()</code>返回<code>Response</code>所调用的核心函数，主要功能是新建一个<code>HttpEngine</code>发送<code>Request</code>然后处理出错重试和重定向问题。</p>
-<h4 id="设置Headers"><a href="#设置Headers" class="headerlink" title="设置Headers"></a>设置Headers</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Copy body metadata to the appropriate request headers.</span></span><br><span class="line">  RequestBody body = request.body();</span><br><span class="line">  <span class="keyword">if</span> (body != <span class="keyword">null</span>) &#123;</span><br><span class="line">    Request.Builder requestBuilder = request.newBuilder();<span class="comment">//拷贝了内部数据</span></span><br><span class="line"></span><br><span class="line">    MediaType contentType = body.contentType();</span><br><span class="line">    <span class="keyword">if</span> (contentType != <span class="keyword">null</span>) &#123;</span><br><span class="line">      requestBuilder.header(<span class="string">"Content-Type"</span>, contentType.toString());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">long</span> contentLength = body.contentLength();</span><br><span class="line">    <span class="keyword">if</span> (contentLength != -<span class="number">1</span>) &#123;</span><br><span class="line">      requestBuilder.header(<span class="string">"Content-Length"</span>, Long.toString(contentLength));</span><br><span class="line">      requestBuilder.removeHeader(<span class="string">"Transfer-Encoding"</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      requestBuilder.header(<span class="string">"Transfer-Encoding"</span>, <span class="string">"chunked"</span>);</span><br><span class="line">      requestBuilder.removeHeader(<span class="string">"Content-Length"</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    request = requestBuilder.build();</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<h4 id="设置Headers"><a href="#设置Headers" class="headerlink" title="设置Headers"></a>设置Headers</h4>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">  &#x2F;&#x2F; Copy body metadata to the appropriate request headers.
+    RequestBody body = request.body();
+    if (body != null) {
+      Request.Builder requestBuilder = request.newBuilder();&#x2F;&#x2F;拷贝了内部数据
+
+      MediaType contentType = body.contentType();
+      if (contentType != null) {
+        requestBuilder.header(&quot;Content-Type&quot;, contentType.toString());
+      }
+
+      long contentLength = body.contentLength();
+      if (contentLength != -1) {
+        requestBuilder.header(&quot;Content-Length&quot;, Long.toString(contentLength));
+        requestBuilder.removeHeader(&quot;Transfer-Encoding&quot;);
+      } else {
+        requestBuilder.header(&quot;Transfer-Encoding&quot;, &quot;chunked&quot;);
+        requestBuilder.removeHeader(&quot;Content-Length&quot;);
+      }
+
+      request = requestBuilder.build();
+    }
+</code></pre>
 <p>&emsp;这是函数的第一部分，主要是将<code>RequestBody</code>的一些元数据拷贝到<code>Header</code>的首部中,主要是<code>Content-Type</code>和<code>Transfer-Encoding</code>。<code>Content-Type</code>相信大家都了解，标示<code>RequestBody</code>的<code>Mime-Type</code>，格式为<code>主类型/子类型</code>，比如<code>text/xml</code>。而<code>Transfer-Encoding</code>是表示一种网络传输的方式，想具体了解的同学可以看一下这个链接<a href="https://imququ.com/post/transfer-encoding-header-in-http.html" target="_blank" rel="noopener">点我</a>.</p>
-<h4 id="出错重试"><a href="#出错重试" class="headerlink" title="出错重试"></a>出错重试</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Create the initial HTTP engine. Retries and redirects need new engine for each attempt.</span></span><br><span class="line">    <span class="comment">// 建立一个初始的http 引擎，每次重试和重定向都需要新的引擎</span></span><br><span class="line">    engine = <span class="keyword">new</span> HttpEngine(client, request, <span class="keyword">false</span>, <span class="keyword">false</span>, forWebSocket, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="keyword">null</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> followUpCount = <span class="number">0</span>; <span class="comment">//连续发送请求</span></span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span> (canceled) &#123; <span class="comment">//如果被取消啦</span></span><br><span class="line">        engine.releaseConnection();</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Canceled"</span>);</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        engine.sendRequest();</span><br><span class="line">        engine.readResponse();</span><br><span class="line">      &#125; <span class="keyword">catch</span> (RequestException e) &#123;</span><br><span class="line">        <span class="comment">// The attempt to interpret the request failed. Give up.</span></span><br><span class="line">        <span class="keyword">throw</span> e.getCause();</span><br><span class="line">      &#125; <span class="keyword">catch</span> (RouteException e) &#123;</span><br><span class="line">        <span class="comment">// The attempt to connect via a route failed. The request will not have been sent.</span></span><br><span class="line">        HttpEngine retryEngine = engine.recover(e); <span class="comment">//重试引擎</span></span><br><span class="line">        <span class="keyword">if</span> (retryEngine != <span class="keyword">null</span>) &#123;</span><br><span class="line">          engine = retryEngine;</span><br><span class="line">          <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// Give up; recovery is not possible.</span></span><br><span class="line">        <span class="keyword">throw</span> e.getLastConnectException();</span><br><span class="line">      &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        <span class="comment">// An attempt to communicate with a server failed. The request may have been sent.</span></span><br><span class="line">        HttpEngine retryEngine = engine.recover(e, <span class="keyword">null</span>);</span><br><span class="line">        <span class="keyword">if</span> (retryEngine != <span class="keyword">null</span>) &#123;</span><br><span class="line">          engine = retryEngine;</span><br><span class="line">          <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Give up; recovery is not possible.</span></span><br><span class="line">        <span class="keyword">throw</span> e;</span><br><span class="line">      &#125;</span><br><span class="line">      .......</span><br></pre></td></tr></table></figure>
+<h4 id="出错重试"><a href="#出错重试" class="headerlink" title="出错重试"></a>出错重试</h4>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">&#x2F;&#x2F; Create the initial HTTP engine. Retries and redirects need new engine for each attempt.
+    &#x2F;&#x2F; 建立一个初始的http 引擎，每次重试和重定向都需要新的引擎
+    engine = new HttpEngine(client, request, false, false, forWebSocket, null, null, null, null);
+
+    int followUpCount = 0; &#x2F;&#x2F;连续发送请求
+    while (true) {
+      if (canceled) { &#x2F;&#x2F;如果被取消啦
+        engine.releaseConnection();
+        throw new IOException(&quot;Canceled&quot;);
+      }
+
+      try {
+        engine.sendRequest();
+        engine.readResponse();
+      } catch (RequestException e) {
+        &#x2F;&#x2F; The attempt to interpret the request failed. Give up.
+        throw e.getCause();
+      } catch (RouteException e) {
+        &#x2F;&#x2F; The attempt to connect via a route failed. The request will not have been sent.
+        HttpEngine retryEngine = engine.recover(e); &#x2F;&#x2F;重试引擎
+        if (retryEngine != null) {
+          engine = retryEngine;
+          continue;
+        }
+        &#x2F;&#x2F; Give up; recovery is not possible.
+        throw e.getLastConnectException();
+      } catch (IOException e) {
+        &#x2F;&#x2F; An attempt to communicate with a server failed. The request may have been sent.
+        HttpEngine retryEngine = engine.recover(e, null);
+        if (retryEngine != null) {
+          engine = retryEngine;
+          continue;
+        }
+
+        &#x2F;&#x2F; Give up; recovery is not possible.
+        throw e;
+      }
+      .......
+</code></pre>
 <p>&emsp;在这段代码中，<code>OkHttp</code>建立一个<code>HttpEngine</code>对象来负责<code>Http</code>层级的请求的发送和回复的接收，<code>HttpEngine</code>会在之后的博文中详细讲解。然后进入了一个<code>while</code>循环,这个循环其实主要是处理重定向问题的。我们在这一节中主要关注<code>catch</code>中的逻辑，这是用于处理出错重试的逻辑。由于外层有一个<code>while</code>循环，所以在<code>catch</code>中尝试获得<code>retryEngine</code>，如果有就<code>continue</code>,没有就抛出异常。</p>
-<h4 id="重定向处理"><a href="#重定向处理" class="headerlink" title="重定向处理"></a>重定向处理</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">Response response = engine.getResponse();</span><br><span class="line">      <span class="comment">// followUp这个是优化http connection的使用率的吗？</span></span><br><span class="line">      Request followUp = engine.followUpRequest();</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (followUp == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!forWebSocket) &#123; <span class="comment">//如果没有followup并且不是为了websocket</span></span><br><span class="line">          engine.releaseConnection();<span class="comment">//关闭连接</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> response;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (++followUpCount &gt; MAX_FOLLOW_UPS) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ProtocolException(<span class="string">"Too many follow-up requests: "</span> + followUpCount);</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (!engine.sameConnection(followUp.httpUrl())) &#123; <span class="comment">//如果followup的httpUrl不是同一个连接,也就是</span></span><br><span class="line">        <span class="comment">//schema，host or port 有一个不同</span></span><br><span class="line">        engine.releaseConnection();</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//复用了上一次的connection啊！！！！</span></span><br><span class="line">      Connection connection = engine.close();</span><br><span class="line">      request = followUp;</span><br><span class="line">      <span class="comment">//继续处理，有可能是重定向啦</span></span><br><span class="line">      engine = <span class="keyword">new</span> HttpEngine(client, request, <span class="keyword">false</span>, <span class="keyword">false</span>, forWebSocket, connection, <span class="keyword">null</span>, <span class="keyword">null</span>,</span><br><span class="line">          response);</span><br></pre></td></tr></table></figure>
+<h4 id="重定向处理"><a href="#重定向处理" class="headerlink" title="重定向处理"></a>重定向处理</h4>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">Response response = engine.getResponse();
+      &#x2F;&#x2F; followUp这个是优化http connection的使用率的吗？
+      Request followUp = engine.followUpRequest();
+
+      if (followUp == null) {
+        if (!forWebSocket) { &#x2F;&#x2F;如果没有followup并且不是为了websocket
+          engine.releaseConnection();&#x2F;&#x2F;关闭连接
+        }
+        return response;
+      }
+
+      if (++followUpCount &gt; MAX_FOLLOW_UPS) {
+        throw new ProtocolException(&quot;Too many follow-up requests: &quot; + followUpCount);
+      }
+
+      if (!engine.sameConnection(followUp.httpUrl())) { &#x2F;&#x2F;如果followup的httpUrl不是同一个连接,也就是
+        &#x2F;&#x2F;schema，host or port 有一个不同
+        engine.releaseConnection();
+      }
+      &#x2F;&#x2F;复用了上一次的connection啊！！！！
+      Connection connection = engine.close();
+      request = followUp;
+      &#x2F;&#x2F;继续处理，有可能是重定向啦
+      engine = new HttpEngine(client, request, false, false, forWebSocket, connection, null, null,
+          response);
+</code></pre>
 <p>&emsp;这里我们可以看到<code>Http</code>重定向的机制。<code>Request request = engine.followUpRequest()</code>来获得重定向需要发送的<code>Request</code>，如果没有或者重定向次数大于<code>MAX_FOLLOW_UPS</code>就不会重新发送重定向请求。然后判断重定向请求和原请求的HttpUrl是否相同，否则也不会发送重定向请求。然后<code>Connection connection = engine.close()</code>会释放资源并且复用上次的连接，然后新建一个<code>HttpEngine</code>然后继续<code>While</code>循环发送请求。</p>
-<h4 id="重定向状态码解析"><a href="#重定向状态码解析" class="headerlink" title="重定向状态码解析"></a>重定向状态码解析</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Request <span class="title">followUpRequest</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (userResponse == <span class="keyword">null</span>) <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException();</span><br><span class="line">  Proxy selectedProxy = getRoute() != <span class="keyword">null</span></span><br><span class="line">      ? getRoute().getProxy()</span><br><span class="line">      : client.getProxy();</span><br><span class="line">  <span class="keyword">int</span> responseCode = userResponse.code();</span><br><span class="line"></span><br><span class="line">  <span class="keyword">switch</span> (responseCode) &#123;</span><br><span class="line">    <span class="keyword">case</span> HTTP_PROXY_AUTH: <span class="comment">//407 Proxy authentication required 要先经过代理服务器认证</span></span><br><span class="line">      <span class="keyword">if</span> (selectedProxy.type() != Proxy.Type.HTTP) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ProtocolException(<span class="string">"Received HTTP_PROXY_AUTH (407) code while not using proxy"</span>);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">// fall-through</span></span><br><span class="line">    <span class="keyword">case</span> HTTP_UNAUTHORIZED: <span class="comment">//401 没有身份认证</span></span><br><span class="line">      <span class="keyword">return</span> OkHeaders.processAuthHeader(client.getAuthenticator(), userResponse, selectedProxy);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">case</span> HTTP_PERM_REDIRECT:<span class="comment">// 308</span></span><br><span class="line">    <span class="keyword">case</span> HTTP_TEMP_REDIRECT: <span class="comment">//307</span></span><br><span class="line">      <span class="comment">// "If the 307 or 308 status code is received in response to a request other than GET</span></span><br><span class="line">      <span class="comment">// or HEAD, the user agent MUST NOT automatically redirect the request"</span></span><br><span class="line">      <span class="keyword">if</span> (!userRequest.method().equals(<span class="string">"GET"</span>) &amp;&amp; !userRequest.method().equals(<span class="string">"HEAD"</span>)) &#123;</span><br><span class="line">          <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">      &#125; <span class="comment">//如果不是get和head 那么就不能自动转发</span></span><br><span class="line">      <span class="comment">// fall-through</span></span><br><span class="line">    <span class="keyword">case</span> HTTP_MULT_CHOICE: <span class="comment">//300</span></span><br><span class="line">    <span class="keyword">case</span> HTTP_MOVED_PERM:<span class="comment">// 301</span></span><br><span class="line">    <span class="keyword">case</span> HTTP_MOVED_TEMP:<span class="comment">//302</span></span><br><span class="line">    <span class="keyword">case</span> HTTP_SEE_OTHER: <span class="comment">//303</span></span><br><span class="line">      <span class="comment">// Does the client allow redirects?</span></span><br><span class="line">      <span class="keyword">if</span> (!client.getFollowRedirects()) <span class="keyword">return</span> <span class="keyword">null</span>;<span class="comment">//如果不允许重定向</span></span><br><span class="line"></span><br><span class="line">      String location = userResponse.header(<span class="string">"Location"</span>);<span class="comment">//从response的头部获得的location</span></span><br><span class="line">      <span class="keyword">if</span> (location == <span class="keyword">null</span>) <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">      HttpUrl url = userRequest.httpUrl().resolve(location);<span class="comment">//使用request的解析location</span></span><br><span class="line"></span><br><span class="line">      <span class="comment">// Don't follow redirects to unsupported protocols.</span></span><br><span class="line">      <span class="keyword">if</span> (url == <span class="keyword">null</span>) <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line"></span><br><span class="line">      <span class="comment">// If configured, don't follow redirects between SSL and non-SSL.</span></span><br><span class="line">      <span class="keyword">boolean</span> sameScheme = url.scheme().equals(userRequest.httpUrl().scheme());</span><br><span class="line">      <span class="keyword">if</span> (!sameScheme &amp;&amp; !client.getFollowSslRedirects()) <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line"></span><br><span class="line">      <span class="comment">// Redirects don't include a request body.</span></span><br><span class="line">      Request.Builder requestBuilder = userRequest.newBuilder();</span><br><span class="line">      <span class="keyword">if</span> (HttpMethod.permitsRequestBody(userRequest.method())) &#123;</span><br><span class="line">        requestBuilder.method(<span class="string">"GET"</span>, <span class="keyword">null</span>);</span><br><span class="line">        requestBuilder.removeHeader(<span class="string">"Transfer-Encoding"</span>);</span><br><span class="line">        requestBuilder.removeHeader(<span class="string">"Content-Length"</span>);</span><br><span class="line">        requestBuilder.removeHeader(<span class="string">"Content-Type"</span>);</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="comment">// When redirecting across hosts, drop all authentication headers. This</span></span><br><span class="line">      <span class="comment">// is potentially annoying to the application layer since they have no</span></span><br><span class="line">      <span class="comment">// way to retain them.</span></span><br><span class="line">      <span class="keyword">if</span> (!sameConnection(url)) &#123;</span><br><span class="line">        requestBuilder.removeHeader(<span class="string">"Authorization"</span>);</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">return</span> requestBuilder.url(url).build();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">default</span>:</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<h4 id="重定向状态码解析"><a href="#重定向状态码解析" class="headerlink" title="重定向状态码解析"></a>重定向状态码解析</h4>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">  public Request followUpRequest() throws IOException {
+    if (userResponse == null) throw new IllegalStateException();
+    Proxy selectedProxy = getRoute() != null
+        ? getRoute().getProxy()
+        : client.getProxy();
+    int responseCode = userResponse.code();
+
+    switch (responseCode) {
+      case HTTP_PROXY_AUTH: &#x2F;&#x2F;407 Proxy authentication required 要先经过代理服务器认证
+        if (selectedProxy.type() != Proxy.Type.HTTP) {
+          throw new ProtocolException(&quot;Received HTTP_PROXY_AUTH (407) code while not using proxy&quot;);
+        }
+        &#x2F;&#x2F; fall-through
+      case HTTP_UNAUTHORIZED: &#x2F;&#x2F;401 没有身份认证
+        return OkHeaders.processAuthHeader(client.getAuthenticator(), userResponse, selectedProxy);
+
+      case HTTP_PERM_REDIRECT:&#x2F;&#x2F; 308
+      case HTTP_TEMP_REDIRECT: &#x2F;&#x2F;307
+        &#x2F;&#x2F; &quot;If the 307 or 308 status code is received in response to a request other than GET
+        &#x2F;&#x2F; or HEAD, the user agent MUST NOT automatically redirect the request&quot;
+        if (!userRequest.method().equals(&quot;GET&quot;) &amp;&amp; !userRequest.method().equals(&quot;HEAD&quot;)) {
+            return null;
+        } &#x2F;&#x2F;如果不是get和head 那么就不能自动转发
+        &#x2F;&#x2F; fall-through
+      case HTTP_MULT_CHOICE: &#x2F;&#x2F;300
+      case HTTP_MOVED_PERM:&#x2F;&#x2F; 301
+      case HTTP_MOVED_TEMP:&#x2F;&#x2F;302
+      case HTTP_SEE_OTHER: &#x2F;&#x2F;303
+        &#x2F;&#x2F; Does the client allow redirects?
+        if (!client.getFollowRedirects()) return null;&#x2F;&#x2F;如果不允许重定向
+
+        String location = userResponse.header(&quot;Location&quot;);&#x2F;&#x2F;从response的头部获得的location
+        if (location == null) return null;
+        HttpUrl url = userRequest.httpUrl().resolve(location);&#x2F;&#x2F;使用request的解析location
+
+        &#x2F;&#x2F; Don&#39;t follow redirects to unsupported protocols.
+        if (url == null) return null;
+
+        &#x2F;&#x2F; If configured, don&#39;t follow redirects between SSL and non-SSL.
+        boolean sameScheme = url.scheme().equals(userRequest.httpUrl().scheme());
+        if (!sameScheme &amp;&amp; !client.getFollowSslRedirects()) return null;
+
+        &#x2F;&#x2F; Redirects don&#39;t include a request body.
+        Request.Builder requestBuilder = userRequest.newBuilder();
+        if (HttpMethod.permitsRequestBody(userRequest.method())) {
+          requestBuilder.method(&quot;GET&quot;, null);
+          requestBuilder.removeHeader(&quot;Transfer-Encoding&quot;);
+          requestBuilder.removeHeader(&quot;Content-Length&quot;);
+          requestBuilder.removeHeader(&quot;Content-Type&quot;);
+        }
+
+        &#x2F;&#x2F; When redirecting across hosts, drop all authentication headers. This
+        &#x2F;&#x2F; is potentially annoying to the application layer since they have no
+        &#x2F;&#x2F; way to retain them.
+        if (!sameConnection(url)) {
+          requestBuilder.removeHeader(&quot;Authorization&quot;);
+        }
+
+        return requestBuilder.url(url).build();
+
+      default:
+        return null;
+    }
+</code></pre>
 <p>&emsp;这一段就是根据回复的状态码生成重定向请求的代码逻辑。</p>
 <ul>
 <li>HTTP_PROXY_AUTH 407  表示需要经过代理服务器认证 ，这时抛出异常，不进行重定向</li>
@@ -1538,7 +1833,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/d647642b/" data-id="ck6535m7k00309kse3mxwgk5z" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/d647642b/" data-id="ck6540j8v0030lhseviehnizb" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1671,7 +1966,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/1f02db9c/" data-id="ck6535m7i002w9kse1nojydna" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/1f02db9c/" data-id="ck6540j8t002wlhse8cwqvxyu" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1952,6 +2247,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 

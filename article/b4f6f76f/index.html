@@ -280,10 +280,16 @@ var _hmt = _hmt || [];
 <li>Pubish Over SSH 安装和配置</li>
 <li>通过github的webhook来触发jenkins构建任务</li>
 </ul>
-<h4 id="Docker运行jenkins"><a href="#Docker运行jenkins" class="headerlink" title="Docker运行jenkins"></a>Docker运行jenkins</h4><p> Docker如此火爆的一个原因是因为它形成了一个良好的生态圈，基本上主流的软件应用都有相应的Docker image。如果大家不清楚Docker image的含义，建议大家看一下<a href="https://www.gitbook.com/book/richardhc/chinese_docker/details" target="_blank" rel="noopener">Docker中文指南</a>，我们可以通过<code>docker pull</code>命令来下载响应的image,然后运行。比如我们希望在阿里云服务器上部署一个jenkins应用，首先可以执行下列语句来获取一个jenkins的image。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull jenkinsci/jenkins:lts</span><br></pre></td></tr></table></figure></p>
+<h4 id="Docker运行jenkins"><a href="#Docker运行jenkins" class="headerlink" title="Docker运行jenkins"></a>Docker运行jenkins</h4><p> Docker如此火爆的一个原因是因为它形成了一个良好的生态圈，基本上主流的软件应用都有相应的Docker image。如果大家不清楚Docker image的含义，建议大家看一下<a href="https://www.gitbook.com/book/richardhc/chinese_docker/details" target="_blank" rel="noopener">Docker中文指南</a>，我们可以通过<code>docker pull</code>命令来下载响应的image,然后运行。比如我们希望在阿里云服务器上部署一个jenkins应用，首先可以执行下列语句来获取一个jenkins的image。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">docker pull jenkinsci&#x2F;jenkins:lts
+</code></pre></p>
 <p> 这里我们使用pull从docker registry上拉取image,但是目前业界上有很多共有或在私有的docker registry,比如说docker hub和daoCloud。所以image的全称就由三部分组成:域名或在ip + / + 软件名称 + : + 版本号，所以上边的这条命令就是让docker去jenkinsci这个Jenkins机构自己部署的registry上下载jenkins的lts版本的image.你也可以直接使用<code>docker pull jenkins</code>来下载image,但docker会默认的从docker hub上下载jenkins的laster版本。</p>
 <p> 下载成功之后，你可以使用<code>docker images</code>命令来查看当前下载的image信息</p>
-<p> 你可以通过<code>docker run</code>命令来运行docker容器，请注意我这里的用词，在Docker中image和container是不同的概念，你可以将他们简单的理解成Java中类和对象的关系。我们使用下面的命令来启动这个jenkins容器。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo docker run -d --name jenkins -p 9090:8080 -v /var/jenkins_home:/var/jenkins_home jenkinsci/jenkins:lts</span><br></pre></td></tr></table></figure></p>
+<p> 你可以通过<code>docker run</code>命令来运行docker容器，请注意我这里的用词，在Docker中image和container是不同的概念，你可以将他们简单的理解成Java中类和对象的关系。我们使用下面的命令来启动这个jenkins容器。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">sudo docker run -d --name jenkins -p 9090:8080 -v &#x2F;var&#x2F;jenkins_home:&#x2F;var&#x2F;jenkins_home jenkinsci&#x2F;jenkins:lts
+</code></pre></p>
 <p> 我们来依次讲解一下run命令的几个参数把：</p>
 <ul>
 <li><p><code>-d</code> 后台运行docker容器并打印容器ID。如果不加<code>-d</code>参数，那么容器运行会和终端绑定，如果终端关闭，那么容器也会关闭，但是容器不会被删除。但是如果你只是想试一试某个容器，运行后自动进入命令行，那么可以使用-it参数;如果你想容器关闭之后自动删除，那么就使用-rm参数。</p>
@@ -296,8 +302,16 @@ var _hmt = _hmt || [];
 </li>
 </ul>
 <p> 然后你就可以根据你自己的ip地址来键入下列地址http:ip:9090来访问jenkins的主页了。<br>&emsp;这里有一点需要注意的是，需要注意你阿里云服务器设置的网络安全协议，是否禁用掉了9090这个端口。</p>
-<h4 id="Publish-over-SSH配置"><a href="#Publish-over-SSH配置" class="headerlink" title="Publish over SSH配置"></a>Publish over SSH配置</h4><p>&emsp;Jenkins的初始化配置和SSH Over Publish的安装请大家自行百度，这里我主要讲解一下SSH Over Pushlish配置。<br>&emsp;首先我们要在jenkins服务器上生成密钥对，使用<code>ssh-keygen -t rsa</code>命令来生成秘密对，这样的话，在~/.ssh/下就会有私钥id_rsa和公钥id_rsa.pub。<br>&emsp;然后你需要上传公钥到目标服务器上，也就是我的bandwagon服务器上，可以使用<code>ssh-copy-id</code>来将文件上传到服务器上，类似于<code>scp</code>命令的使用方式。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh-copy-id -i ~/.ssh/id_rsa.pub &lt;username&gt;@&lt;host&gt;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;最后我们需要修改目标服务器的ssh配置文件，配置文件为/etc/ssh/sshd_config。设置ssh-server允许使用私钥和公钥对的方式登录，然后使用<code>sudo /etc/init.d/ssh restart</code>命令重启ssh服务。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">RSAAuthentication yes</span><br><span class="line">PubkeyAuthentication yes</span><br><span class="line">#AuthorizedKeysFile     %h/.ssh/authorized_keys</span><br></pre></td></tr></table></figure></p>
+<h4 id="Publish-over-SSH配置"><a href="#Publish-over-SSH配置" class="headerlink" title="Publish over SSH配置"></a>Publish over SSH配置</h4><p>&emsp;Jenkins的初始化配置和SSH Over Publish的安装请大家自行百度，这里我主要讲解一下SSH Over Pushlish配置。<br>&emsp;首先我们要在jenkins服务器上生成密钥对，使用<code>ssh-keygen -t rsa</code>命令来生成秘密对，这样的话，在~/.ssh/下就会有私钥id_rsa和公钥id_rsa.pub。<br>&emsp;然后你需要上传公钥到目标服务器上，也就是我的bandwagon服务器上，可以使用<code>ssh-copy-id</code>来将文件上传到服务器上，类似于<code>scp</code>命令的使用方式。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">ssh-copy-id -i ~&#x2F;.ssh&#x2F;id_rsa.pub &lt;username&gt;@&lt;host&gt;
+</code></pre></p>
+<p>&emsp;最后我们需要修改目标服务器的ssh配置文件，配置文件为/etc/ssh/sshd_config。设置ssh-server允许使用私钥和公钥对的方式登录，然后使用<code>sudo /etc/init.d/ssh restart</code>命令重启ssh服务。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">RSAAuthentication yes
+PubkeyAuthentication yes
+#AuthorizedKeysFile     %h&#x2F;.ssh&#x2F;authorized_keys
+</code></pre></p>
 <p>&emsp;上述步骤成功之后，大家在系统管理中配置Publish over SSH。相关的配置信息如下图所示。</p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201772-docker-jenkins1.png" alt="jenkins1.png"></p>
 <p>&emsp;你还可以点击下方的高级选项，来配置ssh服务器的端口，超时时间等信息，还可以点击Test Configuration来检测是否配置成功。</p>
@@ -319,7 +333,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/b4f6f76f/" data-id="ck6535m6p00199ksesabgsqqs" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/b4f6f76f/" data-id="ck6540j89001glhse0uaup3ri" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -625,6 +639,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 

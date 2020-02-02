@@ -289,16 +289,86 @@ var _hmt = _hmt || [];
 <p>&emsp;本文后续就讲解一下JDK Proxy的相关源码分析。</p>
 <h3 id="JDK-Proxy"><a href="#JDK-Proxy" class="headerlink" title="JDK Proxy"></a>JDK Proxy</h3><p>&emsp;JDK提供了Proxy类来实现动态代理的，可通过它的newProxyInstance函数来获得代理对象。JDK还提供了InvocationHandler类，代理对象的函数被调用时，会调用它的invoke函数，程序员可以在其中实现所需的逻辑。</p>
 <p>&emsp;JDK Proxy的基本语法如下所示。先构造一个<code>InvocationHandler</code>的实现类，然后调用<code>Proxy</code>的<code>newProxyInstance</code>函数生成代理对象，传入类加载器，目标对象的接口和自定义的<code>InvocationHandler</code>实例。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">public class CustomInvocationHandler implements InvocationHandler &#123;</span><br><span class="line">    private Object target;</span><br><span class="line"></span><br><span class="line">    public CustomInvocationHandler(Object target) &#123;</span><br><span class="line">        this.target = target;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable &#123;</span><br><span class="line">        System.out.println(&quot;Before invocation&quot;);</span><br><span class="line">        Object retVal = method.invoke(target, args);</span><br><span class="line">        System.out.println(&quot;After invocation&quot;);</span><br><span class="line">        return retVal;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">CustomInvocationHandler customInvocationHandler = new CustomInvocationHandler(</span><br><span class="line">        helloWord);</span><br><span class="line">//通过Proxy.newProxyInstance生成代理对象</span><br><span class="line">ProxyTest proxy = (ProxyTest) Proxy.newProxyInstance(</span><br><span class="line">        ProxyTest.class.getClassLoader(),</span><br><span class="line">       proxyObj.getClass().getInterfaces(), customInvocationHandler);</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public class CustomInvocationHandler implements InvocationHandler {
+    private Object target;
+
+    public CustomInvocationHandler(Object target) {
+        this.target = target;
+    }
+
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        System.out.println(&quot;Before invocation&quot;);
+        Object retVal = method.invoke(target, args);
+        System.out.println(&quot;After invocation&quot;);
+        return retVal;
+    }
+}
+
+CustomInvocationHandler customInvocationHandler = new CustomInvocationHandler(
+        helloWord);
+&#x2F;&#x2F;通过Proxy.newProxyInstance生成代理对象
+ProxyTest proxy = (ProxyTest) Proxy.newProxyInstance(
+        ProxyTest.class.getClassLoader(),
+       proxyObj.getClass().getInterfaces(), customInvocationHandler);
+</code></pre>
 <h3 id="生成代理对象"><a href="#生成代理对象" class="headerlink" title="生成代理对象"></a>生成代理对象</h3><p>&emsp;我们首先来看一下<code>Proxy</code>的<code>newProxyInstance</code>函数。<code>newProxyInstance</code>函数的逻辑大致如下：</p>
 <ul>
 <li>首先根据传入的目标对象接口动态生成代理类</li>
 <li>然后获取代理类的构造函数实例</li>
-<li>最后将<code>InvocationHandler</code>作为参数通过反射调用构造函数实例，生成代理类对象。<br>&emsp;具体源码如下所示。<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">public static Object newProxyInstance(ClassLoader loader,</span><br><span class="line">                                        Class&lt;?&gt;[] interfaces,</span><br><span class="line">                                        InvocationHandler h)</span><br><span class="line">    throws IllegalArgumentException</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">    final Class&lt;?&gt;[] intfs = interfaces.clone();</span><br><span class="line">    final SecurityManager sm = System.getSecurityManager();</span><br><span class="line">    if (sm != null) &#123;</span><br><span class="line">        checkProxyAccess(Reflection.getCallerClass(), loader, intfs);</span><br><span class="line">    &#125;</span><br><span class="line">    // 1 动态生成代理对象的类</span><br><span class="line">    Class&lt;?&gt; cl = getProxyClass0(loader, intfs);</span><br><span class="line"></span><br><span class="line">    // ... 代码省略，下边代码其实是在try catch中的</span><br><span class="line">    if (sm != null) &#123;</span><br><span class="line">        checkNewProxyPermission(Reflection.getCallerClass(), cl);</span><br><span class="line">    &#125;</span><br><span class="line">    // 2 获取代理类的构造函数</span><br><span class="line">    final Constructor&lt;?&gt; cons = cl.getConstructor(constructorParams);</span><br><span class="line">    final InvocationHandler ih = h;</span><br><span class="line">    if (!Modifier.isPublic(cl.getModifiers())) &#123;</span><br><span class="line">        AccessController.doPrivileged(new PrivilegedAction&lt;Void&gt;() &#123;</span><br><span class="line">            public Void run() &#123;</span><br><span class="line">                cons.setAccessible(true);</span><br><span class="line">                return null;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">    // 3调用构造函数，传入InvocationHandler对象</span><br><span class="line">    return cons.newInstance(new Object[]&#123;h&#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<li>最后将<code>InvocationHandler</code>作为参数通过反射调用构造函数实例，生成代理类对象。<br>&emsp;具体源码如下所示。
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public static Object newProxyInstance(ClassLoader loader,
+                                        Class&lt;?&gt;[] interfaces,
+                                        InvocationHandler h)
+    throws IllegalArgumentException
+{
+
+    final Class&lt;?&gt;[] intfs = interfaces.clone();
+    final SecurityManager sm = System.getSecurityManager();
+    if (sm != null) {
+        checkProxyAccess(Reflection.getCallerClass(), loader, intfs);
+    }
+    &#x2F;&#x2F; 1 动态生成代理对象的类
+    Class&lt;?&gt; cl = getProxyClass0(loader, intfs);
+
+    &#x2F;&#x2F; ... 代码省略，下边代码其实是在try catch中的
+    if (sm != null) {
+        checkNewProxyPermission(Reflection.getCallerClass(), cl);
+    }
+    &#x2F;&#x2F; 2 获取代理类的构造函数
+    final Constructor&lt;?&gt; cons = cl.getConstructor(constructorParams);
+    final InvocationHandler ih = h;
+    if (!Modifier.isPublic(cl.getModifiers())) {
+        AccessController.doPrivileged(new PrivilegedAction&lt;Void&gt;() {
+            public Void run() {
+                cons.setAccessible(true);
+                return null;
+            }
+        });
+    }
+    &#x2F;&#x2F; 3调用构造函数，传入InvocationHandler对象
+    return cons.newInstance(new Object[]{h});
+}
+</code></pre>
 </li>
 </ul>
 <p>&emsp;<code>getProxyClass0</code>函数的源码如下所示，通过代理类缓存获取代理类信息，如果不存在则会生成代理类。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">// 生成代理类</span><br><span class="line">private static Class&lt;?&gt; getProxyClass0(ClassLoader loader,</span><br><span class="line">                                        Class&lt;?&gt;... interfaces) &#123;</span><br><span class="line">    if (interfaces.length &gt; 65535) &#123;</span><br><span class="line">        throw new IllegalArgumentException(&quot;interface limit exceeded&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // 如果已经有Proxy类的缓存则直接返回，否则要进行创建</span><br><span class="line">    return proxyClassCache.get(loader, interfaces);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 生成代理类
+private static Class&lt;?&gt; getProxyClass0(ClassLoader loader,
+                                        Class&lt;?&gt;... interfaces) {
+    if (interfaces.length &gt; 65535) {
+        throw new IllegalArgumentException(&quot;interface limit exceeded&quot;);
+    }
+
+    &#x2F;&#x2F; 如果已经有Proxy类的缓存则直接返回，否则要进行创建
+    return proxyClassCache.get(loader, interfaces);
+}
+</code></pre>
 <h3 id="生成代理类"><a href="#生成代理类" class="headerlink" title="生成代理类"></a>生成代理类</h3><p>&emsp;JDK Proxy通过<code>ProxyClassFactory</code>生成代理类。其<code>apply</code>函数大致逻辑如下：</p>
 <ul>
 <li>校验接口是否符合规范</li>
@@ -306,11 +376,197 @@ var _hmt = _hmt || [];
 <li>生成代理类字节码</li>
 <li>根据字节码生成代理类Class</li>
 </ul>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line">// 生成代理类的工厂类</span><br><span class="line">private static final class ProxyClassFactory</span><br><span class="line">    implements BiFunction&lt;ClassLoader, Class&lt;?&gt;[], Class&lt;?&gt;&gt;</span><br><span class="line">&#123;</span><br><span class="line">    // 所有代理类名的前缀</span><br><span class="line">    private static final String proxyClassNamePrefix = &quot;$Proxy&quot;;</span><br><span class="line"></span><br><span class="line">    // 生成唯一类名的原子Long对象</span><br><span class="line">    private static final AtomicLong nextUniqueNumber = new AtomicLong();</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public Class&lt;?&gt; apply(ClassLoader loader, Class&lt;?&gt;[] interfaces) &#123;</span><br><span class="line"></span><br><span class="line">        Map&lt;Class&lt;?&gt;, Boolean&gt; interfaceSet = new IdentityHashMap&lt;&gt;(interfaces.length);</span><br><span class="line">        for (Class&lt;?&gt; intf : interfaces) &#123;</span><br><span class="line">            // 通过loader找到接口对应的类信息。</span><br><span class="line">            Class&lt;?&gt; interfaceClass = null;</span><br><span class="line">            try &#123;</span><br><span class="line">                interfaceClass = Class.forName(intf.getName(), false, loader);</span><br><span class="line">            &#125; catch (ClassNotFoundException e) &#123;</span><br><span class="line">            &#125;</span><br><span class="line">            if (interfaceClass != intf) &#123;</span><br><span class="line">                throw new IllegalArgumentException(</span><br><span class="line">                    intf + &quot; is not visible from class loader&quot;);</span><br><span class="line">            &#125;</span><br><span class="line">            // 判断找出来的类确实是一个接口</span><br><span class="line">            if (!interfaceClass.isInterface()) &#123;</span><br><span class="line">                throw new IllegalArgumentException(</span><br><span class="line">                    interfaceClass.getName() + &quot; is not an interface&quot;);</span><br><span class="line">            &#125;</span><br><span class="line">            // 判断接口是否重复</span><br><span class="line">            if (interfaceSet.put(interfaceClass, Boolean.TRUE) != null) &#123;</span><br><span class="line">                throw new IllegalArgumentException(</span><br><span class="line">                    &quot;repeated interface: &quot; + interfaceClass.getName());</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        // 代理类的包路径</span><br><span class="line">        String proxyPkg = null;</span><br><span class="line">        int accessFlags = Modifier.PUBLIC | Modifier.FINAL;</span><br><span class="line"></span><br><span class="line">        // 记录非公开的代理接口，以便于生成的代理类和原来的类在同一个路径下。 </span><br><span class="line">        for (Class&lt;?&gt; intf : interfaces) &#123;</span><br><span class="line">            int flags = intf.getModifiers();</span><br><span class="line">            if (!Modifier.isPublic(flags)) &#123;</span><br><span class="line">                accessFlags = Modifier.FINAL;</span><br><span class="line">                String name = intf.getName();</span><br><span class="line">                int n = name.lastIndexOf(&apos;.&apos;);</span><br><span class="line">                String pkg = ((n == -1) ? &quot;&quot; : name.substring(0, n + 1));</span><br><span class="line">                if (proxyPkg == null) &#123;</span><br><span class="line">                    proxyPkg = pkg;</span><br><span class="line">                &#125; else if (!pkg.equals(proxyPkg)) &#123;</span><br><span class="line">                    throw new IllegalArgumentException(</span><br><span class="line">                        &quot;non-public interfaces from different packages&quot;);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        // 如果没有非公开的Proxy接口，使用com.sun.proxy报名</span><br><span class="line">        if (proxyPkg == null) &#123;</span><br><span class="line">            proxyPkg = ReflectUtil.PROXY_PACKAGE + &quot;.&quot;;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        long num = nextUniqueNumber.getAndIncrement();</span><br><span class="line">        // 默认情况下，代理类的完全限定名为：com.sun.proxy.$Proxy0，$Proxy1……依次递增  </span><br><span class="line">        String proxyName = proxyPkg + proxyClassNamePrefix + num;</span><br><span class="line"></span><br><span class="line">        // 生成代理类字节码</span><br><span class="line">        byte[] proxyClassFile = ProxyGenerator.generateProxyClass(</span><br><span class="line">            proxyName, interfaces, accessFlags);</span><br><span class="line">        try &#123;</span><br><span class="line">            // 根据字节码返回相应的Class实例</span><br><span class="line">            return defineClass0(loader, proxyName,</span><br><span class="line">                                proxyClassFile, 0, proxyClassFile.length);</span><br><span class="line">        &#125; catch (ClassFormatError e) &#123;</span><br><span class="line">            throw new IllegalArgumentException(e.toString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 生成代理类的工厂类
+private static final class ProxyClassFactory
+    implements BiFunction&lt;ClassLoader, Class&lt;?&gt;[], Class&lt;?&gt;&gt;
+{
+    &#x2F;&#x2F; 所有代理类名的前缀
+    private static final String proxyClassNamePrefix = &quot;$Proxy&quot;;
+
+    &#x2F;&#x2F; 生成唯一类名的原子Long对象
+    private static final AtomicLong nextUniqueNumber = new AtomicLong();
+
+    @Override
+    public Class&lt;?&gt; apply(ClassLoader loader, Class&lt;?&gt;[] interfaces) {
+
+        Map&lt;Class&lt;?&gt;, Boolean&gt; interfaceSet = new IdentityHashMap&lt;&gt;(interfaces.length);
+        for (Class&lt;?&gt; intf : interfaces) {
+            &#x2F;&#x2F; 通过loader找到接口对应的类信息。
+            Class&lt;?&gt; interfaceClass = null;
+            try {
+                interfaceClass = Class.forName(intf.getName(), false, loader);
+            } catch (ClassNotFoundException e) {
+            }
+            if (interfaceClass != intf) {
+                throw new IllegalArgumentException(
+                    intf + &quot; is not visible from class loader&quot;);
+            }
+            &#x2F;&#x2F; 判断找出来的类确实是一个接口
+            if (!interfaceClass.isInterface()) {
+                throw new IllegalArgumentException(
+                    interfaceClass.getName() + &quot; is not an interface&quot;);
+            }
+            &#x2F;&#x2F; 判断接口是否重复
+            if (interfaceSet.put(interfaceClass, Boolean.TRUE) != null) {
+                throw new IllegalArgumentException(
+                    &quot;repeated interface: &quot; + interfaceClass.getName());
+            }
+        }
+        &#x2F;&#x2F; 代理类的包路径
+        String proxyPkg = null;
+        int accessFlags = Modifier.PUBLIC | Modifier.FINAL;
+
+        &#x2F;&#x2F; 记录非公开的代理接口，以便于生成的代理类和原来的类在同一个路径下。 
+        for (Class&lt;?&gt; intf : interfaces) {
+            int flags = intf.getModifiers();
+            if (!Modifier.isPublic(flags)) {
+                accessFlags = Modifier.FINAL;
+                String name = intf.getName();
+                int n = name.lastIndexOf(&#39;.&#39;);
+                String pkg = ((n == -1) ? &quot;&quot; : name.substring(0, n + 1));
+                if (proxyPkg == null) {
+                    proxyPkg = pkg;
+                } else if (!pkg.equals(proxyPkg)) {
+                    throw new IllegalArgumentException(
+                        &quot;non-public interfaces from different packages&quot;);
+                }
+            }
+        }
+        &#x2F;&#x2F; 如果没有非公开的Proxy接口，使用com.sun.proxy报名
+        if (proxyPkg == null) {
+            proxyPkg = ReflectUtil.PROXY_PACKAGE + &quot;.&quot;;
+        }
+
+        long num = nextUniqueNumber.getAndIncrement();
+        &#x2F;&#x2F; 默认情况下，代理类的完全限定名为：com.sun.proxy.$Proxy0，$Proxy1……依次递增  
+        String proxyName = proxyPkg + proxyClassNamePrefix + num;
+
+        &#x2F;&#x2F; 生成代理类字节码
+        byte[] proxyClassFile = ProxyGenerator.generateProxyClass(
+            proxyName, interfaces, accessFlags);
+        try {
+            &#x2F;&#x2F; 根据字节码返回相应的Class实例
+            return defineClass0(loader, proxyName,
+                                proxyClassFile, 0, proxyClassFile.length);
+        } catch (ClassFormatError e) {
+            throw new IllegalArgumentException(e.toString());
+        }
+    }
+}
+</code></pre>
 <p>&emsp;其中关于字节码生成的部分逻辑我们就暂时不深入介绍了，感兴趣的同学可以自行研究。</p>
 <h3 id="Proxy反编译"><a href="#Proxy反编译" class="headerlink" title="$Proxy反编译"></a>$Proxy反编译</h3><p>&emsp;我们来看一下生成的代理类的反编译代码。代理类实现了<code>Object</code>的基础函数，比如<code>toString</code>、<code>hasCode</code>和<code>equals</code>，也实现了目标接口中定义的函数，比如说<code>ProxyTest</code>接口的<code>test</code>函数。</p>
 <p>&emsp; <code>$Proxy</code>中函数的实现都是直接调用了<code>InvocationHandler</code>的<code>invoke</code>函数。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br></pre></td><td class="code"><pre><span class="line">public final class $Proxy0 extends Proxy</span><br><span class="line">  implements ProxyTest </span><br><span class="line">// 会实现目标接口，但是由于集成了Proxy，所以无法再集成其他类</span><br><span class="line">&#123;</span><br><span class="line">  private static Method m1;</span><br><span class="line">  private static Method m0;</span><br><span class="line">  private static Method m3;</span><br><span class="line">  private static Method m2;</span><br><span class="line">  // 构造函数要传入一个InvocationHandler对象</span><br><span class="line">  public $Proxy0(InvocationHandler paramInvocationHandler)</span><br><span class="line">    throws </span><br><span class="line">  &#123;</span><br><span class="line">    super(paramInvocationHandler);</span><br><span class="line">  &#125;</span><br><span class="line">  // equal函数</span><br><span class="line">  public final boolean equals(Object paramObject)</span><br><span class="line">    throws </span><br><span class="line">  &#123;</span><br><span class="line">      try</span><br><span class="line">    &#123;</span><br><span class="line">      return ((Boolean)this.h.invoke(this, m1, new Object[] &#123; paramObject &#125;)).booleanValue();</span><br><span class="line">    &#125;</span><br><span class="line">    catch (RuntimeException localRuntimeException)</span><br><span class="line">    &#123;</span><br><span class="line">      throw localRuntimeException;</span><br><span class="line">    &#125;</span><br><span class="line">    catch (Throwable localThrowable)</span><br><span class="line">    &#123;</span><br><span class="line">    &#125;</span><br><span class="line">    throw new UndeclaredThrowableException(localThrowable);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  public final int hashCode()</span><br><span class="line">    throws </span><br><span class="line">  &#123;</span><br><span class="line">    try</span><br><span class="line">    &#123;</span><br><span class="line">      return ((Integer)this.h.invoke(this, m0, null)).intValue();</span><br><span class="line">    &#125;</span><br><span class="line">    catch (RuntimeException localRuntimeException)</span><br><span class="line">    &#123;</span><br><span class="line">      throw localRuntimeException;</span><br><span class="line">    &#125;</span><br><span class="line">    catch (Throwable localThrowable)</span><br><span class="line">    &#123;</span><br><span class="line">    &#125;</span><br><span class="line">    throw new UndeclaredThrowableException(localThrowable);</span><br><span class="line">  &#125;</span><br><span class="line">  // test函数，也就是ProxyTest接口中定义的函数</span><br><span class="line">  public final void test(String paramString)</span><br><span class="line">    throws </span><br><span class="line">  &#123;</span><br><span class="line">    try</span><br><span class="line">    &#123;</span><br><span class="line">      // 调用InvocationHandler的invoke函数</span><br><span class="line">      this.h.invoke(this, m3, new Object[] &#123; paramString &#125;);</span><br><span class="line">      return;</span><br><span class="line">    &#125;</span><br><span class="line">    catch (RuntimeException localRuntimeException)</span><br><span class="line">    &#123;</span><br><span class="line">      throw localRuntimeException;</span><br><span class="line">    &#125;</span><br><span class="line">    catch (Throwable localThrowable)</span><br><span class="line">    &#123;</span><br><span class="line">    &#125;</span><br><span class="line">    throw new UndeclaredThrowableException(localThrowable);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  public final String toString()</span><br><span class="line">    throws </span><br><span class="line">  &#123;</span><br><span class="line">    try</span><br><span class="line">    &#123;</span><br><span class="line">      return (String)this.h.invoke(this, m2, null);</span><br><span class="line">    &#125;</span><br><span class="line">    catch (RuntimeException localRuntimeException)</span><br><span class="line">    &#123;</span><br><span class="line">      throw localRuntimeException;</span><br><span class="line">    &#125;</span><br><span class="line">    catch (Throwable localThrowable)</span><br><span class="line">    &#123;</span><br><span class="line">    &#125;</span><br><span class="line">    throw new UndeclaredThrowableException(localThrowable);</span><br><span class="line">  &#125;</span><br><span class="line">  // 获取各个函数的Method对象</span><br><span class="line">  static</span><br><span class="line">  &#123;</span><br><span class="line">    try</span><br><span class="line">    &#123;</span><br><span class="line">      m1 = Class.forName(&quot;java.lang.Object&quot;).getMethod(&quot;equals&quot;, new Class[] &#123; Class.forName(&quot;java.lang.Object&quot;) &#125;);</span><br><span class="line">      m0 = Class.forName(&quot;java.lang.Object&quot;).getMethod(&quot;hashCode&quot;, new Class[0]);</span><br><span class="line">      m3 = Class.forName(&quot;com.proxy.test2.HelloTest&quot;).getMethod(&quot;say&quot;, new Class[] &#123; Class.forName(&quot;java.lang.String&quot;) &#125;);</span><br><span class="line">      m2 = Class.forName(&quot;java.lang.Object&quot;).getMethod(&quot;toString&quot;, new Class[0]);</span><br><span class="line">      return;</span><br><span class="line">    &#125;</span><br><span class="line">    catch (NoSuchMethodException localNoSuchMethodException)</span><br><span class="line">    &#123;</span><br><span class="line">      throw new NoSuchMethodError(localNoSuchMethodException.getMessage());</span><br><span class="line">    &#125;</span><br><span class="line">    catch (ClassNotFoundException localClassNotFoundException)</span><br><span class="line">    &#123;</span><br><span class="line">    &#125;</span><br><span class="line">    throw new NoClassDefFoundError(localClassNotFoundException.getMessage());</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public final class $Proxy0 extends Proxy
+  implements ProxyTest 
+&#x2F;&#x2F; 会实现目标接口，但是由于集成了Proxy，所以无法再集成其他类
+{
+  private static Method m1;
+  private static Method m0;
+  private static Method m3;
+  private static Method m2;
+  &#x2F;&#x2F; 构造函数要传入一个InvocationHandler对象
+  public $Proxy0(InvocationHandler paramInvocationHandler)
+    throws 
+  {
+    super(paramInvocationHandler);
+  }
+  &#x2F;&#x2F; equal函数
+  public final boolean equals(Object paramObject)
+    throws 
+  {
+      try
+    {
+      return ((Boolean)this.h.invoke(this, m1, new Object[] { paramObject })).booleanValue();
+    }
+    catch (RuntimeException localRuntimeException)
+    {
+      throw localRuntimeException;
+    }
+    catch (Throwable localThrowable)
+    {
+    }
+    throw new UndeclaredThrowableException(localThrowable);
+  }
+
+  public final int hashCode()
+    throws 
+  {
+    try
+    {
+      return ((Integer)this.h.invoke(this, m0, null)).intValue();
+    }
+    catch (RuntimeException localRuntimeException)
+    {
+      throw localRuntimeException;
+    }
+    catch (Throwable localThrowable)
+    {
+    }
+    throw new UndeclaredThrowableException(localThrowable);
+  }
+  &#x2F;&#x2F; test函数，也就是ProxyTest接口中定义的函数
+  public final void test(String paramString)
+    throws 
+  {
+    try
+    {
+      &#x2F;&#x2F; 调用InvocationHandler的invoke函数
+      this.h.invoke(this, m3, new Object[] { paramString });
+      return;
+    }
+    catch (RuntimeException localRuntimeException)
+    {
+      throw localRuntimeException;
+    }
+    catch (Throwable localThrowable)
+    {
+    }
+    throw new UndeclaredThrowableException(localThrowable);
+  }
+
+  public final String toString()
+    throws 
+  {
+    try
+    {
+      return (String)this.h.invoke(this, m2, null);
+    }
+    catch (RuntimeException localRuntimeException)
+    {
+      throw localRuntimeException;
+    }
+    catch (Throwable localThrowable)
+    {
+    }
+    throw new UndeclaredThrowableException(localThrowable);
+  }
+  &#x2F;&#x2F; 获取各个函数的Method对象
+  static
+  {
+    try
+    {
+      m1 = Class.forName(&quot;java.lang.Object&quot;).getMethod(&quot;equals&quot;, new Class[] { Class.forName(&quot;java.lang.Object&quot;) });
+      m0 = Class.forName(&quot;java.lang.Object&quot;).getMethod(&quot;hashCode&quot;, new Class[0]);
+      m3 = Class.forName(&quot;com.proxy.test2.HelloTest&quot;).getMethod(&quot;say&quot;, new Class[] { Class.forName(&quot;java.lang.String&quot;) });
+      m2 = Class.forName(&quot;java.lang.Object&quot;).getMethod(&quot;toString&quot;, new Class[0]);
+      return;
+    }
+    catch (NoSuchMethodException localNoSuchMethodException)
+    {
+      throw new NoSuchMethodError(localNoSuchMethodException.getMessage());
+    }
+    catch (ClassNotFoundException localClassNotFoundException)
+    {
+    }
+    throw new NoClassDefFoundError(localClassNotFoundException.getMessage());
+  }
+}
+</code></pre>
 <h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;下一篇文章就是AOP的源码分析了，希望大家继续关注。</p>
 <p><img src="https://upload-images.jianshu.io/upload_images/623378-7d960275042f309d.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
 
@@ -323,7 +579,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/90b14a95/" data-id="ck6535m8200459kser0s58151" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/90b14a95/" data-id="ck6540j9q004alhsemru1353q" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -629,6 +885,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 

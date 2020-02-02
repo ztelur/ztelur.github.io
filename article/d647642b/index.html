@@ -268,13 +268,168 @@ var _hmt = _hmt || [];
         
             
             <p>&emps;这是OkHttp系列博文的第一篇，之前写过一篇草稿，介绍OkHttp的整体框架，但是感觉涉及的知识太多，无法在一篇中讲述清楚，所以，之后的博文都只关注某一方面的知识，争取文章短小精悍。<br>&emsp;今天主要研究一下OkHttp发送<code>Http</code>请求过程中的重定向和出错重试，主要涉及的源码文件有<code>Call.java``HttpEngine.java</code>。<br>&emsp;我们今天研究<code>Call</code>的<code>Response getResponse(Request request, boolean forWebSocket) throws IOException</code>函数，它是你调用<code>Call.execute()</code>返回<code>Response</code>所调用的核心函数，主要功能是新建一个<code>HttpEngine</code>发送<code>Request</code>然后处理出错重试和重定向问题。</p>
-<h4 id="设置Headers"><a href="#设置Headers" class="headerlink" title="设置Headers"></a>设置Headers</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Copy body metadata to the appropriate request headers.</span></span><br><span class="line">  RequestBody body = request.body();</span><br><span class="line">  <span class="keyword">if</span> (body != <span class="keyword">null</span>) &#123;</span><br><span class="line">    Request.Builder requestBuilder = request.newBuilder();<span class="comment">//拷贝了内部数据</span></span><br><span class="line"></span><br><span class="line">    MediaType contentType = body.contentType();</span><br><span class="line">    <span class="keyword">if</span> (contentType != <span class="keyword">null</span>) &#123;</span><br><span class="line">      requestBuilder.header(<span class="string">"Content-Type"</span>, contentType.toString());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">long</span> contentLength = body.contentLength();</span><br><span class="line">    <span class="keyword">if</span> (contentLength != -<span class="number">1</span>) &#123;</span><br><span class="line">      requestBuilder.header(<span class="string">"Content-Length"</span>, Long.toString(contentLength));</span><br><span class="line">      requestBuilder.removeHeader(<span class="string">"Transfer-Encoding"</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      requestBuilder.header(<span class="string">"Transfer-Encoding"</span>, <span class="string">"chunked"</span>);</span><br><span class="line">      requestBuilder.removeHeader(<span class="string">"Content-Length"</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    request = requestBuilder.build();</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<h4 id="设置Headers"><a href="#设置Headers" class="headerlink" title="设置Headers"></a>设置Headers</h4>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">  &#x2F;&#x2F; Copy body metadata to the appropriate request headers.
+    RequestBody body = request.body();
+    if (body != null) {
+      Request.Builder requestBuilder = request.newBuilder();&#x2F;&#x2F;拷贝了内部数据
+
+      MediaType contentType = body.contentType();
+      if (contentType != null) {
+        requestBuilder.header(&quot;Content-Type&quot;, contentType.toString());
+      }
+
+      long contentLength = body.contentLength();
+      if (contentLength != -1) {
+        requestBuilder.header(&quot;Content-Length&quot;, Long.toString(contentLength));
+        requestBuilder.removeHeader(&quot;Transfer-Encoding&quot;);
+      } else {
+        requestBuilder.header(&quot;Transfer-Encoding&quot;, &quot;chunked&quot;);
+        requestBuilder.removeHeader(&quot;Content-Length&quot;);
+      }
+
+      request = requestBuilder.build();
+    }
+</code></pre>
 <p>&emsp;这是函数的第一部分，主要是将<code>RequestBody</code>的一些元数据拷贝到<code>Header</code>的首部中,主要是<code>Content-Type</code>和<code>Transfer-Encoding</code>。<code>Content-Type</code>相信大家都了解，标示<code>RequestBody</code>的<code>Mime-Type</code>，格式为<code>主类型/子类型</code>，比如<code>text/xml</code>。而<code>Transfer-Encoding</code>是表示一种网络传输的方式，想具体了解的同学可以看一下这个链接<a href="https://imququ.com/post/transfer-encoding-header-in-http.html" target="_blank" rel="noopener">点我</a>.</p>
-<h4 id="出错重试"><a href="#出错重试" class="headerlink" title="出错重试"></a>出错重试</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Create the initial HTTP engine. Retries and redirects need new engine for each attempt.</span></span><br><span class="line">    <span class="comment">// 建立一个初始的http 引擎，每次重试和重定向都需要新的引擎</span></span><br><span class="line">    engine = <span class="keyword">new</span> HttpEngine(client, request, <span class="keyword">false</span>, <span class="keyword">false</span>, forWebSocket, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="keyword">null</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> followUpCount = <span class="number">0</span>; <span class="comment">//连续发送请求</span></span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span> (canceled) &#123; <span class="comment">//如果被取消啦</span></span><br><span class="line">        engine.releaseConnection();</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Canceled"</span>);</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        engine.sendRequest();</span><br><span class="line">        engine.readResponse();</span><br><span class="line">      &#125; <span class="keyword">catch</span> (RequestException e) &#123;</span><br><span class="line">        <span class="comment">// The attempt to interpret the request failed. Give up.</span></span><br><span class="line">        <span class="keyword">throw</span> e.getCause();</span><br><span class="line">      &#125; <span class="keyword">catch</span> (RouteException e) &#123;</span><br><span class="line">        <span class="comment">// The attempt to connect via a route failed. The request will not have been sent.</span></span><br><span class="line">        HttpEngine retryEngine = engine.recover(e); <span class="comment">//重试引擎</span></span><br><span class="line">        <span class="keyword">if</span> (retryEngine != <span class="keyword">null</span>) &#123;</span><br><span class="line">          engine = retryEngine;</span><br><span class="line">          <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// Give up; recovery is not possible.</span></span><br><span class="line">        <span class="keyword">throw</span> e.getLastConnectException();</span><br><span class="line">      &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        <span class="comment">// An attempt to communicate with a server failed. The request may have been sent.</span></span><br><span class="line">        HttpEngine retryEngine = engine.recover(e, <span class="keyword">null</span>);</span><br><span class="line">        <span class="keyword">if</span> (retryEngine != <span class="keyword">null</span>) &#123;</span><br><span class="line">          engine = retryEngine;</span><br><span class="line">          <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Give up; recovery is not possible.</span></span><br><span class="line">        <span class="keyword">throw</span> e;</span><br><span class="line">      &#125;</span><br><span class="line">      .......</span><br></pre></td></tr></table></figure>
+<h4 id="出错重试"><a href="#出错重试" class="headerlink" title="出错重试"></a>出错重试</h4>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">&#x2F;&#x2F; Create the initial HTTP engine. Retries and redirects need new engine for each attempt.
+    &#x2F;&#x2F; 建立一个初始的http 引擎，每次重试和重定向都需要新的引擎
+    engine = new HttpEngine(client, request, false, false, forWebSocket, null, null, null, null);
+
+    int followUpCount = 0; &#x2F;&#x2F;连续发送请求
+    while (true) {
+      if (canceled) { &#x2F;&#x2F;如果被取消啦
+        engine.releaseConnection();
+        throw new IOException(&quot;Canceled&quot;);
+      }
+
+      try {
+        engine.sendRequest();
+        engine.readResponse();
+      } catch (RequestException e) {
+        &#x2F;&#x2F; The attempt to interpret the request failed. Give up.
+        throw e.getCause();
+      } catch (RouteException e) {
+        &#x2F;&#x2F; The attempt to connect via a route failed. The request will not have been sent.
+        HttpEngine retryEngine = engine.recover(e); &#x2F;&#x2F;重试引擎
+        if (retryEngine != null) {
+          engine = retryEngine;
+          continue;
+        }
+        &#x2F;&#x2F; Give up; recovery is not possible.
+        throw e.getLastConnectException();
+      } catch (IOException e) {
+        &#x2F;&#x2F; An attempt to communicate with a server failed. The request may have been sent.
+        HttpEngine retryEngine = engine.recover(e, null);
+        if (retryEngine != null) {
+          engine = retryEngine;
+          continue;
+        }
+
+        &#x2F;&#x2F; Give up; recovery is not possible.
+        throw e;
+      }
+      .......
+</code></pre>
 <p>&emsp;在这段代码中，<code>OkHttp</code>建立一个<code>HttpEngine</code>对象来负责<code>Http</code>层级的请求的发送和回复的接收，<code>HttpEngine</code>会在之后的博文中详细讲解。然后进入了一个<code>while</code>循环,这个循环其实主要是处理重定向问题的。我们在这一节中主要关注<code>catch</code>中的逻辑，这是用于处理出错重试的逻辑。由于外层有一个<code>while</code>循环，所以在<code>catch</code>中尝试获得<code>retryEngine</code>，如果有就<code>continue</code>,没有就抛出异常。</p>
-<h4 id="重定向处理"><a href="#重定向处理" class="headerlink" title="重定向处理"></a>重定向处理</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">Response response = engine.getResponse();</span><br><span class="line">      <span class="comment">// followUp这个是优化http connection的使用率的吗？</span></span><br><span class="line">      Request followUp = engine.followUpRequest();</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (followUp == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!forWebSocket) &#123; <span class="comment">//如果没有followup并且不是为了websocket</span></span><br><span class="line">          engine.releaseConnection();<span class="comment">//关闭连接</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> response;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (++followUpCount &gt; MAX_FOLLOW_UPS) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ProtocolException(<span class="string">"Too many follow-up requests: "</span> + followUpCount);</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (!engine.sameConnection(followUp.httpUrl())) &#123; <span class="comment">//如果followup的httpUrl不是同一个连接,也就是</span></span><br><span class="line">        <span class="comment">//schema，host or port 有一个不同</span></span><br><span class="line">        engine.releaseConnection();</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//复用了上一次的connection啊！！！！</span></span><br><span class="line">      Connection connection = engine.close();</span><br><span class="line">      request = followUp;</span><br><span class="line">      <span class="comment">//继续处理，有可能是重定向啦</span></span><br><span class="line">      engine = <span class="keyword">new</span> HttpEngine(client, request, <span class="keyword">false</span>, <span class="keyword">false</span>, forWebSocket, connection, <span class="keyword">null</span>, <span class="keyword">null</span>,</span><br><span class="line">          response);</span><br></pre></td></tr></table></figure>
+<h4 id="重定向处理"><a href="#重定向处理" class="headerlink" title="重定向处理"></a>重定向处理</h4>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">Response response = engine.getResponse();
+      &#x2F;&#x2F; followUp这个是优化http connection的使用率的吗？
+      Request followUp = engine.followUpRequest();
+
+      if (followUp == null) {
+        if (!forWebSocket) { &#x2F;&#x2F;如果没有followup并且不是为了websocket
+          engine.releaseConnection();&#x2F;&#x2F;关闭连接
+        }
+        return response;
+      }
+
+      if (++followUpCount &gt; MAX_FOLLOW_UPS) {
+        throw new ProtocolException(&quot;Too many follow-up requests: &quot; + followUpCount);
+      }
+
+      if (!engine.sameConnection(followUp.httpUrl())) { &#x2F;&#x2F;如果followup的httpUrl不是同一个连接,也就是
+        &#x2F;&#x2F;schema，host or port 有一个不同
+        engine.releaseConnection();
+      }
+      &#x2F;&#x2F;复用了上一次的connection啊！！！！
+      Connection connection = engine.close();
+      request = followUp;
+      &#x2F;&#x2F;继续处理，有可能是重定向啦
+      engine = new HttpEngine(client, request, false, false, forWebSocket, connection, null, null,
+          response);
+</code></pre>
 <p>&emsp;这里我们可以看到<code>Http</code>重定向的机制。<code>Request request = engine.followUpRequest()</code>来获得重定向需要发送的<code>Request</code>，如果没有或者重定向次数大于<code>MAX_FOLLOW_UPS</code>就不会重新发送重定向请求。然后判断重定向请求和原请求的HttpUrl是否相同，否则也不会发送重定向请求。然后<code>Connection connection = engine.close()</code>会释放资源并且复用上次的连接，然后新建一个<code>HttpEngine</code>然后继续<code>While</code>循环发送请求。</p>
-<h4 id="重定向状态码解析"><a href="#重定向状态码解析" class="headerlink" title="重定向状态码解析"></a>重定向状态码解析</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Request <span class="title">followUpRequest</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (userResponse == <span class="keyword">null</span>) <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException();</span><br><span class="line">  Proxy selectedProxy = getRoute() != <span class="keyword">null</span></span><br><span class="line">      ? getRoute().getProxy()</span><br><span class="line">      : client.getProxy();</span><br><span class="line">  <span class="keyword">int</span> responseCode = userResponse.code();</span><br><span class="line"></span><br><span class="line">  <span class="keyword">switch</span> (responseCode) &#123;</span><br><span class="line">    <span class="keyword">case</span> HTTP_PROXY_AUTH: <span class="comment">//407 Proxy authentication required 要先经过代理服务器认证</span></span><br><span class="line">      <span class="keyword">if</span> (selectedProxy.type() != Proxy.Type.HTTP) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ProtocolException(<span class="string">"Received HTTP_PROXY_AUTH (407) code while not using proxy"</span>);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">// fall-through</span></span><br><span class="line">    <span class="keyword">case</span> HTTP_UNAUTHORIZED: <span class="comment">//401 没有身份认证</span></span><br><span class="line">      <span class="keyword">return</span> OkHeaders.processAuthHeader(client.getAuthenticator(), userResponse, selectedProxy);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">case</span> HTTP_PERM_REDIRECT:<span class="comment">// 308</span></span><br><span class="line">    <span class="keyword">case</span> HTTP_TEMP_REDIRECT: <span class="comment">//307</span></span><br><span class="line">      <span class="comment">// "If the 307 or 308 status code is received in response to a request other than GET</span></span><br><span class="line">      <span class="comment">// or HEAD, the user agent MUST NOT automatically redirect the request"</span></span><br><span class="line">      <span class="keyword">if</span> (!userRequest.method().equals(<span class="string">"GET"</span>) &amp;&amp; !userRequest.method().equals(<span class="string">"HEAD"</span>)) &#123;</span><br><span class="line">          <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">      &#125; <span class="comment">//如果不是get和head 那么就不能自动转发</span></span><br><span class="line">      <span class="comment">// fall-through</span></span><br><span class="line">    <span class="keyword">case</span> HTTP_MULT_CHOICE: <span class="comment">//300</span></span><br><span class="line">    <span class="keyword">case</span> HTTP_MOVED_PERM:<span class="comment">// 301</span></span><br><span class="line">    <span class="keyword">case</span> HTTP_MOVED_TEMP:<span class="comment">//302</span></span><br><span class="line">    <span class="keyword">case</span> HTTP_SEE_OTHER: <span class="comment">//303</span></span><br><span class="line">      <span class="comment">// Does the client allow redirects?</span></span><br><span class="line">      <span class="keyword">if</span> (!client.getFollowRedirects()) <span class="keyword">return</span> <span class="keyword">null</span>;<span class="comment">//如果不允许重定向</span></span><br><span class="line"></span><br><span class="line">      String location = userResponse.header(<span class="string">"Location"</span>);<span class="comment">//从response的头部获得的location</span></span><br><span class="line">      <span class="keyword">if</span> (location == <span class="keyword">null</span>) <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">      HttpUrl url = userRequest.httpUrl().resolve(location);<span class="comment">//使用request的解析location</span></span><br><span class="line"></span><br><span class="line">      <span class="comment">// Don't follow redirects to unsupported protocols.</span></span><br><span class="line">      <span class="keyword">if</span> (url == <span class="keyword">null</span>) <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line"></span><br><span class="line">      <span class="comment">// If configured, don't follow redirects between SSL and non-SSL.</span></span><br><span class="line">      <span class="keyword">boolean</span> sameScheme = url.scheme().equals(userRequest.httpUrl().scheme());</span><br><span class="line">      <span class="keyword">if</span> (!sameScheme &amp;&amp; !client.getFollowSslRedirects()) <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line"></span><br><span class="line">      <span class="comment">// Redirects don't include a request body.</span></span><br><span class="line">      Request.Builder requestBuilder = userRequest.newBuilder();</span><br><span class="line">      <span class="keyword">if</span> (HttpMethod.permitsRequestBody(userRequest.method())) &#123;</span><br><span class="line">        requestBuilder.method(<span class="string">"GET"</span>, <span class="keyword">null</span>);</span><br><span class="line">        requestBuilder.removeHeader(<span class="string">"Transfer-Encoding"</span>);</span><br><span class="line">        requestBuilder.removeHeader(<span class="string">"Content-Length"</span>);</span><br><span class="line">        requestBuilder.removeHeader(<span class="string">"Content-Type"</span>);</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="comment">// When redirecting across hosts, drop all authentication headers. This</span></span><br><span class="line">      <span class="comment">// is potentially annoying to the application layer since they have no</span></span><br><span class="line">      <span class="comment">// way to retain them.</span></span><br><span class="line">      <span class="keyword">if</span> (!sameConnection(url)) &#123;</span><br><span class="line">        requestBuilder.removeHeader(<span class="string">"Authorization"</span>);</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">return</span> requestBuilder.url(url).build();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">default</span>:</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<h4 id="重定向状态码解析"><a href="#重定向状态码解析" class="headerlink" title="重定向状态码解析"></a>重定向状态码解析</h4>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">  public Request followUpRequest() throws IOException {
+    if (userResponse == null) throw new IllegalStateException();
+    Proxy selectedProxy = getRoute() != null
+        ? getRoute().getProxy()
+        : client.getProxy();
+    int responseCode = userResponse.code();
+
+    switch (responseCode) {
+      case HTTP_PROXY_AUTH: &#x2F;&#x2F;407 Proxy authentication required 要先经过代理服务器认证
+        if (selectedProxy.type() != Proxy.Type.HTTP) {
+          throw new ProtocolException(&quot;Received HTTP_PROXY_AUTH (407) code while not using proxy&quot;);
+        }
+        &#x2F;&#x2F; fall-through
+      case HTTP_UNAUTHORIZED: &#x2F;&#x2F;401 没有身份认证
+        return OkHeaders.processAuthHeader(client.getAuthenticator(), userResponse, selectedProxy);
+
+      case HTTP_PERM_REDIRECT:&#x2F;&#x2F; 308
+      case HTTP_TEMP_REDIRECT: &#x2F;&#x2F;307
+        &#x2F;&#x2F; &quot;If the 307 or 308 status code is received in response to a request other than GET
+        &#x2F;&#x2F; or HEAD, the user agent MUST NOT automatically redirect the request&quot;
+        if (!userRequest.method().equals(&quot;GET&quot;) &amp;&amp; !userRequest.method().equals(&quot;HEAD&quot;)) {
+            return null;
+        } &#x2F;&#x2F;如果不是get和head 那么就不能自动转发
+        &#x2F;&#x2F; fall-through
+      case HTTP_MULT_CHOICE: &#x2F;&#x2F;300
+      case HTTP_MOVED_PERM:&#x2F;&#x2F; 301
+      case HTTP_MOVED_TEMP:&#x2F;&#x2F;302
+      case HTTP_SEE_OTHER: &#x2F;&#x2F;303
+        &#x2F;&#x2F; Does the client allow redirects?
+        if (!client.getFollowRedirects()) return null;&#x2F;&#x2F;如果不允许重定向
+
+        String location = userResponse.header(&quot;Location&quot;);&#x2F;&#x2F;从response的头部获得的location
+        if (location == null) return null;
+        HttpUrl url = userRequest.httpUrl().resolve(location);&#x2F;&#x2F;使用request的解析location
+
+        &#x2F;&#x2F; Don&#39;t follow redirects to unsupported protocols.
+        if (url == null) return null;
+
+        &#x2F;&#x2F; If configured, don&#39;t follow redirects between SSL and non-SSL.
+        boolean sameScheme = url.scheme().equals(userRequest.httpUrl().scheme());
+        if (!sameScheme &amp;&amp; !client.getFollowSslRedirects()) return null;
+
+        &#x2F;&#x2F; Redirects don&#39;t include a request body.
+        Request.Builder requestBuilder = userRequest.newBuilder();
+        if (HttpMethod.permitsRequestBody(userRequest.method())) {
+          requestBuilder.method(&quot;GET&quot;, null);
+          requestBuilder.removeHeader(&quot;Transfer-Encoding&quot;);
+          requestBuilder.removeHeader(&quot;Content-Length&quot;);
+          requestBuilder.removeHeader(&quot;Content-Type&quot;);
+        }
+
+        &#x2F;&#x2F; When redirecting across hosts, drop all authentication headers. This
+        &#x2F;&#x2F; is potentially annoying to the application layer since they have no
+        &#x2F;&#x2F; way to retain them.
+        if (!sameConnection(url)) {
+          requestBuilder.removeHeader(&quot;Authorization&quot;);
+        }
+
+        return requestBuilder.url(url).build();
+
+      default:
+        return null;
+    }
+</code></pre>
 <p>&emsp;这一段就是根据回复的状态码生成重定向请求的代码逻辑。</p>
 <ul>
 <li>HTTP_PROXY_AUTH 407  表示需要经过代理服务器认证 ，这时抛出异常，不进行重定向</li>
@@ -292,7 +447,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/d647642b/" data-id="ck6535m7k00309kse3mxwgk5z" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/d647642b/" data-id="ck6540j8v0030lhseviehnizb" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -598,6 +753,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 

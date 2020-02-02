@@ -279,7 +279,12 @@ var _hmt = _hmt || [];
 </ul>
 <p>&emsp;下面，我们就以一个具体实例来介绍数据库事务的原理，并介绍InnoDB是如何实现ACID四大特性的。</p>
 <h3 id="示例介绍"><a href="#示例介绍" class="headerlink" title="示例介绍"></a>示例介绍</h3><p>&emsp;我们首先来看一下具体的示例。大家可以自己亲自试验一下，这样理解和记忆都会更加深刻。<br>&emsp;首先，使用如下的SQL语句创建两张表，分别是goods和trade，代表货物和交易。并向goods表中插入一条记录，id为1的货物数量为10。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">CREATE TABLE goods (id INT, num INT, PRIMARY KEY(id));</span><br><span class="line">CREATE TABLE trade (id INT, goods_id INT, user_id INT, PRIMARY KEY(id));</span><br><span class="line">INSERT INTO goods VALUES(1, 10);</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">CREATE TABLE goods (id INT, num INT, PRIMARY KEY(id));
+CREATE TABLE trade (id INT, goods_id INT, user_id INT, PRIMARY KEY(id));
+INSERT INTO goods VALUES(1, 10);
+</code></pre>
 <p>&emsp;然后打开终端，连接数据库，开启会话一，先用BEGIN显示开启一个事务。会话一先将goods表中id为1的货物的数量减一，然后向trade表中添加一笔交易的记录，最后使用COMMIT显示提交事务。<br>&emsp;而会话二则先查询goods表中id为1的货物数量，然后向trade表中添加一笔交易记录，接着更新goods表中id为1的货物的数量，最后使用ROLLBACK进行事务的回滚。其中，两个会话中执行的具体语句和先后顺序如下图所示。</p>
 <p><img src="https://upload-images.jianshu.io/upload_images/623378-e1cb53add98d666d.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="示例具体语句和执行顺序"></p>
 <p>&emsp;这个示例可以体现数据库事务的很多特性，我们一一来介绍。首先会话一的操作2更新了id为1的货物的数量，但是会话二的操作5读出来的数量仍然是10，这体现了事务的隔离性，使用InnoDB的<a href="https://mp.weixin.qq.com/s?__biz=MzU2MDYwMDMzNQ==&amp;mid=2247483698&amp;idx=1&amp;sn=3654042755c7ea0922e5d5b462930946&amp;chksm=fc04c552cb734c443f771eb2075cd4d4ce85df85105805667cc4cf51a67ceed2f9ebdf1a8cde&amp;token=1535405475&amp;lang=zh_CN#rd" target="_blank" rel="noopener">多版本控制机制</a>实现。<br>&emsp;会话二的操作7也要更新同种货物的数量，此时因为会话一的操作2已经更新了该货物的数量，InnoDB已经锁住了该记录的行锁，所以操作7会被阻塞，直到会话一COMMIT。但是会话一的操作4和会话二的操作7都是向trade表中插入记录，后者却不会因为前者而阻塞，因为二者插入的不是同一行记录。锁机制是一种常见的并发控制机制，它和多版本控制机制一起实现了InnoDB事务的隔离性，关于InnoDB锁相关的具体内容可以参考<a href="https://mp.weixin.qq.com/s?__biz=MzU2MDYwMDMzNQ==&amp;mid=2247483694&amp;idx=1&amp;sn=671ad369f67441c7d1572110066d5695&amp;chksm=fc04c54ecb734c58101f8ff020914f4cccaf6660742a6723b431066ca05d5e71365dfd8d4556&amp;token=1535405475&amp;lang=zh_CN#rd" target="_blank" rel="noopener">InnoDB锁的类型和状态查询</a>和<a href="https://mp.weixin.qq.com/s?__biz=MzU2MDYwMDMzNQ==&amp;mid=2247483702&amp;idx=1&amp;sn=669fb9f413db0cc744bdb5b9ec8f725e&amp;chksm=fc04c556cb734c40b3c90a55868619b8ca1f3e1f8763be2d6e7f0568d7c992409937c33b7e10&amp;token=1535405475&amp;lang=zh_CN#rd" target="_blank" rel="noopener">InnoDB行锁算法</a>。</p>
@@ -337,7 +342,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/6edb90fb/" data-id="ck6535m76002f9ksejhnx1okq" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/6edb90fb/" data-id="ck6540j8n002flhsed0wpqres" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -643,6 +648,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 

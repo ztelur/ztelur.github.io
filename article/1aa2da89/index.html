@@ -298,7 +298,27 @@ var _hmt = _hmt || [];
 <li>周期性事件：让一段程序每隔指定时间就执行一次。</li>
 </ul>
 <p>Redis 的时间事件的具体定义结构如下所示。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">typedef struct aeTimeEvent &#123;</span><br><span class="line">    /* 全局唯一ID */</span><br><span class="line">    long long id; /* time event identifier. */</span><br><span class="line">    /* 秒精确的UNIX时间戳，记录时间事件到达的时间*/</span><br><span class="line">    long when_sec; /* seconds */</span><br><span class="line">    /* 毫秒精确的UNIX时间戳，记录时间事件到达的时间*/</span><br><span class="line">    long when_ms; /* milliseconds */</span><br><span class="line">    /* 时间处理器 */</span><br><span class="line">    aeTimeProc *timeProc;</span><br><span class="line">    /* 事件结束回调函数，析构一些资源*/</span><br><span class="line">    aeEventFinalizerProc *finalizerProc;</span><br><span class="line">    /* 私有数据 */</span><br><span class="line">    void *clientData;</span><br><span class="line">    /* 前驱节点 */</span><br><span class="line">    struct aeTimeEvent *prev;</span><br><span class="line">    /* 后继节点 */</span><br><span class="line">    struct aeTimeEvent *next;</span><br><span class="line">&#125; aeTimeEvent;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">typedef struct aeTimeEvent {
+    &#x2F;* 全局唯一ID *&#x2F;
+    long long id; &#x2F;* time event identifier. *&#x2F;
+    &#x2F;* 秒精确的UNIX时间戳，记录时间事件到达的时间*&#x2F;
+    long when_sec; &#x2F;* seconds *&#x2F;
+    &#x2F;* 毫秒精确的UNIX时间戳，记录时间事件到达的时间*&#x2F;
+    long when_ms; &#x2F;* milliseconds *&#x2F;
+    &#x2F;* 时间处理器 *&#x2F;
+    aeTimeProc *timeProc;
+    &#x2F;* 事件结束回调函数，析构一些资源*&#x2F;
+    aeEventFinalizerProc *finalizerProc;
+    &#x2F;* 私有数据 *&#x2F;
+    void *clientData;
+    &#x2F;* 前驱节点 *&#x2F;
+    struct aeTimeEvent *prev;
+    &#x2F;* 后继节点 *&#x2F;
+    struct aeTimeEvent *next;
+} aeTimeEvent;
+</code></pre>
 <p>一个时间事件是定时事件还是周期性事件取决于时间处理器的返回值：</p>
 <ul>
 <li>如果返回值是 AE_NOMORE，那么这个事件是一个定时事件，该事件在达到后删除，之后不会再重复。</li>
@@ -314,33 +334,313 @@ var _hmt = _hmt || [];
 <li>初始化时间事件列表，设置<code>timeEventHead</code>和<code>timeEventNextId</code>属性。</li>
 <li>调用<code>aeApiCreate</code> 函数创建<code>epoll</code>实例，并初始化 <code>apidata</code>。</li>
 </ul>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">aeEventLoop *aeCreateEventLoop(int setsize) &#123;</span><br><span class="line">    aeEventLoop *eventLoop;</span><br><span class="line">    int i;</span><br><span class="line">    /* 创建事件状态结构 */</span><br><span class="line">    if ((eventLoop = zmalloc(sizeof(*eventLoop))) == NULL) goto err;</span><br><span class="line">    /* 创建未就绪事件表、就绪事件表 */</span><br><span class="line">    eventLoop-&gt;events = zmalloc(sizeof(aeFileEvent)*setsize);</span><br><span class="line">    eventLoop-&gt;fired = zmalloc(sizeof(aeFiredEvent)*setsize);</span><br><span class="line">    if (eventLoop-&gt;events == NULL || eventLoop-&gt;fired == NULL) goto err;</span><br><span class="line">    /* 设置数组大小 */</span><br><span class="line">    eventLoop-&gt;setsize = setsize;</span><br><span class="line">    /* 初始化执行最近一次执行时间 */</span><br><span class="line">    eventLoop-&gt;lastTime = time(NULL);</span><br><span class="line">    /* 初始化时间事件结构 */</span><br><span class="line">    eventLoop-&gt;timeEventHead = NULL;</span><br><span class="line">    eventLoop-&gt;timeEventNextId = 0;</span><br><span class="line">    eventLoop-&gt;stop = 0;</span><br><span class="line">    eventLoop-&gt;maxfd = -1;</span><br><span class="line">    eventLoop-&gt;beforesleep = NULL;</span><br><span class="line">    eventLoop-&gt;aftersleep = NULL;</span><br><span class="line">    /* 将多路复用io与事件管理器关联起来 */</span><br><span class="line">    if (aeApiCreate(eventLoop) == -1) goto err;</span><br><span class="line">    /* 初始化监听事件 */</span><br><span class="line">    for (i = 0; i &lt; setsize; i++)</span><br><span class="line">        eventLoop-&gt;events[i].mask = AE_NONE;</span><br><span class="line">    return eventLoop;</span><br><span class="line">err:</span><br><span class="line">   .....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">aeEventLoop *aeCreateEventLoop(int setsize) {
+    aeEventLoop *eventLoop;
+    int i;
+    &#x2F;* 创建事件状态结构 *&#x2F;
+    if ((eventLoop = zmalloc(sizeof(*eventLoop))) == NULL) goto err;
+    &#x2F;* 创建未就绪事件表、就绪事件表 *&#x2F;
+    eventLoop-&gt;events = zmalloc(sizeof(aeFileEvent)*setsize);
+    eventLoop-&gt;fired = zmalloc(sizeof(aeFiredEvent)*setsize);
+    if (eventLoop-&gt;events == NULL || eventLoop-&gt;fired == NULL) goto err;
+    &#x2F;* 设置数组大小 *&#x2F;
+    eventLoop-&gt;setsize = setsize;
+    &#x2F;* 初始化执行最近一次执行时间 *&#x2F;
+    eventLoop-&gt;lastTime = time(NULL);
+    &#x2F;* 初始化时间事件结构 *&#x2F;
+    eventLoop-&gt;timeEventHead = NULL;
+    eventLoop-&gt;timeEventNextId = 0;
+    eventLoop-&gt;stop = 0;
+    eventLoop-&gt;maxfd = -1;
+    eventLoop-&gt;beforesleep = NULL;
+    eventLoop-&gt;aftersleep = NULL;
+    &#x2F;* 将多路复用io与事件管理器关联起来 *&#x2F;
+    if (aeApiCreate(eventLoop) == -1) goto err;
+    &#x2F;* 初始化监听事件 *&#x2F;
+    for (i = 0; i &lt; setsize; i++)
+        eventLoop-&gt;events[i].mask = AE_NONE;
+    return eventLoop;
+err:
+   .....
+}
+</code></pre>
 <p><code>aeApiCreate</code> 函数首先创建了<code>aeApiState</code>对象，初始化了epoll就绪事件表；然后调用<code>epoll_create</code>创建了<code>epoll</code>实例，最后将该<code>aeApiState</code>赋值给<code>apidata</code>属性。</p>
 <p><code>aeApiState</code>对象中<code>epfd</code>存储<code>epoll</code>的标识，<code>events</code>是一个<code>epoll</code>就绪事件数组，当有<code>epoll</code>事件发生时，所有发生的<code>epoll</code>事件和其描述符将存储在这个数组中。这个就绪事件数组由应用层开辟空间、内核负责把所有发生的事件填充到该数组。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">static int aeApiCreate(aeEventLoop *eventLoop) &#123;</span><br><span class="line">    aeApiState *state = zmalloc(sizeof(aeApiState));</span><br><span class="line"></span><br><span class="line">    if (!state) return -1;</span><br><span class="line">    /* 初始化epoll就绪事件表 */</span><br><span class="line">    state-&gt;events = zmalloc(sizeof(struct epoll_event)*eventLoop-&gt;setsize);</span><br><span class="line">    if (!state-&gt;events) &#123;</span><br><span class="line">        zfree(state);</span><br><span class="line">        return -1;</span><br><span class="line">    &#125;</span><br><span class="line">    /* 创建 epoll 实例 */</span><br><span class="line">    state-&gt;epfd = epoll_create(1024); /* 1024 is just a hint for the kernel */</span><br><span class="line">    if (state-&gt;epfd == -1) &#123;</span><br><span class="line">        zfree(state-&gt;events);</span><br><span class="line">        zfree(state);</span><br><span class="line">        return -1;</span><br><span class="line">    &#125;</span><br><span class="line">    /* 事件管理器与epoll关联 */</span><br><span class="line">    eventLoop-&gt;apidata = state;</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br><span class="line">typedef struct aeApiState &#123;</span><br><span class="line">    /* epoll_event 实例描述符*/</span><br><span class="line">    int epfd;</span><br><span class="line">    /* 存储epoll就绪事件表 */</span><br><span class="line">    struct epoll_event *events;</span><br><span class="line">&#125; aeApiState;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">static int aeApiCreate(aeEventLoop *eventLoop) {
+    aeApiState *state = zmalloc(sizeof(aeApiState));
+
+    if (!state) return -1;
+    &#x2F;* 初始化epoll就绪事件表 *&#x2F;
+    state-&gt;events = zmalloc(sizeof(struct epoll_event)*eventLoop-&gt;setsize);
+    if (!state-&gt;events) {
+        zfree(state);
+        return -1;
+    }
+    &#x2F;* 创建 epoll 实例 *&#x2F;
+    state-&gt;epfd = epoll_create(1024); &#x2F;* 1024 is just a hint for the kernel *&#x2F;
+    if (state-&gt;epfd == -1) {
+        zfree(state-&gt;events);
+        zfree(state);
+        return -1;
+    }
+    &#x2F;* 事件管理器与epoll关联 *&#x2F;
+    eventLoop-&gt;apidata = state;
+    return 0;
+}
+typedef struct aeApiState {
+    &#x2F;* epoll_event 实例描述符*&#x2F;
+    int epfd;
+    &#x2F;* 存储epoll就绪事件表 *&#x2F;
+    struct epoll_event *events;
+} aeApiState;
+</code></pre>
 <h3 id="创建文件事件"><a href="#创建文件事件" class="headerlink" title="创建文件事件"></a>创建文件事件</h3><p><code>aeFileEvent</code>是文件事件结构，对于每一个具体的事件，都有读处理函数和写处理函数等。Redis 调用<code>aeCreateFileEvent</code>函数针对不同的套接字的读写事件注册对应的文件事件。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">typedef struct aeFileEvent &#123;</span><br><span class="line">    /* 监听事件类型掩码,值可以是 AE_READABLE 或 AE_WRITABLE */</span><br><span class="line">    int mask;</span><br><span class="line">    /* 读事件处理器 */</span><br><span class="line">    aeFileProc *rfileProc;</span><br><span class="line">    /* 写事件处理器 */</span><br><span class="line">    aeFileProc *wfileProc;</span><br><span class="line">    /* 多路复用库的私有数据 */</span><br><span class="line">    void *clientData;</span><br><span class="line">&#125; aeFileEvent;</span><br><span class="line">/* 使用typedef定义的处理器函数的函数类型 */</span><br><span class="line">typedef void aeFileProc(struct aeEventLoop *eventLoop, </span><br><span class="line">int fd, void *clientData, int mask);</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">typedef struct aeFileEvent {
+    &#x2F;* 监听事件类型掩码,值可以是 AE_READABLE 或 AE_WRITABLE *&#x2F;
+    int mask;
+    &#x2F;* 读事件处理器 *&#x2F;
+    aeFileProc *rfileProc;
+    &#x2F;* 写事件处理器 *&#x2F;
+    aeFileProc *wfileProc;
+    &#x2F;* 多路复用库的私有数据 *&#x2F;
+    void *clientData;
+} aeFileEvent;
+&#x2F;* 使用typedef定义的处理器函数的函数类型 *&#x2F;
+typedef void aeFileProc(struct aeEventLoop *eventLoop, 
+int fd, void *clientData, int mask);
+</code></pre>
 <p>比如说，Redis 进行主从复制时，从服务器需要主服务器建立连接，它会发起一个 socekt连接，然后调用<code>aeCreateFileEvent</code>函数针对发起的socket的读写事件注册了对应的事件处理器，也就是<code>syncWithMaster</code>函数。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">aeCreateFileEvent(server.el,fd,AE_READABLE|AE_WRITABLE,syncWithMaster,NULL);</span><br><span class="line">/* 符合aeFileProc的函数定义 */</span><br><span class="line">void syncWithMaster(aeEventLoop *el, int fd, void *privdata, int mask) &#123;....&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">aeCreateFileEvent(server.el,fd,AE_READABLE|AE_WRITABLE,syncWithMaster,NULL);
+&#x2F;* 符合aeFileProc的函数定义 *&#x2F;
+void syncWithMaster(aeEventLoop *el, int fd, void *privdata, int mask) {....}
+</code></pre>
 <p><code>aeCreateFileEvent</code>的参数<code>fd</code>指的是具体的<code>socket</code>套接字，<code>proc</code>指<code>fd</code>产生事件时，具体的处理函数，<code>clientData</code>则是回调处理函数时需要传入的数据。<br><code>aeCreateFileEvent</code>主要做了三件事情：</p>
 <ul>
 <li>以<code>fd</code>为索引，在<code>events</code>未就绪事件表中找到对应事件。</li>
 <li>调用<code>aeApiAddEvent</code>函数，该事件注册到具体的底层 I/O 多路复用中，本例为epoll。</li>
 <li>填充事件的回调、参数、事件类型等参数。</li>
 </ul>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">int aeCreateFileEvent(aeEventLoop *eventLoop, int fd, int mask,</span><br><span class="line">                       aeFileProc *proc, void *clientData)</span><br><span class="line">&#123;</span><br><span class="line">    /* 取出 fd 对应的文件事件结构, fd 代表具体的 socket 套接字 */</span><br><span class="line">    aeFileEvent *fe = &amp;eventLoop-&gt;events[fd];</span><br><span class="line">    /* 监听指定 fd 的指定事件 */</span><br><span class="line">    if (aeApiAddEvent(eventLoop, fd, mask) == -1)</span><br><span class="line">        return AE_ERR;</span><br><span class="line">    /* 置文件事件类型，以及事件的处理器 */</span><br><span class="line">    fe-&gt;mask |= mask;</span><br><span class="line">    if (mask &amp; AE_READABLE) fe-&gt;rfileProc = proc;</span><br><span class="line">    if (mask &amp; AE_WRITABLE) fe-&gt;wfileProc = proc;</span><br><span class="line">    /* 私有数据 */</span><br><span class="line">    fe-&gt;clientData = clientData;</span><br><span class="line">    if (fd &gt; eventLoop-&gt;maxfd)</span><br><span class="line">        eventLoop-&gt;maxfd = fd;</span><br><span class="line">    return AE_OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>如上文所说，Redis 基于的底层 I/O 多路复用库有多套，所以<code>aeApiAddEvent</code>也有多套实现，下面的源码是<code>epoll</code>下的实现。其核心操作就是调用<code>epoll</code>的<code>epoll_ctl</code>函数来向<code>epoll</code>注册响应事件。有关<code>epoll</code>相关的知识可以看一下<a href="https://mp.weixin.qq.com/s/O40MlDhAgCmcyUgu2jX1dg" target="_blank" rel="noopener">《Java NIO源码分析》</a><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) &#123;</span><br><span class="line">    aeApiState *state = eventLoop-&gt;apidata;</span><br><span class="line">    struct epoll_event ee = &#123;0&#125;; /* avoid valgrind warning */</span><br><span class="line">    /* 如果 fd 没有关联任何事件，那么这是一个 ADD 操作。如果已经关联了某个/某些事件，那么这是一个 MOD 操作。 */</span><br><span class="line">    int op = eventLoop-&gt;events[fd].mask == AE_NONE ?</span><br><span class="line">            EPOLL_CTL_ADD : EPOLL_CTL_MOD;</span><br><span class="line"></span><br><span class="line">    /* 注册事件到 epoll */</span><br><span class="line">    ee.events = 0;</span><br><span class="line">    mask |= eventLoop-&gt;events[fd].mask; /* Merge old events */</span><br><span class="line">    if (mask &amp; AE_READABLE) ee.events |= EPOLLIN;</span><br><span class="line">    if (mask &amp; AE_WRITABLE) ee.events |= EPOLLOUT;</span><br><span class="line">    ee.data.fd = fd;</span><br><span class="line">    /* 调用epoll_ctl 系统调用，将事件加入epoll中 */</span><br><span class="line">    if (epoll_ctl(state-&gt;epfd,op,fd,&amp;ee) == -1) return -1;</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">int aeCreateFileEvent(aeEventLoop *eventLoop, int fd, int mask,
+                       aeFileProc *proc, void *clientData)
+{
+    &#x2F;* 取出 fd 对应的文件事件结构, fd 代表具体的 socket 套接字 *&#x2F;
+    aeFileEvent *fe = &amp;eventLoop-&gt;events[fd];
+    &#x2F;* 监听指定 fd 的指定事件 *&#x2F;
+    if (aeApiAddEvent(eventLoop, fd, mask) == -1)
+        return AE_ERR;
+    &#x2F;* 置文件事件类型，以及事件的处理器 *&#x2F;
+    fe-&gt;mask |= mask;
+    if (mask &amp; AE_READABLE) fe-&gt;rfileProc = proc;
+    if (mask &amp; AE_WRITABLE) fe-&gt;wfileProc = proc;
+    &#x2F;* 私有数据 *&#x2F;
+    fe-&gt;clientData = clientData;
+    if (fd &gt; eventLoop-&gt;maxfd)
+        eventLoop-&gt;maxfd = fd;
+    return AE_OK;
+}
+</code></pre>
+<p>如上文所说，Redis 基于的底层 I/O 多路复用库有多套，所以<code>aeApiAddEvent</code>也有多套实现，下面的源码是<code>epoll</code>下的实现。其核心操作就是调用<code>epoll</code>的<code>epoll_ctl</code>函数来向<code>epoll</code>注册响应事件。有关<code>epoll</code>相关的知识可以看一下<a href="https://mp.weixin.qq.com/s/O40MlDhAgCmcyUgu2jX1dg" target="_blank" rel="noopener">《Java NIO源码分析》</a><br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) {
+    aeApiState *state = eventLoop-&gt;apidata;
+    struct epoll_event ee = {0}; &#x2F;* avoid valgrind warning *&#x2F;
+    &#x2F;* 如果 fd 没有关联任何事件，那么这是一个 ADD 操作。如果已经关联了某个&#x2F;某些事件，那么这是一个 MOD 操作。 *&#x2F;
+    int op = eventLoop-&gt;events[fd].mask == AE_NONE ?
+            EPOLL_CTL_ADD : EPOLL_CTL_MOD;
+
+    &#x2F;* 注册事件到 epoll *&#x2F;
+    ee.events = 0;
+    mask |= eventLoop-&gt;events[fd].mask; &#x2F;* Merge old events *&#x2F;
+    if (mask &amp; AE_READABLE) ee.events |= EPOLLIN;
+    if (mask &amp; AE_WRITABLE) ee.events |= EPOLLOUT;
+    ee.data.fd = fd;
+    &#x2F;* 调用epoll_ctl 系统调用，将事件加入epoll中 *&#x2F;
+    if (epoll_ctl(state-&gt;epfd,op,fd,&amp;ee) == -1) return -1;
+    return 0;
+}
+</code></pre></p>
 <h3 id="事件处理"><a href="#事件处理" class="headerlink" title="事件处理"></a>事件处理</h3><p>因为 Redis 中同时存在文件事件和时间事件两个事件类型，所以服务器必须对这两个事件进行调度，决定何时处理文件事件，何时处理时间事件，以及如何调度它们。</p>
 <p><code>aeMain</code>函数以一个无限循环不断地调用<code>aeProcessEvents</code>函数来处理所有的事件。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">void aeMain(aeEventLoop *eventLoop) &#123;</span><br><span class="line">    eventLoop-&gt;stop = 0;</span><br><span class="line">    while (!eventLoop-&gt;stop) &#123;</span><br><span class="line">        /* 如果有需要在事件处理前执行的函数，那么执行它 */</span><br><span class="line">        if (eventLoop-&gt;beforesleep != NULL)</span><br><span class="line">            eventLoop-&gt;beforesleep(eventLoop);</span><br><span class="line">        /* 开始处理事件*/</span><br><span class="line">        aeProcessEvents(eventLoop, AE_ALL_EVENTS|AE_CALL_AFTER_SLEEP);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">void aeMain(aeEventLoop *eventLoop) {
+    eventLoop-&gt;stop = 0;
+    while (!eventLoop-&gt;stop) {
+        &#x2F;* 如果有需要在事件处理前执行的函数，那么执行它 *&#x2F;
+        if (eventLoop-&gt;beforesleep != NULL)
+            eventLoop-&gt;beforesleep(eventLoop);
+        &#x2F;* 开始处理事件*&#x2F;
+        aeProcessEvents(eventLoop, AE_ALL_EVENTS|AE_CALL_AFTER_SLEEP);
+    }
+}
+</code></pre>
 <p>下面是<code>aeProcessEvents</code>的伪代码，它会首先计算距离当前时间最近的时间事件，以此计算一个超时时间；然后调用<code>aeApiPoll</code>函数去等待底层的I/O多路复用事件就绪；<code>aeApiPoll</code>函数返回之后，会处理所有已经产生文件事件和已经达到的时间事件。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">/* 伪代码 */</span><br><span class="line">int aeProcessEvents(aeEventLoop *eventLoop, int flags) &#123;</span><br><span class="line">    /* 获取到达时间距离当前时间最接近的时间事件*/</span><br><span class="line">    time_event = aeSearchNearestTimer();</span><br><span class="line">    /* 计算最接近的时间事件距离到达还有多少毫秒*/</span><br><span class="line">    remaind_ms = time_event.when - unix_ts_now();</span><br><span class="line">    /* 如果事件已经到达，那么remaind_ms为负数，将其设置为0 */</span><br><span class="line">    if (remaind_ms &lt; 0) remaind_ms = 0;</span><br><span class="line">    /* 根据 remaind_ms 的值，创建 timeval 结构*/</span><br><span class="line">    timeval = create_timeval_with_ms(remaind_ms);</span><br><span class="line">    /* 阻塞并等待文件事件产生，最大阻塞时间由传入的 timeval 结构决定，如果remaind_ms 的值为0，则aeApiPoll 调用后立刻返回，不阻塞*/</span><br><span class="line">    /* aeApiPoll调用epoll_wait函数，等待I/O事件*/</span><br><span class="line">    aeApiPoll(timeval);</span><br><span class="line">    /* 处理所有已经产生的文件事件*/</span><br><span class="line">    processFileEvents();</span><br><span class="line">    /* 处理所有已经到达的时间事件*/</span><br><span class="line">    processTimeEvents();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;* 伪代码 *&#x2F;
+int aeProcessEvents(aeEventLoop *eventLoop, int flags) {
+    &#x2F;* 获取到达时间距离当前时间最接近的时间事件*&#x2F;
+    time_event = aeSearchNearestTimer();
+    &#x2F;* 计算最接近的时间事件距离到达还有多少毫秒*&#x2F;
+    remaind_ms = time_event.when - unix_ts_now();
+    &#x2F;* 如果事件已经到达，那么remaind_ms为负数，将其设置为0 *&#x2F;
+    if (remaind_ms &lt; 0) remaind_ms = 0;
+    &#x2F;* 根据 remaind_ms 的值，创建 timeval 结构*&#x2F;
+    timeval = create_timeval_with_ms(remaind_ms);
+    &#x2F;* 阻塞并等待文件事件产生，最大阻塞时间由传入的 timeval 结构决定，如果remaind_ms 的值为0，则aeApiPoll 调用后立刻返回，不阻塞*&#x2F;
+    &#x2F;* aeApiPoll调用epoll_wait函数，等待I&#x2F;O事件*&#x2F;
+    aeApiPoll(timeval);
+    &#x2F;* 处理所有已经产生的文件事件*&#x2F;
+    processFileEvents();
+    &#x2F;* 处理所有已经到达的时间事件*&#x2F;
+    processTimeEvents();
+}
+</code></pre>
 <p>与<code>aeApiAddEvent</code>类似，<code>aeApiPoll</code>也有多套实现，它其实就做了两件事情，调用<code>epoll_wait</code>阻塞等待<code>epoll</code>的事件就绪，超时时间就是之前根据最快达到时间事件计算而来的超时时间；然后将就绪的<code>epoll</code>事件转换到fired就绪事件。<code>aeApiPoll</code>就是上文所说的I/O多路复用程序。具体过程如下图所示。</p>
 <p><img src="/images/19_85/image5.png" alt="aeApiPoll示意图"></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) </span><br><span class="line">&#123;</span><br><span class="line">    aeApiState *state = eventLoop-&gt;apidata;</span><br><span class="line">    int retval, numevents = 0;</span><br><span class="line">    // 调用epoll_wait函数，等待时间为最近达到时间事件的时间计算而来。</span><br><span class="line">    retval = epoll_wait(state-&gt;epfd,state-&gt;events,eventLoop-&gt;setsize,</span><br><span class="line">            tvp ? (tvp-&gt;tv_sec*1000 + tvp-&gt;tv_usec/1000) : -1);</span><br><span class="line">    // 有至少一个事件就绪？</span><br><span class="line">    if (retval &gt; 0) </span><br><span class="line">    &#123;</span><br><span class="line">        int j;</span><br><span class="line">        /*为已就绪事件设置相应的模式，并加入到 eventLoop 的 fired 数组中*/</span><br><span class="line">        numevents = retval;</span><br><span class="line">        for (j = 0; j &lt; numevents; j++) </span><br><span class="line">	&#123;</span><br><span class="line">            int mask = 0;</span><br><span class="line">            struct epoll_event *e = state-&gt;events+j;</span><br><span class="line">            if (e-&gt;events &amp; EPOLLIN)</span><br><span class="line">		mask |= AE_READABLE;</span><br><span class="line">            if (e-&gt;events &amp; EPOLLOUT)</span><br><span class="line">		mask |= AE_WRITABLE;</span><br><span class="line">            if (e-&gt;events &amp; EPOLLERR) </span><br><span class="line">		mask |= AE_WRITABLE;</span><br><span class="line">            if (e-&gt;events &amp; EPOLLHUP)</span><br><span class="line">		mask |= AE_WRITABLE;</span><br><span class="line">            /* 设置就绪事件表元素 */</span><br><span class="line">            eventLoop-&gt;fired[j].fd = e-&gt;data.fd;</span><br><span class="line">            eventLoop-&gt;fired[j].mask = mask;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    // 返回已就绪事件个数</span><br><span class="line">    return numevents;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) 
+{
+    aeApiState *state = eventLoop-&gt;apidata;
+    int retval, numevents = 0;
+    &#x2F;&#x2F; 调用epoll_wait函数，等待时间为最近达到时间事件的时间计算而来。
+    retval = epoll_wait(state-&gt;epfd,state-&gt;events,eventLoop-&gt;setsize,
+            tvp ? (tvp-&gt;tv_sec*1000 + tvp-&gt;tv_usec&#x2F;1000) : -1);
+    &#x2F;&#x2F; 有至少一个事件就绪？
+    if (retval &gt; 0) 
+    {
+        int j;
+        &#x2F;*为已就绪事件设置相应的模式，并加入到 eventLoop 的 fired 数组中*&#x2F;
+        numevents = retval;
+        for (j = 0; j &lt; numevents; j++) 
+	{
+            int mask = 0;
+            struct epoll_event *e = state-&gt;events+j;
+            if (e-&gt;events &amp; EPOLLIN)
+		mask |= AE_READABLE;
+            if (e-&gt;events &amp; EPOLLOUT)
+		mask |= AE_WRITABLE;
+            if (e-&gt;events &amp; EPOLLERR) 
+		mask |= AE_WRITABLE;
+            if (e-&gt;events &amp; EPOLLHUP)
+		mask |= AE_WRITABLE;
+            &#x2F;* 设置就绪事件表元素 *&#x2F;
+            eventLoop-&gt;fired[j].fd = e-&gt;data.fd;
+            eventLoop-&gt;fired[j].mask = mask;
+        }
+    }
+    
+    &#x2F;&#x2F; 返回已就绪事件个数
+    return numevents;
+}
+</code></pre>
 <p><code>processFileEvent</code>是处理就绪文件事件的伪代码，也是上文所述的文件事件分派器，它其实就是遍历<code>fired</code>就绪事件表，然后根据对应的事件类型来调用事件中注册的不同处理器，读事件调用<code>rfileProc</code>，而写事件调用<code>wfileProc</code>。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">void processFileEvent(int numevents) &#123;</span><br><span class="line">    for (j = 0; j &lt; numevents; j++) &#123;</span><br><span class="line">            /* 从已就绪数组中获取事件 */</span><br><span class="line">            aeFileEvent *fe = &amp;eventLoop-&gt;events[eventLoop-&gt;fired[j].fd];</span><br><span class="line">            int mask = eventLoop-&gt;fired[j].mask;</span><br><span class="line">            int fd = eventLoop-&gt;fired[j].fd;</span><br><span class="line">            int fired = 0;</span><br><span class="line">            int invert = fe-&gt;mask &amp; AE_BARRIER;</span><br><span class="line">	        /* 读事件 */</span><br><span class="line">            if (!invert &amp;&amp; fe-&gt;mask &amp; mask &amp; AE_READABLE) &#123;</span><br><span class="line">                /* 调用读处理函数 */</span><br><span class="line">                fe-&gt;rfileProc(eventLoop,fd,fe-&gt;clientData,mask);</span><br><span class="line">                fired++;</span><br><span class="line">            &#125;</span><br><span class="line">            /* 写事件. */</span><br><span class="line">            if (fe-&gt;mask &amp; mask &amp; AE_WRITABLE) &#123;</span><br><span class="line">                if (!fired || fe-&gt;wfileProc != fe-&gt;rfileProc) &#123;</span><br><span class="line">                    fe-&gt;wfileProc(eventLoop,fd,fe-&gt;clientData,mask);</span><br><span class="line">                    fired++;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            if (invert &amp;&amp; fe-&gt;mask &amp; mask &amp; AE_READABLE) &#123;</span><br><span class="line">                if (!fired || fe-&gt;wfileProc != fe-&gt;rfileProc) &#123;</span><br><span class="line">                    fe-&gt;rfileProc(eventLoop,fd,fe-&gt;clientData,mask);</span><br><span class="line">                    fired++;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            processed++;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>而<code>processTimeEvents</code>是处理时间事件的函数，它会遍历<code>aeEventLoop</code>的事件事件列表，如果时间事件到达就执行其<code>timeProc</code>函数，并根据函数的返回值是否等于<code>AE_NOMORE</code>来决定该时间事件是否是周期性事件，并修改器到达时间。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line">static int processTimeEvents(aeEventLoop *eventLoop) &#123;</span><br><span class="line">    int processed = 0;</span><br><span class="line">    aeTimeEvent *te;</span><br><span class="line">    long long maxId;</span><br><span class="line">    time_t now = time(NULL);</span><br><span class="line">    ....</span><br><span class="line">    eventLoop-&gt;lastTime = now;</span><br><span class="line"></span><br><span class="line">    te = eventLoop-&gt;timeEventHead;</span><br><span class="line">    maxId = eventLoop-&gt;timeEventNextId-1;</span><br><span class="line">    /* 遍历时间事件链表 */</span><br><span class="line">    while(te) &#123;</span><br><span class="line">        long now_sec, now_ms;</span><br><span class="line">        long long id;</span><br><span class="line"></span><br><span class="line">        /* 删除需要删除的时间事件 */</span><br><span class="line">        if (te-&gt;id == AE_DELETED_EVENT_ID) &#123;</span><br><span class="line">            aeTimeEvent *next = te-&gt;next;</span><br><span class="line">            if (te-&gt;prev)</span><br><span class="line">                te-&gt;prev-&gt;next = te-&gt;next;</span><br><span class="line">            else</span><br><span class="line">                eventLoop-&gt;timeEventHead = te-&gt;next;</span><br><span class="line">            if (te-&gt;next)</span><br><span class="line">                te-&gt;next-&gt;prev = te-&gt;prev;</span><br><span class="line">            if (te-&gt;finalizerProc)</span><br><span class="line">                te-&gt;finalizerProc(eventLoop, te-&gt;clientData);</span><br><span class="line">            zfree(te);</span><br><span class="line">            te = next;</span><br><span class="line">            continue;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        /* id 大于最大maxId,是该循环周期生成的时间事件，不处理 */</span><br><span class="line">        if (te-&gt;id &gt; maxId) &#123;</span><br><span class="line">            te = te-&gt;next;</span><br><span class="line">            continue;</span><br><span class="line">        &#125;</span><br><span class="line">        aeGetTime(&amp;now_sec, &amp;now_ms);</span><br><span class="line">        /* 事件已经到达，调用其timeProc函数*/</span><br><span class="line">        if (now_sec &gt; te-&gt;when_sec ||</span><br><span class="line">            (now_sec == te-&gt;when_sec &amp;&amp; now_ms &gt;= te-&gt;when_ms))</span><br><span class="line">        &#123;</span><br><span class="line">            int retval;</span><br><span class="line"></span><br><span class="line">            id = te-&gt;id;</span><br><span class="line">            retval = te-&gt;timeProc(eventLoop, id, te-&gt;clientData);</span><br><span class="line">            processed++;</span><br><span class="line">            /* 如果返回值不等于 AE_NOMORE,表示是一个周期性事件，修改其when_sec和when_ms属性*/</span><br><span class="line">            if (retval != AE_NOMORE) &#123;</span><br><span class="line">                aeAddMillisecondsToNow(retval,&amp;te-&gt;when_sec,&amp;te-&gt;when_ms);</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                /* 一次性事件，标记为需删除，下次遍历时会删除*/</span><br><span class="line">                te-&gt;id = AE_DELETED_EVENT_ID;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        te = te-&gt;next;</span><br><span class="line">    &#125;</span><br><span class="line">    return processed;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">void processFileEvent(int numevents) {
+    for (j = 0; j &lt; numevents; j++) {
+            &#x2F;* 从已就绪数组中获取事件 *&#x2F;
+            aeFileEvent *fe = &amp;eventLoop-&gt;events[eventLoop-&gt;fired[j].fd];
+            int mask = eventLoop-&gt;fired[j].mask;
+            int fd = eventLoop-&gt;fired[j].fd;
+            int fired = 0;
+            int invert = fe-&gt;mask &amp; AE_BARRIER;
+	        &#x2F;* 读事件 *&#x2F;
+            if (!invert &amp;&amp; fe-&gt;mask &amp; mask &amp; AE_READABLE) {
+                &#x2F;* 调用读处理函数 *&#x2F;
+                fe-&gt;rfileProc(eventLoop,fd,fe-&gt;clientData,mask);
+                fired++;
+            }
+            &#x2F;* 写事件. *&#x2F;
+            if (fe-&gt;mask &amp; mask &amp; AE_WRITABLE) {
+                if (!fired || fe-&gt;wfileProc != fe-&gt;rfileProc) {
+                    fe-&gt;wfileProc(eventLoop,fd,fe-&gt;clientData,mask);
+                    fired++;
+                }
+            }
+            if (invert &amp;&amp; fe-&gt;mask &amp; mask &amp; AE_READABLE) {
+                if (!fired || fe-&gt;wfileProc != fe-&gt;rfileProc) {
+                    fe-&gt;rfileProc(eventLoop,fd,fe-&gt;clientData,mask);
+                    fired++;
+                }
+            }
+            processed++;
+        }
+    }
+}
+</code></pre>
+<p>而<code>processTimeEvents</code>是处理时间事件的函数，它会遍历<code>aeEventLoop</code>的事件事件列表，如果时间事件到达就执行其<code>timeProc</code>函数，并根据函数的返回值是否等于<code>AE_NOMORE</code>来决定该时间事件是否是周期性事件，并修改器到达时间。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">static int processTimeEvents(aeEventLoop *eventLoop) {
+    int processed = 0;
+    aeTimeEvent *te;
+    long long maxId;
+    time_t now = time(NULL);
+    ....
+    eventLoop-&gt;lastTime = now;
+
+    te = eventLoop-&gt;timeEventHead;
+    maxId = eventLoop-&gt;timeEventNextId-1;
+    &#x2F;* 遍历时间事件链表 *&#x2F;
+    while(te) {
+        long now_sec, now_ms;
+        long long id;
+
+        &#x2F;* 删除需要删除的时间事件 *&#x2F;
+        if (te-&gt;id == AE_DELETED_EVENT_ID) {
+            aeTimeEvent *next = te-&gt;next;
+            if (te-&gt;prev)
+                te-&gt;prev-&gt;next = te-&gt;next;
+            else
+                eventLoop-&gt;timeEventHead = te-&gt;next;
+            if (te-&gt;next)
+                te-&gt;next-&gt;prev = te-&gt;prev;
+            if (te-&gt;finalizerProc)
+                te-&gt;finalizerProc(eventLoop, te-&gt;clientData);
+            zfree(te);
+            te = next;
+            continue;
+        }
+
+        &#x2F;* id 大于最大maxId,是该循环周期生成的时间事件，不处理 *&#x2F;
+        if (te-&gt;id &gt; maxId) {
+            te = te-&gt;next;
+            continue;
+        }
+        aeGetTime(&amp;now_sec, &amp;now_ms);
+        &#x2F;* 事件已经到达，调用其timeProc函数*&#x2F;
+        if (now_sec &gt; te-&gt;when_sec ||
+            (now_sec == te-&gt;when_sec &amp;&amp; now_ms &gt;= te-&gt;when_ms))
+        {
+            int retval;
+
+            id = te-&gt;id;
+            retval = te-&gt;timeProc(eventLoop, id, te-&gt;clientData);
+            processed++;
+            &#x2F;* 如果返回值不等于 AE_NOMORE,表示是一个周期性事件，修改其when_sec和when_ms属性*&#x2F;
+            if (retval != AE_NOMORE) {
+                aeAddMillisecondsToNow(retval,&amp;te-&gt;when_sec,&amp;te-&gt;when_ms);
+            } else {
+                &#x2F;* 一次性事件，标记为需删除，下次遍历时会删除*&#x2F;
+                te-&gt;id = AE_DELETED_EVENT_ID;
+            }
+        }
+        te = te-&gt;next;
+    }
+    return processed;
+}
+</code></pre></p>
 <h3 id="删除事件"><a href="#删除事件" class="headerlink" title="删除事件"></a>删除事件</h3><p>当不在需要某个事件时，需要把事件删除掉。例如: 如果fd同时监听读事件、写事件。当不在需要监听写事件时，可以把该fd的写事件删除。</p>
 <p><code>aeDeleteEventLoop</code>函数的执行过程总结为以下几个步骤<br>1、根据<code>fd</code>在未就绪表中查找到事件<br>2、取消该<code>fd</code>对应的相应事件标识符<br>3、调用<code>aeApiFree</code>函数，内核会将epoll监听红黑树上的相应事件监听取消。</p>
 <h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>接下来，我们会继续学习 Redis 的主从复制相关的原理，欢迎大家持续关注。</p>
@@ -355,7 +655,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/1aa2da89/" data-id="ck6535m7v003t9kse20ruchnd" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/1aa2da89/" data-id="ck6540j9h003plhsewat7jbog" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -661,6 +961,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 

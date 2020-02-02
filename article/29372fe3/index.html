@@ -290,7 +290,13 @@ var _hmt = _hmt || [];
         
             
             <p>&emsp;前几天在微博上看到一个人评论Android Span机制相当强大，有必要细心研究一下，于是就google了一下，发现了一篇很好的文章<a href="http://flavienlaurent.com/blog/2014/01/31/spans/" target="_blank" rel="noopener">Spans, a Powerful Concept.</a>，然后以这篇文章为基础研究了一下Android Span的用法。于是决定写几篇文章来总结一下。</p>
-<h3 id="Android-Span-介绍"><a href="#Android-Span-介绍" class="headerlink" title="Android Span 介绍"></a>Android Span 介绍</h3><p>&emsp;对于<code>Span</code>，大家首先想起的应用场景就是同一个<code>TextView</code>中显示不同颜色的字体。对于这种需求，我们会用到<code>ForegroundColorSpan</code><br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ForegroundColorSpan span = <span class="keyword">new</span> ForegroundColorSpan(Color.RED);</span><br><span class="line">SpannableString spannableString = <span class="keyword">new</span> SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,<span class="number">0</span>,spannableString.length()/<span class="number">2</span>,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure></p>
+<h3 id="Android-Span-介绍"><a href="#Android-Span-介绍" class="headerlink" title="Android Span 介绍"></a>Android Span 介绍</h3><p>&emsp;对于<code>Span</code>，大家首先想起的应用场景就是同一个<code>TextView</code>中显示不同颜色的字体。对于这种需求，我们会用到<code>ForegroundColorSpan</code><br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">ForegroundColorSpan span = new ForegroundColorSpan(Color.RED);
+SpannableString spannableString = new SpannableString(CONTENT);
+spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+mTvTextView.setText(spannableString);
+</code></pre></p>
 <p>&emsp;上面这段代码可能就是大家对Android Span的全部了解了，但是Android Span有着和Drawable同样强大的能力，希望我的这几篇文章可以带领大家初探Android Span的强大能力。</p>
 <h3 id="Android-Span-框架"><a href="#Android-Span-框架" class="headerlink" title="Android Span 框架"></a>Android Span 框架</h3><p>&emsp;Android Span 框架涉及的类遵循一下四个定义规则:</p>
 <ul>
@@ -303,65 +309,161 @@ var _hmt = _hmt || [];
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-cdupdateappearance.png" alt="UpdateAppearance相关类图"></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-cdupdatelayout.png" alt="UpdateLayout相关类图"></p>
 <h3 id="Android-Span类型介绍"><a href="#Android-Span类型介绍" class="headerlink" title="Android Span类型介绍"></a>Android Span类型介绍</h3><p>&emsp;Android Span的相关原理和机制以后再讲，我们先来了解一下当前Android预设的<code>Span</code>类型的用法吧。</p>
-<p>####　<strong>android.text.style.BulletSpan</strong><br>&emsp;<code>BulletSpan</code>影响<strong>段落层次</strong>文字的格式，它让你在段落开头添加一个黑圆点。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">BulletSpan span = new BulletSpan(15,Color.RED);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure></p>
+<p>####　<strong>android.text.style.BulletSpan</strong><br>&emsp;<code>BulletSpan</code>影响<strong>段落层次</strong>文字的格式，它让你在段落开头添加一个黑圆点。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">BulletSpan span = new BulletSpan(15,Color.RED);
+SpannableString spannableString = new SpannableString(CONTENT);
+spannableString.setSpan(span,0,1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+mTvTextView.setText(spannableString);
+</code></pre></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-BulletSpan.png" alt="BulletSpan效果图"></p>
 <p>####　<strong>android.text.style.QuoteSpan</strong></p>
 <p>&emsp;<code>QuoteSpan</code>影响<strong>段落层次</strong>文字的格式，它可以在段落前边添加一个竖直的引用线。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">QuoteSpan span = new QuoteSpan(Color.RED);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">QuoteSpan span = new QuoteSpan(Color.RED);
+SpannableString spannableString = new SpannableString(CONTENT);
+spannableString.setSpan(span,0,2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+mTvTextView.setText(spannableString);
+</code></pre>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-QuoteSpan.png" alt="QuoteSpan效果图"></p>
 <p>####　<strong>android.text.style.AlignmentSpan</strong></p>
-<p>&emsp;<code>AlignSpan.Standard</code>影响<strong>段落层次</strong>文字的格式，它允许你控制段落的对齐方式，有居中对齐，右侧对齐和左侧对齐。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">AlignmentSpan.Standard span = new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,0,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;<code>AlignSpan.Standard</code>影响<strong>段落层次</strong>文字的格式，它允许你控制段落的对齐方式，有居中对齐，右侧对齐和左侧对齐。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">AlignmentSpan.Standard span = new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER);
+SpannableString spannableString = new SpannableString(CONTENT);
+spannableString.setSpan(span,0,0,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+mTvTextView.setText(spannableString);
+</code></pre></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-AliginSpan.png" alt="AlignSpan效果图"></p>
 <p>####　<strong>android.text.style.UnderlineSpan</strong></p>
 <p>&emsp;<code>UnderlineSpan</code>影响<strong>字符层次</strong>文字的格式，它可以在文字下方添加下划线。其内部实现其实就是使用<code>Paint.setUnderlineText(true)</code>实现的。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">UnderlineSpan span = new UnderlineSpan();</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">UnderlineSpan span = new UnderlineSpan();
+SpannableString spannableString = new SpannableString(CONTENT);
+spannableString.setSpan(span,0,spannableString.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+mTvTextView.setText(spannableString);
+</code></pre>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-UnderlineSpan.png" alt="UnderlineSpan效果图"></p>
 <p>####　<strong>android.text.style.StrikethroughSpan</strong></p>
 <p>&emsp;<code>StrikethroughSpan</code>影响<strong>字符层次</strong>上的文字的格式，它允许你在文字上添加删除线。它内部使用<code>Paint.setStrikeThruText(true))</code>来实现。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">StrikethroughSpan span = new StrikethroughSpan();</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">StrikethroughSpan span = new StrikethroughSpan();
+SpannableString spannableString = new SpannableString(CONTENT);
+spannableString.setSpan(span,0,spannableString.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+mTvTextView.setText(spannableString);
+</code></pre>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-StrikeSpan.png" alt="StrikethroughSpan效果图"></p>
 <p>####　<strong>android.text.style.SubscriptSpan</strong></p>
 <p>&emsp;<code>SubscriptSpan</code>影响<strong>字符层次</strong>上的文字的格式，它允许你把文字作为下标进行显示。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SubscriptSpan span = new SubscriptSpan();</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">SubscriptSpan span = new SubscriptSpan();
+SpannableString spannableString = new SpannableString(CONTENT);
+spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+mTvTextView.setText(spannableString);
+</code></pre>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-SubscriptSpan.png" alt="SubscriptSpan效果图"></p>
 <p>####　<strong>android.text.style.SuperscriptSpan</strong></p>
 <p>&emsp;``影响<strong>字符层次</strong>上的文字的格式，它允许你把文字作为上标进行显示。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SuperscriptSpan span = new SuperscriptSpan();</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">SuperscriptSpan span = new SuperscriptSpan();
+SpannableString spannableString = new SpannableString(CONTENT);
+spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+mTvTextView.setText(spannableString);
+</code></pre>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-SupscriptSpan.png" alt="SuperscriptSpan效果图"></p>
 <p>####　<strong>android.text.style.BackgroundColorSpan</strong></p>
 <p>&emsp;<code>BackgroundColorSpan</code>影响<strong>字符层次</strong>上的文字的格式，你可以使用它设置文字的背景颜色。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">BackgroundColorSpan span = new BackgroundColorSpan(Color.RED);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">BackgroundColorSpan span = new BackgroundColorSpan(Color.RED);
+SpannableString spannableString = new SpannableString(CONTENT);
+spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+mTvTextView.setText(spannableString);
+</code></pre>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-BackgroundSpan.png" alt="BackgroundColorSpan效果图"></p>
 <p>####　<strong>android.text.style.ForegroundColorSpan</strong></p>
 <p>&emsp;<code>ForegroundColorSpan</code>影响<strong>字符层次</strong>上的文字的格式，你可以使用它设置文字的自己的颜色。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ForegroundColorSpan span = new ForegroundColorSpan(Color.RED);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">ForegroundColorSpan span = new ForegroundColorSpan(Color.RED);
+SpannableString spannableString = new SpannableString(CONTENT);
+spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+mTvTextView.setText(spannableString);
+</code></pre>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-ForegroundSpan.png" alt="ForegroundColorSpan效果图"></p>
 <p>####　<strong>android.text.style.ImageSpan</strong></p>
 <p>&emsp;<code>ImageSpan</code>影响<strong>字符层次</strong>上的文字的格式，你可以使用它在文字中间添加图片。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ImageSpan span = new ImageSpan(this,R.mipmap.ic_launcher);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">ImageSpan span = new ImageSpan(this,R.mipmap.ic_launcher);
+SpannableString spannableString = new SpannableString(CONTENT);
+spannableString.setSpan(span,0,1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+mTvTextView.setText(spannableString);
+</code></pre>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-ImageSpan.png" alt="ImageSpan效果图"></p>
 <p>####　<strong>android.text.style.StyleSpan</strong></p>
 <p>&emsp;<code>StyleSpan</code>影响<strong>字符层次</strong>上的文字的格式。它允许你设置文字的类型(bold, italic, normal)</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">StyleSpan span = new StyleSpan(Typeface.BOLD);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">StyleSpan span = new StyleSpan(Typeface.BOLD);
+SpannableString spannableString = new SpannableString(CONTENT);
+spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+mTvTextView.setText(spannableString);
+</code></pre>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-StyleSpan.png" alt="StyleSpan效果图"></p>
 <p>####　<strong>android.text.style.TypefaceSpan</strong></p>
 <p>&emsp;<code>TypefaceSpan</code>影响<strong>字符层次</strong>上的文字的格式。它允许你设置文字的字体族(monospace, serif等)</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">TypefaceSpan span = new TypefaceSpan(&quot;serif&quot;);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">TypefaceSpan span = new TypefaceSpan(&quot;serif&quot;);
+SpannableString spannableString = new SpannableString(CONTENT);
+spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+mTvTextView.setText(spannableString);
+</code></pre>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-TypefaceSpan.png" alt="TypefaceSpan效果图"></p>
 <p>####　<strong>android.text.style.AbsoluteSizeSpan</strong></p>
 <p>&emsp;<code>AbsoluteSizeSpan</code>影响<strong>字符层次</strong>上的文字的格式。它允许你设置文字的绝对字体大小。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">AbsoluteSizeSpan span = new AbsoluteSizeSpan(24,true);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">AbsoluteSizeSpan span = new AbsoluteSizeSpan(24,true);
+SpannableString spannableString = new SpannableString(CONTENT);
+spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+mTvTextView.setText(spannableString);
+</code></pre>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-AbsolutSizeSpan.png" alt="AbsoluteSizeSpan效果图"></p>
 <p>####　<strong>android.text.style.RelativeSizeSpan</strong></p>
 <p>&emsp;<code>RelativeSizeSpan</code>影响<strong>字符层次</strong>上的文字的格式。它允许你设置文字的相对字体大小。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">RelativeSizeSpan span = new RelativeSizeSpan(2.0f);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">RelativeSizeSpan span = new RelativeSizeSpan(2.0f);
+SpannableString spannableString = new SpannableString(CONTENT);
+spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+mTvTextView.setText(spannableString);
+</code></pre>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-RelativeSizeSpan.png" alt="RelativeSizeSpan效果图"></p>
 <p>####　<strong>android.text.style.ScaleXSpan</strong></p>
-<p><code>&amp;emsp;</code>ScaleXSpan`影响<strong>字符层次</strong>上的文字的格式。它让你让文字在ｘ方向上进行缩放。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ScaleXSpan span = new ScaleXSpan(2.0f);</span><br><span class="line">SpannableString spannableString = new SpannableString(CONTENT);</span><br><span class="line">spannableString.setSpan(span,0,spannableString.length()/2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);</span><br><span class="line">mTvTextView.setText(spannableString);</span><br></pre></td></tr></table></figure></p>
+<p><code>&amp;emsp;</code>ScaleXSpan`影响<strong>字符层次</strong>上的文字的格式。它让你让文字在ｘ方向上进行缩放。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">ScaleXSpan span = new ScaleXSpan(2.0f);
+SpannableString spannableString = new SpannableString(CONTENT);
+spannableString.setSpan(span,0,spannableString.length()&#x2F;2,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+mTvTextView.setText(spannableString);
+</code></pre></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-ScaleSpan.png" alt="ScaleXSpan效果图"></p>
 <p>####　<strong>android.text.style.MaskFilterSpan</strong></p>
 <p>&emsp;<code>MaskFilterSpan</code>影响<strong>字符层次</strong>上的文字的格式。它让你在文字上设置<code>android.graphics.MaskFilter</code></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">//Blur a character</span><br><span class="line">span = new MaskFilterSpan(new BlurMaskFilter(density*2, BlurMaskFilter.Blur.NORMAL));</span><br><span class="line">//Emboss a character</span><br><span class="line">span = new MaskFilterSpan(new EmbossMaskFilter(new float[] &#123; 1, 1, 1 &#125;, 0.4f, 6, 3.5f));</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F;Blur a character
+span = new MaskFilterSpan(new BlurMaskFilter(density*2, BlurMaskFilter.Blur.NORMAL));
+&#x2F;&#x2F;Emboss a character
+span = new MaskFilterSpan(new EmbossMaskFilter(new float[] { 1, 1, 1 }, 0.4f, 6, 3.5f));
+</code></pre>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-maskfilterblur.png" alt="BlurMaskFilter效果图"></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160805-Span-maskfilteremboss.png" alt="EmbossMaskFilter效果图"></p>
 <h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;本篇文章只是简单介绍Android Span的使用，接下来的文章会介绍Span更加高级的用法和它的原理。希望大家继续支持。</p>
@@ -375,7 +477,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/29372fe3/" data-id="ck6535m6i000u9ksedcvlc1xz" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/29372fe3/" data-id="ck6540j7v000qlhse6flmjkye" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -681,6 +783,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 

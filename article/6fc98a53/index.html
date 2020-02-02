@@ -285,22 +285,156 @@ var _hmt = _hmt || [];
 <p>&emsp;如上图所示，使用<code>Feign</code>的程序的架构一般分为三个部分，分别为服务注册中心，服务提供者和服务消费者。服务提供者向服务注册中心注册自己，然后服务消费者通过<code>Feign</code>发送请求时，<code>Feign</code>会向去服务注册中心获取关于服务提供者的信息，然后再向服务提供者发送网络请求。</p>
 <h3 id="代码示例"><a href="#代码示例" class="headerlink" title="代码示例"></a>代码示例</h3><h4 id="服务注册中心"><a href="#服务注册中心" class="headerlink" title="服务注册中心"></a>服务注册中心</h4><p>&emsp;<code>Feign</code>可以配合<code>eureka</code>等服务注册中心同时使用。<code>eureka</code>来作为服务注册中心，为<code>Feign</code>提供关于服务端信息的获取，比如说IP地址。关于<code>eureka</code>的具体使用可以参考第四章中关于<code>eureka</code>的快速入门介绍。</p>
 <h4 id="服务提供者"><a href="#服务提供者" class="headerlink" title="服务提供者"></a>服务提供者</h4><p>&emsp;<code>Spring Cloud Feign</code>是声明式RESTful请求客户端，所以它不会侵入服务提供者程序的实现。也就是说，服务提供者只需要提供Web Service的API接口，至于具体实现既可以是<code>Spring Controler</code>也可以是<code>Jersey</code>。我们只需要确保该服务提供者被注册到服务注册中心上。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RestController</span></span><br><span class="line"><span class="meta">@RequestMapping</span>(<span class="string">"/feign-service"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">FeignServiceController</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Logger logger = LoggerFactory.getLogger(FeignServiceController.class);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> String DEFAULT_SERVICE_ID = <span class="string">"application"</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> String DEFAULT_HOST = <span class="string">"localhost"</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> DEFAULT_PORT = <span class="number">8080</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance/&#123;serviceId&#125;"</span>, method = RequestMethod.GET)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> Instance <span class="title">getInstanceByServiceId</span><span class="params">(@PathVariable(<span class="string">"serviceId"</span>)</span> String serviceId)</span>&#123;</span><br><span class="line">        logger.info(<span class="string">"Get Instance by serviceId &#123;&#125;"</span>, serviceId);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Instance(serviceId, DEFAULT_HOST, DEFAULT_PORT);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance/&#123;serviceId&#125;"</span>, method = RequestMethod.DELETE)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">deleteInstanceByServiceId</span><span class="params">(@PathVariable(<span class="string">"serviceId"</span>)</span> String serviceId)</span>&#123;</span><br><span class="line"></span><br><span class="line">        logger.info(<span class="string">"Delete Instance by serviceId &#123;&#125;"</span>, serviceId);</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"Instance whose serviceId is "</span> + serviceId + <span class="string">" is deleted"</span>;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance"</span>, method = RequestMethod.POST)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">createInstance</span><span class="params">(@RequestBody Instance instance)</span></span>&#123;</span><br><span class="line"></span><br><span class="line">        logger.info(<span class="string">"Create Instance whose serviceId is &#123;&#125;"</span>, instance.getServiceId());</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"Instance whose serviceId is"</span> + instance.getServiceId() + <span class="string">" is created"</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance/&#123;serviceId&#125;"</span>, method = RequestMethod.PUT)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">updateInstanceByServiceId</span><span class="params">(@RequestBody Instance instance, @PathVariable(<span class="string">"serviceId"</span>)</span> String serviceId)</span>&#123;</span><br><span class="line">        logger.info(<span class="string">"Update Instance whose serviceId is &#123;&#125;"</span>, serviceId);</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"Instance whose serviceId is "</span> + serviceId + <span class="string">" is updated"</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">@RestController
+@RequestMapping(&quot;&#x2F;feign-service&quot;)
+public class FeignServiceController {
+
+    private static final Logger logger = LoggerFactory.getLogger(FeignServiceController.class);
+
+    private static String DEFAULT_SERVICE_ID = &quot;application&quot;;
+    private static String DEFAULT_HOST = &quot;localhost&quot;;
+    private static int DEFAULT_PORT = 8080;
+
+    @RequestMapping(value = &quot;&#x2F;instance&#x2F;{serviceId}&quot;, method = RequestMethod.GET)
+    public Instance getInstanceByServiceId(@PathVariable(&quot;serviceId&quot;) String serviceId){
+        logger.info(&quot;Get Instance by serviceId {}&quot;, serviceId);
+        return new Instance(serviceId, DEFAULT_HOST, DEFAULT_PORT);
+    }
+
+    @RequestMapping(value = &quot;&#x2F;instance&#x2F;{serviceId}&quot;, method = RequestMethod.DELETE)
+    public String deleteInstanceByServiceId(@PathVariable(&quot;serviceId&quot;) String serviceId){
+
+        logger.info(&quot;Delete Instance by serviceId {}&quot;, serviceId);
+        return &quot;Instance whose serviceId is &quot; + serviceId + &quot; is deleted&quot;;
+
+    }
+
+    @RequestMapping(value = &quot;&#x2F;instance&quot;, method = RequestMethod.POST)
+    public String createInstance(@RequestBody Instance instance){
+
+        logger.info(&quot;Create Instance whose serviceId is {}&quot;, instance.getServiceId());
+        return &quot;Instance whose serviceId is&quot; + instance.getServiceId() + &quot; is created&quot;;
+    }
+
+    @RequestMapping(value = &quot;&#x2F;instance&#x2F;{serviceId}&quot;, method = RequestMethod.PUT)
+    public String updateInstanceByServiceId(@RequestBody Instance instance, @PathVariable(&quot;serviceId&quot;) String serviceId){
+        logger.info(&quot;Update Instance whose serviceId is {}&quot;, serviceId);
+        return &quot;Instance whose serviceId is &quot; + serviceId + &quot; is updated&quot;;
+    }
+}
+</code></pre>
 <p>&emsp;上述代码中通过<code>@RestController</code>和<code>@RequestMapping</code>声明了四个网络API接口，分别是对<code>Instance</code>资源的增删改查操作。</p>
 <p>&emsp;除了实现网络API接口之外，还需要将该service注册到<code>eureka</code>上。如下列代码所示，需要在<code>application.yml</code>文件中设置服务注册中心的相关信息和代表该应用的名称。</p>
-<figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">eureka:</span></span><br><span class="line"><span class="attr">  instance:</span></span><br><span class="line"><span class="attr">    instance-id:</span> <span class="string">$&#123;spring.application.name&#125;:$&#123;vcap.application.instance_id:$&#123;spring.application.instance_id:$&#123;random.value&#125;&#125;&#125;</span></span><br><span class="line"><span class="attr">  client:</span></span><br><span class="line"><span class="attr">    service-url:</span></span><br><span class="line"><span class="attr">      default-zone:</span> <span class="attr">http://localhost:8761/eureka/</span></span><br><span class="line"><span class="attr">spring:</span></span><br><span class="line"><span class="attr">  application:</span></span><br><span class="line"><span class="attr">    name:</span> <span class="string">feign-service</span></span><br><span class="line"><span class="attr">server:</span></span><br><span class="line"><span class="attr">  port:</span> <span class="number">0</span></span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-yml">eureka:
+  instance:
+    instance-id: ${spring.application.name}:${vcap.application.instance_id:${spring.application.instance_id:${random.value}}}
+  client:
+    service-url:
+      default-zone: http:&#x2F;&#x2F;localhost:8761&#x2F;eureka&#x2F;
+spring:
+  application:
+    name: feign-service
+server:
+  port: 0
+</code></pre>
 <h4 id="服务消费者"><a href="#服务消费者" class="headerlink" title="服务消费者"></a>服务消费者</h4><p>&emsp;<code>Feign</code>是声明式RESTful客户端，所以构建<code>Feign</code>项目的关键在于构建服务消费者。通过下面六步可以创建一个<code>Spring Cloud Feign</code>的服务消费者。</p>
 <p>&emsp;首先创建一个普通的<code>Spring Boot</code>工程，取名为<code>chapter-feign-client</code>。<br>&emsp;然后在pom文件中添加<code>eureka</code>和<code>feign</code>相关的依赖。其中<code>spring-cloud-starter-eureka</code>是<code>eureka</code>的starter依赖包，<code>spring-cloud-starter-feign</code>是<code>feign</code>的starter依赖包。</p>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.cloud<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-cloud-starter-eureka<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.cloud<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-cloud-starter-feign<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-xml">&lt;dependencies&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.cloud&lt;&#x2F;groupId&gt;
+        &lt;artifactId&gt;spring-cloud-starter-eureka&lt;&#x2F;artifactId&gt;
+    &lt;&#x2F;dependency&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.cloud&lt;&#x2F;groupId&gt;
+        &lt;artifactId&gt;spring-cloud-starter-feign&lt;&#x2F;artifactId&gt;
+    &lt;&#x2F;dependency&gt;
+&lt;&#x2F;dependencies&gt;
+</code></pre>
 <p>&emsp;接着在工程的入口类上添加<code>@EnableFeignClients</code>注解表示开启<code>Spring Cloud Feign</code>的支持功能，代码如下所示。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@SpringBootApplication</span></span><br><span class="line"><span class="meta">@EnableFeignClients</span>()</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ChapterFeignClientApplication</span> </span>&#123;</span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">		SpringApplication.run(ChapterFeignClientApplication.class, args);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">@SpringBootApplication
+@EnableFeignClients()
+public class ChapterFeignClientApplication {
+	public static void main(String[] args) {
+		SpringApplication.run(ChapterFeignClientApplication.class, args);
+	}
+}
+</code></pre>
 <p>&emsp;<code>@EnableFeignClients</code>就像是一个开关，如果你使用了该注解，那么<code>Feign</code>相关的组件和处理机制才会生效，否则不会生效。<code>@EnableFeignClients</code>还可以对<code>Feign</code>相关组件进行自定义配置，它的方法和原理会在本章的源码分析章节在做具体的讲解。</p>
 <p>&emsp;接下来我们定义一个<code>FeignServiceClient</code>接口，通过<code>@FeignClient</code>注解来指定服务名进而绑定服务。这一类被<code>@FeignClient</code>修饰的接口类一般被称为FeignClient。我们可以通过<code>@RequestMapping</code>来修饰相应的方法来定义调用函数。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@FeignClient</span>(<span class="string">"feign-service"</span>)</span><br><span class="line"><span class="meta">@RequestMapping</span>(<span class="string">"/feign-service"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">FeignServiceClient</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance/&#123;serviceId&#125;"</span>, method = RequestMethod.GET)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> Instance <span class="title">getInstanceByServiceId</span><span class="params">(@PathVariable(<span class="string">"serviceId"</span>)</span> String serviceId)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance/&#123;serviceId&#125;"</span>, method = RequestMethod.DELETE)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">deleteInstanceByServiceId</span><span class="params">(@PathVariable(<span class="string">"serviceId"</span>)</span> String serviceId)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance"</span>, method = RequestMethod.POST)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">createInstance</span><span class="params">(@RequestBody Instance instance)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance/&#123;serviceId&#125;"</span>, method = RequestMethod.PUT)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">updateInstanceByServiceId</span><span class="params">(@RequestBody Instance instance, @PathVariable(<span class="string">"serviceId"</span>)</span> String serviceId)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">@FeignClient(&quot;feign-service&quot;)
+@RequestMapping(&quot;&#x2F;feign-service&quot;)
+public interface FeignServiceClient {
+
+    @RequestMapping(value = &quot;&#x2F;instance&#x2F;{serviceId}&quot;, method = RequestMethod.GET)
+    public Instance getInstanceByServiceId(@PathVariable(&quot;serviceId&quot;) String serviceId);
+
+    @RequestMapping(value = &quot;&#x2F;instance&#x2F;{serviceId}&quot;, method = RequestMethod.DELETE)
+    public String deleteInstanceByServiceId(@PathVariable(&quot;serviceId&quot;) String serviceId);
+
+    @RequestMapping(value = &quot;&#x2F;instance&quot;, method = RequestMethod.POST)
+    public String createInstance(@RequestBody Instance instance);
+
+    @RequestMapping(value = &quot;&#x2F;instance&#x2F;{serviceId}&quot;, method = RequestMethod.PUT)
+    public String updateInstanceByServiceId(@RequestBody Instance instance, @PathVariable(&quot;serviceId&quot;) String serviceId);
+}
+</code></pre>
 <p>&emsp;如上面代码片段所显示的，如果你调用<code>FeignServiceClient</code>对象的<code>getInstanceByServiceId</code>函数，那么<code>Feign</code>就会向<code>feign-service</code>服务的<code>/feign-service/instance/{serviceId}</code>接口发送网络请求。</p>
 <p>&emsp;创建一个<code>Controller</code>来调用上边的服务，通过<code>@Autowired</code>来自动装载<code>FeignServiceClient</code>示例。代码如下：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RestController</span></span><br><span class="line"><span class="meta">@RequestMapping</span>(<span class="string">"/feign-client"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">FeignClientController</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    FeignServiceClient feignServiceClient;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance/&#123;serviceId&#125;"</span>, method = RequestMethod.GET)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> Instance <span class="title">getInstanceByServiceId</span><span class="params">(@PathVariable(<span class="string">"serviceId"</span>)</span> String serviceId)</span>&#123;</span><br><span class="line">        <span class="keyword">return</span> feignServiceClient.getInstanceByServiceId(serviceId);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance/&#123;serviceId&#125;"</span>, method = RequestMethod.DELETE)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">deleteInstanceByServiceId</span><span class="params">(@PathVariable(<span class="string">"serviceId"</span>)</span> String serviceId)</span>&#123;</span><br><span class="line">        <span class="keyword">return</span> feignServiceClient.deleteInstanceByServiceId(serviceId);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance"</span>, method = RequestMethod.POST)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">createInstance</span><span class="params">(@RequestBody Instance instance)</span></span>&#123;</span><br><span class="line">        <span class="keyword">return</span> feignServiceClient.createInstance(instance);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance/&#123;serviceId&#125;"</span>, method = RequestMethod.PUT)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">updateInstanceByServiceId</span><span class="params">(@RequestBody Instance instance, @PathVariable(<span class="string">"serviceId"</span>)</span> String serviceId)</span>&#123;</span><br><span class="line">        <span class="keyword">return</span> feignServiceClient.updateInstanceByServiceId(instance, serviceId);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>&emsp;最后，<code>application.yml</code>中需要配置<code>eureka</code>服务注册中心的相关配置，具体配置如下所示：<br><figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">eureka:</span></span><br><span class="line"><span class="attr">  instance:</span></span><br><span class="line"><span class="attr">    instance-id:</span> <span class="string">$&#123;spring.application.name&#125;:$&#123;vcap.application.instance_id:$&#123;spring.application.instance_id:$&#123;random.value&#125;&#125;&#125;</span></span><br><span class="line"><span class="attr">  client:</span></span><br><span class="line"><span class="attr">    service-url:</span></span><br><span class="line"><span class="attr">      default-zone:</span> <span class="attr">http://localhost:8761/eureka/</span></span><br><span class="line"></span><br><span class="line"><span class="attr">spring:</span></span><br><span class="line"><span class="attr">  application:</span></span><br><span class="line"><span class="attr">    name:</span> <span class="string">feign-client</span></span><br><span class="line"><span class="attr">server:</span></span><br><span class="line"><span class="attr">  port:</span> <span class="number">8770</span></span><br></pre></td></tr></table></figure></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">@RestController
+@RequestMapping(&quot;&#x2F;feign-client&quot;)
+public class FeignClientController {
+
+    @Autowired
+    FeignServiceClient feignServiceClient;
+
+    @RequestMapping(value = &quot;&#x2F;instance&#x2F;{serviceId}&quot;, method = RequestMethod.GET)
+    public Instance getInstanceByServiceId(@PathVariable(&quot;serviceId&quot;) String serviceId){
+        return feignServiceClient.getInstanceByServiceId(serviceId);
+    }
+
+    @RequestMapping(value = &quot;&#x2F;instance&#x2F;{serviceId}&quot;, method = RequestMethod.DELETE)
+    public String deleteInstanceByServiceId(@PathVariable(&quot;serviceId&quot;) String serviceId){
+        return feignServiceClient.deleteInstanceByServiceId(serviceId);
+    }
+
+    @RequestMapping(value = &quot;&#x2F;instance&quot;, method = RequestMethod.POST)
+    public String createInstance(@RequestBody Instance instance){
+        return feignServiceClient.createInstance(instance);
+    }
+
+    @RequestMapping(value = &quot;&#x2F;instance&#x2F;{serviceId}&quot;, method = RequestMethod.PUT)
+    public String updateInstanceByServiceId(@RequestBody Instance instance, @PathVariable(&quot;serviceId&quot;) String serviceId){
+        return feignServiceClient.updateInstanceByServiceId(instance, serviceId);
+    }
+}
+</code></pre>
+<p>&emsp;最后，<code>application.yml</code>中需要配置<code>eureka</code>服务注册中心的相关配置，具体配置如下所示：<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-yml">eureka:
+  instance:
+    instance-id: ${spring.application.name}:${vcap.application.instance_id:${spring.application.instance_id:${random.value}}}
+  client:
+    service-url:
+      default-zone: http:&#x2F;&#x2F;localhost:8761&#x2F;eureka&#x2F;
+
+spring:
+  application:
+    name: feign-client
+server:
+  port: 8770
+</code></pre></p>
 <p>&emsp;相信读者通过搭建<code>Feign</code>的项目，已经对<code>Feign</code>的相关使用原理有了一定的了解，相信这个过程将对于理解<code>Feign</code>相关的工作原理大有裨益。</p>
 <p><img src="/images/logo.png" alt=""></p>
 
@@ -313,7 +447,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/6fc98a53/" data-id="ck6535m85004h9ksev54c6dn6" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/6fc98a53/" data-id="ck6540j9t004hlhse60cfpuy8" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -619,6 +753,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 

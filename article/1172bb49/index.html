@@ -286,7 +286,29 @@ var _hmt = _hmt || [];
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2016417-view-View%20Architecutre%E7%B1%BB%E5%9B%BE.jpg" alt="View Architecutre类图"></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2016417-view-%E8%A7%86%E5%9B%BE%E5%85%B3%E7%B3%BB%E5%9B%BE.png" alt="视图关系图.png"></p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2016417-view-View%E6%A0%91%E7%8A%B6%E7%BB%93%E6%9E%84%E5%9B%BE.png" alt="View树状结构图.png"></p>
-<h3 id="Activity和Window"><a href="#Activity和Window" class="headerlink" title="Activity和Window"></a>Activity和Window</h3><p>&emsp;总所周知,Activity并不负责视图控制，它只是控制生命周期和处理事件，真正控制视图的是<code>Window</code>。一个Activity包含了一个Window，Window才是真正代表一个窗口，也就是说Activity可以没有Window，那就相当于是Service了。在<code>ActivityThread</code>中也有控制<code>Service</code>的相关函数或许正好印证了这一点。<br>&emsp;<code>Activity</code>和<code>Window</code>的第一次邂逅是在<code>ActivityThread</code>调用<code>Activity</code>的<code>attach()</code>函数时。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//[window]:通过PolicyManager创建window,实现callback函数,所以,当window接收到</span></span><br><span class="line"><span class="comment">//外界状态改变时,会调用activity的方法,</span></span><br><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">attach</span><span class="params">(Context context, ActivityThread aThread,</span></span></span><br><span class="line"><span class="function"><span class="params">        Instrumentation instr, IBinder token, <span class="keyword">int</span> ident,</span></span></span><br><span class="line"><span class="function"><span class="params">        Application application, Intent intent, ActivityInfo info,</span></span></span><br><span class="line"><span class="function"><span class="params">        CharSequence title, Activity parent, String id,</span></span></span><br><span class="line"><span class="function"><span class="params">        NonConfigurationInstances lastNonConfigurationInstances,</span></span></span><br><span class="line"><span class="function"><span class="params">        Configuration config, String referrer, IVoiceInteractor voiceInteractor)</span> </span>&#123;</span><br><span class="line">    ....</span><br><span class="line">    mWindow = PolicyManager.makeNewWindow(<span class="keyword">this</span>);</span><br><span class="line">    <span class="comment">//当window接收系统发送给它的IO输入事件时,例如键盘和触摸屏事件,就可以转发给相应的Activity</span></span><br><span class="line">    mWindow.setCallback(<span class="keyword">this</span>);</span><br><span class="line">    .....</span><br><span class="line">    <span class="comment">//设置本地窗口管理器</span></span><br><span class="line">    mWindow.setWindowManager(</span><br><span class="line">            (WindowManager)context.getSystemService(Context.WINDOW_SERVICE),</span><br><span class="line">            mToken, mComponent.flattenToString(),</span><br><span class="line">            (info.flags &amp; ActivityInfo.FLAG_HARDWARE_ACCELERATED) != <span class="number">0</span>);</span><br><span class="line">    .....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="Activity和Window"><a href="#Activity和Window" class="headerlink" title="Activity和Window"></a>Activity和Window</h3><p>&emsp;总所周知,Activity并不负责视图控制，它只是控制生命周期和处理事件，真正控制视图的是<code>Window</code>。一个Activity包含了一个Window，Window才是真正代表一个窗口，也就是说Activity可以没有Window，那就相当于是Service了。在<code>ActivityThread</code>中也有控制<code>Service</code>的相关函数或许正好印证了这一点。<br>&emsp;<code>Activity</code>和<code>Window</code>的第一次邂逅是在<code>ActivityThread</code>调用<code>Activity</code>的<code>attach()</code>函数时。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">&#x2F;&#x2F;[window]:通过PolicyManager创建window,实现callback函数,所以,当window接收到
+&#x2F;&#x2F;外界状态改变时,会调用activity的方法,
+final void attach(Context context, ActivityThread aThread,
+        Instrumentation instr, IBinder token, int ident,
+        Application application, Intent intent, ActivityInfo info,
+        CharSequence title, Activity parent, String id,
+        NonConfigurationInstances lastNonConfigurationInstances,
+        Configuration config, String referrer, IVoiceInteractor voiceInteractor) {
+    ....
+    mWindow = PolicyManager.makeNewWindow(this);
+    &#x2F;&#x2F;当window接收系统发送给它的IO输入事件时,例如键盘和触摸屏事件,就可以转发给相应的Activity
+    mWindow.setCallback(this);
+    .....
+    &#x2F;&#x2F;设置本地窗口管理器
+    mWindow.setWindowManager(
+            (WindowManager)context.getSystemService(Context.WINDOW_SERVICE),
+            mToken, mComponent.flattenToString(),
+            (info.flags &amp; ActivityInfo.FLAG_HARDWARE_ACCELERATED) != 0);
+    .....
+}
+</code></pre></p>
 <p>&emsp;在<code>attach()</code>中，新建一个<code>Window</code>实例作为自己的成员变量，它的类型为<code>PhoneWindow</code>,这是抽象类<code>Window</code>的一个子类。然后设置<code>mWindow</code>的<code>WindowManager</code>。</p>
 <h3 id="Window-Activity和DecorView"><a href="#Window-Activity和DecorView" class="headerlink" title="Window,Activity和DecorView"></a>Window,Activity和DecorView</h3><p>&emsp;<code>DecorView</code>是<code>FrameLayout</code>的子类，它可以被认为是Android视图树的根节点视图。<code>DecorView</code>作为顶级View，一般情况下它内部包含一个竖直方向的<code>LinearLayout</code>，在这个LinearLayout里面有上下两个部分（具体情况和Android版本及主体有关），上面的是标题栏，下面的是内容栏。在Activity中通过setContentView所设置的布局文件其实就是被加到内容栏之中的，而内容栏的id是content，在代码中可以通过ViewGroup content = （ViewGroup)findViewById(R.android.id.content)来得到content对应的layout。<br>&emsp;<code>Window</code>中有几个视图相关的比较重要的成员变量如下所示:</p>
 <ul>
@@ -294,12 +316,101 @@ var _hmt = _hmt || [];
 <li><code>mContentParent</code>:<code>setContetView</code>所设置的布局文件就加到这个视图中</li>
 <li><code>mContentRoot</code>:是<code>DecorView</code>的唯一子视图，内部包含<code>mContentParent</code>,标题栏和状态栏。</li>
 </ul>
-<p>&emsp;Activity中不仅持有一个<code>Window</code>实例，还有一个类型为<code>View</code>的<code>mDecor</code>实例。这个实例和<code>Window</code>中的<code>mDecor</code>实例有什么关系呢？它又是什么时候被创建的呢？<br>&emsp;二者其实指向同一个对象，这个对象是在<code>Activity</code>调用<code>setContentView</code>时创建的。我们都知道<code>Activity</code>的<code>setContentView</code>实际上是调用了<code>Window</code>的<code>setContentView</code>方法。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setContentView</span><span class="params">(<span class="keyword">int</span> layoutResID)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mContentParent == <span class="keyword">null</span>) &#123; <span class="comment">//[window]如何没有DecorView,那么就新建一个</span></span><br><span class="line">        installDecor(); <span class="comment">//[window]</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!hasFeature(FEATURE_CONTENT_TRANSITIONS)) &#123;</span><br><span class="line">        mContentParent.removeAllViews();</span><br><span class="line">    &#125;</span><br><span class="line">    ....</span><br><span class="line">    <span class="comment">//[window]第二步,将layout添加到mContentParent</span></span><br><span class="line">    mLayoutInflater.inflate(layoutResID, mContentParent);</span><br><span class="line">    .....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;代码很清楚的显示了布局文件的视图是添加到<code>mContentParent</code>中，而且<code>Window</code>通过<code>installDecor</code>来新建<code>DecorView</code>。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//[window]创建一个decorView</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">installDecor</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mDecor == <span class="keyword">null</span>) &#123;</span><br><span class="line">        mDecor = generateDecor(); <span class="comment">//直接new出一个DecorView返回</span></span><br><span class="line">        ....</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (mContentParent == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="comment">//[window] 这一步也是很重要的.</span></span><br><span class="line">        mContentParent = generateLayout(mDecor); <span class="comment">//mContentParent是setContentVIew的关键啊</span></span><br><span class="line">        .....</span><br><span class="line">    &#125;</span><br><span class="line">    ....</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">protected</span> ViewGroup <span class="title">generateLayout</span><span class="params">(DecorView decor)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// Apply data from current theme.</span></span><br><span class="line">    .......</span><br><span class="line">    <span class="comment">//[window] 根据不同的style生成不同的decorview啊</span></span><br><span class="line">    View in = mLayoutInflater.inflate(layoutResource, <span class="keyword">null</span>);</span><br><span class="line">    <span class="comment">// 加入到deco中,所以应该是其第一个child</span></span><br><span class="line">    decor.addView(in, <span class="keyword">new</span> ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT));</span><br><span class="line">    mContentRoot = (ViewGroup) in; <span class="comment">//给DecorView的第一个child是mContentView</span></span><br><span class="line">    <span class="comment">// 这是获得所谓的content </span></span><br><span class="line">    ViewGroup contentParent = (ViewGroup)findViewById(ID_ANDROID_CONTENT);</span><br><span class="line">    &#125;</span><br><span class="line">    .....</span><br><span class="line">    <span class="keyword">return</span> contentParent;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;从上述的代码中，我们可以清楚的看到<code>mDecor</code>和<code>mContentParent</code>和<code>mContentRoot</code>的关系。<br>&emsp;那么，<code>Activity</code>中的<code>mDecor</code>是何时被赋值的？我们如何确定它和<code>Widnow</code>中的<code>mDecor</code>指向同一个对象呢？我们可以查看<code>ActivityThread</code>的<code>handleResumeActivity</code>函数，它负责处理<code>Activity</code>的<code>resume</code>阶段。在这个函数中，Android直接将<code>Window</code>中的<code>DecorView</code>实例赋值给<code>Activity</code>。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> Activity a = r.activity;</span><br><span class="line">r.window = r.activity.getWindow();</span><br><span class="line">View decor = r.window.getDecorView();</span><br><span class="line">decor.setVisibility(View.INVISIBLE);</span><br><span class="line">ViewManager wm = a.getWindowManager();</span><br><span class="line">WindowManager.LayoutParams l = r.window.getAttributes();</span><br><span class="line">a.mDecor = decor;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;Activity中不仅持有一个<code>Window</code>实例，还有一个类型为<code>View</code>的<code>mDecor</code>实例。这个实例和<code>Window</code>中的<code>mDecor</code>实例有什么关系呢？它又是什么时候被创建的呢？<br>&emsp;二者其实指向同一个对象，这个对象是在<code>Activity</code>调用<code>setContentView</code>时创建的。我们都知道<code>Activity</code>的<code>setContentView</code>实际上是调用了<code>Window</code>的<code>setContentView</code>方法。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">@Override
+public void setContentView(int layoutResID) {
+    if (mContentParent == null) { &#x2F;&#x2F;[window]如何没有DecorView,那么就新建一个
+        installDecor(); &#x2F;&#x2F;[window]
+    } else if (!hasFeature(FEATURE_CONTENT_TRANSITIONS)) {
+        mContentParent.removeAllViews();
+    }
+    ....
+    &#x2F;&#x2F;[window]第二步,将layout添加到mContentParent
+    mLayoutInflater.inflate(layoutResID, mContentParent);
+    .....
+}
+</code></pre></p>
+<p>&emsp;代码很清楚的显示了布局文件的视图是添加到<code>mContentParent</code>中，而且<code>Window</code>通过<code>installDecor</code>来新建<code>DecorView</code>。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">&#x2F;&#x2F;[window]创建一个decorView
+private void installDecor() {
+    if (mDecor == null) {
+        mDecor = generateDecor(); &#x2F;&#x2F;直接new出一个DecorView返回
+        ....
+    }
+    if (mContentParent == null) {
+        &#x2F;&#x2F;[window] 这一步也是很重要的.
+        mContentParent = generateLayout(mDecor); &#x2F;&#x2F;mContentParent是setContentVIew的关键啊
+        .....
+    }
+    ....
+}
+protected ViewGroup generateLayout(DecorView decor) {
+    &#x2F;&#x2F; Apply data from current theme.
+    .......
+    &#x2F;&#x2F;[window] 根据不同的style生成不同的decorview啊
+    View in = mLayoutInflater.inflate(layoutResource, null);
+    &#x2F;&#x2F; 加入到deco中,所以应该是其第一个child
+    decor.addView(in, new ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT));
+    mContentRoot = (ViewGroup) in; &#x2F;&#x2F;给DecorView的第一个child是mContentView
+    &#x2F;&#x2F; 这是获得所谓的content 
+    ViewGroup contentParent = (ViewGroup)findViewById(ID_ANDROID_CONTENT);
+    }
+    .....
+    return contentParent;
+}
+</code></pre></p>
+<p>&emsp;从上述的代码中，我们可以清楚的看到<code>mDecor</code>和<code>mContentParent</code>和<code>mContentRoot</code>的关系。<br>&emsp;那么，<code>Activity</code>中的<code>mDecor</code>是何时被赋值的？我们如何确定它和<code>Widnow</code>中的<code>mDecor</code>指向同一个对象呢？我们可以查看<code>ActivityThread</code>的<code>handleResumeActivity</code>函数，它负责处理<code>Activity</code>的<code>resume</code>阶段。在这个函数中，Android直接将<code>Window</code>中的<code>DecorView</code>实例赋值给<code>Activity</code>。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">final Activity a = r.activity;
+r.window = r.activity.getWindow();
+View decor = r.window.getDecorView();
+decor.setVisibility(View.INVISIBLE);
+ViewManager wm = a.getWindowManager();
+WindowManager.LayoutParams l = r.window.getAttributes();
+a.mDecor = decor;
+</code></pre></p>
 <h3 id="Window，DecorView-和-ViewRoot"><a href="#Window，DecorView-和-ViewRoot" class="headerlink" title="Window，DecorView 和 ViewRoot"></a>Window，DecorView 和 ViewRoot</h3><p>&emsp;<code>ViewRoot</code>对应<code>ViewRootImpl</code>类，它是连接<code>WindowManagerService</code>和<code>DecorView</code>的纽带，View的三大流程(测量（measure），布局（layout），绘制（draw）)均通过ViewRoot来完成。<code>ViewRoot</code>并不属于View树的一份子。从源码实现上来看，它既非View的子类，也非View的父类，但是，它实现了<code>ViewParent</code>接口，这让它可以作为<code>View</code>的名义上的父视图。<code>RootView</code>继承了<code>Handler</code>类，可以接收事件并分发，Android的所有触屏事件、按键事件、界面刷新等事件都是通过ViewRoot进行分发的。<strong>ViewRoot可以被理解为“View树的管理者”——它有一个mView成员变量，它指向的对象和上文中<code>Window</code>和<code>Activity</code>的<code>mDecor</code>指向的对象是同一个对象</strong>。</p>
-<p>&emsp;我们来先看一下<code>ViewRoot</code>的创建过程。由于<code>ViewRoot</code>作为<code>WindowMangerService</code>和<code>DecorView</code>的纽带，只有在<code>WindowManager</code>将持有<code>DecorView</code>的<code>Window</code>添加进窗口管理器才创建。我们可以查看<code>WindowMangerGlobal</code>中的<code>addView</code>函数。对<code>WindowManager</code>不太熟悉的同学可以参考<a href="http://ztelur.github.io/2015/10/28/Window%E5%92%8CWindowManager%E8%A7%A3%E6%9E%90/" target="_blank" rel="noopener">《Window和WindowManager解析》</a><br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addView</span><span class="params">(View view, ViewGroup.LayoutParams params,</span></span></span><br><span class="line"><span class="function"><span class="params">        Display display, Window parentWindow)</span> </span>&#123;</span><br><span class="line">        <span class="comment">// 创建ViewRootImpl,然后将下述对象添加到列表中</span></span><br><span class="line">    ....</span><br><span class="line">    root = <span class="keyword">new</span> ViewRootImpl(view.getContext(), display);</span><br><span class="line"></span><br><span class="line">    view.setLayoutParams(wparams);</span><br><span class="line"></span><br><span class="line">    mViews.add(view);</span><br><span class="line">    mRoots.add(root);</span><br><span class="line">    mParams.add(wparams);</span><br><span class="line">    ....</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 添加啦!!!!!!!!这是通过ViewRootImpl的setView来完成，这个View就是DecorView实例</span></span><br><span class="line">        root.setView(view, wparams, panelParentView);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (RuntimeException e) &#123;</span><br><span class="line">      ....</span><br><span class="line">    &#125;</span><br><span class="line">    ....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>&emsp;那么，<code>Window</code>是什么时候被添加到<code>WindowManager</code>中的呢？我们回到<code>ActivityThread</code>的<code>handleResumeActivity</code>函数。我们都知道Activity的resume阶段就是要显示到屏幕上的阶段，在Activity也就是<code>DecorView</code>将要显示到屏幕时，系统才会调用<code>addView</code>方法。<br>&emsp;我们在<code>handleResumeActivity</code>函数中找到了下面一段代码,它调用了<code>Activity</code>的<code>makeVisible()</code>函数。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ActivityThread</span></span><br><span class="line">r.activity.makeVisible();</span><br><span class="line"></span><br><span class="line"><span class="comment">//Activity</span></span><br><span class="line">    <span class="comment">//[windows] DecorView正式添加并显示</span></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">makeVisible</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (!mWindowAdded) &#123;</span><br><span class="line">            ViewManager wm = getWindowManager();</span><br><span class="line">            wm.addView(mDecor, getWindow().getAttributes());</span><br><span class="line">            mWindowAdded = <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        mDecor.setVisibility(View.VISIBLE);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<p>&emsp;我们来先看一下<code>ViewRoot</code>的创建过程。由于<code>ViewRoot</code>作为<code>WindowMangerService</code>和<code>DecorView</code>的纽带，只有在<code>WindowManager</code>将持有<code>DecorView</code>的<code>Window</code>添加进窗口管理器才创建。我们可以查看<code>WindowMangerGlobal</code>中的<code>addView</code>函数。对<code>WindowManager</code>不太熟悉的同学可以参考<a href="http://ztelur.github.io/2015/10/28/Window%E5%92%8CWindowManager%E8%A7%A3%E6%9E%90/" target="_blank" rel="noopener">《Window和WindowManager解析》</a><br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">public void addView(View view, ViewGroup.LayoutParams params,
+        Display display, Window parentWindow) {
+        &#x2F;&#x2F; 创建ViewRootImpl,然后将下述对象添加到列表中
+    ....
+    root = new ViewRootImpl(view.getContext(), display);
+
+    view.setLayoutParams(wparams);
+
+    mViews.add(view);
+    mRoots.add(root);
+    mParams.add(wparams);
+    ....
+    try {
+        &#x2F;&#x2F; 添加啦!!!!!!!!这是通过ViewRootImpl的setView来完成，这个View就是DecorView实例
+        root.setView(view, wparams, panelParentView);
+    } catch (RuntimeException e) {
+      ....
+    }
+    ....
+}
+</code></pre></p>
+<p>&emsp;那么，<code>Window</code>是什么时候被添加到<code>WindowManager</code>中的呢？我们回到<code>ActivityThread</code>的<code>handleResumeActivity</code>函数。我们都知道Activity的resume阶段就是要显示到屏幕上的阶段，在Activity也就是<code>DecorView</code>将要显示到屏幕时，系统才会调用<code>addView</code>方法。<br>&emsp;我们在<code>handleResumeActivity</code>函数中找到了下面一段代码,它调用了<code>Activity</code>的<code>makeVisible()</code>函数。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">&#x2F;&#x2F; ActivityThread
+r.activity.makeVisible();
+
+&#x2F;&#x2F;Activity
+    &#x2F;&#x2F;[windows] DecorView正式添加并显示
+    void makeVisible() {
+        if (!mWindowAdded) {
+            ViewManager wm = getWindowManager();
+            wm.addView(mDecor, getWindow().getAttributes());
+            mWindowAdded = true;
+        }
+        mDecor.setVisibility(View.VISIBLE);
+    }
+</code></pre></p>
 <p>&emsp;我们通过源代码发现，正式在<code>makeVisible</code>函数中，系统进行了<code>Window</code>的添加。</p>
 <p>引用<br><a href="http://wiki.jikexueyuan.com/project/deep-android-v1/surface.html" target="_blank" rel="noopener">http://wiki.jikexueyuan.com/project/deep-android-v1/surface.html</a><br><a href="http://blog.csdn.net/guxiao1201/article/details/41744107" target="_blank" rel="noopener">http://blog.csdn.net/guxiao1201/article/details/41744107</a><br><a href="http://forlan.iteye.com/blog/2269381" target="_blank" rel="noopener">http://forlan.iteye.com/blog/2269381</a></p>
 
@@ -312,7 +423,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/1172bb49/" data-id="ck6535m6q001c9kseix7f9che" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/1172bb49/" data-id="ck6540j850019lhsel761xquf" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -618,6 +729,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 

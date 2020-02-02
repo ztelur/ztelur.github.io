@@ -277,22 +277,156 @@ var _hmt = _hmt || [];
 <p>&emsp;如上图所示，使用<code>Feign</code>的程序的架构一般分为三个部分，分别为服务注册中心，服务提供者和服务消费者。服务提供者向服务注册中心注册自己，然后服务消费者通过<code>Feign</code>发送请求时，<code>Feign</code>会向去服务注册中心获取关于服务提供者的信息，然后再向服务提供者发送网络请求。</p>
 <h3 id="代码示例"><a href="#代码示例" class="headerlink" title="代码示例"></a>代码示例</h3><h4 id="服务注册中心"><a href="#服务注册中心" class="headerlink" title="服务注册中心"></a>服务注册中心</h4><p>&emsp;<code>Feign</code>可以配合<code>eureka</code>等服务注册中心同时使用。<code>eureka</code>来作为服务注册中心，为<code>Feign</code>提供关于服务端信息的获取，比如说IP地址。关于<code>eureka</code>的具体使用可以参考第四章中关于<code>eureka</code>的快速入门介绍。</p>
 <h4 id="服务提供者"><a href="#服务提供者" class="headerlink" title="服务提供者"></a>服务提供者</h4><p>&emsp;<code>Spring Cloud Feign</code>是声明式RESTful请求客户端，所以它不会侵入服务提供者程序的实现。也就是说，服务提供者只需要提供Web Service的API接口，至于具体实现既可以是<code>Spring Controler</code>也可以是<code>Jersey</code>。我们只需要确保该服务提供者被注册到服务注册中心上。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RestController</span></span><br><span class="line"><span class="meta">@RequestMapping</span>(<span class="string">"/feign-service"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">FeignServiceController</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Logger logger = LoggerFactory.getLogger(FeignServiceController.class);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> String DEFAULT_SERVICE_ID = <span class="string">"application"</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> String DEFAULT_HOST = <span class="string">"localhost"</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> DEFAULT_PORT = <span class="number">8080</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance/&#123;serviceId&#125;"</span>, method = RequestMethod.GET)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> Instance <span class="title">getInstanceByServiceId</span><span class="params">(@PathVariable(<span class="string">"serviceId"</span>)</span> String serviceId)</span>&#123;</span><br><span class="line">        logger.info(<span class="string">"Get Instance by serviceId &#123;&#125;"</span>, serviceId);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Instance(serviceId, DEFAULT_HOST, DEFAULT_PORT);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance/&#123;serviceId&#125;"</span>, method = RequestMethod.DELETE)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">deleteInstanceByServiceId</span><span class="params">(@PathVariable(<span class="string">"serviceId"</span>)</span> String serviceId)</span>&#123;</span><br><span class="line"></span><br><span class="line">        logger.info(<span class="string">"Delete Instance by serviceId &#123;&#125;"</span>, serviceId);</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"Instance whose serviceId is "</span> + serviceId + <span class="string">" is deleted"</span>;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance"</span>, method = RequestMethod.POST)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">createInstance</span><span class="params">(@RequestBody Instance instance)</span></span>&#123;</span><br><span class="line"></span><br><span class="line">        logger.info(<span class="string">"Create Instance whose serviceId is &#123;&#125;"</span>, instance.getServiceId());</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"Instance whose serviceId is"</span> + instance.getServiceId() + <span class="string">" is created"</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance/&#123;serviceId&#125;"</span>, method = RequestMethod.PUT)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">updateInstanceByServiceId</span><span class="params">(@RequestBody Instance instance, @PathVariable(<span class="string">"serviceId"</span>)</span> String serviceId)</span>&#123;</span><br><span class="line">        logger.info(<span class="string">"Update Instance whose serviceId is &#123;&#125;"</span>, serviceId);</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"Instance whose serviceId is "</span> + serviceId + <span class="string">" is updated"</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">@RestController
+@RequestMapping(&quot;&#x2F;feign-service&quot;)
+public class FeignServiceController {
+
+    private static final Logger logger = LoggerFactory.getLogger(FeignServiceController.class);
+
+    private static String DEFAULT_SERVICE_ID = &quot;application&quot;;
+    private static String DEFAULT_HOST = &quot;localhost&quot;;
+    private static int DEFAULT_PORT = 8080;
+
+    @RequestMapping(value = &quot;&#x2F;instance&#x2F;{serviceId}&quot;, method = RequestMethod.GET)
+    public Instance getInstanceByServiceId(@PathVariable(&quot;serviceId&quot;) String serviceId){
+        logger.info(&quot;Get Instance by serviceId {}&quot;, serviceId);
+        return new Instance(serviceId, DEFAULT_HOST, DEFAULT_PORT);
+    }
+
+    @RequestMapping(value = &quot;&#x2F;instance&#x2F;{serviceId}&quot;, method = RequestMethod.DELETE)
+    public String deleteInstanceByServiceId(@PathVariable(&quot;serviceId&quot;) String serviceId){
+
+        logger.info(&quot;Delete Instance by serviceId {}&quot;, serviceId);
+        return &quot;Instance whose serviceId is &quot; + serviceId + &quot; is deleted&quot;;
+
+    }
+
+    @RequestMapping(value = &quot;&#x2F;instance&quot;, method = RequestMethod.POST)
+    public String createInstance(@RequestBody Instance instance){
+
+        logger.info(&quot;Create Instance whose serviceId is {}&quot;, instance.getServiceId());
+        return &quot;Instance whose serviceId is&quot; + instance.getServiceId() + &quot; is created&quot;;
+    }
+
+    @RequestMapping(value = &quot;&#x2F;instance&#x2F;{serviceId}&quot;, method = RequestMethod.PUT)
+    public String updateInstanceByServiceId(@RequestBody Instance instance, @PathVariable(&quot;serviceId&quot;) String serviceId){
+        logger.info(&quot;Update Instance whose serviceId is {}&quot;, serviceId);
+        return &quot;Instance whose serviceId is &quot; + serviceId + &quot; is updated&quot;;
+    }
+}
+</code></pre>
 <p>&emsp;上述代码中通过<code>@RestController</code>和<code>@RequestMapping</code>声明了四个网络API接口，分别是对<code>Instance</code>资源的增删改查操作。</p>
 <p>&emsp;除了实现网络API接口之外，还需要将该service注册到<code>eureka</code>上。如下列代码所示，需要在<code>application.yml</code>文件中设置服务注册中心的相关信息和代表该应用的名称。</p>
-<figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">eureka:</span></span><br><span class="line"><span class="attr">  instance:</span></span><br><span class="line"><span class="attr">    instance-id:</span> <span class="string">$&#123;spring.application.name&#125;:$&#123;vcap.application.instance_id:$&#123;spring.application.instance_id:$&#123;random.value&#125;&#125;&#125;</span></span><br><span class="line"><span class="attr">  client:</span></span><br><span class="line"><span class="attr">    service-url:</span></span><br><span class="line"><span class="attr">      default-zone:</span> <span class="attr">http://localhost:8761/eureka/</span></span><br><span class="line"><span class="attr">spring:</span></span><br><span class="line"><span class="attr">  application:</span></span><br><span class="line"><span class="attr">    name:</span> <span class="string">feign-service</span></span><br><span class="line"><span class="attr">server:</span></span><br><span class="line"><span class="attr">  port:</span> <span class="number">0</span></span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-yml">eureka:
+  instance:
+    instance-id: ${spring.application.name}:${vcap.application.instance_id:${spring.application.instance_id:${random.value}}}
+  client:
+    service-url:
+      default-zone: http:&#x2F;&#x2F;localhost:8761&#x2F;eureka&#x2F;
+spring:
+  application:
+    name: feign-service
+server:
+  port: 0
+</code></pre>
 <h4 id="服务消费者"><a href="#服务消费者" class="headerlink" title="服务消费者"></a>服务消费者</h4><p>&emsp;<code>Feign</code>是声明式RESTful客户端，所以构建<code>Feign</code>项目的关键在于构建服务消费者。通过下面六步可以创建一个<code>Spring Cloud Feign</code>的服务消费者。</p>
 <p>&emsp;首先创建一个普通的<code>Spring Boot</code>工程，取名为<code>chapter-feign-client</code>。<br>&emsp;然后在pom文件中添加<code>eureka</code>和<code>feign</code>相关的依赖。其中<code>spring-cloud-starter-eureka</code>是<code>eureka</code>的starter依赖包，<code>spring-cloud-starter-feign</code>是<code>feign</code>的starter依赖包。</p>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.cloud<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-cloud-starter-eureka<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.cloud<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-cloud-starter-feign<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-xml">&lt;dependencies&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.cloud&lt;&#x2F;groupId&gt;
+        &lt;artifactId&gt;spring-cloud-starter-eureka&lt;&#x2F;artifactId&gt;
+    &lt;&#x2F;dependency&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.cloud&lt;&#x2F;groupId&gt;
+        &lt;artifactId&gt;spring-cloud-starter-feign&lt;&#x2F;artifactId&gt;
+    &lt;&#x2F;dependency&gt;
+&lt;&#x2F;dependencies&gt;
+</code></pre>
 <p>&emsp;接着在工程的入口类上添加<code>@EnableFeignClients</code>注解表示开启<code>Spring Cloud Feign</code>的支持功能，代码如下所示。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@SpringBootApplication</span></span><br><span class="line"><span class="meta">@EnableFeignClients</span>()</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ChapterFeignClientApplication</span> </span>&#123;</span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">		SpringApplication.run(ChapterFeignClientApplication.class, args);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">@SpringBootApplication
+@EnableFeignClients()
+public class ChapterFeignClientApplication {
+	public static void main(String[] args) {
+		SpringApplication.run(ChapterFeignClientApplication.class, args);
+	}
+}
+</code></pre>
 <p>&emsp;<code>@EnableFeignClients</code>就像是一个开关，如果你使用了该注解，那么<code>Feign</code>相关的组件和处理机制才会生效，否则不会生效。<code>@EnableFeignClients</code>还可以对<code>Feign</code>相关组件进行自定义配置，它的方法和原理会在本章的源码分析章节在做具体的讲解。</p>
 <p>&emsp;接下来我们定义一个<code>FeignServiceClient</code>接口，通过<code>@FeignClient</code>注解来指定服务名进而绑定服务。这一类被<code>@FeignClient</code>修饰的接口类一般被称为FeignClient。我们可以通过<code>@RequestMapping</code>来修饰相应的方法来定义调用函数。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@FeignClient</span>(<span class="string">"feign-service"</span>)</span><br><span class="line"><span class="meta">@RequestMapping</span>(<span class="string">"/feign-service"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">FeignServiceClient</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance/&#123;serviceId&#125;"</span>, method = RequestMethod.GET)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> Instance <span class="title">getInstanceByServiceId</span><span class="params">(@PathVariable(<span class="string">"serviceId"</span>)</span> String serviceId)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance/&#123;serviceId&#125;"</span>, method = RequestMethod.DELETE)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">deleteInstanceByServiceId</span><span class="params">(@PathVariable(<span class="string">"serviceId"</span>)</span> String serviceId)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance"</span>, method = RequestMethod.POST)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">createInstance</span><span class="params">(@RequestBody Instance instance)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance/&#123;serviceId&#125;"</span>, method = RequestMethod.PUT)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">updateInstanceByServiceId</span><span class="params">(@RequestBody Instance instance, @PathVariable(<span class="string">"serviceId"</span>)</span> String serviceId)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">@FeignClient(&quot;feign-service&quot;)
+@RequestMapping(&quot;&#x2F;feign-service&quot;)
+public interface FeignServiceClient {
+
+    @RequestMapping(value = &quot;&#x2F;instance&#x2F;{serviceId}&quot;, method = RequestMethod.GET)
+    public Instance getInstanceByServiceId(@PathVariable(&quot;serviceId&quot;) String serviceId);
+
+    @RequestMapping(value = &quot;&#x2F;instance&#x2F;{serviceId}&quot;, method = RequestMethod.DELETE)
+    public String deleteInstanceByServiceId(@PathVariable(&quot;serviceId&quot;) String serviceId);
+
+    @RequestMapping(value = &quot;&#x2F;instance&quot;, method = RequestMethod.POST)
+    public String createInstance(@RequestBody Instance instance);
+
+    @RequestMapping(value = &quot;&#x2F;instance&#x2F;{serviceId}&quot;, method = RequestMethod.PUT)
+    public String updateInstanceByServiceId(@RequestBody Instance instance, @PathVariable(&quot;serviceId&quot;) String serviceId);
+}
+</code></pre>
 <p>&emsp;如上面代码片段所显示的，如果你调用<code>FeignServiceClient</code>对象的<code>getInstanceByServiceId</code>函数，那么<code>Feign</code>就会向<code>feign-service</code>服务的<code>/feign-service/instance/{serviceId}</code>接口发送网络请求。</p>
 <p>&emsp;创建一个<code>Controller</code>来调用上边的服务，通过<code>@Autowired</code>来自动装载<code>FeignServiceClient</code>示例。代码如下：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RestController</span></span><br><span class="line"><span class="meta">@RequestMapping</span>(<span class="string">"/feign-client"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">FeignClientController</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    FeignServiceClient feignServiceClient;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance/&#123;serviceId&#125;"</span>, method = RequestMethod.GET)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> Instance <span class="title">getInstanceByServiceId</span><span class="params">(@PathVariable(<span class="string">"serviceId"</span>)</span> String serviceId)</span>&#123;</span><br><span class="line">        <span class="keyword">return</span> feignServiceClient.getInstanceByServiceId(serviceId);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance/&#123;serviceId&#125;"</span>, method = RequestMethod.DELETE)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">deleteInstanceByServiceId</span><span class="params">(@PathVariable(<span class="string">"serviceId"</span>)</span> String serviceId)</span>&#123;</span><br><span class="line">        <span class="keyword">return</span> feignServiceClient.deleteInstanceByServiceId(serviceId);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance"</span>, method = RequestMethod.POST)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">createInstance</span><span class="params">(@RequestBody Instance instance)</span></span>&#123;</span><br><span class="line">        <span class="keyword">return</span> feignServiceClient.createInstance(instance);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@RequestMapping</span>(value = <span class="string">"/instance/&#123;serviceId&#125;"</span>, method = RequestMethod.PUT)</span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">updateInstanceByServiceId</span><span class="params">(@RequestBody Instance instance, @PathVariable(<span class="string">"serviceId"</span>)</span> String serviceId)</span>&#123;</span><br><span class="line">        <span class="keyword">return</span> feignServiceClient.updateInstanceByServiceId(instance, serviceId);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>&emsp;最后，<code>application.yml</code>中需要配置<code>eureka</code>服务注册中心的相关配置，具体配置如下所示：<br><figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">eureka:</span></span><br><span class="line"><span class="attr">  instance:</span></span><br><span class="line"><span class="attr">    instance-id:</span> <span class="string">$&#123;spring.application.name&#125;:$&#123;vcap.application.instance_id:$&#123;spring.application.instance_id:$&#123;random.value&#125;&#125;&#125;</span></span><br><span class="line"><span class="attr">  client:</span></span><br><span class="line"><span class="attr">    service-url:</span></span><br><span class="line"><span class="attr">      default-zone:</span> <span class="attr">http://localhost:8761/eureka/</span></span><br><span class="line"></span><br><span class="line"><span class="attr">spring:</span></span><br><span class="line"><span class="attr">  application:</span></span><br><span class="line"><span class="attr">    name:</span> <span class="string">feign-client</span></span><br><span class="line"><span class="attr">server:</span></span><br><span class="line"><span class="attr">  port:</span> <span class="number">8770</span></span><br></pre></td></tr></table></figure></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">@RestController
+@RequestMapping(&quot;&#x2F;feign-client&quot;)
+public class FeignClientController {
+
+    @Autowired
+    FeignServiceClient feignServiceClient;
+
+    @RequestMapping(value = &quot;&#x2F;instance&#x2F;{serviceId}&quot;, method = RequestMethod.GET)
+    public Instance getInstanceByServiceId(@PathVariable(&quot;serviceId&quot;) String serviceId){
+        return feignServiceClient.getInstanceByServiceId(serviceId);
+    }
+
+    @RequestMapping(value = &quot;&#x2F;instance&#x2F;{serviceId}&quot;, method = RequestMethod.DELETE)
+    public String deleteInstanceByServiceId(@PathVariable(&quot;serviceId&quot;) String serviceId){
+        return feignServiceClient.deleteInstanceByServiceId(serviceId);
+    }
+
+    @RequestMapping(value = &quot;&#x2F;instance&quot;, method = RequestMethod.POST)
+    public String createInstance(@RequestBody Instance instance){
+        return feignServiceClient.createInstance(instance);
+    }
+
+    @RequestMapping(value = &quot;&#x2F;instance&#x2F;{serviceId}&quot;, method = RequestMethod.PUT)
+    public String updateInstanceByServiceId(@RequestBody Instance instance, @PathVariable(&quot;serviceId&quot;) String serviceId){
+        return feignServiceClient.updateInstanceByServiceId(instance, serviceId);
+    }
+}
+</code></pre>
+<p>&emsp;最后，<code>application.yml</code>中需要配置<code>eureka</code>服务注册中心的相关配置，具体配置如下所示：<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-yml">eureka:
+  instance:
+    instance-id: ${spring.application.name}:${vcap.application.instance_id:${spring.application.instance_id:${random.value}}}
+  client:
+    service-url:
+      default-zone: http:&#x2F;&#x2F;localhost:8761&#x2F;eureka&#x2F;
+
+spring:
+  application:
+    name: feign-client
+server:
+  port: 8770
+</code></pre></p>
 <p>&emsp;相信读者通过搭建<code>Feign</code>的项目，已经对<code>Feign</code>的相关使用原理有了一定的了解，相信这个过程将对于理解<code>Feign</code>相关的工作原理大有裨益。</p>
 <p><img src="/images/logo.png" alt=""></p>
 
@@ -305,7 +439,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/6fc98a53/" data-id="ck6535m85004h9ksev54c6dn6" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/6fc98a53/" data-id="ck6540j9t004hlhse60cfpuy8" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -499,7 +633,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/eb2e63e2/" data-id="ck6535m8100449ksem29q74qn" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/eb2e63e2/" data-id="ck6540j9l003zlhseag668ejy" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -620,7 +754,12 @@ var _hmt = _hmt || [];
 </blockquote>
 <p>程序员日常工作中往往要处理一些数据和文本，比如说统计一些服务日志文件信息，根据数据库数据生成一些处理数据的SQL和搜索文件内容等。可以直接通过编写代码处理，但不够便捷，因为有时候线上相关的代码环境依赖不一定具备。而直接使用 Linux 的文本处理命令可以很方便地处理这些问题。</p>
 <h3 id="日志文件捞数据"><a href="#日志文件捞数据" class="headerlink" title="日志文件捞数据"></a>日志文件捞数据</h3><p>在工作中，我们往往需要对一些具有固定格式的文件进行信息统计，比如说根据 nginx 的 access.log 文件数据，计算出每个后端 API 接口的调用次数，并且排序。</p>
-<p>nginx 的 access.log 文件文件格式配置如下所示，每个字段之间通过空格分隔开来。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">log_format  main  &apos;$remote_addr - $remote_user [$time_local] &quot;$request&quot; &apos;</span><br><span class="line">                  &apos;$status $body_bytes_sent &quot;$http_referer&quot; &apos;</span><br><span class="line">                  &apos;&quot;$http_user_agent&quot; &quot;$http_x_forwarded_for&quot;&apos;;</span><br></pre></td></tr></table></figure></p>
+<p>nginx 的 access.log 文件文件格式配置如下所示，每个字段之间通过空格分隔开来。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">log_format  main  &#39;$remote_addr - $remote_user [$time_local] &quot;$request&quot; &#39;
+                  &#39;$status $body_bytes_sent &quot;$http_referer&quot; &#39;
+                  &#39;&quot;$http_user_agent&quot; &quot;$http_x_forwarded_for&quot;&#39;;
+</code></pre></p>
 <p>上述配置中字段含义如下：</p>
 <ul>
 <li>$remote_addr : 发送请求的源地址</li>
@@ -634,44 +773,133 @@ var _hmt = _hmt || [];
 <li>$http_x_forwarded_for : 其他信息。</li>
 </ul>
 <p>具体的一段 access.log 内容如下所示。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">58.213.85.34 - - [11/Sep/2019:03:36:11 +0800] &quot;POST /publish/pending/list HTTP/2.0&quot; 200 1328 &quot;https://remcarpediem.com/&quot; &quot;Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36&quot;</span><br><span class="line">58.213.85.34 - - [11/Sep/2019:03:36:30 +0800] &quot;GET /publish/search_inner?key=test HTTP/2.0&quot; 200 34466 &quot;https://remcarpediem.com/&quot; &quot;Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36&quot;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">58.213.85.34 - - [11&#x2F;Sep&#x2F;2019:03:36:11 +0800] &quot;POST &#x2F;publish&#x2F;pending&#x2F;list HTTP&#x2F;2.0&quot; 200 1328 &quot;https:&#x2F;&#x2F;remcarpediem.com&#x2F;&quot; &quot;Mozilla&#x2F;5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit&#x2F;537.36 (KHTML, like Gecko) Chrome&#x2F;75.0.3770.142 Safari&#x2F;537.36&quot;
+58.213.85.34 - - [11&#x2F;Sep&#x2F;2019:03:36:30 +0800] &quot;GET &#x2F;publish&#x2F;search_inner?key=test HTTP&#x2F;2.0&quot; 200 34466 &quot;https:&#x2F;&#x2F;remcarpediem.com&#x2F;&quot; &quot;Mozilla&#x2F;5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit&#x2F;537.36 (KHTML, like Gecko) Chrome&#x2F;75.0.3770.142 Safari&#x2F;537.36&quot;
+</code></pre>
 <p>那么，我们可以通过下面命令来统计所有接口调用的次数，并且从大到小排序显示。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /var/log/nginx/access.log | awk &apos;&#123;print $7&#125;&apos; | awk -F&apos;?&apos; &apos;&#123;print $1&#125;&apos; | sort | uniq -c | sort -nr</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">cat &#x2F;var&#x2F;log&#x2F;nginx&#x2F;access.log | awk &#39;{print $7}&#39; | awk -F&#39;?&#39; &#39;{print $1}&#39; | sort | uniq -c | sort -nr
+</code></pre>
 <p>这条命令涉及了 cat、awk、sort ， uniq 四个命令行工具和 | 连接符的含义，我们依次简单讲解一下它们的使用，感兴趣的同学可以自行去全面了解学习。</p>
-<p>cat 命令是将文件内容打印到标准输出设备上，可以是终端，也可以是其他文件。比如说：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cat /var/log/nginx/access.log # 打印到终端</span><br><span class="line">cat /var/log/nginx/access.log &gt; copy.log # 打印到其他文件中</span><br></pre></td></tr></table></figure></p>
+<p>cat 命令是将文件内容打印到标准输出设备上，可以是终端，也可以是其他文件。比如说：<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">cat &#x2F;var&#x2F;log&#x2F;nginx&#x2F;access.log # 打印到终端
+cat &#x2F;var&#x2F;log&#x2F;nginx&#x2F;access.log &gt; copy.log # 打印到其他文件中
+</code></pre></p>
 <p>| 符号是管道操作符，它将的一个命令的 stdout 指向第二个命令的 stdin。在这条命令中 | 符号将 cat 命令的输出指向到 awk 命令的输入中。</p>
 <p>awk 是贝尔实验室 1977 年搞出来的文本流处理工具，用于对具有固定格式的文件进行流处理。比如说 nginx 的 access.log 文件，它各个字段之间通过空格分隔开来，awk 就很适合处理此类文件。</p>
 <p><code>&#39;{print $7}&#39;</code> 就是 awk 的指令声明，表示打印出变量<code>$7</code>，<code>$7</code>则是 awk 内置的变量，代表按照分隔符分隔开来的第七个文本内容。对于 access.log 文件来说就是 <code>$request</code> 代表的路径相关的内容。 <code>$request</code> 的全部内容是<code>POST /publish/pending/list HTTP/2.0</code>，<code>$6</code> 对应 <code>POST</code>，而 <code>$7</code> 对应的就是 <code>/publish/pending/list</code>。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">awk &apos;&#123;print $7&#125;&apos; Access.log # &apos;&apos;中是命令声明，后边跟着要操作的文件，也就是awk的输入流。</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">awk &#39;{print $7}&#39; Access.log # &#39;&#39;中是命令声明，后边跟着要操作的文件，也就是awk的输入流。
+</code></pre>
 <p>但是有些时候我们发现文本内容并不是按照空格进行分隔的，比如说 <code>$request</code> 内容可能为 <code>/publish/search_inner?key=test</code>，虽然是相同的 path，但是 query 不同，我们统计接口调用量时需要将 query 部分过滤掉。我们可以使用 awk 的 -F 指令指定分隔符。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">awk -F&apos;?&apos; &apos;&#123;print $1&#125;&apos; </span><br><span class="line"># 可以将 /publish/search_inner?key=test 处理为 /publish/search_inner</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">awk -F&#39;?&#39; &#39;{print $1}&#39; 
+# 可以将 &#x2F;publish&#x2F;search_inner?key=test 处理为 &#x2F;publish&#x2F;search_inner
+</code></pre>
 <p>sort 是专门用于排序的命令，它有多个参数：</p>
 <ul>
 <li>-n 按数值进行排序，默认是按照字符值排序，按照数值比较 10 &gt; 2 但是按照字符值排序，2 &gt;10 ，因为字符值会先比较首位，也就是 2 &gt; 1。</li>
 <li>-r 默认是升序排列，这个参数指定按照逆序排列。</li>
 <li>-k N 指定按第N列排序，默认是第一个值</li>
 </ul>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sort -nr Access.log # 按照数值逆序排序</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">sort -nr Access.log # 按照数值逆序排序
+</code></pre>
 <p>最后一个命令是 uniq，它用于消除重复行，或者统计。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sort unsort.txt | uniq #  消除重复行</span><br><span class="line">sort unsort.txt | uniq -c # 统计各行在文件中出现的次数，输入格式是[字数] [内容]</span><br><span class="line">sort unsort.txt | uniq -d # 找出重复行</span><br></pre></td></tr></table></figure>
-<p>比如说<code>cat /var/log/nginx/access.log | awk &#39;{print $7}&#39; | awk -F&#39;?&#39; &#39;{print $1}&#39; | sort | uniq -c</code> 命令的输出如下所示，正好作为 <code>sort -nr</code>  的输入。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">5 /announcement/pending/list</span><br><span class="line">5 /announcement/search_inner</span><br></pre></td></tr></table></figure></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">sort unsort.txt | uniq #  消除重复行
+sort unsort.txt | uniq -c # 统计各行在文件中出现的次数，输入格式是[字数] [内容]
+sort unsort.txt | uniq -d # 找出重复行
+</code></pre>
+<p>比如说<code>cat /var/log/nginx/access.log | awk &#39;{print $7}&#39; | awk -F&#39;?&#39; &#39;{print $1}&#39; | sort | uniq -c</code> 命令的输出如下所示，正好作为 <code>sort -nr</code>  的输入。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">5 &#x2F;announcement&#x2F;pending&#x2F;list
+5 &#x2F;announcement&#x2F;search_inner
+</code></pre></p>
 <p>利用这些指令，我们可以通过 access.log 统计很多信息，比如下列这些信息( access.log 的信息配置不同，不可以直接照搬 )。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">cat access.log | awk -F ‘^A’ ‘&#123;if($5 == 500) print $0&#125;’ </span><br><span class="line">#查找当前日志文件 500 错误的访问：</span><br><span class="line">tail -f access.log | awk -F ‘^A’ ‘&#123;if($6&gt;1) print $0&#125;’ </span><br><span class="line">#查找耗时超过 1s 的慢请求</span><br></pre></td></tr></table></figure>
-<h3 id="数据库SQL"><a href="#数据库SQL" class="headerlink" title="数据库SQL"></a>数据库SQL</h3><p>在业务迭代过程中，有些数据库数据可能需要使用脚本去修改，这是我们可以要根据一些数据生成对应的 SQL 命令，这里我们可以使用命令行工具快速生成。<br>比如说我们要将一系列订单状态有问题，需要将其恢复成正常的状态。你现在已经收集到了这批订单的信息。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">oder_id name info good_id</span><br><span class="line">100000  &apos;裤子&apos; &apos;山东&apos; 1000</span><br><span class="line">100001  &apos;上衣&apos; &apos;江苏&apos; 1000</span><br><span class="line">100002  &apos;内衣&apos; &apos;内蒙古&apos; 1000</span><br><span class="line">........</span><br><span class="line">100003  &apos;袜子&apos; &apos;江西&apos; 1000</span><br></pre></td></tr></table></figure></p>
-<p>那么你可以使用如下命令直接生成对应的 SQL 语句。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat ErrorOrderIdFile | awk &apos;&#123;print&quot;UPDATE ORDER SET state = 0 WHERE resource_id = &quot;$1&#125;&apos;</span><br></pre></td></tr></table></figure></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">cat access.log | awk -F ‘^A’ ‘{if($5 == 500) print $0}’ 
+#查找当前日志文件 500 错误的访问：
+tail -f access.log | awk -F ‘^A’ ‘{if($6&gt;1) print $0}’ 
+#查找耗时超过 1s 的慢请求
+</code></pre>
+<h3 id="数据库SQL"><a href="#数据库SQL" class="headerlink" title="数据库SQL"></a>数据库SQL</h3><p>在业务迭代过程中，有些数据库数据可能需要使用脚本去修改，这是我们可以要根据一些数据生成对应的 SQL 命令，这里我们可以使用命令行工具快速生成。<br>比如说我们要将一系列订单状态有问题，需要将其恢复成正常的状态。你现在已经收集到了这批订单的信息。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">oder_id name info good_id
+100000  &#39;裤子&#39; &#39;山东&#39; 1000
+100001  &#39;上衣&#39; &#39;江苏&#39; 1000
+100002  &#39;内衣&#39; &#39;内蒙古&#39; 1000
+........
+100003  &#39;袜子&#39; &#39;江西&#39; 1000
+</code></pre></p>
+<p>那么你可以使用如下命令直接生成对应的 SQL 语句。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">cat ErrorOrderIdFile | awk &#39;{print&quot;UPDATE ORDER SET state = 0 WHERE resource_id = &quot;$1}&#39;
+</code></pre></p>
 <p>这里 <code>&#39;&#39;</code>中都是 awk 的命令内容，而<code>&quot;&quot;</code>中是打印的纯文本，所以我们可以将需要补充的 SQL 命令打印出来。</p>
 <h3 id="代码信息统计"><a href="#代码信息统计" class="headerlink" title="代码信息统计"></a>代码信息统计</h3><p>在大公司中，各个团队往往会公开出自己的接口给兄弟团队调用，但是随着版本地快速迭代，公开的接口越来越多，想要关闭掉又往往不清楚上游调用方是哪个部门的，轻易不敢关闭或者修改。这时，如果你能访问整个公司的代码库，就可以通过下面的脚本搜索一下项目中是否出现该接口相关的关键词。</p>
 <p>笔者公司团队中微服务间通过 FeignClient 相互调用，所以对于这种情况，可以直接将搜索出对应 FeignClient 的函数名出现的文件名称。</p>
 <p>下面是一段在多个项目中统计某些关键词出现次数，并打印出文件名的 bash 脚本。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">#!/bin/bash</span><br><span class="line">keyword=$1 # 将bash命令的第一个参数赋值给 keyword</span><br><span class="line">prefix=`echo $keyword | tr -s &apos;.&apos; &apos;|&apos; | sed &apos;s/$/|/&apos;` # 处理前缀</span><br><span class="line">files=`find services -name &quot;*.java&quot; -or -name &quot;*.js&quot; | xargs grep -il $keyword` </span><br><span class="line"># 最关键的一条，搜索services文件夹下文件名后缀为.java或者.js并且内容中有关键词的文件名称。</span><br><span class="line">if [ -z &quot;$files&quot; ];then</span><br><span class="line">	echo $&#123;prefix&#125;0</span><br><span class="line">fi</span><br><span class="line"># 打印</span><br><span class="line">for f in $files;do</span><br><span class="line">echo &quot;$prefix$f&quot;</span><br><span class="line">done</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">#!&#x2F;bin&#x2F;bash
+keyword=$1 # 将bash命令的第一个参数赋值给 keyword
+prefix=`echo $keyword | tr -s &#39;.&#39; &#39;|&#39; | sed &#39;s&#x2F;$&#x2F;|&#x2F;&#39;` # 处理前缀
+files=`find services -name &quot;*.java&quot; -or -name &quot;*.js&quot; | xargs grep -il $keyword` 
+# 最关键的一条，搜索services文件夹下文件名后缀为.java或者.js并且内容中有关键词的文件名称。
+if [ -z &quot;$files&quot; ];then
+	echo ${prefix}0
+fi
+# 打印
+for f in $files;do
+echo &quot;$prefix$f&quot;
+done
+</code></pre>
 <p>我们只看一下最关键的 find 命令，其他的命令比如 tr 或者 sed，大家可以自行了解学习。</p>
 <p>find 用于查找文件，可以按照文件名称、文件操作权限、文件属主、文件访问时间等条件来查找。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">find services -name &quot;*.java&quot; -or -name &quot;*.js&quot; # 搜索 services 文件夹下</span><br><span class="line">find . -atime 7 -type f -print </span><br><span class="line"># -atime是访问时间，-type 是文件类型，区分文件和目录，查找最近7天访问过的文件。</span><br><span class="line">find . -type f -user remcarpediem -print// 找用户 remcarpediem 所拥有的文件</span><br><span class="line">find . ! -name &quot;*.java&quot; -print # !是否定参数，查找所有不是以 .java 结尾的文件。</span><br><span class="line">find . -type f -name &quot;*.java&quot; -delete # find 之后的操作，可以删除当前目录下所有的 java 文件</span><br><span class="line">find . type f -name &quot;*.java&quot; | xargs rm # 上边语句的另外一种写法</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">find services -name &quot;*.java&quot; -or -name &quot;*.js&quot; # 搜索 services 文件夹下
+find . -atime 7 -type f -print 
+# -atime是访问时间，-type 是文件类型，区分文件和目录，查找最近7天访问过的文件。
+find . -type f -user remcarpediem -print&#x2F;&#x2F; 找用户 remcarpediem 所拥有的文件
+find . ! -name &quot;*.java&quot; -print # !是否定参数，查找所有不是以 .java 结尾的文件。
+find . -type f -name &quot;*.java&quot; -delete # find 之后的操作，可以删除当前目录下所有的 java 文件
+find . type f -name &quot;*.java&quot; | xargs rm # 上边语句的另外一种写法
+</code></pre>
 <p>xargs 命令能够将输入数据转化为特定命令的命令行参数，比如说多行变一行等，串联多个命令行，比如说上边 find 和 rm。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&gt; ls </span><br><span class="line">Sentinel					groovy-engine					spring-cloud-bus-stream-binder-rocketmq</span><br><span class="line">agent-demo					hash						spring-cloud-stream-binder-rabbit</span><br><span class="line">&gt; ls | xargs # 将 ls 的输出内容变成一行。</span><br><span class="line">Sentinel agent-demo groovy-engine  hash spring-cloud-bus-stream-binder-rocketmq spring-cloud-stream-binder-rabbit</span><br><span class="line">&gt; echo &quot;nameXnameXnameXname&quot; | xargs -dX </span><br><span class="line">name name name name</span><br><span class="line"># -d 选项可以自定义一个定界符，相信你已经了解 xargs 的大致作用了吧，按照分隔符拆分文本到一行，默认分隔符当时是回车了。</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&gt; ls 
+Sentinel					groovy-engine					spring-cloud-bus-stream-binder-rocketmq
+agent-demo					hash						spring-cloud-stream-binder-rabbit
+&gt; ls | xargs # 将 ls 的输出内容变成一行。
+Sentinel agent-demo groovy-engine  hash spring-cloud-bus-stream-binder-rocketmq spring-cloud-stream-binder-rabbit
+&gt; echo &quot;nameXnameXnameXname&quot; | xargs -dX 
+name name name name
+# -d 选项可以自定义一个定界符，相信你已经了解 xargs 的大致作用了吧，按照分隔符拆分文本到一行，默认分隔符当时是回车了。
+</code></pre>
 <p>最后一个命令时 grep，它是文本搜索命令，它可以搜索文本内容的关键词。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">grep remcarpediem file # 将 file 文件中的带有 remcarpediem 关键词的行。</span><br><span class="line">grep -C10 remcarpediem file # 将 file 文件中的带有 remcarpediem 关键词前后10行的内容。</span><br><span class="line">cat LOG.* | grep &quot;FROM &quot; | grep &quot;WHERE&quot; &gt; b # 将日志中的所有带where条件的sql查找查找出来</span><br><span class="line">grep -li remcarpediem file # 忽略大小写，并且打印出文件名称</span><br></pre></td></tr></table></figure>
-<p>现在大家在回头看一下这段 bash 脚本，是不是大致了解它执行的过程和原理啦。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">files=`find services -name &quot;*.java&quot; -or -name &quot;*.js&quot; | xargs grep -il $keyword`</span><br></pre></td></tr></table></figure></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">grep remcarpediem file # 将 file 文件中的带有 remcarpediem 关键词的行。
+grep -C10 remcarpediem file # 将 file 文件中的带有 remcarpediem 关键词前后10行的内容。
+cat LOG.* | grep &quot;FROM &quot; | grep &quot;WHERE&quot; &gt; b # 将日志中的所有带where条件的sql查找查找出来
+grep -li remcarpediem file # 忽略大小写，并且打印出文件名称
+</code></pre>
+<p>现在大家在回头看一下这段 bash 脚本，是不是大致了解它执行的过程和原理啦。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">files=`find services -name &quot;*.java&quot; -or -name &quot;*.js&quot; | xargs grep -il $keyword` 
+</code></pre></p>
 <h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>本文简单介绍了程序员日常工作中可能用到 Linux 命令的三个场景。大家可以根据自己的实际情况，来判断是否需要继续全面详细地学习相关的知识。毕竟只有能运用于实践，给自己工作产生价值的技术才是真技术。学习一项技术，就要坚持学以致用的目的。</p>
 <p><a href="http://remcarpediem.net/2019/06/23/%E7%BC%96%E7%A8%8B%E5%B0%8F%E6%8A%80%E5%B7%A7%E4%B9%8B-IDEA-%E7%9A%84-Live-Template/">编程小技巧之 IDEA 的 Live Template</a></p>
 <p><img src="http://remcarpediem.net/images/logo.png" alt=""></p>
@@ -685,7 +913,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/45ef130c/" data-id="ck6535m9f007a9kseygplv7zs" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/45ef130c/" data-id="ck6540jax0073lhsewbrc5v29" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -829,7 +1057,27 @@ var _hmt = _hmt || [];
 <li>周期性事件：让一段程序每隔指定时间就执行一次。</li>
 </ul>
 <p>Redis 的时间事件的具体定义结构如下所示。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">typedef struct aeTimeEvent &#123;</span><br><span class="line">    /* 全局唯一ID */</span><br><span class="line">    long long id; /* time event identifier. */</span><br><span class="line">    /* 秒精确的UNIX时间戳，记录时间事件到达的时间*/</span><br><span class="line">    long when_sec; /* seconds */</span><br><span class="line">    /* 毫秒精确的UNIX时间戳，记录时间事件到达的时间*/</span><br><span class="line">    long when_ms; /* milliseconds */</span><br><span class="line">    /* 时间处理器 */</span><br><span class="line">    aeTimeProc *timeProc;</span><br><span class="line">    /* 事件结束回调函数，析构一些资源*/</span><br><span class="line">    aeEventFinalizerProc *finalizerProc;</span><br><span class="line">    /* 私有数据 */</span><br><span class="line">    void *clientData;</span><br><span class="line">    /* 前驱节点 */</span><br><span class="line">    struct aeTimeEvent *prev;</span><br><span class="line">    /* 后继节点 */</span><br><span class="line">    struct aeTimeEvent *next;</span><br><span class="line">&#125; aeTimeEvent;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">typedef struct aeTimeEvent {
+    &#x2F;* 全局唯一ID *&#x2F;
+    long long id; &#x2F;* time event identifier. *&#x2F;
+    &#x2F;* 秒精确的UNIX时间戳，记录时间事件到达的时间*&#x2F;
+    long when_sec; &#x2F;* seconds *&#x2F;
+    &#x2F;* 毫秒精确的UNIX时间戳，记录时间事件到达的时间*&#x2F;
+    long when_ms; &#x2F;* milliseconds *&#x2F;
+    &#x2F;* 时间处理器 *&#x2F;
+    aeTimeProc *timeProc;
+    &#x2F;* 事件结束回调函数，析构一些资源*&#x2F;
+    aeEventFinalizerProc *finalizerProc;
+    &#x2F;* 私有数据 *&#x2F;
+    void *clientData;
+    &#x2F;* 前驱节点 *&#x2F;
+    struct aeTimeEvent *prev;
+    &#x2F;* 后继节点 *&#x2F;
+    struct aeTimeEvent *next;
+} aeTimeEvent;
+</code></pre>
 <p>一个时间事件是定时事件还是周期性事件取决于时间处理器的返回值：</p>
 <ul>
 <li>如果返回值是 AE_NOMORE，那么这个事件是一个定时事件，该事件在达到后删除，之后不会再重复。</li>
@@ -845,33 +1093,313 @@ var _hmt = _hmt || [];
 <li>初始化时间事件列表，设置<code>timeEventHead</code>和<code>timeEventNextId</code>属性。</li>
 <li>调用<code>aeApiCreate</code> 函数创建<code>epoll</code>实例，并初始化 <code>apidata</code>。</li>
 </ul>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">aeEventLoop *aeCreateEventLoop(int setsize) &#123;</span><br><span class="line">    aeEventLoop *eventLoop;</span><br><span class="line">    int i;</span><br><span class="line">    /* 创建事件状态结构 */</span><br><span class="line">    if ((eventLoop = zmalloc(sizeof(*eventLoop))) == NULL) goto err;</span><br><span class="line">    /* 创建未就绪事件表、就绪事件表 */</span><br><span class="line">    eventLoop-&gt;events = zmalloc(sizeof(aeFileEvent)*setsize);</span><br><span class="line">    eventLoop-&gt;fired = zmalloc(sizeof(aeFiredEvent)*setsize);</span><br><span class="line">    if (eventLoop-&gt;events == NULL || eventLoop-&gt;fired == NULL) goto err;</span><br><span class="line">    /* 设置数组大小 */</span><br><span class="line">    eventLoop-&gt;setsize = setsize;</span><br><span class="line">    /* 初始化执行最近一次执行时间 */</span><br><span class="line">    eventLoop-&gt;lastTime = time(NULL);</span><br><span class="line">    /* 初始化时间事件结构 */</span><br><span class="line">    eventLoop-&gt;timeEventHead = NULL;</span><br><span class="line">    eventLoop-&gt;timeEventNextId = 0;</span><br><span class="line">    eventLoop-&gt;stop = 0;</span><br><span class="line">    eventLoop-&gt;maxfd = -1;</span><br><span class="line">    eventLoop-&gt;beforesleep = NULL;</span><br><span class="line">    eventLoop-&gt;aftersleep = NULL;</span><br><span class="line">    /* 将多路复用io与事件管理器关联起来 */</span><br><span class="line">    if (aeApiCreate(eventLoop) == -1) goto err;</span><br><span class="line">    /* 初始化监听事件 */</span><br><span class="line">    for (i = 0; i &lt; setsize; i++)</span><br><span class="line">        eventLoop-&gt;events[i].mask = AE_NONE;</span><br><span class="line">    return eventLoop;</span><br><span class="line">err:</span><br><span class="line">   .....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">aeEventLoop *aeCreateEventLoop(int setsize) {
+    aeEventLoop *eventLoop;
+    int i;
+    &#x2F;* 创建事件状态结构 *&#x2F;
+    if ((eventLoop = zmalloc(sizeof(*eventLoop))) == NULL) goto err;
+    &#x2F;* 创建未就绪事件表、就绪事件表 *&#x2F;
+    eventLoop-&gt;events = zmalloc(sizeof(aeFileEvent)*setsize);
+    eventLoop-&gt;fired = zmalloc(sizeof(aeFiredEvent)*setsize);
+    if (eventLoop-&gt;events == NULL || eventLoop-&gt;fired == NULL) goto err;
+    &#x2F;* 设置数组大小 *&#x2F;
+    eventLoop-&gt;setsize = setsize;
+    &#x2F;* 初始化执行最近一次执行时间 *&#x2F;
+    eventLoop-&gt;lastTime = time(NULL);
+    &#x2F;* 初始化时间事件结构 *&#x2F;
+    eventLoop-&gt;timeEventHead = NULL;
+    eventLoop-&gt;timeEventNextId = 0;
+    eventLoop-&gt;stop = 0;
+    eventLoop-&gt;maxfd = -1;
+    eventLoop-&gt;beforesleep = NULL;
+    eventLoop-&gt;aftersleep = NULL;
+    &#x2F;* 将多路复用io与事件管理器关联起来 *&#x2F;
+    if (aeApiCreate(eventLoop) == -1) goto err;
+    &#x2F;* 初始化监听事件 *&#x2F;
+    for (i = 0; i &lt; setsize; i++)
+        eventLoop-&gt;events[i].mask = AE_NONE;
+    return eventLoop;
+err:
+   .....
+}
+</code></pre>
 <p><code>aeApiCreate</code> 函数首先创建了<code>aeApiState</code>对象，初始化了epoll就绪事件表；然后调用<code>epoll_create</code>创建了<code>epoll</code>实例，最后将该<code>aeApiState</code>赋值给<code>apidata</code>属性。</p>
 <p><code>aeApiState</code>对象中<code>epfd</code>存储<code>epoll</code>的标识，<code>events</code>是一个<code>epoll</code>就绪事件数组，当有<code>epoll</code>事件发生时，所有发生的<code>epoll</code>事件和其描述符将存储在这个数组中。这个就绪事件数组由应用层开辟空间、内核负责把所有发生的事件填充到该数组。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">static int aeApiCreate(aeEventLoop *eventLoop) &#123;</span><br><span class="line">    aeApiState *state = zmalloc(sizeof(aeApiState));</span><br><span class="line"></span><br><span class="line">    if (!state) return -1;</span><br><span class="line">    /* 初始化epoll就绪事件表 */</span><br><span class="line">    state-&gt;events = zmalloc(sizeof(struct epoll_event)*eventLoop-&gt;setsize);</span><br><span class="line">    if (!state-&gt;events) &#123;</span><br><span class="line">        zfree(state);</span><br><span class="line">        return -1;</span><br><span class="line">    &#125;</span><br><span class="line">    /* 创建 epoll 实例 */</span><br><span class="line">    state-&gt;epfd = epoll_create(1024); /* 1024 is just a hint for the kernel */</span><br><span class="line">    if (state-&gt;epfd == -1) &#123;</span><br><span class="line">        zfree(state-&gt;events);</span><br><span class="line">        zfree(state);</span><br><span class="line">        return -1;</span><br><span class="line">    &#125;</span><br><span class="line">    /* 事件管理器与epoll关联 */</span><br><span class="line">    eventLoop-&gt;apidata = state;</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br><span class="line">typedef struct aeApiState &#123;</span><br><span class="line">    /* epoll_event 实例描述符*/</span><br><span class="line">    int epfd;</span><br><span class="line">    /* 存储epoll就绪事件表 */</span><br><span class="line">    struct epoll_event *events;</span><br><span class="line">&#125; aeApiState;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">static int aeApiCreate(aeEventLoop *eventLoop) {
+    aeApiState *state = zmalloc(sizeof(aeApiState));
+
+    if (!state) return -1;
+    &#x2F;* 初始化epoll就绪事件表 *&#x2F;
+    state-&gt;events = zmalloc(sizeof(struct epoll_event)*eventLoop-&gt;setsize);
+    if (!state-&gt;events) {
+        zfree(state);
+        return -1;
+    }
+    &#x2F;* 创建 epoll 实例 *&#x2F;
+    state-&gt;epfd = epoll_create(1024); &#x2F;* 1024 is just a hint for the kernel *&#x2F;
+    if (state-&gt;epfd == -1) {
+        zfree(state-&gt;events);
+        zfree(state);
+        return -1;
+    }
+    &#x2F;* 事件管理器与epoll关联 *&#x2F;
+    eventLoop-&gt;apidata = state;
+    return 0;
+}
+typedef struct aeApiState {
+    &#x2F;* epoll_event 实例描述符*&#x2F;
+    int epfd;
+    &#x2F;* 存储epoll就绪事件表 *&#x2F;
+    struct epoll_event *events;
+} aeApiState;
+</code></pre>
 <h3 id="创建文件事件"><a href="#创建文件事件" class="headerlink" title="创建文件事件"></a>创建文件事件</h3><p><code>aeFileEvent</code>是文件事件结构，对于每一个具体的事件，都有读处理函数和写处理函数等。Redis 调用<code>aeCreateFileEvent</code>函数针对不同的套接字的读写事件注册对应的文件事件。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">typedef struct aeFileEvent &#123;</span><br><span class="line">    /* 监听事件类型掩码,值可以是 AE_READABLE 或 AE_WRITABLE */</span><br><span class="line">    int mask;</span><br><span class="line">    /* 读事件处理器 */</span><br><span class="line">    aeFileProc *rfileProc;</span><br><span class="line">    /* 写事件处理器 */</span><br><span class="line">    aeFileProc *wfileProc;</span><br><span class="line">    /* 多路复用库的私有数据 */</span><br><span class="line">    void *clientData;</span><br><span class="line">&#125; aeFileEvent;</span><br><span class="line">/* 使用typedef定义的处理器函数的函数类型 */</span><br><span class="line">typedef void aeFileProc(struct aeEventLoop *eventLoop, </span><br><span class="line">int fd, void *clientData, int mask);</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">typedef struct aeFileEvent {
+    &#x2F;* 监听事件类型掩码,值可以是 AE_READABLE 或 AE_WRITABLE *&#x2F;
+    int mask;
+    &#x2F;* 读事件处理器 *&#x2F;
+    aeFileProc *rfileProc;
+    &#x2F;* 写事件处理器 *&#x2F;
+    aeFileProc *wfileProc;
+    &#x2F;* 多路复用库的私有数据 *&#x2F;
+    void *clientData;
+} aeFileEvent;
+&#x2F;* 使用typedef定义的处理器函数的函数类型 *&#x2F;
+typedef void aeFileProc(struct aeEventLoop *eventLoop, 
+int fd, void *clientData, int mask);
+</code></pre>
 <p>比如说，Redis 进行主从复制时，从服务器需要主服务器建立连接，它会发起一个 socekt连接，然后调用<code>aeCreateFileEvent</code>函数针对发起的socket的读写事件注册了对应的事件处理器，也就是<code>syncWithMaster</code>函数。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">aeCreateFileEvent(server.el,fd,AE_READABLE|AE_WRITABLE,syncWithMaster,NULL);</span><br><span class="line">/* 符合aeFileProc的函数定义 */</span><br><span class="line">void syncWithMaster(aeEventLoop *el, int fd, void *privdata, int mask) &#123;....&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">aeCreateFileEvent(server.el,fd,AE_READABLE|AE_WRITABLE,syncWithMaster,NULL);
+&#x2F;* 符合aeFileProc的函数定义 *&#x2F;
+void syncWithMaster(aeEventLoop *el, int fd, void *privdata, int mask) {....}
+</code></pre>
 <p><code>aeCreateFileEvent</code>的参数<code>fd</code>指的是具体的<code>socket</code>套接字，<code>proc</code>指<code>fd</code>产生事件时，具体的处理函数，<code>clientData</code>则是回调处理函数时需要传入的数据。<br><code>aeCreateFileEvent</code>主要做了三件事情：</p>
 <ul>
 <li>以<code>fd</code>为索引，在<code>events</code>未就绪事件表中找到对应事件。</li>
 <li>调用<code>aeApiAddEvent</code>函数，该事件注册到具体的底层 I/O 多路复用中，本例为epoll。</li>
 <li>填充事件的回调、参数、事件类型等参数。</li>
 </ul>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">int aeCreateFileEvent(aeEventLoop *eventLoop, int fd, int mask,</span><br><span class="line">                       aeFileProc *proc, void *clientData)</span><br><span class="line">&#123;</span><br><span class="line">    /* 取出 fd 对应的文件事件结构, fd 代表具体的 socket 套接字 */</span><br><span class="line">    aeFileEvent *fe = &amp;eventLoop-&gt;events[fd];</span><br><span class="line">    /* 监听指定 fd 的指定事件 */</span><br><span class="line">    if (aeApiAddEvent(eventLoop, fd, mask) == -1)</span><br><span class="line">        return AE_ERR;</span><br><span class="line">    /* 置文件事件类型，以及事件的处理器 */</span><br><span class="line">    fe-&gt;mask |= mask;</span><br><span class="line">    if (mask &amp; AE_READABLE) fe-&gt;rfileProc = proc;</span><br><span class="line">    if (mask &amp; AE_WRITABLE) fe-&gt;wfileProc = proc;</span><br><span class="line">    /* 私有数据 */</span><br><span class="line">    fe-&gt;clientData = clientData;</span><br><span class="line">    if (fd &gt; eventLoop-&gt;maxfd)</span><br><span class="line">        eventLoop-&gt;maxfd = fd;</span><br><span class="line">    return AE_OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>如上文所说，Redis 基于的底层 I/O 多路复用库有多套，所以<code>aeApiAddEvent</code>也有多套实现，下面的源码是<code>epoll</code>下的实现。其核心操作就是调用<code>epoll</code>的<code>epoll_ctl</code>函数来向<code>epoll</code>注册响应事件。有关<code>epoll</code>相关的知识可以看一下<a href="https://mp.weixin.qq.com/s/O40MlDhAgCmcyUgu2jX1dg" target="_blank" rel="noopener">《Java NIO源码分析》</a><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) &#123;</span><br><span class="line">    aeApiState *state = eventLoop-&gt;apidata;</span><br><span class="line">    struct epoll_event ee = &#123;0&#125;; /* avoid valgrind warning */</span><br><span class="line">    /* 如果 fd 没有关联任何事件，那么这是一个 ADD 操作。如果已经关联了某个/某些事件，那么这是一个 MOD 操作。 */</span><br><span class="line">    int op = eventLoop-&gt;events[fd].mask == AE_NONE ?</span><br><span class="line">            EPOLL_CTL_ADD : EPOLL_CTL_MOD;</span><br><span class="line"></span><br><span class="line">    /* 注册事件到 epoll */</span><br><span class="line">    ee.events = 0;</span><br><span class="line">    mask |= eventLoop-&gt;events[fd].mask; /* Merge old events */</span><br><span class="line">    if (mask &amp; AE_READABLE) ee.events |= EPOLLIN;</span><br><span class="line">    if (mask &amp; AE_WRITABLE) ee.events |= EPOLLOUT;</span><br><span class="line">    ee.data.fd = fd;</span><br><span class="line">    /* 调用epoll_ctl 系统调用，将事件加入epoll中 */</span><br><span class="line">    if (epoll_ctl(state-&gt;epfd,op,fd,&amp;ee) == -1) return -1;</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">int aeCreateFileEvent(aeEventLoop *eventLoop, int fd, int mask,
+                       aeFileProc *proc, void *clientData)
+{
+    &#x2F;* 取出 fd 对应的文件事件结构, fd 代表具体的 socket 套接字 *&#x2F;
+    aeFileEvent *fe = &amp;eventLoop-&gt;events[fd];
+    &#x2F;* 监听指定 fd 的指定事件 *&#x2F;
+    if (aeApiAddEvent(eventLoop, fd, mask) == -1)
+        return AE_ERR;
+    &#x2F;* 置文件事件类型，以及事件的处理器 *&#x2F;
+    fe-&gt;mask |= mask;
+    if (mask &amp; AE_READABLE) fe-&gt;rfileProc = proc;
+    if (mask &amp; AE_WRITABLE) fe-&gt;wfileProc = proc;
+    &#x2F;* 私有数据 *&#x2F;
+    fe-&gt;clientData = clientData;
+    if (fd &gt; eventLoop-&gt;maxfd)
+        eventLoop-&gt;maxfd = fd;
+    return AE_OK;
+}
+</code></pre>
+<p>如上文所说，Redis 基于的底层 I/O 多路复用库有多套，所以<code>aeApiAddEvent</code>也有多套实现，下面的源码是<code>epoll</code>下的实现。其核心操作就是调用<code>epoll</code>的<code>epoll_ctl</code>函数来向<code>epoll</code>注册响应事件。有关<code>epoll</code>相关的知识可以看一下<a href="https://mp.weixin.qq.com/s/O40MlDhAgCmcyUgu2jX1dg" target="_blank" rel="noopener">《Java NIO源码分析》</a><br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) {
+    aeApiState *state = eventLoop-&gt;apidata;
+    struct epoll_event ee = {0}; &#x2F;* avoid valgrind warning *&#x2F;
+    &#x2F;* 如果 fd 没有关联任何事件，那么这是一个 ADD 操作。如果已经关联了某个&#x2F;某些事件，那么这是一个 MOD 操作。 *&#x2F;
+    int op = eventLoop-&gt;events[fd].mask == AE_NONE ?
+            EPOLL_CTL_ADD : EPOLL_CTL_MOD;
+
+    &#x2F;* 注册事件到 epoll *&#x2F;
+    ee.events = 0;
+    mask |= eventLoop-&gt;events[fd].mask; &#x2F;* Merge old events *&#x2F;
+    if (mask &amp; AE_READABLE) ee.events |= EPOLLIN;
+    if (mask &amp; AE_WRITABLE) ee.events |= EPOLLOUT;
+    ee.data.fd = fd;
+    &#x2F;* 调用epoll_ctl 系统调用，将事件加入epoll中 *&#x2F;
+    if (epoll_ctl(state-&gt;epfd,op,fd,&amp;ee) == -1) return -1;
+    return 0;
+}
+</code></pre></p>
 <h3 id="事件处理"><a href="#事件处理" class="headerlink" title="事件处理"></a>事件处理</h3><p>因为 Redis 中同时存在文件事件和时间事件两个事件类型，所以服务器必须对这两个事件进行调度，决定何时处理文件事件，何时处理时间事件，以及如何调度它们。</p>
 <p><code>aeMain</code>函数以一个无限循环不断地调用<code>aeProcessEvents</code>函数来处理所有的事件。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">void aeMain(aeEventLoop *eventLoop) &#123;</span><br><span class="line">    eventLoop-&gt;stop = 0;</span><br><span class="line">    while (!eventLoop-&gt;stop) &#123;</span><br><span class="line">        /* 如果有需要在事件处理前执行的函数，那么执行它 */</span><br><span class="line">        if (eventLoop-&gt;beforesleep != NULL)</span><br><span class="line">            eventLoop-&gt;beforesleep(eventLoop);</span><br><span class="line">        /* 开始处理事件*/</span><br><span class="line">        aeProcessEvents(eventLoop, AE_ALL_EVENTS|AE_CALL_AFTER_SLEEP);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">void aeMain(aeEventLoop *eventLoop) {
+    eventLoop-&gt;stop = 0;
+    while (!eventLoop-&gt;stop) {
+        &#x2F;* 如果有需要在事件处理前执行的函数，那么执行它 *&#x2F;
+        if (eventLoop-&gt;beforesleep != NULL)
+            eventLoop-&gt;beforesleep(eventLoop);
+        &#x2F;* 开始处理事件*&#x2F;
+        aeProcessEvents(eventLoop, AE_ALL_EVENTS|AE_CALL_AFTER_SLEEP);
+    }
+}
+</code></pre>
 <p>下面是<code>aeProcessEvents</code>的伪代码，它会首先计算距离当前时间最近的时间事件，以此计算一个超时时间；然后调用<code>aeApiPoll</code>函数去等待底层的I/O多路复用事件就绪；<code>aeApiPoll</code>函数返回之后，会处理所有已经产生文件事件和已经达到的时间事件。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">/* 伪代码 */</span><br><span class="line">int aeProcessEvents(aeEventLoop *eventLoop, int flags) &#123;</span><br><span class="line">    /* 获取到达时间距离当前时间最接近的时间事件*/</span><br><span class="line">    time_event = aeSearchNearestTimer();</span><br><span class="line">    /* 计算最接近的时间事件距离到达还有多少毫秒*/</span><br><span class="line">    remaind_ms = time_event.when - unix_ts_now();</span><br><span class="line">    /* 如果事件已经到达，那么remaind_ms为负数，将其设置为0 */</span><br><span class="line">    if (remaind_ms &lt; 0) remaind_ms = 0;</span><br><span class="line">    /* 根据 remaind_ms 的值，创建 timeval 结构*/</span><br><span class="line">    timeval = create_timeval_with_ms(remaind_ms);</span><br><span class="line">    /* 阻塞并等待文件事件产生，最大阻塞时间由传入的 timeval 结构决定，如果remaind_ms 的值为0，则aeApiPoll 调用后立刻返回，不阻塞*/</span><br><span class="line">    /* aeApiPoll调用epoll_wait函数，等待I/O事件*/</span><br><span class="line">    aeApiPoll(timeval);</span><br><span class="line">    /* 处理所有已经产生的文件事件*/</span><br><span class="line">    processFileEvents();</span><br><span class="line">    /* 处理所有已经到达的时间事件*/</span><br><span class="line">    processTimeEvents();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;* 伪代码 *&#x2F;
+int aeProcessEvents(aeEventLoop *eventLoop, int flags) {
+    &#x2F;* 获取到达时间距离当前时间最接近的时间事件*&#x2F;
+    time_event = aeSearchNearestTimer();
+    &#x2F;* 计算最接近的时间事件距离到达还有多少毫秒*&#x2F;
+    remaind_ms = time_event.when - unix_ts_now();
+    &#x2F;* 如果事件已经到达，那么remaind_ms为负数，将其设置为0 *&#x2F;
+    if (remaind_ms &lt; 0) remaind_ms = 0;
+    &#x2F;* 根据 remaind_ms 的值，创建 timeval 结构*&#x2F;
+    timeval = create_timeval_with_ms(remaind_ms);
+    &#x2F;* 阻塞并等待文件事件产生，最大阻塞时间由传入的 timeval 结构决定，如果remaind_ms 的值为0，则aeApiPoll 调用后立刻返回，不阻塞*&#x2F;
+    &#x2F;* aeApiPoll调用epoll_wait函数，等待I&#x2F;O事件*&#x2F;
+    aeApiPoll(timeval);
+    &#x2F;* 处理所有已经产生的文件事件*&#x2F;
+    processFileEvents();
+    &#x2F;* 处理所有已经到达的时间事件*&#x2F;
+    processTimeEvents();
+}
+</code></pre>
 <p>与<code>aeApiAddEvent</code>类似，<code>aeApiPoll</code>也有多套实现，它其实就做了两件事情，调用<code>epoll_wait</code>阻塞等待<code>epoll</code>的事件就绪，超时时间就是之前根据最快达到时间事件计算而来的超时时间；然后将就绪的<code>epoll</code>事件转换到fired就绪事件。<code>aeApiPoll</code>就是上文所说的I/O多路复用程序。具体过程如下图所示。</p>
 <p><img src="/images/19_85/image5.png" alt="aeApiPoll示意图"></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) </span><br><span class="line">&#123;</span><br><span class="line">    aeApiState *state = eventLoop-&gt;apidata;</span><br><span class="line">    int retval, numevents = 0;</span><br><span class="line">    // 调用epoll_wait函数，等待时间为最近达到时间事件的时间计算而来。</span><br><span class="line">    retval = epoll_wait(state-&gt;epfd,state-&gt;events,eventLoop-&gt;setsize,</span><br><span class="line">            tvp ? (tvp-&gt;tv_sec*1000 + tvp-&gt;tv_usec/1000) : -1);</span><br><span class="line">    // 有至少一个事件就绪？</span><br><span class="line">    if (retval &gt; 0) </span><br><span class="line">    &#123;</span><br><span class="line">        int j;</span><br><span class="line">        /*为已就绪事件设置相应的模式，并加入到 eventLoop 的 fired 数组中*/</span><br><span class="line">        numevents = retval;</span><br><span class="line">        for (j = 0; j &lt; numevents; j++) </span><br><span class="line">	&#123;</span><br><span class="line">            int mask = 0;</span><br><span class="line">            struct epoll_event *e = state-&gt;events+j;</span><br><span class="line">            if (e-&gt;events &amp; EPOLLIN)</span><br><span class="line">		mask |= AE_READABLE;</span><br><span class="line">            if (e-&gt;events &amp; EPOLLOUT)</span><br><span class="line">		mask |= AE_WRITABLE;</span><br><span class="line">            if (e-&gt;events &amp; EPOLLERR) </span><br><span class="line">		mask |= AE_WRITABLE;</span><br><span class="line">            if (e-&gt;events &amp; EPOLLHUP)</span><br><span class="line">		mask |= AE_WRITABLE;</span><br><span class="line">            /* 设置就绪事件表元素 */</span><br><span class="line">            eventLoop-&gt;fired[j].fd = e-&gt;data.fd;</span><br><span class="line">            eventLoop-&gt;fired[j].mask = mask;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    // 返回已就绪事件个数</span><br><span class="line">    return numevents;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) 
+{
+    aeApiState *state = eventLoop-&gt;apidata;
+    int retval, numevents = 0;
+    &#x2F;&#x2F; 调用epoll_wait函数，等待时间为最近达到时间事件的时间计算而来。
+    retval = epoll_wait(state-&gt;epfd,state-&gt;events,eventLoop-&gt;setsize,
+            tvp ? (tvp-&gt;tv_sec*1000 + tvp-&gt;tv_usec&#x2F;1000) : -1);
+    &#x2F;&#x2F; 有至少一个事件就绪？
+    if (retval &gt; 0) 
+    {
+        int j;
+        &#x2F;*为已就绪事件设置相应的模式，并加入到 eventLoop 的 fired 数组中*&#x2F;
+        numevents = retval;
+        for (j = 0; j &lt; numevents; j++) 
+	{
+            int mask = 0;
+            struct epoll_event *e = state-&gt;events+j;
+            if (e-&gt;events &amp; EPOLLIN)
+		mask |= AE_READABLE;
+            if (e-&gt;events &amp; EPOLLOUT)
+		mask |= AE_WRITABLE;
+            if (e-&gt;events &amp; EPOLLERR) 
+		mask |= AE_WRITABLE;
+            if (e-&gt;events &amp; EPOLLHUP)
+		mask |= AE_WRITABLE;
+            &#x2F;* 设置就绪事件表元素 *&#x2F;
+            eventLoop-&gt;fired[j].fd = e-&gt;data.fd;
+            eventLoop-&gt;fired[j].mask = mask;
+        }
+    }
+    
+    &#x2F;&#x2F; 返回已就绪事件个数
+    return numevents;
+}
+</code></pre>
 <p><code>processFileEvent</code>是处理就绪文件事件的伪代码，也是上文所述的文件事件分派器，它其实就是遍历<code>fired</code>就绪事件表，然后根据对应的事件类型来调用事件中注册的不同处理器，读事件调用<code>rfileProc</code>，而写事件调用<code>wfileProc</code>。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">void processFileEvent(int numevents) &#123;</span><br><span class="line">    for (j = 0; j &lt; numevents; j++) &#123;</span><br><span class="line">            /* 从已就绪数组中获取事件 */</span><br><span class="line">            aeFileEvent *fe = &amp;eventLoop-&gt;events[eventLoop-&gt;fired[j].fd];</span><br><span class="line">            int mask = eventLoop-&gt;fired[j].mask;</span><br><span class="line">            int fd = eventLoop-&gt;fired[j].fd;</span><br><span class="line">            int fired = 0;</span><br><span class="line">            int invert = fe-&gt;mask &amp; AE_BARRIER;</span><br><span class="line">	        /* 读事件 */</span><br><span class="line">            if (!invert &amp;&amp; fe-&gt;mask &amp; mask &amp; AE_READABLE) &#123;</span><br><span class="line">                /* 调用读处理函数 */</span><br><span class="line">                fe-&gt;rfileProc(eventLoop,fd,fe-&gt;clientData,mask);</span><br><span class="line">                fired++;</span><br><span class="line">            &#125;</span><br><span class="line">            /* 写事件. */</span><br><span class="line">            if (fe-&gt;mask &amp; mask &amp; AE_WRITABLE) &#123;</span><br><span class="line">                if (!fired || fe-&gt;wfileProc != fe-&gt;rfileProc) &#123;</span><br><span class="line">                    fe-&gt;wfileProc(eventLoop,fd,fe-&gt;clientData,mask);</span><br><span class="line">                    fired++;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            if (invert &amp;&amp; fe-&gt;mask &amp; mask &amp; AE_READABLE) &#123;</span><br><span class="line">                if (!fired || fe-&gt;wfileProc != fe-&gt;rfileProc) &#123;</span><br><span class="line">                    fe-&gt;rfileProc(eventLoop,fd,fe-&gt;clientData,mask);</span><br><span class="line">                    fired++;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            processed++;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>而<code>processTimeEvents</code>是处理时间事件的函数，它会遍历<code>aeEventLoop</code>的事件事件列表，如果时间事件到达就执行其<code>timeProc</code>函数，并根据函数的返回值是否等于<code>AE_NOMORE</code>来决定该时间事件是否是周期性事件，并修改器到达时间。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line">static int processTimeEvents(aeEventLoop *eventLoop) &#123;</span><br><span class="line">    int processed = 0;</span><br><span class="line">    aeTimeEvent *te;</span><br><span class="line">    long long maxId;</span><br><span class="line">    time_t now = time(NULL);</span><br><span class="line">    ....</span><br><span class="line">    eventLoop-&gt;lastTime = now;</span><br><span class="line"></span><br><span class="line">    te = eventLoop-&gt;timeEventHead;</span><br><span class="line">    maxId = eventLoop-&gt;timeEventNextId-1;</span><br><span class="line">    /* 遍历时间事件链表 */</span><br><span class="line">    while(te) &#123;</span><br><span class="line">        long now_sec, now_ms;</span><br><span class="line">        long long id;</span><br><span class="line"></span><br><span class="line">        /* 删除需要删除的时间事件 */</span><br><span class="line">        if (te-&gt;id == AE_DELETED_EVENT_ID) &#123;</span><br><span class="line">            aeTimeEvent *next = te-&gt;next;</span><br><span class="line">            if (te-&gt;prev)</span><br><span class="line">                te-&gt;prev-&gt;next = te-&gt;next;</span><br><span class="line">            else</span><br><span class="line">                eventLoop-&gt;timeEventHead = te-&gt;next;</span><br><span class="line">            if (te-&gt;next)</span><br><span class="line">                te-&gt;next-&gt;prev = te-&gt;prev;</span><br><span class="line">            if (te-&gt;finalizerProc)</span><br><span class="line">                te-&gt;finalizerProc(eventLoop, te-&gt;clientData);</span><br><span class="line">            zfree(te);</span><br><span class="line">            te = next;</span><br><span class="line">            continue;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        /* id 大于最大maxId,是该循环周期生成的时间事件，不处理 */</span><br><span class="line">        if (te-&gt;id &gt; maxId) &#123;</span><br><span class="line">            te = te-&gt;next;</span><br><span class="line">            continue;</span><br><span class="line">        &#125;</span><br><span class="line">        aeGetTime(&amp;now_sec, &amp;now_ms);</span><br><span class="line">        /* 事件已经到达，调用其timeProc函数*/</span><br><span class="line">        if (now_sec &gt; te-&gt;when_sec ||</span><br><span class="line">            (now_sec == te-&gt;when_sec &amp;&amp; now_ms &gt;= te-&gt;when_ms))</span><br><span class="line">        &#123;</span><br><span class="line">            int retval;</span><br><span class="line"></span><br><span class="line">            id = te-&gt;id;</span><br><span class="line">            retval = te-&gt;timeProc(eventLoop, id, te-&gt;clientData);</span><br><span class="line">            processed++;</span><br><span class="line">            /* 如果返回值不等于 AE_NOMORE,表示是一个周期性事件，修改其when_sec和when_ms属性*/</span><br><span class="line">            if (retval != AE_NOMORE) &#123;</span><br><span class="line">                aeAddMillisecondsToNow(retval,&amp;te-&gt;when_sec,&amp;te-&gt;when_ms);</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                /* 一次性事件，标记为需删除，下次遍历时会删除*/</span><br><span class="line">                te-&gt;id = AE_DELETED_EVENT_ID;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        te = te-&gt;next;</span><br><span class="line">    &#125;</span><br><span class="line">    return processed;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">void processFileEvent(int numevents) {
+    for (j = 0; j &lt; numevents; j++) {
+            &#x2F;* 从已就绪数组中获取事件 *&#x2F;
+            aeFileEvent *fe = &amp;eventLoop-&gt;events[eventLoop-&gt;fired[j].fd];
+            int mask = eventLoop-&gt;fired[j].mask;
+            int fd = eventLoop-&gt;fired[j].fd;
+            int fired = 0;
+            int invert = fe-&gt;mask &amp; AE_BARRIER;
+	        &#x2F;* 读事件 *&#x2F;
+            if (!invert &amp;&amp; fe-&gt;mask &amp; mask &amp; AE_READABLE) {
+                &#x2F;* 调用读处理函数 *&#x2F;
+                fe-&gt;rfileProc(eventLoop,fd,fe-&gt;clientData,mask);
+                fired++;
+            }
+            &#x2F;* 写事件. *&#x2F;
+            if (fe-&gt;mask &amp; mask &amp; AE_WRITABLE) {
+                if (!fired || fe-&gt;wfileProc != fe-&gt;rfileProc) {
+                    fe-&gt;wfileProc(eventLoop,fd,fe-&gt;clientData,mask);
+                    fired++;
+                }
+            }
+            if (invert &amp;&amp; fe-&gt;mask &amp; mask &amp; AE_READABLE) {
+                if (!fired || fe-&gt;wfileProc != fe-&gt;rfileProc) {
+                    fe-&gt;rfileProc(eventLoop,fd,fe-&gt;clientData,mask);
+                    fired++;
+                }
+            }
+            processed++;
+        }
+    }
+}
+</code></pre>
+<p>而<code>processTimeEvents</code>是处理时间事件的函数，它会遍历<code>aeEventLoop</code>的事件事件列表，如果时间事件到达就执行其<code>timeProc</code>函数，并根据函数的返回值是否等于<code>AE_NOMORE</code>来决定该时间事件是否是周期性事件，并修改器到达时间。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">static int processTimeEvents(aeEventLoop *eventLoop) {
+    int processed = 0;
+    aeTimeEvent *te;
+    long long maxId;
+    time_t now = time(NULL);
+    ....
+    eventLoop-&gt;lastTime = now;
+
+    te = eventLoop-&gt;timeEventHead;
+    maxId = eventLoop-&gt;timeEventNextId-1;
+    &#x2F;* 遍历时间事件链表 *&#x2F;
+    while(te) {
+        long now_sec, now_ms;
+        long long id;
+
+        &#x2F;* 删除需要删除的时间事件 *&#x2F;
+        if (te-&gt;id == AE_DELETED_EVENT_ID) {
+            aeTimeEvent *next = te-&gt;next;
+            if (te-&gt;prev)
+                te-&gt;prev-&gt;next = te-&gt;next;
+            else
+                eventLoop-&gt;timeEventHead = te-&gt;next;
+            if (te-&gt;next)
+                te-&gt;next-&gt;prev = te-&gt;prev;
+            if (te-&gt;finalizerProc)
+                te-&gt;finalizerProc(eventLoop, te-&gt;clientData);
+            zfree(te);
+            te = next;
+            continue;
+        }
+
+        &#x2F;* id 大于最大maxId,是该循环周期生成的时间事件，不处理 *&#x2F;
+        if (te-&gt;id &gt; maxId) {
+            te = te-&gt;next;
+            continue;
+        }
+        aeGetTime(&amp;now_sec, &amp;now_ms);
+        &#x2F;* 事件已经到达，调用其timeProc函数*&#x2F;
+        if (now_sec &gt; te-&gt;when_sec ||
+            (now_sec == te-&gt;when_sec &amp;&amp; now_ms &gt;= te-&gt;when_ms))
+        {
+            int retval;
+
+            id = te-&gt;id;
+            retval = te-&gt;timeProc(eventLoop, id, te-&gt;clientData);
+            processed++;
+            &#x2F;* 如果返回值不等于 AE_NOMORE,表示是一个周期性事件，修改其when_sec和when_ms属性*&#x2F;
+            if (retval != AE_NOMORE) {
+                aeAddMillisecondsToNow(retval,&amp;te-&gt;when_sec,&amp;te-&gt;when_ms);
+            } else {
+                &#x2F;* 一次性事件，标记为需删除，下次遍历时会删除*&#x2F;
+                te-&gt;id = AE_DELETED_EVENT_ID;
+            }
+        }
+        te = te-&gt;next;
+    }
+    return processed;
+}
+</code></pre></p>
 <h3 id="删除事件"><a href="#删除事件" class="headerlink" title="删除事件"></a>删除事件</h3><p>当不在需要某个事件时，需要把事件删除掉。例如: 如果fd同时监听读事件、写事件。当不在需要监听写事件时，可以把该fd的写事件删除。</p>
 <p><code>aeDeleteEventLoop</code>函数的执行过程总结为以下几个步骤<br>1、根据<code>fd</code>在未就绪表中查找到事件<br>2、取消该<code>fd</code>对应的相应事件标识符<br>3、调用<code>aeApiFree</code>函数，内核会将epoll监听红黑树上的相应事件监听取消。</p>
 <h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>接下来，我们会继续学习 Redis 的主从复制相关的原理，欢迎大家持续关注。</p>
@@ -886,7 +1414,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/1aa2da89/" data-id="ck6535m7v003t9kse20ruchnd" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/1aa2da89/" data-id="ck6540j9h003plhsewat7jbog" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1019,7 +1547,10 @@ var _hmt = _hmt || [];
 <li>当 Redis 重启时，可以加载 AOF 文件进行数据恢复。</li>
 </ul>
 <h4 id="命令追加"><a href="#命令追加" class="headerlink" title="命令追加"></a>命令追加</h4><p>当 AOF 持久化功能处于打开状态时，Redis 在执行完一个写命令之后，会以协议格式(也就是RESP，即 Redis 客户端和服务器交互的通信协议 )将被执行的写命令追加到 Redis 服务端维护的 AOF 缓冲区末尾。</p>
-<p>比如说 SET mykey myvalue 这条命令就以如下格式记录到 AOF 缓冲中。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&quot;*3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r\nmyvalue\r\n&quot;</span><br></pre></td></tr></table></figure></p>
+<p>比如说 SET mykey myvalue 这条命令就以如下格式记录到 AOF 缓冲中。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&quot;*3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r\nmyvalue\r\n&quot;
+</code></pre></p>
 <p>Redis 协议格式本文不再赘述，AOF之所以直接采用文本协议格式，是因为所有写入命令都要进行追加操作，直接采用协议格式，避免了二次处理开销。</p>
 <h4 id="文件写入和同步"><a href="#文件写入和同步" class="headerlink" title="文件写入和同步"></a>文件写入和同步</h4><p>Redis 每次结束一个事件循环之前，它都会调用 <code>flushAppendOnlyFile</code> 函数，判断是否需要将 AOF 缓存区中的内容写入和同步到 AOF 文件中。</p>
 <p><code>flushAppendOnlyFile</code> 函数的行为由 redis.conf 配置中的 <code>appendfsync</code> 选项的值来决定。该选项有三个可选值，分别是 <code>always</code>、<code>everysec</code> 和 <code>no</code>：</p>
@@ -1082,7 +1613,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/376c55d8/" data-id="ck6535m7s003k9ksew2ruckbp" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/376c55d8/" data-id="ck6540j9e003jlhsedel4owiv" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1214,7 +1745,12 @@ var _hmt = _hmt || [];
 <li>save ，该指令会阻塞当前 Redis 服务器，执行 save 指令期间，Redis 不能处理其他命令，直到 RDB 过程完成为止。</li>
 <li>bgsave，执行该命令时，Redis 会在后台异步执行快照操作，此时 Redis 仍然可以相应客户端请求。具体操作是 Redis 进程执行 <code>fork</code> 操作创建子进程，RDB 持久化过程由子进程负责，完成后自动结束。Redis 只会在 <code>fork</code> 期间发生阻塞，但是一般时间都很短。但是如果 Redis 数据量特别大，<code>fork</code> 时间就会变长，而且占用内存会加倍，这一点需要特别注意。</li>
 </ul>
-<p>自动触发 RDB 的默认配置如下所示:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">save 900 1 # 表示900 秒内如果至少有 1 个 key 的值变化，则触发RDB</span><br><span class="line">save 300 10 # 表示300 秒内如果至少有 10 个 key 的值变化，则触发RDB</span><br><span class="line">save 60 10000 # 表示60 秒内如果至少有 10000 个 key 的值变化，则触发RDB</span><br></pre></td></tr></table></figure></p>
+<p>自动触发 RDB 的默认配置如下所示:<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">save 900 1 # 表示900 秒内如果至少有 1 个 key 的值变化，则触发RDB
+save 300 10 # 表示300 秒内如果至少有 10 个 key 的值变化，则触发RDB
+save 60 10000 # 表示60 秒内如果至少有 10000 个 key 的值变化，则触发RDB
+</code></pre></p>
 <p>如果不需要 Redis 进行持久化，那么可以注释掉所有的 save 行来停用保存功能，也可以直接一个空字符串来停用持久化：save “”。</p>
 <p>Redis 服务器周期操作函数 <code>serverCron</code> 默认每个 100 毫秒就会执行一次，该函数用于正在运行的服务器进行维护，它的一项工作就是检查 save 选项所设置的条件是否有一项被满足，如果满足的话，就执行 bgsave 指令。</p>
 <h3 id="RDB-整体流程"><a href="#RDB-整体流程" class="headerlink" title="RDB 整体流程"></a>RDB 整体流程</h3><p>了解了 RDB 的基础使用后，我们要继续深入对 RDB持久化的学习。在此之前，我们可以先思考一下如何实现一个持久化机制，毕竟这是很多中间件所需的一个模块。</p>
@@ -1227,11 +1763,86 @@ var _hmt = _hmt || [];
 <h3 id="自动触发-RDB-持久化"><a href="#自动触发-RDB-持久化" class="headerlink" title="自动触发 RDB 持久化"></a>自动触发 RDB 持久化</h3><p><img src="/images/19_1221/4_image2.png" alt=""></p>
 <p>如上图所示，<code>redisServer</code> 结构体的<code>save_params</code>指向拥有三个值的数组，该数组的值与 redis.conf 文件中 save 配置项一一对应。分别是 <code>save 900 1</code>、<code>save 300 10</code> 和 <code>save 60 10000</code>。<code>dirty</code> 记录着有多少键值发生变化，<code>lastsave</code>记录着上次 RDB 持久化的时间。</p>
 <p>而 <code>serverCron</code> 函数就是遍历该数组的值，检查当前 Redis 状态是否符合触发 RDB 持久化的条件，比如说距离上次 RDB 持久化过去了 900 秒并且有至少一条数据发生变更。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) &#123;</span><br><span class="line">    ....</span><br><span class="line">    /* Check if a background saving or AOF rewrite in progress terminated. */</span><br><span class="line">    /* 判断后台是否正在进行 rdb 或者 aof 操作 */</span><br><span class="line">    if (server.rdb_child_pid != -1 || server.aof_child_pid != -1 ||</span><br><span class="line">        ldbPendingChildren())</span><br><span class="line">    &#123;</span><br><span class="line">        ....</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        // 到这儿就能确定 当前木有进行 rdb 或者 aof 操作</span><br><span class="line">        // 遍历每一个 rdb 保存条件</span><br><span class="line">         for (j = 0; j &lt; server.saveparamslen; j++) &#123;</span><br><span class="line">            struct saveparam *sp = server.saveparams+j;</span><br><span class="line"></span><br><span class="line">            //如果数据保存记录 大于规定的修改次数 且距离 上一次保存的时间大于规定时间或者上次BGSAVE命令执行成功，才执行 BGSAVE 操作</span><br><span class="line">            if (server.dirty &gt;= sp-&gt;changes &amp;&amp;</span><br><span class="line">                server.unixtime-server.lastsave &gt; sp-&gt;seconds &amp;&amp;</span><br><span class="line">                (server.unixtime-server.lastbgsave_try &gt;</span><br><span class="line">                 CONFIG_BGSAVE_RETRY_DELAY ||</span><br><span class="line">                 server.lastbgsave_status == C_OK))</span><br><span class="line">            &#123;</span><br><span class="line">                //记录日志</span><br><span class="line">                serverLog(LL_NOTICE,&quot;%d changes in %d seconds. Saving...&quot;,</span><br><span class="line">                    sp-&gt;changes, (int)sp-&gt;seconds);</span><br><span class="line">                rdbSaveInfo rsi, *rsiptr;</span><br><span class="line">                rsiptr = rdbPopulateSaveInfo(&amp;rsi);</span><br><span class="line">                // 异步保存操作</span><br><span class="line">                rdbSaveBackground(server.rdb_filename,rsiptr);</span><br><span class="line">                break;</span><br><span class="line">            &#125;</span><br><span class="line">         &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ....</span><br><span class="line">    server.cronloops++;</span><br><span class="line">    return 1000/server.hz;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
+    ....
+    &#x2F;* Check if a background saving or AOF rewrite in progress terminated. *&#x2F;
+    &#x2F;* 判断后台是否正在进行 rdb 或者 aof 操作 *&#x2F;
+    if (server.rdb_child_pid != -1 || server.aof_child_pid != -1 ||
+        ldbPendingChildren())
+    {
+        ....
+    } else {
+        &#x2F;&#x2F; 到这儿就能确定 当前木有进行 rdb 或者 aof 操作
+        &#x2F;&#x2F; 遍历每一个 rdb 保存条件
+         for (j = 0; j &lt; server.saveparamslen; j++) {
+            struct saveparam *sp = server.saveparams+j;
+
+            &#x2F;&#x2F;如果数据保存记录 大于规定的修改次数 且距离 上一次保存的时间大于规定时间或者上次BGSAVE命令执行成功，才执行 BGSAVE 操作
+            if (server.dirty &gt;= sp-&gt;changes &amp;&amp;
+                server.unixtime-server.lastsave &gt; sp-&gt;seconds &amp;&amp;
+                (server.unixtime-server.lastbgsave_try &gt;
+                 CONFIG_BGSAVE_RETRY_DELAY ||
+                 server.lastbgsave_status == C_OK))
+            {
+                &#x2F;&#x2F;记录日志
+                serverLog(LL_NOTICE,&quot;%d changes in %d seconds. Saving...&quot;,
+                    sp-&gt;changes, (int)sp-&gt;seconds);
+                rdbSaveInfo rsi, *rsiptr;
+                rsiptr = rdbPopulateSaveInfo(&amp;rsi);
+                &#x2F;&#x2F; 异步保存操作
+                rdbSaveBackground(server.rdb_filename,rsiptr);
+                break;
+            }
+         }
+    }
+    ....
+    server.cronloops++;
+    return 1000&#x2F;server.hz;
+}
+</code></pre>
 <p>如果符合触发 RDB 持久化的条件，<code>serverCron</code>会调用<code>rdbSaveBackground</code>函数，也就是 bgsave 指令会触发的函数。</p>
 <h3 id="子进程后台执行-RDB-持久化"><a href="#子进程后台执行-RDB-持久化" class="headerlink" title="子进程后台执行 RDB 持久化"></a>子进程后台执行 RDB 持久化</h3><p>执行 bgsave 指令时，Redis 会先触发 <code>bgsaveCommand</code> 进行当前状态检查，然后才会调用<code>rdbSaveBackground</code>，其中的逻辑如下图所示。</p>
 <p><img src="/images/19_1221/4_image3.png" alt=""></p>
-<p><code>rdbSaveBackground</code> 函数中最主要的工作就是调用 <code>fork</code> 命令生成子流程，然后在子流程中执行 <code>rdbSave</code>函数，也就是 save 指令最终会触发的函数。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">int rdbSaveBackground(char *filename, rdbSaveInfo *rsi) &#123;</span><br><span class="line">    pid_t childpid;</span><br><span class="line">    long long start;</span><br><span class="line">    // 检查后台是否正在执行 aof 或者 rdb 操作</span><br><span class="line">    if (server.aof_child_pid != -1 || server.rdb_child_pid != -1) return C_ERR;</span><br><span class="line">    // 拿出 数据保存记录，保存为 上次记录</span><br><span class="line">    server.dirty_before_bgsave = server.dirty;</span><br><span class="line">    // bgsave 时间</span><br><span class="line">    server.lastbgsave_try = time(NULL);</span><br><span class="line">    start = ustime();</span><br><span class="line">    // fork 子进程</span><br><span class="line">    if ((childpid = fork()) == 0) &#123;</span><br><span class="line">        int retval;</span><br><span class="line">        /* 关闭子进程继承的 socket 监听 */</span><br><span class="line">        closeListeningSockets(0);</span><br><span class="line">        // 子进程 title 修改</span><br><span class="line">        redisSetProcTitle(&quot;redis-rdb-bgsave&quot;);</span><br><span class="line">        // 执行rdb 写入操作</span><br><span class="line">        retval = rdbSave(filename,rsi);</span><br><span class="line">        // 执行完毕以后</span><br><span class="line">        ....</span><br><span class="line">        // 退出子进程</span><br><span class="line">        exitFromChild((retval == C_OK) ? 0 : 1);</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        /* 父进程，进行fork时间的统计和信息记录，比如说rdb_save_time_start、rdb_child_pid、和rdb_child_type */</span><br><span class="line">        ....</span><br><span class="line">        // rdb 保存开始时间 bgsave 子进程</span><br><span class="line">        server.rdb_save_time_start = time(NULL);</span><br><span class="line">        server.rdb_child_pid = childpid;</span><br><span class="line">        server.rdb_child_type = RDB_CHILD_TYPE_DISK;</span><br><span class="line">        updateDictResizePolicy();</span><br><span class="line">        return C_OK;</span><br><span class="line">    &#125;</span><br><span class="line">    return C_OK; /* unreached */</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>rdbSaveBackground</code> 函数中最主要的工作就是调用 <code>fork</code> 命令生成子流程，然后在子流程中执行 <code>rdbSave</code>函数，也就是 save 指令最终会触发的函数。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">int rdbSaveBackground(char *filename, rdbSaveInfo *rsi) {
+    pid_t childpid;
+    long long start;
+    &#x2F;&#x2F; 检查后台是否正在执行 aof 或者 rdb 操作
+    if (server.aof_child_pid != -1 || server.rdb_child_pid != -1) return C_ERR;
+    &#x2F;&#x2F; 拿出 数据保存记录，保存为 上次记录
+    server.dirty_before_bgsave = server.dirty;
+    &#x2F;&#x2F; bgsave 时间
+    server.lastbgsave_try = time(NULL);
+    start = ustime();
+    &#x2F;&#x2F; fork 子进程
+    if ((childpid = fork()) == 0) {
+        int retval;
+        &#x2F;* 关闭子进程继承的 socket 监听 *&#x2F;
+        closeListeningSockets(0);
+        &#x2F;&#x2F; 子进程 title 修改
+        redisSetProcTitle(&quot;redis-rdb-bgsave&quot;);
+        &#x2F;&#x2F; 执行rdb 写入操作
+        retval = rdbSave(filename,rsi);
+        &#x2F;&#x2F; 执行完毕以后
+        ....
+        &#x2F;&#x2F; 退出子进程
+        exitFromChild((retval == C_OK) ? 0 : 1);
+    } else {
+        &#x2F;* 父进程，进行fork时间的统计和信息记录，比如说rdb_save_time_start、rdb_child_pid、和rdb_child_type *&#x2F;
+        ....
+        &#x2F;&#x2F; rdb 保存开始时间 bgsave 子进程
+        server.rdb_save_time_start = time(NULL);
+        server.rdb_child_pid = childpid;
+        server.rdb_child_type = RDB_CHILD_TYPE_DISK;
+        updateDictResizePolicy();
+        return C_OK;
+    }
+    return C_OK; &#x2F;* unreached *&#x2F;
+}
+</code></pre></p>
 <p>为什么 Redis 使用子进程而不是线程来进行后台 RDB 持久化呢？主要是出于Redis性能的考虑，我们知道Redis对客户端响应请求的工作模型是单进程和单线程的，如果在主进程内启动一个线程，这样会造成对数据的竞争条件。所以为了避免使用锁降低性能，Redis选择启动新的子进程，独立拥有一份父进程的内存拷贝，以此为基础执行RDB持久化。</p>
 <p>但是需要注意的是，fork 会消耗一定时间，并且父子进程所占据的内存是相同的，当 Redis 键值较大时，fork 的时间会很长，这段时间内 Redis 是无法响应其他命令的。除此之外，Redis 占据的内存空间会翻倍。</p>
 <h3 id="生成-RDB-文件，并且持久化到硬盘"><a href="#生成-RDB-文件，并且持久化到硬盘" class="headerlink" title="生成 RDB 文件，并且持久化到硬盘"></a>生成 RDB 文件，并且持久化到硬盘</h3><p>Redis 的 <code>rdbSave</code> 函数是真正进行 RDB 持久化的函数，它的大致流程如下：</p>
@@ -1242,7 +1853,50 @@ var _hmt = _hmt || [];
 <li>使用 <code>rename</code> 将临时文件改名为 正式的 RDB 文件，</li>
 <li>最后记录 <code>dirty</code> 和 <code>lastsave</code>等状态信息。这些状态信息在 <code>serverCron</code>时会使用到。 </li>
 </ul>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">int rdbSave(char *filename, rdbSaveInfo *rsi) &#123;</span><br><span class="line">    char tmpfile[256];</span><br><span class="line">    // 当前工作目录</span><br><span class="line">    char cwd[MAXPATHLEN];</span><br><span class="line">    FILE *fp;</span><br><span class="line">    rio rdb;</span><br><span class="line">    int error = 0;</span><br><span class="line"></span><br><span class="line">    /* 生成tmpfile文件名 temp-[pid].rdb */</span><br><span class="line">    snprintf(tmpfile,256,&quot;temp-%d.rdb&quot;, (int) getpid());</span><br><span class="line">    /* 打开文件 */</span><br><span class="line">    fp = fopen(tmpfile,&quot;w&quot;);</span><br><span class="line">    .....</span><br><span class="line">    /* 初始化rio结构 */</span><br><span class="line">    rioInitWithFile(&amp;rdb,fp);</span><br><span class="line"></span><br><span class="line">    if (rdbSaveRio(&amp;rdb,&amp;error,RDB_SAVE_NONE,rsi) == C_ERR) &#123;</span><br><span class="line">        errno = error;</span><br><span class="line">        goto werr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    if (fflush(fp) == EOF) goto werr;</span><br><span class="line">    if (fsync(fileno(fp)) == -1) goto werr;</span><br><span class="line">    if (fclose(fp) == EOF) goto werr;</span><br><span class="line"></span><br><span class="line">    /* 重新命名 rdb 文件，把之前临时的名称修改为正式的 rdb 文件名称 */</span><br><span class="line">    if (rename(tmpfile,filename) == -1) &#123;</span><br><span class="line">        // 异常处理</span><br><span class="line">        ....</span><br><span class="line">    &#125;</span><br><span class="line">    // 写入完成，打印日志</span><br><span class="line">    serverLog(LL_NOTICE,&quot;DB saved on disk&quot;);</span><br><span class="line">    // 清理数据保存记录</span><br><span class="line">    server.dirty = 0;</span><br><span class="line">    // 最后一次完成 SAVE 命令的时间</span><br><span class="line">    server.lastsave = time(NULL);</span><br><span class="line">    // 最后一次 bgsave 的状态置位 成功</span><br><span class="line">    server.lastbgsave_status = C_OK;</span><br><span class="line">    return C_OK;</span><br><span class="line">    ....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">int rdbSave(char *filename, rdbSaveInfo *rsi) {
+    char tmpfile[256];
+    &#x2F;&#x2F; 当前工作目录
+    char cwd[MAXPATHLEN];
+    FILE *fp;
+    rio rdb;
+    int error = 0;
+
+    &#x2F;* 生成tmpfile文件名 temp-[pid].rdb *&#x2F;
+    snprintf(tmpfile,256,&quot;temp-%d.rdb&quot;, (int) getpid());
+    &#x2F;* 打开文件 *&#x2F;
+    fp = fopen(tmpfile,&quot;w&quot;);
+    .....
+    &#x2F;* 初始化rio结构 *&#x2F;
+    rioInitWithFile(&amp;rdb,fp);
+
+    if (rdbSaveRio(&amp;rdb,&amp;error,RDB_SAVE_NONE,rsi) == C_ERR) {
+        errno = error;
+        goto werr;
+    }
+
+    if (fflush(fp) == EOF) goto werr;
+    if (fsync(fileno(fp)) == -1) goto werr;
+    if (fclose(fp) == EOF) goto werr;
+
+    &#x2F;* 重新命名 rdb 文件，把之前临时的名称修改为正式的 rdb 文件名称 *&#x2F;
+    if (rename(tmpfile,filename) == -1) {
+        &#x2F;&#x2F; 异常处理
+        ....
+    }
+    &#x2F;&#x2F; 写入完成，打印日志
+    serverLog(LL_NOTICE,&quot;DB saved on disk&quot;);
+    &#x2F;&#x2F; 清理数据保存记录
+    server.dirty = 0;
+    &#x2F;&#x2F; 最后一次完成 SAVE 命令的时间
+    server.lastsave = time(NULL);
+    &#x2F;&#x2F; 最后一次 bgsave 的状态置位 成功
+    server.lastbgsave_status = C_OK;
+    return C_OK;
+    ....
+}
+</code></pre>
 <p>这里要简单说一下 <code>fflush</code>和<code>fsync</code>的区别。它们俩都是用于刷缓存，但是所属的层次不同。<code>fflush</code>函数用于 <code>FILE*</code> 指针上，将缓存数据从应用层缓存刷新到内核中，而<code>fsync</code> 函数则更加底层，作用于文件描述符，用于将内核缓存刷新到物理设备上。</p>
 <p>关于 Linux IO 的具体原理可以参考<a href="https://mp.weixin.qq.com/s/3mKxTH2pfXFpDvvJnDtgEQ" target="_blank" rel="noopener">《聊聊Linux IO》</a></p>
 <h4 id="内存数据到-RDB-文件"><a href="#内存数据到-RDB-文件" class="headerlink" title="内存数据到 RDB 文件"></a>内存数据到 RDB 文件</h4><p><code>rdbSaveRio</code> 会将 Redis 内存中的数据以相对紧凑的格式写入到文件中，其文件格式的示意图如下所示。</p>
@@ -1256,15 +1910,131 @@ var _hmt = _hmt || [];
 <li><p>在写入键值时，当该键值有失效时间时，会先写入<code>RDB_OPCODE_EXPIRETIME_MS</code>识别码和失效时间，然后写入键值类型的识别码，最后再写入键和值。</p>
 </li>
 <li><p>写完数据库信息后，还会把 Lua 相关的信息写入，最后再写入 <code>RDB_OPCODE_EOF</code>结束符识别码和校验值。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line">int rdbSaveRio(rio *rdb, int *error, int flags, rdbSaveInfo *rsi) &#123;</span><br><span class="line">    snprintf(magic,sizeof(magic),&quot;REDIS%04d&quot;,RDB_VERSION);</span><br><span class="line">    /* 1 写入 magic字符&apos;REDIS&apos; 和 RDB 版本 */</span><br><span class="line">    if (rdbWriteRaw(rdb,magic,9) == -1) goto werr;</span><br><span class="line">    /* 2 写入辅助信息  REDIS版本,服务器操作系统位数,当前时间,复制信息比如repl-stream-db,repl-id和repl-offset等等数据*/</span><br><span class="line">    if (rdbSaveInfoAuxFields(rdb,flags,rsi) == -1) goto werr;</span><br><span class="line">    /* 3 遍历每一个数据库，逐个数据库数据保存 */</span><br><span class="line">    for (j = 0; j &lt; server.dbnum; j++) &#123;</span><br><span class="line">        /* 获取数据库指针地址和数据库字典 */</span><br><span class="line">        redisDb *db = server.db+j;</span><br><span class="line">        dict *d = db-&gt;dict;</span><br><span class="line">        /* 3.1 写入数据库部分的开始标识 */</span><br><span class="line">        if (rdbSaveType(rdb,RDB_OPCODE_SELECTDB) == -1) goto werr;</span><br><span class="line">        /* 3.2 写入当前数据库号 */</span><br><span class="line">        if (rdbSaveLen(rdb,j) == -1) goto werr;</span><br><span class="line"></span><br><span class="line">        uint32_t db_size, expires_size;</span><br><span class="line">        /* 获取数据库字典大小和过期键字典大小 */</span><br><span class="line">        db_size = (dictSize(db-&gt;dict) &lt;= UINT32_MAX) ?</span><br><span class="line">                                dictSize(db-&gt;dict) :</span><br><span class="line">                                UINT32_MAX;</span><br><span class="line">        expires_size = (dictSize(db-&gt;expires) &lt;= UINT32_MAX) ?</span><br><span class="line">                                dictSize(db-&gt;expires) :</span><br><span class="line">                                UINT32_MAX;</span><br><span class="line">        /* 3.3 写入当前待写入数据的类型，此处为 RDB_OPCODE_RESIZEDB，表示数据库大小 */</span><br><span class="line">        if (rdbSaveType(rdb,RDB_OPCODE_RESIZEDB) == -1) goto werr;</span><br><span class="line">        /* 3.4 写入获取数据库字典大小和过期键字典大小 */</span><br><span class="line">        if (rdbSaveLen(rdb,db_size) == -1) goto werr;</span><br><span class="line">        if (rdbSaveLen(rdb,expires_size) == -1) goto werr;</span><br><span class="line">        /* 4 遍历当前数据库的键值对 */</span><br><span class="line">        while((de = dictNext(di)) != NULL) &#123;</span><br><span class="line">            sds keystr = dictGetKey(de);</span><br><span class="line">            robj key, *o = dictGetVal(de);</span><br><span class="line">            long long expire;</span><br><span class="line"></span><br><span class="line">            /* 初始化 key，因为操作的是 key 字符串对象，而不是直接操作 键的字符串内容 */</span><br><span class="line">            initStaticStringObject(key,keystr);</span><br><span class="line">            /* 获取键的过期数据 */</span><br><span class="line">            expire = getExpire(db,&amp;key);</span><br><span class="line">            /* 4.1 保存键值对数据 */</span><br><span class="line">            if (rdbSaveKeyValuePair(rdb,&amp;key,o,expire) == -1) goto werr;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /* 5 保存 Lua 脚本*/</span><br><span class="line">    if (rsi &amp;&amp; dictSize(server.lua_scripts)) &#123;</span><br><span class="line">        di = dictGetIterator(server.lua_scripts);</span><br><span class="line">        while((de = dictNext(di)) != NULL) &#123;</span><br><span class="line">            robj *body = dictGetVal(de);</span><br><span class="line">            if (rdbSaveAuxField(rdb,&quot;lua&quot;,3,body-&gt;ptr,sdslen(body-&gt;ptr)) == -1)</span><br><span class="line">                goto werr;</span><br><span class="line">        &#125;</span><br><span class="line">        dictReleaseIterator(di);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /* 6 写入结束符 */</span><br><span class="line">    if (rdbSaveType(rdb,RDB_OPCODE_EOF) == -1) goto werr;</span><br><span class="line"></span><br><span class="line">    /* 7 写入CRC64校验和 */</span><br><span class="line">    cksum = rdb-&gt;cksum;</span><br><span class="line">    memrev64ifbe(&amp;cksum);</span><br><span class="line">    if (rioWrite(rdb,&amp;cksum,8) == 0) goto werr;</span><br><span class="line">    return C_OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">int rdbSaveRio(rio *rdb, int *error, int flags, rdbSaveInfo *rsi) {
+    snprintf(magic,sizeof(magic),&quot;REDIS%04d&quot;,RDB_VERSION);
+    &#x2F;* 1 写入 magic字符&#39;REDIS&#39; 和 RDB 版本 *&#x2F;
+    if (rdbWriteRaw(rdb,magic,9) == -1) goto werr;
+    &#x2F;* 2 写入辅助信息  REDIS版本,服务器操作系统位数,当前时间,复制信息比如repl-stream-db,repl-id和repl-offset等等数据*&#x2F;
+    if (rdbSaveInfoAuxFields(rdb,flags,rsi) == -1) goto werr;
+    &#x2F;* 3 遍历每一个数据库，逐个数据库数据保存 *&#x2F;
+    for (j = 0; j &lt; server.dbnum; j++) {
+        &#x2F;* 获取数据库指针地址和数据库字典 *&#x2F;
+        redisDb *db = server.db+j;
+        dict *d = db-&gt;dict;
+        &#x2F;* 3.1 写入数据库部分的开始标识 *&#x2F;
+        if (rdbSaveType(rdb,RDB_OPCODE_SELECTDB) == -1) goto werr;
+        &#x2F;* 3.2 写入当前数据库号 *&#x2F;
+        if (rdbSaveLen(rdb,j) == -1) goto werr;
+
+        uint32_t db_size, expires_size;
+        &#x2F;* 获取数据库字典大小和过期键字典大小 *&#x2F;
+        db_size = (dictSize(db-&gt;dict) &lt;= UINT32_MAX) ?
+                                dictSize(db-&gt;dict) :
+                                UINT32_MAX;
+        expires_size = (dictSize(db-&gt;expires) &lt;= UINT32_MAX) ?
+                                dictSize(db-&gt;expires) :
+                                UINT32_MAX;
+        &#x2F;* 3.3 写入当前待写入数据的类型，此处为 RDB_OPCODE_RESIZEDB，表示数据库大小 *&#x2F;
+        if (rdbSaveType(rdb,RDB_OPCODE_RESIZEDB) == -1) goto werr;
+        &#x2F;* 3.4 写入获取数据库字典大小和过期键字典大小 *&#x2F;
+        if (rdbSaveLen(rdb,db_size) == -1) goto werr;
+        if (rdbSaveLen(rdb,expires_size) == -1) goto werr;
+        &#x2F;* 4 遍历当前数据库的键值对 *&#x2F;
+        while((de = dictNext(di)) != NULL) {
+            sds keystr = dictGetKey(de);
+            robj key, *o = dictGetVal(de);
+            long long expire;
+
+            &#x2F;* 初始化 key，因为操作的是 key 字符串对象，而不是直接操作 键的字符串内容 *&#x2F;
+            initStaticStringObject(key,keystr);
+            &#x2F;* 获取键的过期数据 *&#x2F;
+            expire = getExpire(db,&amp;key);
+            &#x2F;* 4.1 保存键值对数据 *&#x2F;
+            if (rdbSaveKeyValuePair(rdb,&amp;key,o,expire) == -1) goto werr;
+        }
+
+    }
+
+    &#x2F;* 5 保存 Lua 脚本*&#x2F;
+    if (rsi &amp;&amp; dictSize(server.lua_scripts)) {
+        di = dictGetIterator(server.lua_scripts);
+        while((de = dictNext(di)) != NULL) {
+            robj *body = dictGetVal(de);
+            if (rdbSaveAuxField(rdb,&quot;lua&quot;,3,body-&gt;ptr,sdslen(body-&gt;ptr)) == -1)
+                goto werr;
+        }
+        dictReleaseIterator(di);
+    }
+
+    &#x2F;* 6 写入结束符 *&#x2F;
+    if (rdbSaveType(rdb,RDB_OPCODE_EOF) == -1) goto werr;
+
+    &#x2F;* 7 写入CRC64校验和 *&#x2F;
+    cksum = rdb-&gt;cksum;
+    memrev64ifbe(&amp;cksum);
+    if (rioWrite(rdb,&amp;cksum,8) == 0) goto werr;
+    return C_OK;
+}
+</code></pre>
 </li>
 </ul>
 <p><code>rdbSaveRio</code>在写键值时，会调用<code>rdbSaveKeyValuePair</code> 函数。该函数会依次写入键值的过期时间，键的类型，键和值。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">int rdbSaveKeyValuePair(rio *rdb, robj *key, robj *val, long long expiretime)</span><br><span class="line">&#123;</span><br><span class="line">    /* 如果有过期信息 */</span><br><span class="line">    if (expiretime != -1) &#123;</span><br><span class="line">        /* 保存过期信息标识 */</span><br><span class="line">        if (rdbSaveType(rdb,RDB_OPCODE_EXPIRETIME_MS) == -1) return -1;</span><br><span class="line">        /* 保存过期具体数据内容 */</span><br><span class="line">        if (rdbSaveMillisecondTime(rdb,expiretime) == -1) return -1;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /* Save type, key, value */</span><br><span class="line">    /* 保存键值对 类型的标识 */</span><br><span class="line">    if (rdbSaveObjectType(rdb,val) == -1) return -1;</span><br><span class="line">    /* 保存键值对 键的内容 */</span><br><span class="line">    if (rdbSaveStringObject(rdb,key) == -1) return -1;</span><br><span class="line">    /* 保存键值对 值的内容 */</span><br><span class="line">    if (rdbSaveObject(rdb,val) == -1) return -1;</span><br><span class="line">    return 1;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">int rdbSaveKeyValuePair(rio *rdb, robj *key, robj *val, long long expiretime)
+{
+    &#x2F;* 如果有过期信息 *&#x2F;
+    if (expiretime != -1) {
+        &#x2F;* 保存过期信息标识 *&#x2F;
+        if (rdbSaveType(rdb,RDB_OPCODE_EXPIRETIME_MS) == -1) return -1;
+        &#x2F;* 保存过期具体数据内容 *&#x2F;
+        if (rdbSaveMillisecondTime(rdb,expiretime) == -1) return -1;
+    }
+
+    &#x2F;* Save type, key, value *&#x2F;
+    &#x2F;* 保存键值对 类型的标识 *&#x2F;
+    if (rdbSaveObjectType(rdb,val) == -1) return -1;
+    &#x2F;* 保存键值对 键的内容 *&#x2F;
+    if (rdbSaveStringObject(rdb,key) == -1) return -1;
+    &#x2F;* 保存键值对 值的内容 *&#x2F;
+    if (rdbSaveObject(rdb,val) == -1) return -1;
+    return 1;
+}
+</code></pre>
 <p>根据键的不同类型写入不同格式，各种键值的类型和格式如下所示。</p>
 <p><img src="/images/19_1221/4_image5.png" alt=""></p>
 <p>Redis 有庞大的对象和数据结构体系，它使用六种底层数据结构构建了包含字符串对象、列表对象、哈希对象、集合对象和有序集合对象的对象系统。感兴趣的同学可以参考 <a href="https://mp.weixin.qq.com/s/gQnuynv6XPD_aeIBQBeI2Q" target="_blank" rel="noopener">《十二张图带你了解 Redis 的数据结构和对象系统》</a>一文。</p>
-<p>不同的数据结构进行 RDB 持久化的格式都不同。我们今天只看一下集合对象是如何持久化的。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">ssize_t rdbSaveObject(rio *rdb, robj *o) &#123;</span><br><span class="line">    ssize_t n = 0, nwritten = 0;</span><br><span class="line">    ....</span><br><span class="line">    &#125; else if (o-&gt;type == OBJ_SET) &#123;</span><br><span class="line">        /* Save a set value */</span><br><span class="line">        if (o-&gt;encoding == OBJ_ENCODING_HT) &#123;</span><br><span class="line">            dict *set = o-&gt;ptr;</span><br><span class="line">            // 集合迭代器</span><br><span class="line">            dictIterator *di = dictGetIterator(set);</span><br><span class="line">            dictEntry *de;</span><br><span class="line">            // 写入集合长度</span><br><span class="line">            if ((n = rdbSaveLen(rdb,dictSize(set))) == -1) return -1;</span><br><span class="line">            nwritten += n;</span><br><span class="line">            // 遍历集合元素</span><br><span class="line">            while((de = dictNext(di)) != NULL) &#123;</span><br><span class="line">                sds ele = dictGetKey(de);</span><br><span class="line">                // 以字符串的形式写入，因为是SET 所以只写入 Key 即可</span><br><span class="line">                if ((n = rdbSaveRawString(rdb,(unsigned char*)ele,sdslen(ele)))</span><br><span class="line">                    == -1) return -1;</span><br><span class="line">                nwritten += n;</span><br><span class="line">            &#125;</span><br><span class="line">            dictReleaseIterator(di);</span><br><span class="line">        &#125; </span><br><span class="line">    .....</span><br><span class="line">    return nwritten;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>不同的数据结构进行 RDB 持久化的格式都不同。我们今天只看一下集合对象是如何持久化的。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">ssize_t rdbSaveObject(rio *rdb, robj *o) {
+    ssize_t n = 0, nwritten = 0;
+    ....
+    } else if (o-&gt;type == OBJ_SET) {
+        &#x2F;* Save a set value *&#x2F;
+        if (o-&gt;encoding == OBJ_ENCODING_HT) {
+            dict *set = o-&gt;ptr;
+            &#x2F;&#x2F; 集合迭代器
+            dictIterator *di = dictGetIterator(set);
+            dictEntry *de;
+            &#x2F;&#x2F; 写入集合长度
+            if ((n = rdbSaveLen(rdb,dictSize(set))) == -1) return -1;
+            nwritten += n;
+            &#x2F;&#x2F; 遍历集合元素
+            while((de = dictNext(di)) != NULL) {
+                sds ele = dictGetKey(de);
+                &#x2F;&#x2F; 以字符串的形式写入，因为是SET 所以只写入 Key 即可
+                if ((n = rdbSaveRawString(rdb,(unsigned char*)ele,sdslen(ele)))
+                    == -1) return -1;
+                nwritten += n;
+            }
+            dictReleaseIterator(di);
+        } 
+    .....
+    return nwritten;
+}
+</code></pre></p>
 <p><img src="/images/logo.png" alt=""></p>
 
         
@@ -1276,7 +2046,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/9a7bcda/" data-id="ck6535m7u003p9ksecxhtc9q5" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/9a7bcda/" data-id="ck6540j9i003tlhsesuq6lsru" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1392,7 +2162,10 @@ var _hmt = _hmt || [];
             
             <p>合格的程序员都善于使用工具，正所谓君子性非异也，善假于物也。</p>
 <p>使用自动化工具可以减少自己的工作量，提高工作效率。日常编程过程中，我们经常需要编写重复的代码片段，比如说</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">private static final Logger LOGGER = LoggerFactory.getLogger(HashServiceImpl.class);</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">private static final Logger LOGGER = LoggerFactory.getLogger(HashServiceImpl.class);
+</code></pre>
 <p>每次编写时都要键入很多键，有什么方法可以快速生成这段代码呢？类似的，如何保存格式固定的常用代码片段，然后在需要时快速生成呢。IDEA 的 Live Template 是一个可行的途径。</p>
 <p>我也是最近才逐渐使用 IDEA 的 Live Template 功能，之前虽然知道这个功能，但是没有养成使用的习惯。最近一段时间在不断审视并反思自己的编程、工作和生活习惯，才发现其中有很多可以优化精进的地方。</p>
 <p>这也是《程序员修炼之道》中所说的 Think ! About Your Work 。</p>
@@ -1414,10 +2187,19 @@ var _hmt = _hmt || [];
 <p>而参数设置就是设置这些参数的值，可以使用 IDEA 提供的一些内置函数，还可以使用强大的 Groovy 脚本。去 IDEA 的官网可以查看这些函数的具体作用。</p>
 <p><img src="https://upload-images.jianshu.io/upload_images/623378-0f95752ee3371bd9.gif?imageMogr2/auto-orient/strip" alt="variables"></p>
 <p>我们这里讲解一下 <code>groovyScript(&quot;groovy code&quot;, arg1)</code> 的使用。它能提供一切你想要的能力，它支持执行 Groovy 脚本处理输入，然后输出处理后的字符串</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">groovyScript(&quot;code&quot;, ...)</span><br><span class="line"></span><br><span class="line">|  code   |   一段Groovy代码或者Groovy脚本代码绝对路径    |</span><br><span class="line">|  ...    |   可选入参，这些参数会绑定到`_1, _2, _3, ..._n`, 在 Groovy 代码中使用。|</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">groovyScript(&quot;code&quot;, ...)
+
+|  code   |   一段Groovy代码或者Groovy脚本代码绝对路径    |
+|  ...    |   可选入参，这些参数会绑定到`_1, _2, _3, ..._n`, 在 Groovy 代码中使用。|
+</code></pre>
 <p>比如之前打印函数参数的模板是这样定义的。</p>
 <p><img src="https://upload-images.jianshu.io/upload_images/623378-8bc425c2ed384c2a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">groovyScript(&quot;&apos;\&quot;&apos; + _1.collect &#123; it + &apos; = [\&quot; + &apos; + it + &apos; + \&quot;]&apos;&#125;.join(&apos;, &apos;) + &apos;\&quot;&apos;&quot;, methodParameters())</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">groovyScript(&quot;&#39;\&quot;&#39; + _1.collect { it + &#39; = [\&quot; + &#39; + it + &#39; + \&quot;]&#39;}.join(&#39;, &#39;) + &#39;\&quot;&#39;&quot;, methodParameters())
+</code></pre>
 <p><code>methodParameters</code> 是 IDEA 内置的函数，它返回的结果作为参数输入到 Groovy 的脚本中，生成打印参数函数的字符串。</p>
 <h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>感谢大家的阅读，希望大家继续关注，也可以留言分享你最喜欢使用的编程工具和编程小技巧。</p>
 <p><img src="https://upload-images.jianshu.io/upload_images/623378-289642734e6eb81b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
@@ -1431,7 +2213,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/f35ff8b9/" data-id="ck6535m9g007c9kse1dtwte0c" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/f35ff8b9/" data-id="ck6540jay0076lhsem8dl3n0y" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1558,17 +2340,66 @@ var _hmt = _hmt || [];
 <p>这是一个很惊人的结果，以如此小的内存来记录如此大数量级的数据基数。下面我们就带大家来深入了解一下 HyperLogLog 的使用，基础原理，源码实现和具体的试验数据分析。</p>
 <h3 id="HyperLogLog-在-Redis-中的使用"><a href="#HyperLogLog-在-Redis-中的使用" class="headerlink" title="HyperLogLog 在 Redis 中的使用"></a>HyperLogLog 在 Redis 中的使用</h3><p>Redis 提供了 <code>PFADD</code> 、<code>PFCOUNT</code> 和 <code>PFMERGE</code> 三个命令来供用户使用 HyperLogLog。</p>
 <p><code>PFADD</code> 用于向 HyperLogLog 添加元素。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&gt; PFADD visitors alice bob carol</span><br><span class="line">(integer) 1</span><br><span class="line">&gt; PFCOUNT visitors</span><br><span class="line">(integer) 3</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&gt; PFADD visitors alice bob carol
+(integer) 1
+&gt; PFCOUNT visitors
+(integer) 3
+</code></pre>
 <p>如果 HyperLogLog 估计的近似基数在 <code>PFADD</code> 命令执行之后出现了变化， 那么命令返回 1 ， 否则返回 0 。 如果命令执行时给定的键不存在， 那么程序将先创建一个空的 HyperLogLog 结构， 然后再执行命令。</p>
 <p><code>PFCOUNT</code> 命令会给出 HyperLogLog 包含的近似基数。在计算出基数后，<code>PFCOUNT</code> 会将值存储在 HyperLogLog 中进行缓存，知道下次 <code>PFADD</code> 执行成功前，就都不需要再次进行基数的计算。</p>
 <p><code>PFMERGE</code> 将多个 HyperLogLog 合并为一个 HyperLogLog ， 合并后的 HyperLogLog 的基数接近于所有输入 HyperLogLog 的并集基数。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&gt; PFADD customers alice dan</span><br><span class="line">(integer) 1</span><br><span class="line">&gt; PFMERGE everyone visitors customers</span><br><span class="line">OK</span><br><span class="line">&gt; PFCOUNT everyone</span><br><span class="line">(integer) 4</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&gt; PFADD customers alice dan
+(integer) 1
+&gt; PFMERGE everyone visitors customers
+OK
+&gt; PFCOUNT everyone
+(integer) 4
+</code></pre>
 <h3 id="内存消耗对比实验"><a href="#内存消耗对比实验" class="headerlink" title="内存消耗对比实验"></a>内存消耗对比实验</h3><p>我们下面就来通过实验真实对比一下下面三种数据结构的内存消耗，HashMap、BitMap 和 HyperLogLog。</p>
 <p>我们首先使用 Lua 脚本向 Redis 对应的数据结构中插入一定数量的数，然后执行<br> bgsave 命令，最后使用 redis-rdb-tools 的 rdb 的命令查看各个键所占的内存大小。</p>
 <p>下面是 Lua 的脚本，不了解 Redis 执行 Lua 脚本的同学可以看一下我之前写的文章<a href="https://mp.weixin.qq.com/s/9zqEeCySDKIRX4gB5ICrGQ" target="_blank" rel="noopener">《基于Redis和Lua的分布式限流》</a>。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">local key = KEYS[1]</span><br><span class="line">local size = tonumber(ARGV[1])</span><br><span class="line">local method = tonumber(ARGV[2])</span><br><span class="line"></span><br><span class="line">for i=1,size,1 do</span><br><span class="line">  if (method == 0)</span><br><span class="line">  then</span><br><span class="line">    redis.call(&apos;hset&apos;,key,i,1)</span><br><span class="line">  elseif (method == 1)</span><br><span class="line">  then</span><br><span class="line">    redis.call(&apos;pfadd&apos;,key, i)</span><br><span class="line">  else</span><br><span class="line">    redis.call(&apos;setbit&apos;, key, i, 1)</span><br><span class="line">  end</span><br><span class="line">end</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">local key = KEYS[1]
+local size = tonumber(ARGV[1])
+local method = tonumber(ARGV[2])
+
+for i=1,size,1 do
+  if (method == 0)
+  then
+    redis.call(&#39;hset&#39;,key,i,1)
+  elseif (method == 1)
+  then
+    redis.call(&#39;pfadd&#39;,key, i)
+  else
+    redis.call(&#39;setbit&#39;, key, i, 1)
+  end
+end
+</code></pre>
 <p>我们在通过 redis-cli 的 <code>script load</code> 命令将 Lua 脚本加载到 Redis 中，然后使用 <code>evalsha</code> 命令分别向 HashMap、HyperLogLog 和 BitMap 三种数据结构中插入了一千万个数，然后使用 <code>rdb</code> 命令查看各个结构内存消耗。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">[root@VM_0_11_centos ~]# redis-cli -a 082203 script load &quot;$(cat HyperLogLog.lua)&quot;</span><br><span class="line">&quot;6255c6d0a1f32349f59fd2c8711e93f2fbc7ecf8&quot;</span><br><span class="line">[root@VM_0_11_centos ~]# redis-cli -a 082203 evalsha 6255c6d0a1f32349f59fd2c8711e93f2fbc7ecf8 1 hashmap 10000000 0</span><br><span class="line">(nil)</span><br><span class="line">[root@VM_0_11_centos ~]# redis-cli -a 082203 evalsha 6255c6d0a1f32349f59fd2c8711e93f2fbc7ecf8 1 hyperloglog 10000000 1</span><br><span class="line">(nil)</span><br><span class="line">[root@VM_0_11_centos ~]# redis-cli -a 082203 evalsha 6255c6d0a1f32349f59fd2c8711e93f2fbc7ecf8 1 bitmap 10000000 2</span><br><span class="line">(nil)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">[root@VM_0_11_centos ~]# rdb -c memory dump.rdb </span><br><span class="line">database,type,key,size_in_bytes,encoding,num_elements,len_largest_element,expiry</span><br><span class="line"></span><br><span class="line">0,string,bitmap,1310768,string,1250001,1250001,</span><br><span class="line">0,string,hyperloglog,14392,string,12304,12304,</span><br><span class="line">0,hash,hashmap,441326740,hashtable,10000000,8,</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">[root@VM_0_11_centos ~]# redis-cli -a 082203 script load &quot;$(cat HyperLogLog.lua)&quot;
+&quot;6255c6d0a1f32349f59fd2c8711e93f2fbc7ecf8&quot;
+[root@VM_0_11_centos ~]# redis-cli -a 082203 evalsha 6255c6d0a1f32349f59fd2c8711e93f2fbc7ecf8 1 hashmap 10000000 0
+(nil)
+[root@VM_0_11_centos ~]# redis-cli -a 082203 evalsha 6255c6d0a1f32349f59fd2c8711e93f2fbc7ecf8 1 hyperloglog 10000000 1
+(nil)
+[root@VM_0_11_centos ~]# redis-cli -a 082203 evalsha 6255c6d0a1f32349f59fd2c8711e93f2fbc7ecf8 1 bitmap 10000000 2
+(nil)
+
+
+[root@VM_0_11_centos ~]# rdb -c memory dump.rdb 
+database,type,key,size_in_bytes,encoding,num_elements,len_largest_element,expiry
+
+0,string,bitmap,1310768,string,1250001,1250001,
+0,string,hyperloglog,14392,string,12304,12304,
+0,hash,hashmap,441326740,hashtable,10000000,8,
+</code></pre>
 <p>我们进行了两轮实验，分别插入一万数字和一千万数字，三种数据结构消耗的内存统计如下所示。</p>
 <p><img src="/images/19_926/image1.webp" alt="统计图表"></p>
 <p>从表中可以明显看出，一万数量级时 BitMap 消耗内存最小， 一千万数量级时 HyperLogLog 消耗内存最小，但是总体来看，HyperLogLog 消耗的内存都是 14392 字节，可见 HyperLogLog 在内存消耗方面有自己的独到之处。</p>
@@ -1587,7 +2418,16 @@ var _hmt = _hmt || [];
 <p>在设置前，要设置进桶的值是否大于桶中的旧值，如果大于才进行设置，否则不进行设置。示例如下图所示。<br><img src="/images/19_926/image5.webp" alt="示例"></p>
 <p>此时为了性能考虑，是不会去统计当前的基数的，而是将 HyperLogLog 头的 card 属性中的标志位置为 1，表示下次进行 pfcount 操作的时候，当前的缓存值已经失效了，需要重新统计缓存值。在后面 pfcount 流程的时候，发现这个标记为失效，就会去重新统计新的基数，放入基数缓存。</p>
 <p>在计算近似基数时，就分别计算每个桶中的值，带入到上文将的 DV 公式中，进行调和平均和结果修正，就能得到估算的基数值。</p>
-<h3 id="Redis-源码分析"><a href="#Redis-源码分析" class="headerlink" title="Redis 源码分析"></a>Redis 源码分析</h3><p>我们首先来看一下 HyperLogLog 对象的定义<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">struct hllhdr &#123;</span><br><span class="line">    char magic[4];      /* 魔法值 &quot;HYLL&quot; */</span><br><span class="line">    uint8_t encoding;   /* 密集结构或者稀疏结构 HLL_DENSE or HLL_SPARSE. */</span><br><span class="line">    uint8_t notused[3]; /* 保留位, 全为0. */</span><br><span class="line">    uint8_t card[8];    /* 基数大小的缓存 */</span><br><span class="line">    uint8_t registers[]; /* 数据字节数组 */</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<h3 id="Redis-源码分析"><a href="#Redis-源码分析" class="headerlink" title="Redis 源码分析"></a>Redis 源码分析</h3><p>我们首先来看一下 HyperLogLog 对象的定义<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">struct hllhdr {
+    char magic[4];      &#x2F;* 魔法值 &quot;HYLL&quot; *&#x2F;
+    uint8_t encoding;   &#x2F;* 密集结构或者稀疏结构 HLL_DENSE or HLL_SPARSE. *&#x2F;
+    uint8_t notused[3]; &#x2F;* 保留位, 全为0. *&#x2F;
+    uint8_t card[8];    &#x2F;* 基数大小的缓存 *&#x2F;
+    uint8_t registers[]; &#x2F;* 数据字节数组 *&#x2F;
+};
+</code></pre></p>
 <p>HyperLogLog 对象中的 <code>registers</code> 数组就是桶，它有两种存储结构，分别为密集存储结构和稀疏存储结构，两种结构只涉及存储和桶的表现形式，从中我们可以看到 Redis 对节省内存极致地追求。</p>
 <p><img src="/images/19_926/image6.webp" alt="密集存储结构"></p>
 <p>我们先看相对简单的密集存储结构，它也是十分的简单明了，既然要有 2^14 个 6 bit的桶，那么我就真使用足够多的 <code>uint8_t</code> 字节去表示，只是此时会涉及到字节位置和桶的转换，因为字节有 8 位，而桶只需要 6 位。</p>
@@ -1625,7 +2465,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/ec0c40ae/" data-id="ck6535m9c00739ksejgmuulzd" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/ec0c40ae/" data-id="ck6540jb0007alhse7gaaal8m" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1806,7 +2646,16 @@ var _hmt = _hmt || [];
 </ul>
 <h3 id="对象"><a href="#对象" class="headerlink" title="对象"></a>对象</h3><p>上面介绍了 6 种底层数据结构，Redis 并没有直接使用这些数据结构来实现键值数据库，而是基于这些数据结构创建了一个对象系统，这个系统包含字符串对象、列表对象、哈希对象、集合对象和有序集合这五种类型的对象，每个对象都使用到了至少一种前边讲的底层数据结构。</p>
 <p>Redis 根据不同的使用场景和内容大小来判断对象使用哪种数据结构，从而优化对象在不同场景下的使用效率和内存占用。</p>
-<p>Redis 的 redisObject 结构的定义如下所示。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">typedef struct redisObject &#123;</span><br><span class="line">    unsigned type:4;</span><br><span class="line">    unsigned encoding:4;</span><br><span class="line">    unsigned lru:LRU_BITS; </span><br><span class="line">    int refcount;</span><br><span class="line">    void *ptr;</span><br><span class="line">&#125; robj;</span><br></pre></td></tr></table></figure></p>
+<p>Redis 的 redisObject 结构的定义如下所示。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">typedef struct redisObject {
+    unsigned type:4;
+    unsigned encoding:4;
+    unsigned lru:LRU_BITS; 
+    int refcount;
+    void *ptr;
+} robj;
+</code></pre></p>
 <p>其中 type 是对象类型，包括REDIS_STRING, REDIS_LIST, REDIS_HASH, REDIS_SET 和 REDIS_ZSET。</p>
 <p>encoding是指对象使用的数据结构，全集如下。<br><img src="/images/19_917/image7.webp" alt="对象的编码"></p>
 <h4 id="字符串对象"><a href="#字符串对象" class="headerlink" title="字符串对象"></a>字符串对象</h4><p>我们首先来看字符串对象的实现，如下图所示。</p>
@@ -1871,7 +2720,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/fa5c04fa/" data-id="ck6535m92006f9kse1jpozkij" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/fa5c04fa/" data-id="ck6540jan006flhsefebfjr9x" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2027,9 +2876,56 @@ var _hmt = _hmt || [];
 <p>现实情况下，服务器在一致性哈希环上的位置不可能分布的这么均匀，导致了每个节点实际占据环上的区间大小不一。</p>
 <p>这种情况下，可以增加虚节点来解决。通过增加虚节点，使得每个节点在环上所“管辖”的区域更加均匀。这样就既保证了在节点变化时，尽可能小的影响数据分布的变化，而同时又保证了数据分布的均匀。</p>
 <h3 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h3><p>下面我们实现 Memcached 分布式缓存场景下的一致性哈希算法，并给出具体的测试性能数据。该实现借鉴了 kiritomoe 博文中的实现和 spymemcached 客户端代码。具体实现请看我的github，地址为 <a href="https://github.com/ztelur/consistent-hash-algorithm。" target="_blank" rel="noopener">https://github.com/ztelur/consistent-hash-algorithm。</a></p>
-<p><code>NodeLocator</code> 是分布式缓存场景下一致性哈希算法的抽象，它有一个 <code>getPrimary</code> 函数，接收一个缓存数据的 key 值，输出存储该缓存数据的服务器实例。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">public interface NodeLocator &#123;</span><br><span class="line">    MemcachedNode getPrimary(String k);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>NodeLocator</code> 是分布式缓存场景下一致性哈希算法的抽象，它有一个 <code>getPrimary</code> 函数，接收一个缓存数据的 key 值，输出存储该缓存数据的服务器实例。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public interface NodeLocator {
+    MemcachedNode getPrimary(String k);
+}
+</code></pre></p>
 <p>下面是通用的一致性哈希算法的实现，它使用 <code>TreeMap</code> 作为一致性哈希环的数据结构，其 <code>ceilingEntry</code> 函数可以获取环上最近的一个节点。<code>buildConsistentHashRing</code> 函数中包含了构建一致性哈希环的过程，默认加入了 12 个虚拟节点。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">public class ConsistentHashNodeLocator implements NodeLocator &#123;</span><br><span class="line">    private final static int VIRTUAL_NODE_SIZE = 12;</span><br><span class="line">    private final static String VIRTUAL_NODE_SUFFIX = &quot;-&quot;;</span><br><span class="line"></span><br><span class="line">    private volatile TreeMap&lt;Long, MemcachedNode&gt; hashRing;</span><br><span class="line">    private final HashAlgorithm hashAlg;</span><br><span class="line"></span><br><span class="line">    public ConsistentHashNodeLocator(List&lt;MemcachedNode&gt; nodes, HashAlgorithm hashAlg) &#123;</span><br><span class="line">        this.hashAlg = hashAlg;</span><br><span class="line">        this.hashRing = buildConsistentHashRing(hashAlg, nodes);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public MemcachedNode getPrimary(String k) &#123;</span><br><span class="line">        long hash = hashAlg.hash(k);</span><br><span class="line">        return getNodeForKey(hashRing, hash);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private MemcachedNode getNodeForKey(TreeMap&lt;Long, MemcachedNode&gt; hashRing, long hash) &#123;</span><br><span class="line">        /* 向右找到第一个key */</span><br><span class="line">        Map.Entry&lt;Long, MemcachedNode&gt; locatedNode = hashRing.ceilingEntry(hash);</span><br><span class="line">        /* 想象成为一个环，超出尾部取出第一个 */</span><br><span class="line">        if (locatedNode == null) &#123;</span><br><span class="line">            locatedNode = hashRing.firstEntry();</span><br><span class="line">        &#125;</span><br><span class="line">        return locatedNode.getValue();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private TreeMap&lt;Long, MemcachedNode&gt; buildConsistentHashRing(HashAlgorithm hashAlgorithm, List&lt;MemcachedNode&gt; nodes) &#123;</span><br><span class="line">        TreeMap&lt;Long, MemcachedNode&gt; virtualNodeRing = new TreeMap&lt;&gt;();</span><br><span class="line">        for (MemcachedNode node : nodes) &#123;</span><br><span class="line">            for (int i = 0; i &lt; VIRTUAL_NODE_SIZE; i++) &#123;</span><br><span class="line">                // 新增虚拟节点的方式如果有影响，也可以抽象出一个由物理节点扩展虚拟节点的类</span><br><span class="line">                virtualNodeRing.put(hashAlgorithm.hash(node.getSocketAddress().toString() + VIRTUAL_NODE_SUFFIX + i), node);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        return virtualNodeRing;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public class ConsistentHashNodeLocator implements NodeLocator {
+    private final static int VIRTUAL_NODE_SIZE = 12;
+    private final static String VIRTUAL_NODE_SUFFIX = &quot;-&quot;;
+
+    private volatile TreeMap&lt;Long, MemcachedNode&gt; hashRing;
+    private final HashAlgorithm hashAlg;
+
+    public ConsistentHashNodeLocator(List&lt;MemcachedNode&gt; nodes, HashAlgorithm hashAlg) {
+        this.hashAlg = hashAlg;
+        this.hashRing = buildConsistentHashRing(hashAlg, nodes);
+    }
+
+
+    @Override
+    public MemcachedNode getPrimary(String k) {
+        long hash = hashAlg.hash(k);
+        return getNodeForKey(hashRing, hash);
+    }
+
+    private MemcachedNode getNodeForKey(TreeMap&lt;Long, MemcachedNode&gt; hashRing, long hash) {
+        &#x2F;* 向右找到第一个key *&#x2F;
+        Map.Entry&lt;Long, MemcachedNode&gt; locatedNode = hashRing.ceilingEntry(hash);
+        &#x2F;* 想象成为一个环，超出尾部取出第一个 *&#x2F;
+        if (locatedNode == null) {
+            locatedNode = hashRing.firstEntry();
+        }
+        return locatedNode.getValue();
+    }
+
+    private TreeMap&lt;Long, MemcachedNode&gt; buildConsistentHashRing(HashAlgorithm hashAlgorithm, List&lt;MemcachedNode&gt; nodes) {
+        TreeMap&lt;Long, MemcachedNode&gt; virtualNodeRing = new TreeMap&lt;&gt;();
+        for (MemcachedNode node : nodes) {
+            for (int i = 0; i &lt; VIRTUAL_NODE_SIZE; i++) {
+                &#x2F;&#x2F; 新增虚拟节点的方式如果有影响，也可以抽象出一个由物理节点扩展虚拟节点的类
+                virtualNodeRing.put(hashAlgorithm.hash(node.getSocketAddress().toString() + VIRTUAL_NODE_SUFFIX + i), node);
+            }
+        }
+        return virtualNodeRing;
+    }
+}
+</code></pre>
 <p>在 <code>getPrimary</code> 函数中，首先使用 <code>HashAlgorithm</code> 计算出 key 值对应的哈希值，然后调用 <code>getNodeForKey</code> 函数从 <code>TreeMap</code> 中获取对应的最近的服务器节点实例。</p>
 <p><code>HashAlgorithm</code> 是对哈希算法的抽象，一致性哈希算法可以使用各种普通的哈希算法，比如说 CRC ，MurmurHash 和 FNV 等。下面，我们将会对比各种哈希算法给该实现带来的性能差异性。</p>
 <h3 id="性能测试"><a href="#性能测试" class="headerlink" title="性能测试"></a>性能测试</h3><p>测试数据是评价一个算法好坏的最为真实有效的方法，量化的思维模式一定要有，这也是程序员进阶的法宝之一。我们以下面四个量化的指标对基于不同哈希函数的一致性哈希算法进行评测。</p>
@@ -2038,9 +2934,120 @@ var _hmt = _hmt || [];
 <li><strong>随机</strong>下线10%的服务器，重新分配缓存，统计缓存迁移比率。测量节点上下线的情况，我们可以模拟 50000 个缓存数据，分配到100 个指定服务器，之后<strong>随机</strong>下线 10 个服务器并重新分配这50000个数据，统计缓存分配到不同服务器的比例，也就是迁移比率。</li>
 <li>使用JMH对不同哈希算法的执行效率进行对比。</li>
 </ul>
-<p>具体评测算法如下。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line">public class NodeLocatorTest &#123;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * 测试分布的离散情况</span><br><span class="line">     */</span><br><span class="line">    @Test</span><br><span class="line">    public void testDistribution() &#123;</span><br><span class="line">        List&lt;MemcachedNode&gt; servers = new ArrayList&lt;&gt;();</span><br><span class="line">        for (String ip : ips) &#123;</span><br><span class="line">            servers.add(new MemcachedNode(new InetSocketAddress(ip, 8080)));</span><br><span class="line">        &#125;</span><br><span class="line">        // 使用不同的DefaultHashAlgorithm进行测试，得出不同的数据</span><br><span class="line">        NodeLocator nodeLocator = new ConsistentHashNodeLocator(servers, DefaultHashAlgorithm.NATIVE_HASH);</span><br><span class="line">        // 构造 50000 随机请求</span><br><span class="line">        List&lt;String&gt; keys = new ArrayList&lt;&gt;();</span><br><span class="line">        for (int i = 0; i &lt; 50000; i++) &#123;</span><br><span class="line">            keys.add(UUID.randomUUID().toString());</span><br><span class="line">        &#125;</span><br><span class="line">        // 统计分布</span><br><span class="line">        AtomicLongMap&lt;MemcachedNode&gt; atomicLongMap = AtomicLongMap.create();</span><br><span class="line">        for (MemcachedNode server : servers) &#123;</span><br><span class="line">            atomicLongMap.put(server, 0);</span><br><span class="line">        &#125;</span><br><span class="line">        for (String key : keys) &#123;</span><br><span class="line">            MemcachedNode node = nodeLocator.getPrimary(key);</span><br><span class="line">            atomicLongMap.getAndIncrement(node);</span><br><span class="line">        &#125;</span><br><span class="line">        System.out.println(StatisticsUtil.variance(atomicLongMap.asMap().values().toArray(new Long[]&#123;&#125;)));</span><br><span class="line">        System.out.println(StatisticsUtil.standardDeviation(atomicLongMap.asMap().values().toArray(new Long[]&#123;&#125;)));</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * 测试节点新增删除后的变化程度</span><br><span class="line">     */</span><br><span class="line">    @Test</span><br><span class="line">    public void testNodeAddAndRemove() &#123;</span><br><span class="line">        List&lt;MemcachedNode&gt; servers = new ArrayList&lt;&gt;();</span><br><span class="line">        for (String ip : ips) &#123;</span><br><span class="line">            servers.add(new MemcachedNode(new InetSocketAddress(ip, 8080)));</span><br><span class="line">        &#125;</span><br><span class="line">        //随机下线10个服务器, 先shuffle，然后选择0到90，简单模仿随机计算。</span><br><span class="line">        Collections.shuffle(servers);</span><br><span class="line">        List&lt;MemcachedNode&gt; serverChanged = servers.subList(0, 90);</span><br><span class="line">        NodeLocator loadBalance = new ConsistentHashNodeLocator(servers, DefaultHashAlgorithm.NATIVE_HASH);</span><br><span class="line">        NodeLocator changedLoadBalance = new ConsistentHashNodeLocator(serverChanged, DefaultHashAlgorithm.NATIVE_HASH);</span><br><span class="line"></span><br><span class="line">        // 构造 50000 随机请求</span><br><span class="line">        List&lt;String&gt; keys = new ArrayList&lt;&gt;();</span><br><span class="line">        for (int i = 0; i &lt; 50000; i++) &#123;</span><br><span class="line">            keys.add(UUID.randomUUID().toString());</span><br><span class="line">        &#125;</span><br><span class="line">        int count = 0;</span><br><span class="line">        for (String invocation : keys) &#123;</span><br><span class="line">            MemcachedNode origin = loadBalance.getPrimary(invocation);</span><br><span class="line">            MemcachedNode changed = changedLoadBalance.getPrimary(invocation);</span><br><span class="line">           // 统计发生变化的数值</span><br><span class="line">            if (!origin.getSocketAddress().equals(changed.getSocketAddress())) count++;</span><br><span class="line">        &#125;</span><br><span class="line">        System.out.println(count / 50000D);</span><br><span class="line">    &#125;</span><br><span class="line">    static String[] ips = &#123;...&#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>具体评测算法如下。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public class NodeLocatorTest {
+
+    &#x2F;**
+     * 测试分布的离散情况
+     *&#x2F;
+    @Test
+    public void testDistribution() {
+        List&lt;MemcachedNode&gt; servers = new ArrayList&lt;&gt;();
+        for (String ip : ips) {
+            servers.add(new MemcachedNode(new InetSocketAddress(ip, 8080)));
+        }
+        &#x2F;&#x2F; 使用不同的DefaultHashAlgorithm进行测试，得出不同的数据
+        NodeLocator nodeLocator = new ConsistentHashNodeLocator(servers, DefaultHashAlgorithm.NATIVE_HASH);
+        &#x2F;&#x2F; 构造 50000 随机请求
+        List&lt;String&gt; keys = new ArrayList&lt;&gt;();
+        for (int i = 0; i &lt; 50000; i++) {
+            keys.add(UUID.randomUUID().toString());
+        }
+        &#x2F;&#x2F; 统计分布
+        AtomicLongMap&lt;MemcachedNode&gt; atomicLongMap = AtomicLongMap.create();
+        for (MemcachedNode server : servers) {
+            atomicLongMap.put(server, 0);
+        }
+        for (String key : keys) {
+            MemcachedNode node = nodeLocator.getPrimary(key);
+            atomicLongMap.getAndIncrement(node);
+        }
+        System.out.println(StatisticsUtil.variance(atomicLongMap.asMap().values().toArray(new Long[]{})));
+        System.out.println(StatisticsUtil.standardDeviation(atomicLongMap.asMap().values().toArray(new Long[]{})));
+
+    }
+
+    &#x2F;**
+     * 测试节点新增删除后的变化程度
+     *&#x2F;
+    @Test
+    public void testNodeAddAndRemove() {
+        List&lt;MemcachedNode&gt; servers = new ArrayList&lt;&gt;();
+        for (String ip : ips) {
+            servers.add(new MemcachedNode(new InetSocketAddress(ip, 8080)));
+        }
+        &#x2F;&#x2F;随机下线10个服务器, 先shuffle，然后选择0到90，简单模仿随机计算。
+        Collections.shuffle(servers);
+        List&lt;MemcachedNode&gt; serverChanged = servers.subList(0, 90);
+        NodeLocator loadBalance = new ConsistentHashNodeLocator(servers, DefaultHashAlgorithm.NATIVE_HASH);
+        NodeLocator changedLoadBalance = new ConsistentHashNodeLocator(serverChanged, DefaultHashAlgorithm.NATIVE_HASH);
+
+        &#x2F;&#x2F; 构造 50000 随机请求
+        List&lt;String&gt; keys = new ArrayList&lt;&gt;();
+        for (int i = 0; i &lt; 50000; i++) {
+            keys.add(UUID.randomUUID().toString());
+        }
+        int count = 0;
+        for (String invocation : keys) {
+            MemcachedNode origin = loadBalance.getPrimary(invocation);
+            MemcachedNode changed = changedLoadBalance.getPrimary(invocation);
+           &#x2F;&#x2F; 统计发生变化的数值
+            if (!origin.getSocketAddress().equals(changed.getSocketAddress())) count++;
+        }
+        System.out.println(count &#x2F; 50000D);
+    }
+    static String[] ips = {...};
+}
+</code></pre></p>
 <p>JMH的测试脚本如下所示。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line">@BenchmarkMode(Mode.AverageTime)</span><br><span class="line">@OutputTimeUnit(TimeUnit.MICROSECONDS)</span><br><span class="line">@State(Scope.Thread)</span><br><span class="line">public class JMHBenchmark &#123;</span><br><span class="line"></span><br><span class="line">    private NodeLocator nodeLocator;</span><br><span class="line">    private List&lt;String&gt; keys;</span><br><span class="line"></span><br><span class="line">    @Benchmark</span><br><span class="line">    public void test() &#123;</span><br><span class="line">        for (String key : keys) &#123;</span><br><span class="line">            MemcachedNode node = nodeLocator.getPrimary(key);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public static void main(String[] args) throws RunnerException &#123;</span><br><span class="line">        Options opt = new OptionsBuilder()</span><br><span class="line">                .include(JMHBenchmark.class.getSimpleName())</span><br><span class="line">                .forks(1)</span><br><span class="line">                .warmupIterations(5)</span><br><span class="line">                .measurementIterations(5)</span><br><span class="line">                .build();</span><br><span class="line">        new Runner(opt).run();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Setup</span><br><span class="line">    public void prepare() &#123;</span><br><span class="line">        List&lt;MemcachedNode&gt; servers = new ArrayList&lt;&gt;();</span><br><span class="line">        for (String ip : ips) &#123;</span><br><span class="line">            servers.add(new MemcachedNode(new InetSocketAddress(ip, 8080)));</span><br><span class="line">        &#125;</span><br><span class="line">        nodeLocator = new ConsistentHashNodeLocator(servers, DefaultHashAlgorithm.MURMUR_HASH);</span><br><span class="line">        // 构造 50000 随机请求</span><br><span class="line">        keys = new ArrayList&lt;&gt;();</span><br><span class="line">        for (int i = 0; i &lt; 50000; i++) &#123;</span><br><span class="line">            keys.add(UUID.randomUUID().toString());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @TearDown</span><br><span class="line">    public void shutdown() &#123;</span><br><span class="line">    &#125;</span><br><span class="line">    static String[] ips = &#123;...&#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">@BenchmarkMode(Mode.AverageTime)
+@OutputTimeUnit(TimeUnit.MICROSECONDS)
+@State(Scope.Thread)
+public class JMHBenchmark {
+
+    private NodeLocator nodeLocator;
+    private List&lt;String&gt; keys;
+
+    @Benchmark
+    public void test() {
+        for (String key : keys) {
+            MemcachedNode node = nodeLocator.getPrimary(key);
+        }
+    }
+
+    public static void main(String[] args) throws RunnerException {
+        Options opt = new OptionsBuilder()
+                .include(JMHBenchmark.class.getSimpleName())
+                .forks(1)
+                .warmupIterations(5)
+                .measurementIterations(5)
+                .build();
+        new Runner(opt).run();
+    }
+
+    @Setup
+    public void prepare() {
+        List&lt;MemcachedNode&gt; servers = new ArrayList&lt;&gt;();
+        for (String ip : ips) {
+            servers.add(new MemcachedNode(new InetSocketAddress(ip, 8080)));
+        }
+        nodeLocator = new ConsistentHashNodeLocator(servers, DefaultHashAlgorithm.MURMUR_HASH);
+        &#x2F;&#x2F; 构造 50000 随机请求
+        keys = new ArrayList&lt;&gt;();
+        for (int i = 0; i &lt; 50000; i++) {
+            keys.add(UUID.randomUUID().toString());
+        }
+    }
+
+    @TearDown
+    public void shutdown() {
+    }
+    static String[] ips = {...};
+}
+</code></pre>
 <p>分别测试了 JDK 哈希算法，FNV132 算法，CRC 算法，MurmurHash 算法和Ketama 算法，分别对应 <code>DefaultHashAlgorithm</code> 的 <code>NATIVE_HASH</code>，<code>FNV1_32_HASH</code>，<code>CRC_HASH</code>，<code>MURMUR_HASH</code> 和 <code>KETAMA_HASH</code> 。具体数据如下所示。</p>
 <p><a href="/images/19_1221/5_image8.webp"></a></p>
 <h3 id="虚拟槽分区"><a href="#虚拟槽分区" class="headerlink" title="虚拟槽分区"></a>虚拟槽分区</h3><p>有些文章说，Redis 集群并没有使用一致性哈希算法，而是使用虚拟槽分区算法。但是外网（地址见文末）上都说 Redis 使用的虚拟槽分区只是一致性哈希算法的变种，虚拟槽可以允许 Redis 动态扩容。</p>
@@ -2061,7 +3068,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/bedc2c36/" data-id="ck6535m9000679kse2yqrdpum" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/bedc2c36/" data-id="ck6540jam006blhseiuh2o0gw" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2342,6 +3349,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 

@@ -280,7 +280,13 @@ var _hmt = _hmt || [];
 <p>&emsp;然后点击个人应用中心按钮，等待个人中心页面显示出来，然后再次点击那个按钮，DDMS就会自动显示出如图2的界面。</p>
 <p>&emsp;第一种方法很方便，但是精准度不够，当你希望有更加精确的检测时，你就可以使用第二种方法。在你要检测的代码过程中开始调用<code>android.os.Debug.startMethodTracing()</code>方法,然后在过程的末尾调用<code>android.os.Debug.stopMethodTracing()</code>方法。等到这段代码执行完之后，系统就会在手机的<code>/sdcard</code>文件夹下生成一个trace文件。你可以使用DDMS或者adb将其复制到你的电脑上，然后用DDMS工具打开。<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/20161231-tools-data.png" alt="图2:TraceView数据展示"></p>
 <h3 id="TraceView各项数据分析"><a href="#TraceView各项数据分析" class="headerlink" title="TraceView各项数据分析"></a>TraceView各项数据分析</h3><p>&emsp;我很久之前就接触过TraceView，但是当时并没有完全理解它所展示的所有数据的具体含义，没有感受到它的强大之处。下面，我总结一下它的各项数据的含义和自己的理解。<br>&emsp;首先，我们可以看到一行表头，其中不同的项代表不同的内容。我们接下来一一进行解释。</p>
-<h4 id="Incl-Cpu-Time"><a href="#Incl-Cpu-Time" class="headerlink" title="Incl Cpu Time"></a>Incl Cpu Time</h4><p><code>Incl Cpu Time</code>表示这个函数从开始被执行到执行结束的时间。这个时间包括这个函数中调用其他函数所花费的时间。也就是说，这个函数和函数中所有子函数的一共执行时间。举个例子：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">public void example() &#123;</span><br><span class="line">  a();</span><br><span class="line">  b();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="Incl-Cpu-Time"><a href="#Incl-Cpu-Time" class="headerlink" title="Incl Cpu Time"></a>Incl Cpu Time</h4><p><code>Incl Cpu Time</code>表示这个函数从开始被执行到执行结束的时间。这个时间包括这个函数中调用其他函数所花费的时间。也就是说，这个函数和函数中所有子函数的一共执行时间。举个例子：<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">  public void example() {
+    a();
+    b();
+  }
+</code></pre></p>
 <p>&emsp;<code>Incl Cpu Time</code>就表示<code>example</code>函数执行的总时间，假如说<code>example</code>方法执行的时间为10ms,函数a执行了3ms,方法b执行了６ms，调用<code>example</code>方法的函数执行的总时间为100ms。最终计算出来的<code>Incl Cpu Time</code>比率为：</p>
 <ul>
 <li>example 10%</li>
@@ -308,7 +314,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/e21717d9/" data-id="ck6535m6m00129kseoep1uomv" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/e21717d9/" data-id="ck6540j820012lhse44owp8zx" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -614,6 +620,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 

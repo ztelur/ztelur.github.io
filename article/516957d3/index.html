@@ -292,7 +292,10 @@ var _hmt = _hmt || [];
 <p><img src="/images/19_1014/image4.png" alt=""></p>
 <p>输入缓冲无法控制，最大空间为 1G，如果超过将断开连接。而且输入缓冲区不受 maxmemory 控制，假设一个 Redis 实例设置了 maxmemory 为 4G，已经存储了 2G 数据，但是如果此时输入缓冲区使用了 3G，就已经超出了 maxmemory 限制，可能导致数据丢失、键值淘汰或者 OOM。</p>
 <p>输入缓冲区过大主要是因为 Redis 的处理速度跟不上输入缓冲区的输入速度，并且每次进入输入缓冲区的命令包含了大量的 bigkey。</p>
-<p>输出缓冲通过参数 client-output-buffer-limit 控制，其格式如下所示。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">client-output-buffer-limit [hard limit] [soft limit] [duration]</span><br></pre></td></tr></table></figure></p>
+<p>输出缓冲通过参数 client-output-buffer-limit 控制，其格式如下所示。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">client-output-buffer-limit [hard limit] [soft limit] [duration]
+</code></pre></p>
 <p>hard limit 是指一旦缓冲区大小达到了这个阈值，Redis 就会立刻关闭该连接。而 soft limit 和时间 duration 共同生效，比如说 soft time 为 64mb、duration 为 60，则只有当缓冲区持续 60s 大于 64mb 时，Redis 才会关闭该连接。</p>
 <p>普通客户端是除了复制和订阅的客户端之外的所有连接。Reids 对其的默认配置是 client-output-buffer-limit normal 0 0 0 , Redis 并没有对普通客户端的输出缓冲区做限制，一般普通客户端的内存消耗可以忽略不计，但是当有大量慢连接客户端接入时这部分内存消耗就不能忽略，可以设置 maxclients 做限制。特别当使用大量数据输出的命令且数据无法及时推送到客户端时，如 monitor 命令，容易造成 Redis 服务器内存突然飙升。相关案例可以查看这篇文章<a href="https://www.iteye.com/blog/carlosfu-2254571" target="_blank" rel="noopener">美团在Redis上踩过的一些坑-3.redis内存占用飙升</a>。</p>
 <p>从客户端用于主从复制，主节点会为每个从节点单独建立一条连接用于命令复制，默认配置为 client-output-buffer-limit slave 256mb 64mb 60。当主从节点之间网络延迟较高或主节点挂载大量从节点时这部分内存消耗将占用很大一部分，建议主节点挂载的从节点不要多于 2 个，主从节点不要部署在较差的网络环境下，如异地跨机房环境，防止复制客户端连接缓慢造成溢出。与主从复制相关的一共有两类缓冲区，一个是从客户端输出缓冲区，另外一个是下面会介绍到的复制积压缓冲区。</p>
@@ -325,9 +328,24 @@ var _hmt = _hmt || [];
 </tr>
 </tbody>
 </table>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; client list</span><br><span class="line">id=3 addr=127.0.0.1:58161 fd=8 name= \</span><br><span class="line">age=1408 idle=0 flags=N db=0 sub=0 psub=0 multi=-1 \</span><br><span class="line">qbuf=26 qbuf-free=32742 obl=0 oll=0 omem=0 \</span><br><span class="line">events=r cmd=client</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">127.0.0.1:6379&gt; client list
+id=3 addr=127.0.0.1:58161 fd=8 name= \
+age=1408 idle=0 flags=N db=0 sub=0 psub=0 multi=-1 \
+qbuf=26 qbuf-free=32742 obl=0 oll=0 omem=0 \
+events=r cmd=client
+</code></pre>
 <p>client list 命令执行速度慢，客户端较多时频繁执行存在阻塞redis的可能，所以一般可以先使用 info clients 命令获取最大的客户端缓冲区大小。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; info clients</span><br><span class="line"># Clients</span><br><span class="line">connected_clients:1</span><br><span class="line">client_recent_max_input_buffer:2</span><br><span class="line">client_recent_max_output_buffer:0</span><br><span class="line">blocked_clients:0</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">127.0.0.1:6379&gt; info clients
+# Clients
+connected_clients:1
+client_recent_max_input_buffer:2
+client_recent_max_output_buffer:0
+blocked_clients:0
+</code></pre>
 <p>复制积压缓冲区是Redis 在 2.8 版本后提供的一个可重用的固定大小缓冲区，用于实现部分复制功能。根据 repl-backlog-size 参数控制，默认 1MB。对于复制积压缓冲区整个主节点只有一个，所有的从节点共享此缓冲区。因此可以设置较大的缓冲区空间，比如说 100MB，可以有效避免全量复制。有关复制积压缓冲区的详情可以看我的旧文章 <a href="https://mp.weixin.qq.com/s/0VVYTyAI1egfs2Fxcrme3A" target="_blank" rel="noopener">Redis 复制过程详解</a>。</p>
 <p>AOF 重写缓冲区：这部分空间用于在 Redis AOF 重写期间保存最近的写入命令。AOF 重写缓冲区的大小用户无法控制，取决于 AOF 重写时间和写入命令量，不过一般都很小。有关 AOF 持久化的详情可以看我的旧文章 <a href="https://mp.weixin.qq.com/s/SODJ9Bvk-PLUpH0frzsstw" target="_blank" rel="noopener">Redis AOF 持久化详解</a>。</p>
 <h4 id="Redis-内存碎片"><a href="#Redis-内存碎片" class="headerlink" title="Redis 内存碎片"></a>Redis 内存碎片</h4><p>Redis 默认的内存分配器采用 jemalloc，可选的分配器还有：glibc、tcmalloc。内存分配器为了更好地管理和重复利用内存，分配内存策略一般采用固定范围的内存块进行分配。具体的分配策略后续会具体讲解，但是 Redis 正常碎片率一般在 1.03 左右(为什么是这个值)。但是当存储的数据长度长度差异较大时，以下场景容易出现高内存碎片问题：</p>
@@ -339,7 +357,13 @@ var _hmt = _hmt || [];
 <h3 id="子进程内存消耗"><a href="#子进程内存消耗" class="headerlink" title="子进程内存消耗"></a>子进程内存消耗</h3><p>子进程内存消耗主要指执行 AOF 重写 或者进行 RDB 保存时 Redis 创建的子进程内存消耗。Redis 执行 fork 操作产生的子进程内存占用量表现为与父进程相同，理论上需要一倍的物理内存来完成相应的操作。但是 Linux 具有写时复制技术 (copy-on-write)，父子进程会共享相同的物理内存页，当父进程处理写请求时会对需要修改的页复制出一份副本完成写操作，而子进程依然读取 fork 时整个父进程的内存快照。</p>
 <p><img src="/images/19_1014/image6.png" alt=""></p>
 <p>如上图所示，fork 时只拷贝 page table，也就是页表。只有等到某一页发生修改时，才真正进行页的复制。</p>
-<p>但是 Linux Kernel 在 2.6.38 内存增加了 Transparent Huge Pages (THP) 机制，简单理解，它就是让页大小变大，本来一页为 4KB，开启 THP 机制后，一页大小为 2MB。它虽然可以加快 fork 速度( 要拷贝的页的数量减少 )，但是会导致 copy-on-write 复制内存页的单位从 4KB 增大为 2MB，如果父进程有大量写命令，会加重内存拷贝量，都是修改一个页的内容，但是页单位变大了，从而造成过度内存消耗。例如，以下两个执行 AOF 重写时的内存消耗日志：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">// 开启 THP</span><br><span class="line">C * AOF rewrite: 1039 MB of memory used by copy-on-write</span><br><span class="line">// 关闭 THP</span><br><span class="line">C * AOF rewrite: 9MB of memory used by copy-on-write</span><br></pre></td></tr></table></figure></p>
+<p>但是 Linux Kernel 在 2.6.38 内存增加了 Transparent Huge Pages (THP) 机制，简单理解，它就是让页大小变大，本来一页为 4KB，开启 THP 机制后，一页大小为 2MB。它虽然可以加快 fork 速度( 要拷贝的页的数量减少 )，但是会导致 copy-on-write 复制内存页的单位从 4KB 增大为 2MB，如果父进程有大量写命令，会加重内存拷贝量，都是修改一个页的内容，但是页单位变大了，从而造成过度内存消耗。例如，以下两个执行 AOF 重写时的内存消耗日志：<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 开启 THP
+C * AOF rewrite: 1039 MB of memory used by copy-on-write
+&#x2F;&#x2F; 关闭 THP
+C * AOF rewrite: 9MB of memory used by copy-on-write
+</code></pre></p>
 <p>这两个日志出自同一个 Redis 进程，used_memory 总量是 1.5GB，子进程执行期间每秒写命令量都在 200 左右。当分别开启和关闭 THP 时，子进程内存消耗有天壤之别。所以，在高并发写的场景下开启 THP，子进程内存消耗可能是父进程的数倍，造成机器物理内存溢出。</p>
 <p>所以说，Redis 产生的子进程并不需要消耗 1 倍的父进程内存，实际消耗根据期间写入命令量决定，所以需要预留一些内存防止溢出。并且建议关闭系统的 THP，防止 copy-on-write 期间内存过度消耗。不仅是 Redis，部署 MySQL 的机器一般也会关闭 THP。</p>
 <p><img src="/images/logo.png" alt=""></p>
@@ -359,7 +383,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/516957d3/" data-id="ck6535m8t005n9ksetfmrfgta" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/516957d3/" data-id="ck6540jad005nlhsewts46uho" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -665,6 +689,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 

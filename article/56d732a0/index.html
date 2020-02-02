@@ -275,17 +275,201 @@ var _hmt = _hmt || [];
 <li>惰性同步</li>
 <li>非阻塞同步</li>
 </ul>
-<h3 id="粗粒度同步"><a href="#粗粒度同步" class="headerlink" title="粗粒度同步"></a>粗粒度同步</h3><p>&emsp;所谓粗粒度同步其实很简单，就是在List的<code>add</code>,<code>remove</code>,<code>contains</code>函数的开始就直接使用Lock加锁，然后在函数结尾释放。<br>&emsp;<code>add</code>函数的代码如下所示，函数的主体就是链表的遍历添加逻辑，只不过在开始和结束进行了锁的获取和释放。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> Node head;</span><br><span class="line"><span class="keyword">private</span> Lock lock = <span class="keyword">new</span> ReentrantLock();</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">add</span><span class="params">(T item)</span> </span>&#123;</span><br><span class="line">    Node pred, curr;</span><br><span class="line">    <span class="keyword">int</span> key = item.hashCode();</span><br><span class="line">    lock.lock();</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        pred = head;</span><br><span class="line">        curr = pred.next;</span><br><span class="line">        <span class="keyword">while</span>(curr.key &lt; key) &#123;</span><br><span class="line">            pred = curr;</span><br><span class="line">            curr = pred.next;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (key == curr.key) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            Node node = <span class="keyword">new</span> Node(item);</span><br><span class="line">            node.next = curr;</span><br><span class="line">            pred.next = node;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        lock.unlock();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="粗粒度同步"><a href="#粗粒度同步" class="headerlink" title="粗粒度同步"></a>粗粒度同步</h3><p>&emsp;所谓粗粒度同步其实很简单，就是在List的<code>add</code>,<code>remove</code>,<code>contains</code>函数的开始就直接使用Lock加锁，然后在函数结尾释放。<br>&emsp;<code>add</code>函数的代码如下所示，函数的主体就是链表的遍历添加逻辑，只不过在开始和结束进行了锁的获取和释放。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">private Node head;
+private Lock lock = new ReentrantLock();
+public boolean add(T item) {
+    Node pred, curr;
+    int key = item.hashCode();
+    lock.lock();
+    try {
+        pred = head;
+        curr = pred.next;
+        while(curr.key &lt; key) {
+            pred = curr;
+            curr = pred.next;
+        }
+        if (key == curr.key) {
+            return false;
+        } else {
+            Node node = new Node(item);
+            node.next = curr;
+            pred.next = node;
+            return true;
+        }
+
+    } finally {
+        lock.unlock();
+    }
+}
+</code></pre></p>
 <p>&emsp;大家看到这里就会想到，这不就是类似于<code>Hashtable</code>的实现方式吗？把可能出现多线程问题的函数都用一个重入锁锁住。但是这个方法的缺点很明显，如果竞争激烈的话，对链表的操作效率会很低，因为<code>add</code>,<code>remove</code>,<code>contains</code>三个函数都需要获取锁，也都需要等待锁的释放。至于如何优化，我们可以一步一步往下看</p>
 <h3 id="细粒度同步"><a href="#细粒度同步" class="headerlink" title="细粒度同步"></a>细粒度同步</h3><p>&emsp;<strong><em>我们可以通过锁定单个节点而不是整个链表来提高并发</em></strong>。给每个节点增加一个Lock变量以及相关的lock()和unlock()函数,当线程遍历链表的时候，若它是第一个访问节点的线程，则锁住被访问的节点，在随后的某个时刻释放锁。这种细粒度的锁机制允许并发线程以流水线的方式遍历链表。<br>&emsp;使用这种方式来遍历链表，必须同时获取两个相邻节点的锁，通过“交叉手”的方式来获取锁：除了初始的head哨兵节点外，只有在已经获取pred的锁时，才能获取curr的锁。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//每个Node对象中都有一个Lock对象，可以进行lock()和unlock()操作</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">add</span><span class="params">(T item)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> key = item.hashCode();</span><br><span class="line">    head.lock();</span><br><span class="line">    Node pred = head;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        Node curr = pred.next;</span><br><span class="line">        curr.lock();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">while</span> (curr.key &lt; key) &#123;</span><br><span class="line">                pred.unlock();</span><br><span class="line">                pred = curr;</span><br><span class="line">                curr = pred.next;</span><br><span class="line">                curr.lock();</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (curr.key == key) &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            Node newNode = <span class="keyword">new</span> Node(item);</span><br><span class="line">            newNode.next = curr;</span><br><span class="line">            pred.next = newNode;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            curr.unlock();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        pred.unlock();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="乐观同步"><a href="#乐观同步" class="headerlink" title="乐观同步"></a>乐观同步</h3><p>&emsp;虽然细粒度锁是对单一粒度锁的一种改进，但它仍然出现很长的获取锁和释放锁的序列。而且，访问链表中不同部分的线程仍然可能相互阻塞。例如，一个正在删除链表中第二个元素的线程将会阻塞所有试图查找后继节点的线程。<br>&emsp;减少同步代价的一种方式就是乐观：<strong><em>不需要获取锁就可以查找，对找到的节点进行加锁，然后确认锁住的节点是正确的；如果一个同步冲突导致节点被错误的锁定，则释放这些锁重新开始</em></strong>。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">add</span><span class="params">(T item)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> key = item.hashCode();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>) &#123; <span class="comment">//如果不成功，就进行重试</span></span><br><span class="line">        Node pred = head;</span><br><span class="line">        Node curr = pred.next;</span><br><span class="line">        <span class="keyword">while</span> (curr.key &lt; key) &#123;</span><br><span class="line">            pred = curr;</span><br><span class="line">            curr = pred.next;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//找到目标相关的pred和curr之后再将二者锁住</span></span><br><span class="line">        pred.lock();</span><br><span class="line">        curr.lock();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">//锁住二者之后再进行判断，是否存在并发冲突</span></span><br><span class="line">            <span class="keyword">if</span> (validate(pred, curr)) &#123;</span><br><span class="line">                <span class="comment">//如果不存在，那么就直接进行正常操作</span></span><br><span class="line">                <span class="keyword">if</span> (curr.key == key) &#123;</span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    Node node = <span class="keyword">new</span> Node(item);</span><br><span class="line">                    node.next = curr;</span><br><span class="line">                    pred.next = node;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            pred.unlock();</span><br><span class="line">            curr.unlock();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">validate</span><span class="params">(Node pred, Node curr)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//从队列头开始查找pred和curr,判断是否存在并发冲突</span></span><br><span class="line">    Node node = head;</span><br><span class="line">    <span class="keyword">while</span> (node.key &lt;= pred.key) &#123;</span><br><span class="line">        <span class="keyword">if</span> (node == pred) &#123;</span><br><span class="line">            <span class="keyword">return</span> pred.next == curr;</span><br><span class="line">        &#125;</span><br><span class="line">        node = node.next;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">&#x2F;&#x2F;每个Node对象中都有一个Lock对象，可以进行lock()和unlock()操作
+public boolean add(T item) {
+    int key = item.hashCode();
+    head.lock();
+    Node pred = head;
+    try {
+        Node curr = pred.next;
+        curr.lock();
+
+        try {
+            while (curr.key &lt; key) {
+                pred.unlock();
+                pred = curr;
+                curr = pred.next;
+                curr.lock();
+            }
+
+            if (curr.key == key) {
+                return false;
+            }
+            Node newNode = new Node(item);
+            newNode.next = curr;
+            pred.next = newNode;
+            return true;
+        } finally {
+            curr.unlock();
+        }
+
+    } finally {
+        pred.unlock();
+    }
+}
+</code></pre>
+<h3 id="乐观同步"><a href="#乐观同步" class="headerlink" title="乐观同步"></a>乐观同步</h3><p>&emsp;虽然细粒度锁是对单一粒度锁的一种改进，但它仍然出现很长的获取锁和释放锁的序列。而且，访问链表中不同部分的线程仍然可能相互阻塞。例如，一个正在删除链表中第二个元素的线程将会阻塞所有试图查找后继节点的线程。<br>&emsp;减少同步代价的一种方式就是乐观：<strong><em>不需要获取锁就可以查找，对找到的节点进行加锁，然后确认锁住的节点是正确的；如果一个同步冲突导致节点被错误的锁定，则释放这些锁重新开始</em></strong>。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">public boolean add(T item) {
+    int key = item.hashCode();
+
+    while (true) { &#x2F;&#x2F;如果不成功，就进行重试
+        Node pred = head;
+        Node curr = pred.next;
+        while (curr.key &lt; key) {
+            pred = curr;
+            curr = pred.next;
+        }
+        &#x2F;&#x2F;找到目标相关的pred和curr之后再将二者锁住
+        pred.lock();
+        curr.lock();
+        try {
+            &#x2F;&#x2F;锁住二者之后再进行判断，是否存在并发冲突
+            if (validate(pred, curr)) {
+                &#x2F;&#x2F;如果不存在，那么就直接进行正常操作
+                if (curr.key == key) {
+                    return false;
+                } else {
+                    Node node = new Node(item);
+                    node.next = curr;
+                    pred.next = node;
+                }
+            }
+        } finally {
+            pred.unlock();
+            curr.unlock();
+        }
+    }
+}
+public boolean validate(Node pred, Node curr) {
+    &#x2F;&#x2F;从队列头开始查找pred和curr,判断是否存在并发冲突
+    Node node = head;
+    while (node.key &lt;= pred.key) {
+        if (node == pred) {
+            return pred.next == curr;
+        }
+        node = node.next;
+    }
+    return false;
+}
+</code></pre></p>
 <p>&emsp;由于不再使用能保护并发修改的锁，所以每个方法调用都可能遍历那些已经被删除的节点，所以在进行添加，删除获取判断是否存在的之前必须再次进行验证。</p>
 <h3 id="惰性同步"><a href="#惰性同步" class="headerlink" title="惰性同步"></a>惰性同步</h3><p>&emsp;当不用锁遍历两次链表的代价比使用锁遍历一次链表的代价小很多时，乐观同步的实现效果非常好。但是这种算法的缺点之一就是contains()方法在遍历时需要锁，这一点并不令人满意，其原因在于对contains()的调用要比其他方法的调用频繁得多。<br>&emsp;<strong><em>使用惰性同步的方法，使得contains()调用是无等待的，同时add()和remove()方法即使在被阻塞的情况下也只需要遍历一次链表</em></strong>。<br>&emsp;<strong><em>对每个节点增加一个布尔类型的marked域，用于说明该节点是否在节点集合中。现在，遍历不再需要锁定目标结点，也没有必须通过重新遍历整个链表来验证结点是否可达。所有未被标记的节点必然是可达的</em></strong>。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//add方法和乐观同步的方法一致，只有检验方法做了修改。</span></span><br><span class="line"><span class="comment">//只需要检测节点的marked变量就可以，并且查看pred的next是否还是指向curr，需要注意的是marked变量一定是voliate的。</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">boolean</span> <span class="title">validate</span><span class="params">(Node pred, Node curr)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> !pred.marked &amp;&amp; !curr.marked &amp;&amp; pred.next == curr;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">&#x2F;&#x2F;add方法和乐观同步的方法一致，只有检验方法做了修改。
+&#x2F;&#x2F;只需要检测节点的marked变量就可以，并且查看pred的next是否还是指向curr，需要注意的是marked变量一定是voliate的。
+private boolean validate(Node pred, Node curr) {
+        return !pred.marked &amp;&amp; !curr.marked &amp;&amp; pred.next == curr;
+}
+</code></pre>
 <p>&emsp;惰性同步的优点之一就是能够将类似于设置一个flag这样的逻辑操作与类似于删除结点的链接这种对结构的物理改变分开。通常情况下，延迟操作可以是批量处理方式进行，且在某个方便的时候再懒惰地进行处理，从而降低了对结构进行物理修改的整体破裂性。惰性同步的主要缺点是add()和remove()调用是阻塞的：如果一个线程延迟，那么其他线程也将延迟。</p>
 <h3 id="非阻塞同步"><a href="#非阻塞同步" class="headerlink" title="非阻塞同步"></a>非阻塞同步</h3><p>&emsp;使用惰性同步的思维是非常有益处的。我们可以进一步将add(),remove()和contains()这三个方法都变成非阻塞的。前两个方法是无锁的，最后一个方法是无等待的。我们无法直接使用compareAndSet()来改变next域来实现，因为这样会出现问题。但是我们可以将结点的next域和marked域看作是单个的原子单位：当marked域为true时，对next域的任何修改都将失败。<br>&emsp;我们可以使用AtomicMarkableReference<t>对象将指向类型T的对象引用next和布尔值marked封装在一起。这些域可以一起或单个地原子更新。可以让每个结点的next域为一个AtomicMarkableReference<node>。线程可以通过设置结点next域中的标记位来逻辑地删除curr,和其他正在执行add()和remove()的线程共享物理删除:当每个线程遍历链表时，通过物理删除所有被标记的节点来清理链表。</node></t></p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Window <span class="title">find</span><span class="params">(Node head, <span class="keyword">int</span> key)</span> </span>&#123;</span><br><span class="line">        Node pred = <span class="keyword">null</span>, curr = <span class="keyword">null</span>, succ = <span class="keyword">null</span>;</span><br><span class="line">        <span class="keyword">boolean</span>[] marked = &#123;<span class="keyword">false</span>&#125;;</span><br><span class="line">        <span class="keyword">boolean</span> snip;</span><br><span class="line"></span><br><span class="line">        retry: <span class="keyword">while</span>(<span class="keyword">true</span>) &#123;</span><br><span class="line">            pred = head;</span><br><span class="line">            curr = curr.next.get(marked);</span><br><span class="line">            <span class="keyword">while</span>(<span class="keyword">true</span>) &#123;</span><br><span class="line">                succ = curr.next.get(marked); <span class="comment">//获取succ,并且查看是被被标记</span></span><br><span class="line">                <span class="keyword">while</span> (marked[<span class="number">0</span>]) &#123;<span class="comment">//如果被标记了，说明curr被逻辑删除了，需要继续物理删除</span></span><br><span class="line">                    snip = pred.next.compareAndSet(curr, succ, <span class="keyword">false</span>, <span class="keyword">false</span>);<span class="comment">//</span></span><br><span class="line">                    <span class="keyword">if</span> (!snip) <span class="keyword">continue</span> retry;</span><br><span class="line">                    curr = succ;</span><br><span class="line">                    succ = curr.next.get(marked);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="comment">//当不需要删除后，才继续遍历</span></span><br><span class="line">                <span class="keyword">if</span> (curr.key &gt;= key) &#123;</span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">new</span> Window(pred, curr);</span><br><span class="line">                &#125;</span><br><span class="line">                pred = curr;</span><br><span class="line">                curr = succ;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">add</span><span class="params">(T item)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> key = item.hashCode();</span><br><span class="line">        <span class="keyword">while</span>(<span class="keyword">true</span>) &#123;</span><br><span class="line">            Window window = find(head, key);</span><br><span class="line">            Node pred = window.pred, curr = window.curr;</span><br><span class="line">            <span class="keyword">if</span> (curr.key == key) &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                Node node = <span class="keyword">new</span> Node(item);</span><br><span class="line">                node.next = <span class="keyword">new</span> AtomicMarkableReference&lt;&gt;(curr, <span class="keyword">false</span>);</span><br><span class="line">                <span class="keyword">if</span> (pred.next.compareAndSet(curr, node, <span class="keyword">false</span>, <span class="keyword">false</span>)) &#123;</span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">remove</span><span class="params">(T item)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> key = item.hashCode();</span><br><span class="line">        <span class="keyword">boolean</span> sinp;</span><br><span class="line">        <span class="keyword">while</span>(<span class="keyword">true</span>) &#123;</span><br><span class="line">            Window window = find(head, key);</span><br><span class="line">            Node pred = window.pred, curr = window.curr;</span><br><span class="line">            <span class="keyword">if</span> (curr.key != key) &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                Node succ = curr.next.getReference();</span><br><span class="line">                <span class="comment">//要进行删除了，那么就直接将curr.next设置为false,然后在进行真正的物理删除。</span></span><br><span class="line">                sinp = curr.next.compareAndSet(curr, succ, <span class="keyword">false</span>, <span class="keyword">true</span>);</span><br><span class="line">                <span class="keyword">if</span> (!sinp) &#123;</span><br><span class="line">                    <span class="keyword">continue</span>;</span><br><span class="line">                &#125;</span><br><span class="line">                pred.next.compareAndSet(curr, succ, <span class="keyword">false</span>, <span class="keyword">false</span>);</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Node</span> </span>&#123;</span><br><span class="line">          AtomicMarkableReference&lt;Node&gt; next;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">
+    public Window find(Node head, int key) {
+        Node pred = null, curr = null, succ = null;
+        boolean[] marked = {false};
+        boolean snip;
+
+        retry: while(true) {
+            pred = head;
+            curr = curr.next.get(marked);
+            while(true) {
+                succ = curr.next.get(marked); &#x2F;&#x2F;获取succ,并且查看是被被标记
+                while (marked[0]) {&#x2F;&#x2F;如果被标记了，说明curr被逻辑删除了，需要继续物理删除
+                    snip = pred.next.compareAndSet(curr, succ, false, false);&#x2F;&#x2F;
+                    if (!snip) continue retry;
+                    curr = succ;
+                    succ = curr.next.get(marked);
+                }
+                &#x2F;&#x2F;当不需要删除后，才继续遍历
+                if (curr.key &gt;= key) {
+                    return new Window(pred, curr);
+                }
+                pred = curr;
+                curr = succ;
+            }
+        }
+    }
+
+    public boolean add(T item) {
+        int key = item.hashCode();
+        while(true) {
+            Window window = find(head, key);
+            Node pred = window.pred, curr = window.curr;
+            if (curr.key == key) {
+                return false;
+            } else {
+                Node node = new Node(item);
+                node.next = new AtomicMarkableReference&lt;&gt;(curr, false);
+                if (pred.next.compareAndSet(curr, node, false, false)) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    public boolean remove(T item) {
+        int key = item.hashCode();
+        boolean sinp;
+        while(true) {
+            Window window = find(head, key);
+            Node pred = window.pred, curr = window.curr;
+            if (curr.key != key) {
+                return false;
+            } else {
+                Node succ = curr.next.getReference();
+                &#x2F;&#x2F;要进行删除了，那么就直接将curr.next设置为false,然后在进行真正的物理删除。
+                sinp = curr.next.compareAndSet(curr, succ, false, true);
+                if (!sinp) {
+                    continue;
+                }
+                pred.next.compareAndSet(curr, succ, false, false);
+                return true;
+            }
+        }
+    }
+
+
+class Node {
+          AtomicMarkableReference&lt;Node&gt; next;
+}
+</code></pre>
 <h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;文中的代码在我的github的这个<a href="https://github.com/ztelur/MultiprocessorProgramming/tree/master/src/com/company/nine" target="_blank" rel="noopener">repo</a>中都可以找到。</p>
 
         
@@ -297,7 +481,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/56d732a0/" data-id="ck6535m8o005d9ksep2mucndy" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/56d732a0/" data-id="ck6540jaa005hlhsenu5pmex4" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -603,6 +787,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 

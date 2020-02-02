@@ -294,15 +294,94 @@ var _hmt = _hmt || [];
 </ul>
 <p> 大家会发现，为什么<code>onMeasure</code>先调用了两次，然后再调用<code>onLayout</code>函数，最后还有在依次调用<code>onMeasure</code>,<code>onLayout</code>和<code>onDraw</code>函数呢？</p>
 <h4 id="ViewGroup的measure"><a href="#ViewGroup的measure" class="headerlink" title="ViewGroup的measure"></a>ViewGroup的measure</h4><p> 大家应该都知道，有些<code>ViewGroup</code>可能会让自己的子视图测量两次。比如说，父视图先让每个子视图自己测量，使用<code>View.MeasureSpec.UNSPECIFIED</code>，然后在根据每个子视图希望得到的大小不超过父视图的一些限制，就让子视图得到自己希望的大小，否则就用其他尺寸来重新测量子视图。这一类的视图有<code>FrameLayout</code>,<code>RelativeLayout</code>等。<br> 在《Android视图结构》中，我们已经知道Android视图树的根节点是<code>DecorView</code>,而它是<code>FrameLayout</code>的子类，所以就会让其子视图绘制两次，所以<code>onMeasure</code>函数会先被调用两次。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// FrameLayout的onMeasure函数，DecorView的onMeasure会调用这个函数。</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onMeasure</span><span class="params">(<span class="keyword">int</span> widthMeasureSpec, <span class="keyword">int</span> heightMeasureSpec)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> count = getChildCount();</span><br><span class="line">    .....</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; count; i++) &#123;</span><br><span class="line">        <span class="keyword">final</span> View child = getChildAt(i);</span><br><span class="line">        <span class="keyword">if</span> (mMeasureAllChildren || child.getVisibility() != GONE) &#123;</span><br><span class="line">            measureChildWithMargins(child, widthMeasureSpec, <span class="number">0</span>, heightMeasureSpec, <span class="number">0</span>);</span><br><span class="line">            ......</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ........</span><br><span class="line">    count = mMatchParentChildren.size();</span><br><span class="line">    <span class="keyword">if</span> (count &gt; <span class="number">1</span>) &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; count; i++) &#123;</span><br><span class="line">            ........</span><br><span class="line">            child.measure(childWidthMeasureSpec, childHeightMeasureSpec);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">&#x2F;&#x2F; FrameLayout的onMeasure函数，DecorView的onMeasure会调用这个函数。
+@Override
+protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+    int count = getChildCount();
+    .....
+    for (int i = 0; i &lt; count; i++) {
+        final View child = getChildAt(i);
+        if (mMeasureAllChildren || child.getVisibility() != GONE) {
+            measureChildWithMargins(child, widthMeasureSpec, 0, heightMeasureSpec, 0);
+            ......
+        }
+    }
+    ........
+    count = mMatchParentChildren.size();
+    if (count &gt; 1) {
+        for (int i = 0; i &lt; count; i++) {
+            ........
+            child.measure(childWidthMeasureSpec, childHeightMeasureSpec);
+        }
+    }
+}
+</code></pre>
 <p>&emsp;你以为到了这里就能解释通View初始化时的三次measure,两次layout却只一次draw吗？那你就太天真了！我们都知道，视图结构中不仅仅是<code>DecorView</code>是<code>FrameLayout</code>,还有其他的需要两次measure子视图的<code>ViewGroup</code>,如果每次都导致子视图两次measure,那效率就太低了。所以<code>View</code>的<code>measure</code>函数中有相关的机制来防止这种情况。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">measure</span><span class="params">(<span class="keyword">int</span> widthMeasureSpec, <span class="keyword">int</span> heightMeasureSpec)</span> </span>&#123;</span><br><span class="line">  ......</span><br><span class="line">  <span class="comment">// 当FLAG_FORCE_LAYOUT位为１时，就是当前视图请求一次布局操作</span></span><br><span class="line">  <span class="comment">//或者当前当前widthSpec和heightSpec不等于上次调用时传入的参数的时候</span></span><br><span class="line">  <span class="comment">//才进行从新绘制。</span></span><br><span class="line">    <span class="keyword">if</span> (forceLayout || !matchingSize &amp;&amp;</span><br><span class="line">            (widthMeasureSpec != mOldWidthMeasureSpec ||</span><br><span class="line">                    heightMeasureSpec != mOldHeightMeasureSpec)) &#123;</span><br><span class="line">            ......</span><br><span class="line">            onMeasure(widthMeasureSpec, heightMeasureSpec);</span><br><span class="line">            ......</span><br><span class="line">    &#125;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">
+public final void measure(int widthMeasureSpec, int heightMeasureSpec) {
+  ......
+  &#x2F;&#x2F; 当FLAG_FORCE_LAYOUT位为１时，就是当前视图请求一次布局操作
+  &#x2F;&#x2F;或者当前当前widthSpec和heightSpec不等于上次调用时传入的参数的时候
+  &#x2F;&#x2F;才进行从新绘制。
+    if (forceLayout || !matchingSize &amp;&amp;
+            (widthMeasureSpec != mOldWidthMeasureSpec ||
+                    heightMeasureSpec != mOldHeightMeasureSpec)) {
+            ......
+            onMeasure(widthMeasureSpec, heightMeasureSpec);
+            ......
+    }
+    ......
+}
+</code></pre>
 <p>&emsp;源码看到这里，我几乎失望的眼泪掉下来！没办法，只能再想其他的方法来分析这个问题。</p>
 <h4 id="断点调试大法好"><a href="#断点调试大法好" class="headerlink" title="断点调试大法好"></a>断点调试大法好</h4><p>&emsp;为了分析函数调用的层级关系，我想到了断点调试法。于是，我果断在<code>onMeasure</code>和<code>onLayout</code>函数中设置了断点，然后进行调试。</p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20161030-blog-measure1.png" alt="函数调用帧"></p>
 <p>&emsp;在《Android视图架构》一文中，我们知道<code>ViewRoot</code>是<code>DecorView</code>的父视图，虽然它自己并不是一个<code>View</code>，但是它实现了<code>ViewParent</code>的接口，Android正是通过它来实现整个视图系统的初始化工作。而它的<code>performTraversals</code>函数就是视图初始化的关键函数。<br>&emsp;对比两次<code>onMeasure</code>被调用时的函数调用帧，我们可以轻易发现<code>ViewRootImpl</code>的<code>performTraversals</code>函数中直接和间接的调用了两次<code>performMeasure</code>函数，从而导致了<code>View</code>最开始的两次measure过程。<br>&emsp;然后在相同的<code>performTraversals</code>函数中会调用<code>performLayout</code>函数，从而导致<code>View</code>进行一轮layout过程。<br>&emsp;但是为什么这次<code>performTraversals</code>并没有触发<code>View</code>的draw过程呢?反而是<code>View</code>又将重新进行一轮measure,layout过程之后才进行draw。</p>
 <h4 id="两次performTraversals"><a href="#两次performTraversals" class="headerlink" title="两次performTraversals"></a>两次performTraversals</h4><p>&emsp;通过断点调试，我们发现在<code>View</code>初始化的过程中，系统调用了两次<code>performTraversals</code>函数，第一次<code>performTraversals</code>函数导致了View的前两次的<code>onMeasure</code>函数调用和第一次的<code>onLayout</code>函数调用。后一次的<code>performTraversals</code>函数导致了最后的<code>onMeasure</code>,<code>onLayout</code>,和<code>onDraw</code>函数的调用。但是，第二次<code>performTraversals</code>为什么会被触发呢？我们研究一下其源码就可知道。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">performTraversals</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    ......</span><br><span class="line">    <span class="keyword">boolean</span> newSurface = <span class="keyword">false</span>;</span><br><span class="line">    <span class="comment">//<span class="doctag">TODO:</span>决定是否让newSurface为true,导致后边是否让performDraw无法被调用，而是重新scheduleTraversals</span></span><br><span class="line">    <span class="keyword">if</span> (!hadSurface) &#123;</span><br><span class="line">        <span class="keyword">if</span> (mSurface.isValid()) &#123;</span><br><span class="line">            <span class="comment">// If we are creating a new surface, then we need to</span></span><br><span class="line">            <span class="comment">// completely redraw it.  Also, when we get to the</span></span><br><span class="line">            <span class="comment">// point of drawing it we will hold off and schedule</span></span><br><span class="line">            <span class="comment">// a new traversal instead.  This is so we can tell the</span></span><br><span class="line">            <span class="comment">// window manager about all of the windows being displayed</span></span><br><span class="line">            <span class="comment">// before actually drawing them, so it can display then</span></span><br><span class="line">            <span class="comment">// all at once.</span></span><br><span class="line">            newSurface = <span class="keyword">true</span>;</span><br><span class="line">                    .....</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">            ......</span><br><span class="line">    <span class="keyword">if</span> (!cancelDraw &amp;&amp; !newSurface) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!skipDraw || mReportNextDraw) &#123;</span><br><span class="line">            ......</span><br><span class="line">            performDraw();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (viewVisibility == View.VISIBLE) &#123;</span><br><span class="line">            <span class="comment">// Try again</span></span><br><span class="line">            scheduleTraversals();</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (mPendingTransitions != <span class="keyword">null</span> &amp;&amp; mPendingTransitions.size() &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; mPendingTransitions.size(); ++i) &#123;</span><br><span class="line">                mPendingTransitions.get(i).endChangingAnimations();</span><br><span class="line">            &#125;</span><br><span class="line">            mPendingTransitions.clear();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">
+private void performTraversals() {
+    ......
+    boolean newSurface = false;
+    &#x2F;&#x2F;TODO:决定是否让newSurface为true,导致后边是否让performDraw无法被调用，而是重新scheduleTraversals
+    if (!hadSurface) {
+        if (mSurface.isValid()) {
+            &#x2F;&#x2F; If we are creating a new surface, then we need to
+            &#x2F;&#x2F; completely redraw it.  Also, when we get to the
+            &#x2F;&#x2F; point of drawing it we will hold off and schedule
+            &#x2F;&#x2F; a new traversal instead.  This is so we can tell the
+            &#x2F;&#x2F; window manager about all of the windows being displayed
+            &#x2F;&#x2F; before actually drawing them, so it can display then
+            &#x2F;&#x2F; all at once.
+            newSurface = true;
+                    .....
+        }
+    }
+            ......
+    if (!cancelDraw &amp;&amp; !newSurface) {
+        if (!skipDraw || mReportNextDraw) {
+            ......
+            performDraw();
+        }
+    } else {
+        if (viewVisibility == View.VISIBLE) {
+            &#x2F;&#x2F; Try again
+            scheduleTraversals();
+        } else if (mPendingTransitions != null &amp;&amp; mPendingTransitions.size() &gt; 0) {
+            for (int i = 0; i &lt; mPendingTransitions.size(); ++i) {
+                mPendingTransitions.get(i).endChangingAnimations();
+            }
+            mPendingTransitions.clear();
+        }
+    }
+    ......
+}
+</code></pre>
 <p>&emsp;由源代码可以看出，当<code>newSurface</code>为真时，<code>performTraversals</code>函数并不会调用<code>performDraw</code>函数，而是调用<code>scheduleTraversals</code>函数，从而再次调用一次<code>performTraversals</code>函数，从而再次进行一次测量，布局和绘制过程。<br>&emsp;我们由断点调试可以轻易看到，第一次<code>performTraversals</code>时的<code>newSurface</code>为真，而第二次时是假。</p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/20161030-%E7%AC%AC%E4%B8%80%E6%AC%A1.png" alt="断点调试截图"></p>
 <h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>&emsp;虽然我已经通过源码得知View初始化时measure三次，layout两次，draw一次的原因，但是Android系统设计时，为什么要将整个初始化过程设计成这样？我却还没有明白，为什么当<code>Surface</code>为新的时候，要推迟绘制，重新进行一轮初始化，这些可能都要涉及到<code>Surface</code>的相关内容，我之后要继续学习相关内容！</p>
@@ -316,7 +395,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/251abaf9/" data-id="ck6535m8i00549kseo2xff0qw" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/251abaf9/" data-id="ck6540ja1004ylhse7na11q8f" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -622,6 +701,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 

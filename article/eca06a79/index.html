@@ -279,10 +279,105 @@ var _hmt = _hmt || [];
 <h3 id="MVP示例"><a href="#MVP示例" class="headerlink" title="MVP示例"></a>MVP示例</h3><p> 关于MVP架构的实例有很多，比如<a href="https://github.com/googlesamples/android-architecture" target="_blank" rel="noopener">google官方架构</a>。这里我就给出一下我重构项目一个模块的类图，然后大致说一下实现。</p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017312-mvp-webwxgetmsgimg.jpg" alt="webwxgetmsgimg.jpg"></p>
 <p>&emsp;首先定义了<code>BaseView</code>和<code>BasePresenter</code>两个接口，实现了<code>BaseActivity</code>和<code>BaseFragment</code>两个基础类。需要注意的是，因为每个View都需要持有一个特定类型的presenter对象，所以，在<code>BaseView</code>定义时，使用了范型。除此之外，你可以在<code>initPresenter</code>函数中构造出所需要的presenter对象。<code>showLoading</code>和<code>stopLoading</code>函数是所有视图进行网络数据加载时所需要的方法，其具体使用场景后边可以看到，这里这两个接口是在<code>BaseActivity</code>中实现的。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">BaseView</span>&lt;<span class="title">T</span>&gt; </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">showLoading</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">stopLoading</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">initPresnter</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="function">T <span class="title">getPresenter</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">BasePresenter</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BaseActivity</span> <span class="keyword">extends</span> <span class="title">Activity</span></span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">showLoading</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">stopLoading</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BaseFragment</span> <span class="keyword">extends</span> <span class="title">Fragment</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">showLoading</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">stopLoading</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>&emsp;然后是data模块中的相关类和接口的定义。我们在<code>DataContract</code>接口中定义所有相关的view和data。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">DataContract</span> </span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">interface</span> <span class="title">DataView</span> <span class="keyword">extends</span> <span class="title">BaseView</span>&lt;<span class="title">DataPresenter</span>&gt; </span>&#123;</span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">showFragment</span><span class="params">(BaseFragment fragment)</span></span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="class"><span class="keyword">interface</span> <span class="title">DataPresenter</span> <span class="keyword">extends</span> <span class="title">BasePresenter</span> </span>&#123;</span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">switchToDataList</span><span class="params">()</span></span>;</span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">switchToDataTree</span><span class="params">()</span></span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="class"><span class="keyword">interface</span> <span class="title">DataListView</span> <span class="keyword">extends</span> <span class="title">BaseView</span>&lt;<span class="title">DataListPresenter</span>&gt; </span>&#123;</span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">showDataList</span><span class="params">(List&lt;String&gt; data)</span></span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="class"><span class="keyword">interface</span> <span class="title">DataListPresenter</span> <span class="keyword">extends</span> <span class="title">BasePresenter</span> </span>&#123;</span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">loadDataList</span><span class="params">()</span></span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="class"><span class="keyword">interface</span> <span class="title">DataTreeView</span> <span class="keyword">extends</span> <span class="title">BaseView</span>&lt;<span class="title">DataTreePresenter</span>&gt; </span>&#123;&#125;</span><br><span class="line">    <span class="class"><span class="keyword">interface</span> <span class="title">DataTreePresenter</span> <span class="keyword">extends</span> <span class="title">BasePresenter</span> </span>&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">public interface BaseView&lt;T&gt; {
+    void showLoading();
+    void stopLoading();
+    void initPresnter();
+    T getPresenter();
+}
+
+public interface BasePresenter {
+
+}
+
+public class BaseActivity extends Activity{
+    public void showLoading() {
+    }
+
+    public void stopLoading() {
+    }
+}
+
+public class BaseFragment extends Fragment {
+    public void showLoading() {
+
+    }
+
+    public void stopLoading() {
+
+    }
+}
+</code></pre>
+<p>&emsp;然后是data模块中的相关类和接口的定义。我们在<code>DataContract</code>接口中定义所有相关的view和data。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">public interface DataContract {
+    interface DataView extends BaseView&lt;DataPresenter&gt; {
+        void showFragment(BaseFragment fragment);
+    }
+    interface DataPresenter extends BasePresenter {
+        void switchToDataList();
+        void switchToDataTree();
+    }
+    interface DataListView extends BaseView&lt;DataListPresenter&gt; {
+        void showDataList(List&lt;String&gt; data);
+    }
+    interface DataListPresenter extends BasePresenter {
+        void loadDataList();
+    }
+    interface DataTreeView extends BaseView&lt;DataTreePresenter&gt; {}
+    interface DataTreePresenter extends BasePresenter {}
+}
+</code></pre></p>
 <p>&emsp;在<code>DataContract</code>接口中，我们可以清晰的看到这个模块中所有的view和presenter类型和他们的接口。这样无疑可以帮助其他程序员快速了解本模块的业务逻辑。下面，我们来看一下<code>DataListFragmnet</code>和<code>DataListPresenter</code>的实现。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DataListFragment</span> <span class="keyword">extends</span> <span class="title">BaseFragment</span> <span class="keyword">implements</span> <span class="title">DataContract</span>.<span class="title">DataListView</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> DataContract.DataListPresenter mPresenter;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">initPresnter</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        mPresenter = <span class="keyword">new</span> DataListPresenter(<span class="keyword">this</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> DataContract.<span class="function">DataListPresenter <span class="title">getPresenter</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> mPresenter;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onCreate</span><span class="params">(Bundle savedInstanceState)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">super</span>.onCreate(savedInstanceState);</span><br><span class="line">        initPresnter();</span><br><span class="line">        <span class="comment">//需要加载数据或者接收到界面点击事件时，调用presenter接口进行初始化或者响应。</span></span><br><span class="line">        mPresenter.loadDataList();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> View <span class="title">onCreateView</span><span class="params">(LayoutInflater inflater, ViewGroup container,</span></span></span><br><span class="line"><span class="function"><span class="params">                             Bundle savedInstanceState)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> inflater.inflate(R.layout.fragment_data_list, container, <span class="keyword">false</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">showDataList</span><span class="params">(List&lt;String&gt; data)</span> </span>&#123;</span><br><span class="line">        <span class="comment">//将数据传给adapter等数据展示的视图</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DataListPresenter</span> <span class="keyword">implements</span> <span class="title">DataContract</span>.<span class="title">DataListPresenter</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> DataContract.DataListView mView;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">DataListPresenter</span><span class="params">(DataContract.DataListView view)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">super</span>();</span><br><span class="line">        <span class="keyword">this</span>.mView = view;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">loadDataList</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="comment">//调用baseview的接口，这些接口实现在baseFragment或者BaseActivity中</span></span><br><span class="line">        mView.showLoading();</span><br><span class="line">        <span class="comment">//getdata from network</span></span><br><span class="line">        mView.stopLoading();</span><br><span class="line">        mView.showDataList(Arrays.asList(<span class="string">"a"</span>,<span class="string">"b"</span>,<span class="string">"c"</span>));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">public class DataListFragment extends BaseFragment implements DataContract.DataListView {
+    private DataContract.DataListPresenter mPresenter;
+    @Override
+    public void initPresnter() {
+        mPresenter = new DataListPresenter(this);
+    }
+    @Override
+    public DataContract.DataListPresenter getPresenter() {
+        return mPresenter;
+    }
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        initPresnter();
+        &#x2F;&#x2F;需要加载数据或者接收到界面点击事件时，调用presenter接口进行初始化或者响应。
+        mPresenter.loadDataList();
+    }
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_data_list, container, false);
+    }
+    @Override
+    public void showDataList(List&lt;String&gt; data) {
+        &#x2F;&#x2F;将数据传给adapter等数据展示的视图
+    }
+}
+
+public class DataListPresenter implements DataContract.DataListPresenter {
+    private DataContract.DataListView mView;
+    public DataListPresenter(DataContract.DataListView view) {
+        super();
+        this.mView = view;
+    }
+
+    @Override
+    public void loadDataList() {
+        &#x2F;&#x2F;调用baseview的接口，这些接口实现在baseFragment或者BaseActivity中
+        mView.showLoading();
+        &#x2F;&#x2F;getdata from network
+        mView.stopLoading();
+        mView.showDataList(Arrays.asList(&quot;a&quot;,&quot;b&quot;,&quot;c&quot;));
+    }
+}
+</code></pre>
 <p>&emsp;上述代码中有很多可以好好思考的地方。首先是<code>showLoading</code>和<code>stopLoading</code>这两个函数。这两个函数接口定义在<code>BaseView</code>,实现在<code>BaseFragment</code>，所以当<code>DataListFragment</code>继承了<code>BaseFragment</code>并且实现了<code>BaseView</code>时，它并不需要再次定义上述两个接口，毕竟在一个app中，网络加载时的laoding动画一般都是一致的。然后是view和presenter之间函数调用的问题。首先，view在需要初始化或者需要处理点击事件时，需要调用presenter的函数，而不是自己来进行处理。而且二者之间的数据传递必须是presenter调用view的接口传递给view数据，而不是view调用presenter接口获得数据然后自己展示。</p>
 <h3 id="MVP实践中的问题和思考"><a href="#MVP实践中的问题和思考" class="headerlink" title="MVP实践中的问题和思考"></a>MVP实践中的问题和思考</h3><p>&emsp;在实现MVP的过程中，我发现有些模块的代码很容易重构为MVP模式，而有些模块的代码却需要花费大量的时间。那些难重构的模块的所有代码都写在了Activity类中，而那些容易重构的模块已经做了逻辑代码和视图代码的分离。可以说，MVP模式不就是将视图和逻辑分离嘛，你不使用MVP模式，也可以按照自己的理解进行良好的设计。但是，当一个团队开发项目时，问题就变得不同了。不同程序员的水平有一定差异，你无法通过他们的水平来确保他们代码都是良好设计的。<strong>你必须通过MVP模式来强制他们去思考如何分离界面和逻辑,否则，他们估计会把所有代码都写在Activity类中</strong>。我认为这是所谓模式和框架的第一层好处，也就是<strong>强迫程序员使用一个种良好的思维方式去思考如何进行代码组织</strong>。<br>&emsp;第二点的思考是，模式其实就是良好的代码思考的结晶，如何写出内聚的函数？如何写入内聚的类？如何让模块之间耦合小？如何命名？很多模式都是对这些问题思考结果的总和。<br>&emsp;如果大家对MVP或者移动开发框架有什么思考，欢迎在文章底下进行评论。</p>
 
@@ -295,7 +390,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/eca06a79/" data-id="ck6535m8y00609ksepysiet8z" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/eca06a79/" data-id="ck6540jai0061lhsevsdach4f" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -601,6 +696,8 @@ var _hmt = _hmt || [];
 
 
 
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
 <!-- Custom Scripts -->
 <script src="/js/main.js"></script>
 
