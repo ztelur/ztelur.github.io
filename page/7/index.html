@@ -90,7 +90,7 @@ var _hmt = _hmt || [];
             <div id="search-form-wrap">
 
     <form class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
         <button type="submit" class="search-form-submit"></button>
     </form>
     <div class="ins-search">
@@ -109,10 +109,10 @@ var _hmt = _hmt || [];
 (function (window) {
     var INSIGHT_CONFIG = {
         TRANSLATION: {
-            POSTS: 'Entradas',
+            POSTS: 'Posts',
             PAGES: 'Pages',
-            CATEGORIES: 'Categorias',
-            TAGS: 'Etiquetas',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
             UNTITLED: '(Untitled)',
         },
         ROOT_URL: '/',
@@ -145,7 +145,7 @@ var _hmt = _hmt || [];
                 <td>
                     
     <div class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
     </div>
 
                 </td>
@@ -170,12 +170,12 @@ var _hmt = _hmt || [];
         </div>
         <div class="article-info profile-block">
             <div class="article-info-block">
-                90
-                <span>Entradas</span>
+                91
+                <span>posts</span>
             </div>
             <div class="article-info-block">
-                61
-                <span>Etiquetas</span>
+                62
+                <span>tags</span>
             </div>
         </div>
         
@@ -211,6 +211,224 @@ var _hmt = _hmt || [];
 
             
             <section id="main">
+    <article id="post-Python中的plisttext和HTTP的Content-Type" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+        
+            <header class="article-header">
+                
+    
+        <h1 itemprop="name">
+            <a class="article-title" href="/article/64e12480/">Python中的plisttext和HTTP的Content-Type</a>
+        </h1>
+    
+
+                
+                    <div class="article-meta">
+                        
+    <div class="article-date">
+        <i class="fa fa-calendar"></i>
+        <a href="/article/64e12480/">
+            <time datetime="2016-05-28T08:51:37.000Z" itemprop="datePublished">2016-05-28</time>
+        </a>
+    </div>
+
+
+                        
+    <div class="article-category">
+    	<i class="fa fa-folder"></i>
+        <a class="article-category-link" href="/categories/Python/">Python</a>
+    </div>
+
+                        
+    <div class="article-tag">
+        <i class="fa fa-tag"></i>
+        <a class="tag-link" href="/tags/http/">http</a>
+    </div>
+
+                    </div>
+                
+            </header>
+        
+        
+        <div class="article-entry" itemprop="articleBody">
+        
+            
+            <p>&emsp;这段时间本人在学习<code>Android Service</code>相关的内容，临时需要一个可以提供文件上传和下载功能的服务器，于是上网查找了一个简单服务器的python实现代码，本着温顾一下HTTP协议的想法，于是深入研究了一下其中的代码，发现大家对<code>SimpleHTTPRequestsHandler</code>中的<code>self.headers.plisttext.split(&quot;=&quot;)[1]</code>语句的含义不是很理解，于是自己查阅了一下python源码定义和相关HTTP协议文档，理解了这段代码的含义。</p>
+<h4 id="源码定义"><a href="#源码定义" class="headerlink" title="源码定义"></a>源码定义</h4><p>&emsp;我们先来看一下关于<code>plisttext</code>的源码定义。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-python">#https:&#x2F;&#x2F;svn.python.org&#x2F;projects&#x2F;python&#x2F;branches&#x2F;alpha100&#x2F;Lib&#x2F;mimetools.py
+class Message(rfc822.Message):
+	def __init__(self, fp):
+    ....
+		self.typeheader = \
+			self.getheader(&#39;content-type&#39;)
+		....
+	def parsetype(self):
+		str = self.typeheader
+		if str == None:
+			str = &#39;text&#x2F;plain&#39;
+		if &#39;;&#39; in str:
+			i = string.index(str, &#39;;&#39;)
+			self.plisttext = str[i:]
+			str = str[:i]
+		else:
+			self.plisttext = &#39;&#39;
+		....
+</code></pre></p>
+<p>&emsp;从源码中可以得出，<code>plisttext</code>与HTTP头部<code>content-type</code>有关，这里我们就要回想一下<code>content-type</code>的有关定义了。<br>&emsp;在<a href="https://www.w3.org/Protocols/rfc1341/4_Content-Type.html" target="_blank" rel="noopener">w3c的文档</a>给出了<code>content-type</code>的格式定义,我们可以发现，<code>content-type</code>对的值有可选的内容，使用<code>；</code>隔开，所以<code>plisttext</code>的值就是<code>parameter</code>的内容。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">Content-Type := type &quot;&#x2F;&quot; subtype *[&quot;;&quot; parameter] 
+
+type :=          &quot;application&quot;     &#x2F; &quot;audio&quot; 
+          &#x2F; &quot;image&quot;           &#x2F; &quot;message&quot; 
+          &#x2F; &quot;multipart&quot;  &#x2F; &quot;text&quot; 
+          &#x2F; &quot;video&quot;           &#x2F; x-token 
+
+x-token := &lt;The two characters &quot;X-&quot; followed, with no 
+           intervening white space, by any token&gt; 
+
+subtype := token 
+
+parameter := attribute &quot;=&quot; value 
+
+attribute := token 
+
+value := token &#x2F; quoted-string 
+
+token := 1*&lt;any CHAR except SPACE, CTLs, or tspecials&gt; 
+
+tspecials :=  &quot;(&quot; &#x2F; &quot;)&quot; &#x2F; &quot;&lt;&quot; &#x2F; &quot;&gt;&quot; &#x2F; &quot;@&quot;  ; Must be in 
+           &#x2F;  &quot;,&quot; &#x2F; &quot;;&quot; &#x2F; &quot;:&quot; &#x2F; &quot;\&quot; &#x2F; &lt;&quot;&gt;  ; quoted-string, 
+           &#x2F;  &quot;&#x2F;&quot; &#x2F; &quot;[&quot; &#x2F; &quot;]&quot; &#x2F; &quot;?&quot; &#x2F; &quot;.&quot;  ; to use within 
+           &#x2F;  &quot;=&quot;                        ; parameter values 
+</code></pre></p>
+<h4 id="使用原理"><a href="#使用原理" class="headerlink" title="使用原理"></a>使用原理</h4><p>&emsp;知道了<code>plisttext</code>代表的含义，我们再来看一下它在文件上传过程中的作用吧。我们先来看一下它在处理文件上传的<code>post</code>请求时的作用吧。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-python">boundary = self.headers.plisttext.split(&quot;=&quot;)[1]
+remainbytes = int(self.headers[&#39;content-length&#39;])
+line = self.rfile.readline()
+remainbytes -= len(line)
+if not boundary in line:
+    return (False,&quot;Content NOT begin with boundary&quot;)
+line = self.rfile.readline()
+remainbytes -= len(line)
+filename = re.findall(r&#39;Content-Disposition.*name=&quot;file&quot;; filename=&quot;(.*)&quot;&#39;,line)
+if not fn:
+    return (False,&quot;Can&#39;t find out file name&quot;)
+</code></pre></p>
+<p>&emsp;我们都知道当通过<code>html</code>的<code>form</code>来进行文件提交时，浏览器会发送<code>POST</code>请求，并且content-type为<code>multipart/form-data; boundary=----WebKitFormBoundaryqdHXHkzdBEGWWZka</code>,所以，<code>plisttext</code>的值为<code>boundary=----WebKitFormBoundaryqdHXHkzdBEGWWZka</code>。<code>boundary</code>在<code>HTTP</code>的body中会使用到，因为post请求提交了很多类型的数据，所以必须使用<code>boundary</code>进行间隔，也就是所谓的<a href="https://www.w3.org/Protocols/rfc1341/7_2_Multipart.html" target="_blank" rel="noopener">Multipart Content-Type时的body格式</a>。详细的body的格式在w3c的文档中有详细的介绍。</p>
+<p>&emsp;这里贴一张wireShark截获的tcp包的信息，来帮助大家理解一下这段python代码的原理。通过<code>form</code>提交一份文件和一个名为other的字符串。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike"> POST &#x2F; HTTP&#x2F;1.1
+Host: localhost:8080
+Connection: keep-alive
+Content-Length: 269353
+Cache-Control: max-age=0
+Accept: text&#x2F;html,application&#x2F;xhtml+xml,application&#x2F;xml;q=0.9,image&#x2F;webp,*&#x2F;*;q=0.8
+Origin: http:&#x2F;&#x2F;localhost:8080
+User-Agent: Mozilla&#x2F;5.0 (X11; Linux i686) AppleWebKit&#x2F;537.36 (KHTML, like Gecko) Ubuntu Chromium&#x2F;43.0.2357.81 Chrome&#x2F;43.0.2357.81 Safari&#x2F;537.36
+Content-Type: multipart&#x2F;form-data; boundary=----WebKitFormBoundaryqdHXHkzdBEGWWZka
+Referer: http:&#x2F;&#x2F;localhost:8080&#x2F;
+Accept-Encoding: gzip, deflate
+Accept-Language: en-US,en;q=0.8,zh-CN;q=0.6,zh;q=0.4
+
+------WebKitFormBoundaryqdHXHkzdBEGWWZka
+Content-Disposition: form-data; name=&quot;file&quot;; filename=&quot;AndroidStudy.png&quot;
+Content-Type: image&#x2F;png
+..... &#x2F;&#x2F;图片内容
+------WebKitFormBoundaryqdHXHkzdBEGWWZka
+Content-Disposition: form-data; name=&quot;other&quot;
+
+ddd
+------WebKitFormBoundaryqdHXHkzdBEGWWZka--
+</code></pre></p>
+
+        
+        </div>
+        <footer class="article-footer">
+            <div class="share-container">
+
+
+
+</div>
+
+    <a data-url="http://remcarpediem.net/article/64e12480/" data-id="ck8fz73um0037lhse5txjqojo" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+<script>
+    (function ($) {
+        // Prevent duplicate binding
+        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
+            __SHARE_BUTTON_BINDED__ = true;
+        } else {
+            return;
+        }
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+            
+    
+
+        </footer>
+    </div>
+    
+</article>
+
+
+
     <article id="post-Property-Animation框架详解-一" class="article article-type-post" itemscope="" itemprop="blogPost">
     <div class="article-inner">
         
@@ -544,7 +762,7 @@ void animateValue(float fraction) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/2f8becff/" data-id="ck7kh1nxu0037zwsevzhwkslu" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/2f8becff/" data-id="ck8fz73un003alhse0vgqj8qn" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -734,7 +952,7 @@ void animateValue(float fraction) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/b367660b/" data-id="ck7kh1ny90041zwsejdro6ae9" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/b367660b/" data-id="ck8fz73v2003zlhsejkos7uny" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1152,7 +1370,7 @@ public void scheduleTraversals() {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/74701e27/" data-id="ck7kh1nwq000pzwseqbpepwh5" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/74701e27/" data-id="ck8fz73t6000plhse6qw0fp6u" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1423,7 +1641,7 @@ r.activity.makeVisible();
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/1172bb49/" data-id="ck7kh1nx10019zwseyke3l5wr" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/1172bb49/" data-id="ck8fz73tg0019lhsewfmorfpv" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1903,7 +2121,7 @@ r.activity.makeVisible();
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/e2cc6893/" data-id="ck7kh1nwv000wzwse92lt1qfd" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/e2cc6893/" data-id="ck8fz73t7000qlhsehemv656h" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2044,7 +2262,7 @@ r.activity.makeVisible();
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/6407985a/" data-id="ck7kh1nyx005azwsehjqz2cqd" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/6407985a/" data-id="ck8fz73vv005jlhseqm2ejhtg" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2321,7 +2539,7 @@ public void handleMessage(Message msg) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/1fc40fc1/" data-id="ck7kh1nwp000kzwsej4ipfn54" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/1fc40fc1/" data-id="ck8fz73t4000klhseiwrhv6jb" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2576,7 +2794,7 @@ getActionMasked() will return 0x0005
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/e89a231a/" data-id="ck7kh1nwo000izwseddspddu8" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/e89a231a/" data-id="ck8fz73t3000ilhsetnu9lukr" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -3043,249 +3261,7 @@ Note: Recompile with -Xlint:unchecked for details.
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/bc9d3ce1/" data-id="ck7kh1o09007nzwse3j51t2an" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
-<script>
-    (function ($) {
-        // Prevent duplicate binding
-        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
-            __SHARE_BUTTON_BINDED__ = true;
-        } else {
-            return;
-        }
-        $('body').on('click', function() {
-            $('.article-share-box.on').removeClass('on');
-        }).on('click', '.article-share-link', function(e) {
-            e.stopPropagation();
-
-            var $this = $(this),
-                url = $this.attr('data-url'),
-                encodedUrl = encodeURIComponent(url),
-                id = 'article-share-box-' + $this.attr('data-id'),
-                offset = $this.offset(),
-                box;
-
-            if ($('#' + id).length) {
-                box = $('#' + id);
-
-                if (box.hasClass('on')){
-                    box.removeClass('on');
-                    return;
-                }
-            } else {
-                var html = [
-                    '<div id="' + id + '" class="article-share-box">',
-                        '<input class="article-share-input" value="' + url + '">',
-                        '<div class="article-share-links">',
-                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
-                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
-                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
-                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
-                        '</div>',
-                    '</div>'
-                ].join('');
-
-              box = $(html);
-
-              $('body').append(box);
-            }
-
-            $('.article-share-box.on').hide();
-
-            box.css({
-                top: offset.top + 25,
-                left: offset.left
-            }).addClass('on');
-
-        }).on('click', '.article-share-box', function (e) {
-            e.stopPropagation();
-        }).on('click', '.article-share-box-input', function () {
-            $(this).select();
-        }).on('click', '.article-share-box-link', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
-        });
-    })(jQuery);
-</script>
-
-            
-    
-
-        </footer>
-    </div>
-    
-</article>
-
-
-
-    <article id="post-2016年，计划目录" class="article article-type-post" itemscope="" itemprop="blogPost">
-    <div class="article-inner">
-        
-        
-            <header class="article-header">
-                
-    
-        <h1 itemprop="name">
-            <a class="article-title" href="/article/47a9c0e4/">2016年，计划目录</a>
-        </h1>
-    
-
-                
-                    <div class="article-meta">
-                        
-    <div class="article-date">
-        <i class="fa fa-calendar"></i>
-        <a href="/article/47a9c0e4/">
-            <time datetime="2016-03-05T01:34:18.000Z" itemprop="datePublished">2016-03-05</time>
-        </a>
-    </div>
-
-
-                        
-    <div class="article-category">
-    	<i class="fa fa-folder"></i>
-        <a class="article-category-link" href="/categories/plan/">plan</a>
-    </div>
-
-                        
-                    </div>
-                
-            </header>
-        
-        
-        <div class="article-entry" itemprop="articleBody">
-        
-            
-            <p>&emsp;建立一个计划目录，记录一下１６年的计划和实现情况,进行不定时的更新。</p>
-<h3 id="计划清单"><a href="#计划清单" class="headerlink" title="计划清单"></a><strong>计划清单</strong></h3><h4 id="英语学习"><a href="#英语学习" class="headerlink" title="英语学习"></a><strong>英语学习</strong></h4><h5 id="ESL-Pod-暂停"><a href="#ESL-Pod-暂停" class="headerlink" title="ESL_Pod [暂停]"></a>ESL_Pod <strong>[暂停]</strong></h5><p>《English as a second language podcast presents – Introduction to the United States》总共100课。还没有开始，从3月5日开始</p>
-<h5 id="扇贝"><a href="#扇贝" class="headerlink" title="扇贝　"></a>扇贝　</h5><ul>
-<li>单词 :在背英语单词书，5518词，完成进度8.10%　 计划每天５０词，并且阅读两篇文章 </li>
-</ul>
-<h5 id="新概念英语-从16-4月开始的"><a href="#新概念英语-从16-4月开始的" class="headerlink" title="新概念英语 [从16.4月开始的]"></a>新概念英语 <strong>[从16.4月开始的]</strong></h5><p>每天一篇小文章背诵。</p>
-<h4 id="Android学习"><a href="#Android学习" class="headerlink" title="Android学习"></a><strong>Android学习</strong></h4><h5 id="Android-Annotation-Processor学习"><a href="#Android-Annotation-Processor学习" class="headerlink" title="Android Annotation Processor学习"></a>Android Annotation Processor学习</h5><ul>
-<li>三篇文章翻译</li>
-<li>Butterknife源码分析</li>
-<li>javapoet and 其他的一些class文件修改框架  </li>
-</ul>
-<h5 id="View相关知识学习-完成，16-3-16-4-23"><a href="#View相关知识学习-完成，16-3-16-4-23" class="headerlink" title="View相关知识学习[完成，16.3~16.4.23]"></a>View相关知识学习<strong>[完成，16.3~16.4.23]</strong></h5><ul>
-<li>事件传递处理和各种手势处理</li>
-<li>View的measure,layout,draw<br>总结:</li>
-<li><a href="http://ztelur.github.io/2016/03/27/Android-Scroll%E8%AF%A6%E8%A7%A3-%E4%B8%80-%EF%BC%9A%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/" target="_blank" rel="noopener">《Android Scroll详解(一)：基础知识》</a></li>
-<li><a href="http://ztelur.github.io/2016/03/16/Android-MotionEvent%E8%AF%A6%E8%A7%A3/" target="_blank" rel="noopener">《Android MotionEvent详解》</a></li>
-<li><a href="http://ztelur.github.io/2016/02/11/%E5%9B%BE%E8%A7%A3Android%E4%BA%8B%E4%BB%B6%E4%BC%A0%E9%80%92%E4%B9%8BViewGroup%E7%AF%87/" target="_blank" rel="noopener">《图解Android事件传递之ViewGroup篇》</a></li>
-<li><a href="http://ztelur.github.io/2016/02/04/%E5%9B%BE%E8%A7%A3Android%E4%BA%8B%E4%BB%B6%E4%BC%A0%E9%80%92%E4%B9%8BView%E7%AF%87/" target="_blank" rel="noopener">《图解Android事件传递之View篇》</a>。</li>
-<li><a href="http://ztelur.github.io/2016/04/07/Android-Scroll%E8%AF%A6%E8%A7%A3-%E4%BA%8C-%EF%BC%9AOverScroller%E5%AE%9E%E6%88%98/" target="_blank" rel="noopener">《Android Scroll详解(二)：OverScroller实战》</a></li>
-<li><a href="http://ztelur.github.io/2016/04/17/Android%E8%A7%86%E5%9B%BE%E6%9E%B6%E6%9E%84%E8%AF%A6%E8%A7%A3/" target="_blank" rel="noopener">《Android视图架构详解》</a></li>
-<li><a href="http://ztelur.github.io/2016/04/21/Android-Scroll%E8%AF%A6%E8%A7%A3-%E4%B8%89-%EF%BC%9AAndroid-%E7%BB%98%E5%88%B6%E8%BF%87%E7%A8%8B%E8%AF%A6%E8%A7%A3/" target="_blank" rel="noopener">《Android Scroll详解(三)：Android 绘制过程详解》</a></li>
-</ul>
-<h5 id="Android动画学习-从16-4-23到5-19-暂时暂停"><a href="#Android动画学习-从16-4-23到5-19-暂时暂停" class="headerlink" title="Android动画学习 从16.4.23到5.19 暂时暂停"></a>Android动画学习 <strong>从16.4.23到5.19 暂时暂停</strong></h5><ul>
-<li><a href="https://segmentfault.com/a/1190000004354609" target="_blank" rel="noopener">指导文章</a></li>
-<li><a href="http://ztelur.github.io/2016/05/09/Property-Animation%E6%A1%86%E6%9E%B6%E8%AF%A6%E8%A7%A3-%E4%B8%80/" target="_blank" rel="noopener">Property Animation框架详解(一)</a></li>
-<li><a href="http://ztelur.github.io/2016/07/15/%E8%87%AA%E5%AE%9A%E4%B9%89Switch%E8%BF%87%E7%A8%8B%E8%AF%A6%E8%A7%A3/" target="_blank" rel="noopener">自定义Switch过程详解</a><h5 id="Android-Service-进程间通讯-未进行，中断"><a href="#Android-Service-进程间通讯-未进行，中断" class="headerlink" title="Android Service+进程间通讯 未进行，中断"></a>Android Service+进程间通讯 <strong>未进行，中断</strong></h5><h5 id="Android-TomatoGo开发-正在进行从10-1日开始"><a href="#Android-TomatoGo开发-正在进行从10-1日开始" class="headerlink" title="Android TomatoGo开发 正在进行从10.1日开始"></a>Android TomatoGo开发 <strong>正在进行从10.1日开始</strong></h5></li>
-</ul>
-<h5 id="Android优化学习-正在进行从12-13日开始"><a href="#Android优化学习-正在进行从12-13日开始" class="headerlink" title="Android优化学习　正在进行从12.13日开始"></a>Android优化学习　<strong>正在进行从12.13日开始</strong></h5><ul>
-<li>启动优化</li>
-<li>内存优化</li>
-<li>各类工具使用</li>
-<li>基础知识</li>
-</ul>
-<h4 id="前端-正在进行从12-13日进行"><a href="#前端-正在进行从12-13日进行" class="headerlink" title="前端　正在进行从12.13日进行"></a><strong>前端</strong>　<strong>正在进行从12.13日进行</strong></h4><ul>
-<li>《js权威指南》 800页</li>
-<li>《css scret》 300页</li>
-<li>react 网页代码学习</li>
-</ul>
-<h5 id="Hexo-自定义主题"><a href="#Hexo-自定义主题" class="headerlink" title="Hexo 自定义主题"></a>Hexo 自定义主题</h5><h4 id="要阅读的书籍"><a href="#要阅读的书籍" class="headerlink" title="要阅读的书籍"></a><strong>要阅读的书籍</strong></h4><h5 id="技术方面书籍"><a href="#技术方面书籍" class="headerlink" title="技术方面书籍"></a>技术方面书籍</h5><ul>
-<li>《计算机解释和构造》,开始时间3.30</li>
-<li>《Professional javascript for web Developers.3rd》 一天10页左右<h5 id="其他书籍"><a href="#其他书籍" class="headerlink" title="其他书籍"></a>其他书籍</h5></li>
-<li>《从美国看世界》,预计时间<strong>2个星期</strong>，<strong>开始时间3月5日</strong>,<strong>弃坑</strong></li>
-<li>《穷查理的历书》,预计时间<strong>1个星期</strong>,<strong>开始时间3月14日</strong></li>
-<li><p>《美丽新世界》开始世界4.23<br>###<strong>Update 2016.3.14</strong></p>
-<h5 id="ESL-Pod"><a href="#ESL-Pod" class="headerlink" title="ESL_Pod"></a>ESL_Pod</h5><p>《English as a second language podcast presents – Introduction to the United States》总共100课。已经完成8课</p>
-<h4 id="要阅读的书籍-1"><a href="#要阅读的书籍-1" class="headerlink" title="要阅读的书籍"></a>要阅读的书籍</h4></li>
-<li><p>《从美国看世界》：阅读1星期，只读了一半左右，主要讲述美国经济大萧条时期的经济制度，美国政府政策和帝国主义根源等问题，不是很感兴趣</p>
-</li>
-<li>《计算机解释和构造》开始阅读</li>
-<li>《穷查理的历书》开始阅读</li>
-<li>《美丽的新世界》完成</li>
-<li>《月亮和六便士》完成</li>
-<li>《自控力》正在进行从5.1日开始</li>
-<li>《金阁寺》<strong>正在进行从12.13日开始</strong></li>
-</ul>
-<p>###<strong>Update 2016.4.5</strong></p>
-<h4 id="要阅读的书籍-2"><a href="#要阅读的书籍-2" class="headerlink" title="要阅读的书籍"></a>要阅读的书籍</h4><ul>
-<li>《计算机解释和构造》完成第一章阅读，希望进行一下总结</li>
-<li>《异类 不一样的成功启示录》：清明放假一口气看完，主要讲述了“异类”成功的原因。其中的一万小时定律很是吸引人。读后感：<a href="http://ztelur.github.io/2016/04/05/%E3%80%8A%E5%BC%82%E7%B1%BB-%E4%B8%8D%E4%B8%80%E6%A0%B7%E6%88%90%E5%8A%9F%E7%9A%84%E5%90%AF%E7%A4%BA%E5%BD%95%E3%80%8B%E8%AF%BB%E5%90%8E%E6%84%9F/" target="_blank" rel="noopener">《异类-不一样成功的启示录》读后感</a></li>
-<li>《自控力》：读一读，感觉最近懒癌又犯了。一周读一章的节奏。</li>
-</ul>
-<h3 id="Android-学习"><a href="#Android-学习" class="headerlink" title="Android 学习"></a>Android 学习</h3><h5 id="View相关知识学习"><a href="#View相关知识学习" class="headerlink" title="View相关知识学习"></a>View相关知识学习</h5><ul>
-<li>事件传递处理和各种手势处理:<a href="http://ztelur.github.io/2016/03/27/Android-Scroll%E8%AF%A6%E8%A7%A3-%E4%B8%80-%EF%BC%9A%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/" target="_blank" rel="noopener">《Android Scroll详解(一)：基础知识》</a>，<br><a href="http://ztelur.github.io/2016/03/16/Android-MotionEvent%E8%AF%A6%E8%A7%A3/" target="_blank" rel="noopener">《Android MotionEvent详解》</a>，<a href="http://ztelur.github.io/2016/02/11/%E5%9B%BE%E8%A7%A3Android%E4%BA%8B%E4%BB%B6%E4%BC%A0%E9%80%92%E4%B9%8BViewGroup%E7%AF%87/" target="_blank" rel="noopener">《图解Android事件传递之ViewGroup篇》</a>，<a href="http://ztelur.github.io/2016/02/04/%E5%9B%BE%E8%A7%A3Android%E4%BA%8B%E4%BB%B6%E4%BC%A0%E9%80%92%E4%B9%8BView%E7%AF%87/" target="_blank" rel="noopener">《图解Android事件传递之View篇》</a>。</li>
-<li>View的measure,layout,draw</li>
-</ul>
-<h3 id="英语"><a href="#英语" class="headerlink" title="英语"></a>英语</h3><h4 id="扇贝-1"><a href="#扇贝-1" class="headerlink" title="扇贝"></a>扇贝</h4><ul>
-<li>打卡：90天</li>
-<li>单词：2016考研英语词汇大纲 5518词，学习进度13.80%</li>
-</ul>
-<h3 id="Udpate-2015-4-23"><a href="#Udpate-2015-4-23" class="headerlink" title=" Udpate 2015.4.23"></a><strong> Udpate 2015.4.23</strong></h3><h3 id="要阅读的书籍-3"><a href="#要阅读的书籍-3" class="headerlink" title="要阅读的书籍"></a>要阅读的书籍</h3><ul>
-<li>《SICP》第二章，阅读第一章时没有及时做习题，导致很多内容都忘记了，第二章时要立即做习题</li>
-<li>《自控力》放弃阅读….不太喜欢读这一类的书籍</li>
-<li>《美丽新世界》，之前读过《1984》,然后被推荐了这本书</li>
-</ul>
-<h3 id="Android学习-1"><a href="#Android学习-1" class="headerlink" title="Android学习"></a>Android学习</h3><h4 id="View相关知识学习-1"><a href="#View相关知识学习-1" class="headerlink" title="View相关知识学习"></a>View相关知识学习</h4><p>学习完结</p>
-<ul>
-<li><a href="http://ztelur.github.io/2016/04/07/Android-Scroll%E8%AF%A6%E8%A7%A3-%E4%BA%8C-%EF%BC%9AOverScroller%E5%AE%9E%E6%88%98/" target="_blank" rel="noopener">Android Scroll详解(二)：OverScroller实战</a></li>
-<li><a href="http://ztelur.github.io/2016/04/17/Android%E8%A7%86%E5%9B%BE%E6%9E%B6%E6%9E%84%E8%AF%A6%E8%A7%A3/" target="_blank" rel="noopener">Android视图架构详解</a></li>
-<li><a href="http://ztelur.github.io/2016/04/21/Android-Scroll%E8%AF%A6%E8%A7%A3-%E4%B8%89-%EF%BC%9AAndroid-%E7%BB%98%E5%88%B6%E8%BF%87%E7%A8%8B%E8%AF%A6%E8%A7%A3/" target="_blank" rel="noopener">Android Scroll详解(三)：Android 绘制过程详解</a></li>
-</ul>
-<p>###＃ Android Animation<br>开始学习</p>
-<h3 id="英语-1"><a href="#英语-1" class="headerlink" title="英语"></a>英语</h3><h4 id="扇贝-2"><a href="#扇贝-2" class="headerlink" title="扇贝"></a>扇贝</h4><ul>
-<li>打卡：108天</li>
-<li>单词：2016考研英语词汇大纲 5518词，学习进度17.63%</li>
-</ul>
-<h4 id="新概念英语"><a href="#新概念英语" class="headerlink" title="新概念英语"></a>新概念英语</h4><p>一天一篇小文章背诵，已经背诵了８篇了。</p>
-<h3 id="Udpate-2016-5-19"><a href="#Udpate-2016-5-19" class="headerlink" title=" Udpate 2016.5.19"></a><strong> Udpate 2016.5.19</strong></h3><h3 id="要阅读的书籍-4"><a href="#要阅读的书籍-4" class="headerlink" title="要阅读的书籍"></a>要阅读的书籍</h3><ul>
-<li>《SICP》已经看到77页，边做题边看，进度比较慢，但是感觉收获很多。</li>
-<li>《美丽的新世界》，《月亮和六便士》都已经看完了，希望写一篇《月亮和六便士》的读后感！！！</li>
-<li>正在读《自控力》</li>
-</ul>
-<h3 id="Android学习-2"><a href="#Android学习-2" class="headerlink" title="Android学习"></a>Android学习</h3><p>####Android Animation<br>暂时只有这一篇总结<br><a href="http://ztelur.github.io/2016/05/09/Property-Animation%E6%A1%86%E6%9E%B6%E8%AF%A6%E8%A7%A3-%E4%B8%80/" target="_blank" rel="noopener">Property Animation框架详解(一)</a></p>
-<h4 id="Service和进程间通讯"><a href="#Service和进程间通讯" class="headerlink" title="Service和进程间通讯"></a>Service和进程间通讯</h4><p>正在进行</p>
-<h3 id="英语-2"><a href="#英语-2" class="headerlink" title="英语"></a>英语</h3><h4 id="扇贝-3"><a href="#扇贝-3" class="headerlink" title="扇贝"></a>扇贝</h4><ul>
-<li>打卡：122天</li>
-<li>单词：2016考研英语词汇大纲 5518词，学习进度19.84%</li>
-</ul>
-<h4 id="新概念英语-1"><a href="#新概念英语-1" class="headerlink" title="新概念英语"></a>新概念英语</h4><p>一天一篇小文章背诵，已经背诵了10篇了。</p>
-<h4 id="Update-2016-7-6"><a href="#Update-2016-7-6" class="headerlink" title=" Update 2016.7.6"></a><strong> Update 2016.7.6</strong></h4><p>决定转变编程研究方向，学习后端开发。由于Java基础比较好，所以先通过Java web开发来熟悉后端开发，并且学习Python编程。</p>
-<h3 id="要阅读的书籍-5"><a href="#要阅读的书籍-5" class="headerlink" title="要阅读的书籍"></a>要阅读的书籍</h3><ul>
-<li>《局外人》，《西西弗神话》。加缪短片小说。荒诞！ <strong>已经读完</strong></li>
-<li>《Head First Servlet and JSP》  <strong>在读</strong><h3 id="英语-3"><a href="#英语-3" class="headerlink" title="英语"></a>英语</h3><h4 id="扇贝-4"><a href="#扇贝-4" class="headerlink" title="扇贝"></a>扇贝</h4>继续扇贝学习，中间断了半个月啦。</li>
-</ul>
-<h3 id="Update-2016-8-1"><a href="#Update-2016-8-1" class="headerlink" title=" Update 2016.8.1 "></a><strong> Update 2016.8.1 </strong></h3><h3 id="要阅读的书籍-6"><a href="#要阅读的书籍-6" class="headerlink" title="要阅读的书籍"></a>要阅读的书籍</h3><ul>
-<li>《Professional javascript for web Developers.3rd》 一天10页左右</li>
-<li>《SICP》暂时停止</li>
-</ul>
-<h3 id="Android-学习-1"><a href="#Android-学习-1" class="headerlink" title="Android 学习"></a>Android 学习</h3><h4 id="Android-Animation"><a href="#Android-Animation" class="headerlink" title="Android Animation"></a>Android Animation</h4><p>新做一篇<br><a href="http://ztelur.github.io/2016/07/15/%E8%87%AA%E5%AE%9A%E4%B9%89Switch%E8%BF%87%E7%A8%8B%E8%AF%A6%E8%A7%A3/" target="_blank" rel="noopener">自定义Switch过程详解</a></p>
-<h4 id="Span-and-Drawable-框架-开始"><a href="#Span-and-Drawable-框架-开始" class="headerlink" title="Span and Drawable 框架　开始"></a>Span and Drawable 框架　开始</h4><h3 id="英语-4"><a href="#英语-4" class="headerlink" title="英语"></a>英语</h3><h4 id="扇贝-5"><a href="#扇贝-5" class="headerlink" title="扇贝"></a>扇贝</h4><ul>
-<li>打卡 150</li>
-<li>单词: 进度 23.9%</li>
-</ul>
-<h3 id="Update-2016-10-1"><a href="#Update-2016-10-1" class="headerlink" title=" Update 2016.10.1 "></a><strong> Update 2016.10.1 </strong></h3><h3 id="要阅读的书籍-7"><a href="#要阅读的书籍-7" class="headerlink" title="要阅读的书籍"></a>要阅读的书籍</h3><ul>
-<li>《Professional javascript for web Developers.3rd》 一天10页左右</li>
-</ul>
-<h3 id="Android-学习-2"><a href="#Android-学习-2" class="headerlink" title="Android 学习"></a>Android 学习</h3><h4 id="TomatoGO应用开发"><a href="#TomatoGO应用开发" class="headerlink" title="TomatoGO应用开发"></a>TomatoGO应用开发</h4><h3 id="英语-5"><a href="#英语-5" class="headerlink" title="英语"></a>英语</h3><h4 id="扇贝-6"><a href="#扇贝-6" class="headerlink" title="扇贝"></a>扇贝</h4><ul>
-<li>打卡 170</li>
-</ul>
-<h3 id="update-2016-12-12"><a href="#update-2016-12-12" class="headerlink" title="update 2016.12.12 "></a><strong>update 2016.12.12 </strong></h3>
-        
-        </div>
-        <footer class="article-footer">
-            <div class="share-container">
-
-
-
-</div>
-
-    <a data-url="http://remcarpediem.net/article/47a9c0e4/" data-id="ck7kh1nw30002zwseno94du0h" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/bc9d3ce1/" data-id="ck8fz73x3007plhsein8tj935" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -3362,7 +3338,7 @@ Note: Recompile with -Xlint:unchecked for details.
 
 
     <nav id="page-nav">
-        <a class="extend prev" rel="prev" href="/page/6/">&laquo; Anterior</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><a class="page-number" href="/page/6/">6</a><span class="page-number current">7</span><a class="page-number" href="/page/8/">8</a><a class="page-number" href="/page/9/">9</a><a class="extend next" rel="next" href="/page/8/">Siguiente  &raquo;</a>
+        <a class="extend prev" rel="prev" href="/page/6/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><a class="page-number" href="/page/6/">6</a><span class="page-number current">7</span><a class="page-number" href="/page/8/">8</a><a class="page-number" href="/page/9/">9</a><a class="page-number" href="/page/10/">10</a><a class="extend next" rel="next" href="/page/8/">Next &raquo;</a>
     </nav>
 </section>
             
@@ -3371,9 +3347,28 @@ Note: Recompile with -Xlint:unchecked for details.
    
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Recientes</h3>
+        <h3 class="widget-title">recent</h3>
         <div class="widget">
             <ul id="recent-post" class="">
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/a94bd30a/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/a94bd30a/" class="title">MySQL的死锁系列- 锁的类型以及加锁原理</a></p>
+                            <p class="item-date"><time datetime="2020-03-31T14:06:26.000Z" itemprop="datePublished">2020-03-31</time></p>
+                        </div>
+                    </li>
                 
                     <li>
                         
@@ -3451,25 +3446,6 @@ Note: Recompile with -Xlint:unchecked for details.
                         </div>
                     </li>
                 
-                    <li>
-                        
-                        <!-- <div class="item-thumbnail">
-                            <a href="/article/4cc1fb9/" class="thumbnail">
-    
-    
-        <span class="thumbnail-image thumbnail-none"></span>
-    
-</a>
-
-                        </div> -->
-                        
-                        <div class="item-inner">
-                            <p class="item-category"><a class="article-category-link" href="/categories/Redis/">Redis</a></p>
-                            <p class="item-title"><a href="/article/4cc1fb9/" class="title">Redis 命令执行过程(上)</a></p>
-                            <p class="item-date"><time datetime="2019-12-09T14:25:54.000Z" itemprop="datePublished">2019-12-09</time></p>
-                        </div>
-                    </li>
-                
             </ul>
         </div>
     </div>
@@ -3477,7 +3453,7 @@ Note: Recompile with -Xlint:unchecked for details.
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Categorias</h3>
+        <h3 class="widget-title">categories</h3>
         <div class="widget">
             <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">25</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MySQL/">MySQL</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Netty/">Netty</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Redis/">Redis</a><span class="category-list-count">16</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SICP/">SICP</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/docker/">docker</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/java-persistent/">java persistent</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/plan/">plan</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">2</span></li></ul>
         </div>
@@ -3486,25 +3462,25 @@ Note: Recompile with -Xlint:unchecked for details.
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Archivos</h3>
+        <h3 class="widget-title">archives</h3>
         <div class="widget">
-            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
         </div>
     </div>
 
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Nube de etiquetas</h3>
+        <h3 class="widget-title">tag cloud</h3>
         <div class="widget tagcloud">
-            <a href="/tags/AOP/" style="font-size: 15px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 20px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/Netty/" style="font-size: 20px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 15px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 15px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 20px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 15px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/persistent/" style="font-size: 15px;">persistent</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 15px;">第三方库</a> <a href="/tags/算法/" style="font-size: 20px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 15px;">限流</a>
+            <a href="/tags/AOP/" style="font-size: 15px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 20px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/MySQL/" style="font-size: 10px;">MySQL</a> <a href="/tags/Netty/" style="font-size: 20px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 15px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 15px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 20px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 15px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/persistent/" style="font-size: 15px;">persistent</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 15px;">第三方库</a> <a href="/tags/算法/" style="font-size: 20px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 15px;">限流</a>
         </div>
     </div>
 
     
         
     <div class="widget-wrap widget-list">
-        <h3 class="widget-title">Links</h3>
+        <h3 class="widget-title">links</h3>
         <div class="widget">
             <ul>
                 
