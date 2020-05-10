@@ -170,11 +170,11 @@ var _hmt = _hmt || [];
         </div>
         <div class="article-info profile-block">
             <div class="article-info-block">
-                91
+                92
                 <span>posts</span>
             </div>
             <div class="article-info-block">
-                62
+                63
                 <span>tags</span>
             </div>
         </div>
@@ -211,6 +211,431 @@ var _hmt = _hmt || [];
 
             
             <section id="main">
+    <article id="post-详解-Redis-内存管理机制和实现" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+        
+            <header class="article-header">
+                
+    
+        <h1 itemprop="name">
+            <a class="article-title" href="/article/e66f8da0/">详解 Redis 内存管理机制和实现</a>
+        </h1>
+    
+
+                
+                    <div class="article-meta">
+                        
+    <div class="article-date">
+        <i class="fa fa-calendar"></i>
+        <a href="/article/e66f8da0/">
+            <time datetime="2019-10-26T14:46:39.000Z" itemprop="datePublished">2019-10-26</time>
+        </a>
+    </div>
+
+
+                        
+    <div class="article-category">
+    	<i class="fa fa-folder"></i>
+        <a class="article-category-link" href="/categories/Redis/">Redis</a>
+    </div>
+
+                        
+    <div class="article-tag">
+        <i class="fa fa-tag"></i>
+        <a class="tag-link" href="/tags/redis/">redis</a>
+    </div>
+
+                    </div>
+                
+            </header>
+        
+        
+        <div class="article-entry" itemprop="articleBody">
+        
+            
+            <p>Redis是一个基于内存的键值数据库，其内存管理是非常重要的。本文内存管理的内容包括：过期键的懒性删除和过期删除以及内存溢出控制策略。</p>
+<h3 id="最大内存限制"><a href="#最大内存限制" class="headerlink" title="最大内存限制"></a>最大内存限制</h3><p>Redis使用 maxmemory 参数限制最大可用内存，默认值为0，表示无限制。限制内存的目的主要 有： </p>
+<ul>
+<li>用于缓存场景，当超出内存上限 maxmemory 时使用 LRU 等删除策略释放空间。 </li>
+<li>防止所用内存超过服务器物理内存。因为 Redis 默认情况下是会尽可能多使用服务器的内存，可能会出现服务器内存不足，导致 Redis 进程被杀死。</li>
+</ul>
+<p><img src="/images/19_1026/image1.webp" alt=""></p>
+<p>maxmemory 限制的是Redis实际使用的内存量，也就是 used_memory统计项对应的内存。由于内存碎片率的存在，实际消耗的内存 可能会比maxmemory设置的更大，实际使用时要小心这部分内存溢出。具体Redis 内存监控的内容请查看<a href="https://mp.weixin.qq.com/s/SrQIGL_X8wC1eFsGu8gBXg" target="_blank" rel="noopener">一文了解 Redis 内存监控和内存消耗</a>。</p>
+<p>Redis默认无限使用服务器内存，为防止极端情况下导致系统内存耗 尽，建议所有的Redis进程都要配置maxmemory。 在保证物理内存可用的情况下，系统中所有Redis实例可以调整 maxmemory参数来达到自由伸缩内存的目的。</p>
+<h3 id="内存回收策略"><a href="#内存回收策略" class="headerlink" title="内存回收策略"></a>内存回收策略</h3><p>Redis 回收内存大致有两个机制：一是删除到达过期时间的键值对象；二是当内存达到 maxmemory 时触发内存移除控制策略，强制删除选择出来的键值对象。</p>
+<h4 id="删除过期键对象"><a href="#删除过期键对象" class="headerlink" title="删除过期键对象"></a>删除过期键对象</h4><p>Redis 所有的键都可以设置过期属性，内部保存在过期表中，键值表和过期表的结果如下图所示。当 Redis保存大量的键，对每个键都进行精准的过期删除可能会导致消耗大量的 CPU，会阻塞 Redis 的主线程，拖累 Redis 的性能，因此 Redis 采用惰性删除和定时任务删除机制实现过期键的内存回收。</p>
+<p><img src="/images/19_1026/image2.webp" alt=""></p>
+<p>惰性删除是指当客户端操作带有超时属性的键时，会检查是否超过键的过期时间，然后会同步或者异步执行删除操作并返回键已经过期。这样可以节省 CPU成本考虑，不需要单独维护过期时间链表来处理过期键的删除。</p>
+<p>过期键的惰性删除策略由 db.c/expireifNeeded 函数实现，所有对数据库的读写命令执行之前都会调用 expireifNeeded 来检查命令执行的键是否过期。如果键过期，expireifNeeded 会将过期键从键值表和过期表中删除，然后同步或者异步释放对应对象的空间。源码展示的时 Redis 4.0 版本。</p>
+<p>expireIfNeeded 先从过期表中获取键对应的过期时间，如果当前时间已经超过了过期时间(lua脚本执行则有特殊逻辑，详看代码注释)，则进入删除键流程。删除键流程主要进行了三件事：</p>
+<ul>
+<li>一是删除操作命令传播，通知 slave 实例并存储到 AOF 缓冲区中</li>
+<li>二是记录键空间事件，</li>
+<li>三是根据 lazyfree_lazy_expire 是否开启进行异步删除或者异步删除操作。 </li>
+</ul>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">int expireIfNeeded(redisDb *db, robj *key) {
+    &#x2F;&#x2F; 获取键的过期时间
+    mstime_t when = getExpire(db,key);
+    mstime_t now;
+    &#x2F;&#x2F; 键没有过期时间
+    if (when &lt; 0) return 0;
+    &#x2F;&#x2F; 实例正在从硬盘 laod 数据，比如说 RDB 或者 AOF
+    if (server.loading) return 0;
+
+    &#x2F;&#x2F; 当执行lua脚本时，只有键在lua一开始执行时
+    &#x2F;&#x2F; 就到了过期时间才算过期，否则在lua执行过程中不算失效
+    now = server.lua_caller ? server.lua_time_start : mstime();
+
+    &#x2F;&#x2F; 当本实例是slave时，过期键的删除由master发送过来的
+    &#x2F;&#x2F; del 指令控制。但是这个函数还是将正确的信息返回给调用者。
+    if (server.masterhost != NULL) return now &gt; when;
+    &#x2F;&#x2F; 判断是否未过期
+    if (now &lt;= when) return 0;
+
+    &#x2F;&#x2F; 代码到这里，说明键已经过期，而且需要被删除
+    server.stat_expiredkeys++;
+    &#x2F;&#x2F; 命令传播，到 slave 和 AOF
+    propagateExpire(db,key,server.lazyfree_lazy_expire);
+    &#x2F;&#x2F; 键空间通知使得客户端可以通过订阅频道或模式， 来接收那些以某种方式改动了 Redis 数据集的事件。
+    notifyKeyspaceEvent(NOTIFY_EXPIRED,
+        &quot;expired&quot;,key,db-&gt;id);
+    &#x2F;&#x2F; 如果是惰性删除，调用dbAsyncDelete，否则调用 dbSyncDelete
+    return server.lazyfree_lazy_expire ? dbAsyncDelete(db,key) :
+                                         dbSyncDelete(db,key);
+}
+</code></pre>
+<p><img src="/images/19_1026/image3.webp" alt=""></p>
+<p>上图是写命令传播的示意图，删除命令的传播和它一致。propagateExpire 函数先调用 feedAppendOnlyFile 函数将命令同步到 AOF 的缓冲区中，然后调用 replicationFeedSlaves函数将命令同步到所有的 slave 中。Redis 复制的机制可以查看<a href="https://mp.weixin.qq.com/s/0VVYTyAI1egfs2Fxcrme3A" target="_blank" rel="noopener">Redis 复制过程详解</a>。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 将命令传递到slave和AOF缓冲区。maser删除一个过期键时会发送Del命令到所有的slave和AOF缓冲区
+void propagateExpire(redisDb *db, robj *key, int lazy) {
+    robj *argv[2];
+    &#x2F;&#x2F; 生成同步的数据
+    argv[0] = lazy ? shared.unlink : shared.del;
+    argv[1] = key;
+    incrRefCount(argv[0]);
+    incrRefCount(argv[1]);
+    &#x2F;&#x2F; 如果开启了 AOF 则追加到 AOF 缓冲区中
+    if (server.aof_state != AOF_OFF)
+        feedAppendOnlyFile(server.delCommand,db-&gt;id,argv,2);
+    &#x2F;&#x2F; 同步到所有 slave
+    replicationFeedSlaves(server.slaves,db-&gt;id,argv,2);
+
+    decrRefCount(argv[0]);
+    decrRefCount(argv[1]);
+}
+</code></pre>
+<p>dbAsyncDelete 函数会先调用 dictDelete 来删除过期表中的键，然后处理键值表中的键值对象。它会根据值的占用的空间来选择是直接释放值对象，还是交给 bio 异步释放值对象。判断依据就是值的估计大小是否大于 LAZYFREE_THRESHOLD 阈值。键对象和 dictEntry 对象则都是直接被释放。</p>
+<p><img src="/images/19_1026/image4.webp" alt=""></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">#define LAZYFREE_THRESHOLD 64
+int dbAsyncDelete(redisDb *db, robj *key) {
+    &#x2F;&#x2F; 删除该键在过期表中对应的entry
+    if (dictSize(db-&gt;expires) &gt; 0) dictDelete(db-&gt;expires,key-&gt;ptr);
+
+    &#x2F;&#x2F; unlink 该键在键值表对应的entry
+    dictEntry *de = dictUnlink(db-&gt;dict,key-&gt;ptr);
+    &#x2F;&#x2F; 如果该键值占用空间非常小，懒删除反而效率低。所以只有在一定条件下，才会异步删除
+    if (de) {
+        robj *val = dictGetVal(de);
+        size_t free_effort = lazyfreeGetFreeEffort(val);
+        &#x2F;&#x2F; 如果释放这个对象消耗很多，并且值未被共享(refcount == 1)则将其加入到懒删除列表
+        if (free_effort &gt; LAZYFREE_THRESHOLD &amp;&amp; val-&gt;refcount == 1) {
+            atomicIncr(lazyfree_objects,1);
+            bioCreateBackgroundJob(BIO_LAZY_FREE,val,NULL,NULL);
+            dictSetVal(db-&gt;dict,de,NULL);
+        }
+    }
+
+    &#x2F;&#x2F; 释放键值对，或者只释放key，而将val设置为NULL来后续懒删除
+    if (de) {
+        dictFreeUnlinkedEntry(db-&gt;dict,de);
+        &#x2F;&#x2F; slot 和 key 的映射关系是用于快速定位某个key在哪个 slot中。
+        if (server.cluster_enabled) slotToKeyDel(key);
+        return 1;
+    } else {
+        return 0;
+    }
+}
+</code></pre>
+<p>dictUnlink 会将键值从键值表中删除，但是却不释放 key、val和对应的表entry对象，而是将其直接返回，然后再调用dictFreeUnlinkedEntry进行释放。dictDelete 是它的兄弟函数，但是会直接释放相应的对象。二者底层都通过调用 dictGenericDelete来实现。dbAsyncDelete d的兄弟函数 dbSyncDelete 就是直接调用dictDelete来删除过期键。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">void dictFreeUnlinkedEntry(dict *d, dictEntry *he) {
+    if (he == NULL) return;
+    &#x2F;&#x2F; 释放key对象
+    dictFreeKey(d, he);
+    &#x2F;&#x2F; 释放值对象，如果它不为null
+    dictFreeVal(d, he);
+    &#x2F;&#x2F; 释放 dictEntry 对象
+    zfree(he);
+}
+</code></pre>
+<p>Redis 有自己的 bio 机制，主要是处理 AOF 落盘、懒删除逻辑和关闭大文件fd。bioCreateBackgroundJob 函数将释放值对象的 job 加入到队列中，bioProcessBackgroundJobs会从队列中取出任务，根据类型进行对应的操作。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">void *bioProcessBackgroundJobs(void *arg) {
+    .....
+    while(1) {
+        listNode *ln;
+
+        ln = listFirst(bio_jobs[type]);
+        job = ln-&gt;value;
+        if (type == BIO_CLOSE_FILE) {
+            close((long)job-&gt;arg1);
+        } else if (type == BIO_AOF_FSYNC) {
+            aof_fsync((long)job-&gt;arg1);
+        } else if (type == BIO_LAZY_FREE) {
+            &#x2F;&#x2F; 根据参数来决定要做什么。有参数1则要释放它，有参数2和3是释放两个键值表
+            &#x2F;&#x2F; 过期表，也就是释放db 只有参数三是释放跳表
+            if (job-&gt;arg1)
+                lazyfreeFreeObjectFromBioThread(job-&gt;arg1);
+            else if (job-&gt;arg2 &amp;&amp; job-&gt;arg3)
+                lazyfreeFreeDatabaseFromBioThread(job-&gt;arg2,job-&gt;arg3);
+            else if (job-&gt;arg3)
+                lazyfreeFreeSlotsMapFromBioThread(job-&gt;arg3);
+        }
+        zfree(job);
+        ......
+    }
+}
+</code></pre>
+<p>dbSyncDelete 则是直接删除过期键，并且将键、值和 DictEntry 对象都释放。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">int dbSyncDelete(redisDb *db, robj *key) {
+    &#x2F;&#x2F; 删除过期表中的entry
+    if (dictSize(db-&gt;expires) &gt; 0) dictDelete(db-&gt;expires,key-&gt;ptr);
+    &#x2F;&#x2F; 删除键值表中的entry
+    if (dictDelete(db-&gt;dict,key-&gt;ptr) == DICT_OK) {
+        &#x2F;&#x2F; 如果开启了集群，则删除slot 和 key 映射表中key记录。
+        if (server.cluster_enabled) slotToKeyDel(key);
+        return 1;
+    } else {
+        return 0;
+    }
+}
+</code></pre>
+<p>但是单独用这种方式存在内存泄露的问题，当过期键一直没有访问将无法得到及时删除，从而导致内存不能及时释放。正因为如此，Redis还提供另一种定时任 务删除机制作为惰性删除的补充。</p>
+<p>Redis 内部维护一个定时任务，默认每秒运行10次（通过配置控制）。定时任务中删除过期键逻辑采用了自适应算法，根据键的 过期比例、使用快慢两种速率模式回收键，流程如下图所示。</p>
+<p><img src="/images/19_1026/image5.webp" alt=""></p>
+<ul>
+<li>1）定时任务首先根据快慢模式( 慢模型扫描的键的数量以及可以执行时间都比快模式要多 )和相关阈值配置计算计算本周期最大执行时间、要检查的数据库数量以及每个数据库扫描的键数量。</li>
+<li>2)  从上次定时任务未扫描的数据库开始，依次遍历各个数据库。</li>
+<li>3）从数据库中随机选手 ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP 个键，如果发现是过期键，则调用 activeExpireCycleTryExpire 函数删除它。</li>
+<li>4）如果执行时间超过了设定的最大执行时间，则退出，并设置下一次使用慢模式执行。</li>
+<li>5）未超时的话，则判断是否采样的键中是否有25%的键是过期的，如果是则继续扫描当前数据库，跳到第3步。否则开始扫描下一个数据库。</li>
+</ul>
+<p>定期删除策略由 expire.c/activeExpireCycle 函数实现。在redis事件驱动的循环中的eventLoop-&gt;beforesleep和<br>周期性操作 databasesCron 都会调用 activeExpireCycle 来处理过期键。但是二者传入的 type 值不同，一个是ACTIVE_EXPIRE_CYCLE_SLOW 另外一个是ACTIVE_EXPIRE_CYCLE_FAST。activeExpireCycle 在规定的时间，分多次遍历各个数据库，从 expires 字典中随机检查一部分过期键的过期时间，删除其中的过期键，相关源码如下所示。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">void activeExpireCycle(int type) {
+    &#x2F;&#x2F; 上次检查的db
+    static unsigned int current_db = 0; 
+    &#x2F;&#x2F; 上次检查的最大执行时间
+    static int timelimit_exit = 0;
+    &#x2F;&#x2F; 上一次快速模式运行时间
+    static long long last_fast_cycle = 0; &#x2F;* When last fast cycle ran. *&#x2F;
+
+    int j, iteration = 0;
+    &#x2F;&#x2F; 每次检查周期要遍历的DB数
+    int dbs_per_call = CRON_DBS_PER_CALL;
+    long long start = ustime(), timelimit, elapsed;
+
+    ..... &#x2F;&#x2F; 一些状态时不进行检查，直接返回
+
+    &#x2F;&#x2F; 如果上次周期因为执行达到了最大执行时间而退出，则本次遍历所有db,否则遍历db数等于 CRON_DBS_PER_CALL
+    if (dbs_per_call &gt; server.dbnum || timelimit_exit)
+        dbs_per_call = server.dbnum;
+
+    &#x2F;&#x2F; 根据ACTIVE_EXPIRE_CYCLE_SLOW_TIME_PERC计算本次最大执行时间
+    timelimit = 1000000*ACTIVE_EXPIRE_CYCLE_SLOW_TIME_PERC&#x2F;server.hz&#x2F;100;
+    timelimit_exit = 0;
+    if (timelimit &lt;= 0) timelimit = 1;
+    &#x2F;&#x2F; 如果是快速模式，则最大执行时间为ACTIVE_EXPIRE_CYCLE_FAST_DURATION
+    if (type == ACTIVE_EXPIRE_CYCLE_FAST)
+        timelimit = ACTIVE_EXPIRE_CYCLE_FAST_DURATION; &#x2F;* in microseconds. *&#x2F;
+    &#x2F;&#x2F; 采样记录
+    long total_sampled = 0;
+    long total_expired = 0;
+    &#x2F;&#x2F; 依次遍历 dbs_per_call 个 db
+    for (j = 0; j &lt; dbs_per_call &amp;&amp; timelimit_exit == 0; j++) {
+        int expired;
+        redisDb *db = server.db+(current_db % server.dbnum);
+        &#x2F;&#x2F; 将db数增加，一遍下一次继续从这个db开始遍历
+        current_db++;
+
+        do {
+            ..... &#x2F;&#x2F; 申明变量和一些情况下 break
+            if (num &gt; ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP)
+                num = ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP;
+            &#x2F;&#x2F; 主要循环，在过期表中进行随机采样，判断是否比率大于25%
+            while (num--) {
+                dictEntry *de;
+                long long ttl;
+
+                if ((de = dictGetRandomKey(db-&gt;expires)) == NULL) break;
+                ttl = dictGetSignedIntegerVal(de)-now;
+                &#x2F;&#x2F; 删除过期键
+                if (activeExpireCycleTryExpire(db,de,now)) expired++;
+                if (ttl &gt; 0) {
+                    &#x2F;* We want the average TTL of keys yet not expired. *&#x2F;
+                    ttl_sum += ttl;
+                    ttl_samples++;
+                }
+                total_sampled++;
+            }
+            &#x2F;&#x2F; 记录过期总数
+            total_expired += expired;
+            &#x2F;&#x2F; 即使有很多键要过期，也不阻塞很久，如果执行超过了最大执行时间，则返回
+            if ((iteration &amp; 0xf) == 0) { &#x2F;* check once every 16 iterations. *&#x2F;
+                elapsed = ustime()-start;
+                if (elapsed &gt; timelimit) {
+                    timelimit_exit = 1;
+                    server.stat_expired_time_cap_reached_count++;
+                    break;
+                }
+            }
+            &#x2F;&#x2F; 当比率小于25%时返回
+        } while (expired &gt; ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP&#x2F;4);
+    }
+    .....&#x2F;&#x2F; 更新一些server的记录数据
+}
+</code></pre>
+<p>activeExpireCycleTryExpire 函数的实现就和 expireIfNeeded 类似，这里就不赘述了。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">int activeExpireCycleTryExpire(redisDb *db, dictEntry *de, long long now) {
+    long long t = dictGetSignedIntegerVal(de);
+    if (now &gt; t) {
+        sds key = dictGetKey(de);
+        robj *keyobj = createStringObject(key,sdslen(key));
+
+        propagateExpire(db,keyobj,server.lazyfree_lazy_expire);
+        if (server.lazyfree_lazy_expire)
+            dbAsyncDelete(db,keyobj);
+        else
+            dbSyncDelete(db,keyobj);
+        notifyKeyspaceEvent(NOTIFY_EXPIRED,
+            &quot;expired&quot;,keyobj,db-&gt;id);
+        decrRefCount(keyobj);
+        server.stat_expiredkeys++;
+        return 1;
+    } else {
+        return 0;
+    }
+}
+</code></pre>
+<p>定期删除策略的关键点就是删除操作执行的时长和频率：</p>
+<ul>
+<li>如果删除操作太过频繁或者执行时间太长，就对 CPU 时间不是很友好，CPU 时间过多的消耗在删除过期键上。</li>
+<li>如果删除操作执行太少或者执行时间太短，就不能及时删除过期键，导致内存浪费。</li>
+</ul>
+<h4 id="内存溢出控制策略"><a href="#内存溢出控制策略" class="headerlink" title="内存溢出控制策略"></a>内存溢出控制策略</h4><p>当Redis所用内存达到maxmemory上限时会触发相应的溢出控制策略。 具体策略受maxmemory-policy参数控制，Redis支持6种策略，如下所示： </p>
+<ul>
+<li>1）noeviction：默认策略，不会删除任何数据，拒绝所有写入操作并返 回客户端错误信息（error）OOM command not allowed when used memory，此 时Redis只响应读操作。 </li>
+<li>2）volatile-lru：根据LRU算法删除设置了超时属性（expire）的键，直 到腾出足够空间为止。如果没有可删除的键对象，回退到noeviction策略。 </li>
+<li>3）allkeys-lru：根据LRU算法删除键，不管数据有没有设置超时属性， 直到腾出足够空间为止。 </li>
+<li>4）allkeys-random：随机删除所有键，直到腾出足够空间为止。 </li>
+<li>5）volatile-random：随机删除过期键，直到腾出足够空间为止。 </li>
+<li>6）volatile-ttl：根据键值对象的ttl属性，删除最近将要过期数据。如果没有，回退到noeviction策略。</li>
+</ul>
+<p>内存溢出控制策略可以使用 config set maxmemory-policy {policy} 语句进行动态配置。Redis 提供了丰富的空间溢出控制策略，我们可以根据自身业务需要进行选择。</p>
+<p>当设置 volatile-lru 策略时，保证具有过期属性的键可以根据 LRU 剔除，而未设置超时的键可以永久保留。还可以采用allkeys-lru 策略把 Redis 变为纯缓存服务器使用。</p>
+<p>当Redis因为内存溢出删除键时，可以通过执行 info stats 命令查看 evicted_keys 指标找出当前 Redis 服务器已剔除的键数量。 </p>
+<p>每次Redis执行命令时如果设置了maxmemory参数，都会尝试执行回收 内存操作。当Redis一直工作在内存溢出（used_memory&gt;maxmemory）的状态下且设置非 noeviction 策略时，会频繁地触发回收内存的操作，影响Redis 服务器的性能，这一点千万要引起注意。</p>
+<p><img src="/images/logo.png" alt=""></p>
+
+        
+        </div>
+        <footer class="article-footer">
+            <div class="share-container">
+
+
+
+</div>
+
+    <a data-url="http://remcarpediem.net/article/e66f8da0/" data-id="cka150s2e007v2jsebga0diel" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+<script>
+    (function ($) {
+        // Prevent duplicate binding
+        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
+            __SHARE_BUTTON_BINDED__ = true;
+        } else {
+            return;
+        }
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+            
+    
+
+        </footer>
+    </div>
+    
+</article>
+
+
+
     <article id="post-一文了解-Redis-内存监控和内存消耗" class="article article-type-post" itemscope="" itemprop="blogPost">
     <div class="article-inner">
         
@@ -362,7 +787,7 @@ C * AOF rewrite: 9MB of memory used by copy-on-write
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/516957d3/" data-id="ck9obstjn005q47seby554xiq" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/516957d3/" data-id="cka150s12005m2jsevv36lv1y" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -657,7 +1082,7 @@ server:
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/6fc98a53/" data-id="ck9obstin004m47ses39wx4z4" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/6fc98a53/" data-id="cka150s0c004i2jsehwp74zkt" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -851,7 +1276,7 @@ server:
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/eb2e63e2/" data-id="ck9obsti9004447se5vzr0fmy" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/eb2e63e2/" data-id="cka150rzz003y2jseuvyq7vng" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1131,7 +1556,7 @@ grep -li remcarpediem file # 忽略大小写，并且打印出文件名称
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/45ef130c/" data-id="ck9obstl2007a47se6vczr637" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/45ef130c/" data-id="cka150s25007f2jsek1ei2690" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1632,7 +2057,7 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/1aa2da89/" data-id="ck9obsti0003v47ser76vvmkt" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/1aa2da89/" data-id="cka150rzx003v2jse26qh4ee7" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1831,7 +2256,7 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/376c55d8/" data-id="ck9obsthw003k47se9cose45l" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/376c55d8/" data-id="cka150rzu003o2jselnjoqu0u" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2264,7 +2689,7 @@ save 60 10000 # 表示60 秒内如果至少有 10000 个 key 的值变化，则�
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/9a7bcda/" data-id="ck9obsthz003r47serxbc5wnd" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/9a7bcda/" data-id="cka150rzv003s2jse8cqhpktl" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2431,7 +2856,7 @@ save 60 10000 # 表示60 秒内如果至少有 10000 个 key 的值变化，则�
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/f35ff8b9/" data-id="ck9obstl1007847sepu78sfqc" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/f35ff8b9/" data-id="cka150s23007a2jse85lx9bkg" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2683,262 +3108,7 @@ database,type,key,size_in_bytes,encoding,num_elements,len_largest_element,expiry
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/ec0c40ae/" data-id="ck9obstl0007447se0f7rxl74" class="article-share-link"><i class="fa fa-share"></i>Share</a>
-<script>
-    (function ($) {
-        // Prevent duplicate binding
-        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
-            __SHARE_BUTTON_BINDED__ = true;
-        } else {
-            return;
-        }
-        $('body').on('click', function() {
-            $('.article-share-box.on').removeClass('on');
-        }).on('click', '.article-share-link', function(e) {
-            e.stopPropagation();
-
-            var $this = $(this),
-                url = $this.attr('data-url'),
-                encodedUrl = encodeURIComponent(url),
-                id = 'article-share-box-' + $this.attr('data-id'),
-                offset = $this.offset(),
-                box;
-
-            if ($('#' + id).length) {
-                box = $('#' + id);
-
-                if (box.hasClass('on')){
-                    box.removeClass('on');
-                    return;
-                }
-            } else {
-                var html = [
-                    '<div id="' + id + '" class="article-share-box">',
-                        '<input class="article-share-input" value="' + url + '">',
-                        '<div class="article-share-links">',
-                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
-                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
-                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
-                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
-                        '</div>',
-                    '</div>'
-                ].join('');
-
-              box = $(html);
-
-              $('body').append(box);
-            }
-
-            $('.article-share-box.on').hide();
-
-            box.css({
-                top: offset.top + 25,
-                left: offset.left
-            }).addClass('on');
-
-        }).on('click', '.article-share-box', function (e) {
-            e.stopPropagation();
-        }).on('click', '.article-share-box-input', function () {
-            $(this).select();
-        }).on('click', '.article-share-box-link', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
-        });
-    })(jQuery);
-</script>
-
-            
-    
-
-        </footer>
-    </div>
-    
-</article>
-
-
-
-    <article id="post-十二张图带你了解-Redis-的数据结构和对象系统" class="article article-type-post" itemscope="" itemprop="blogPost">
-    <div class="article-inner">
-        
-        
-            <header class="article-header">
-                
-    
-        <h1 itemprop="name">
-            <a class="article-title" href="/article/fa5c04fa/">十二张图带你了解 Redis 的数据结构和对象系统</a>
-        </h1>
-    
-
-                
-                    <div class="article-meta">
-                        
-    <div class="article-date">
-        <i class="fa fa-calendar"></i>
-        <a href="/article/fa5c04fa/">
-            <time datetime="2019-05-26T08:55:06.000Z" itemprop="datePublished">2019-05-26</time>
-        </a>
-    </div>
-
-
-                        
-    <div class="article-category">
-    	<i class="fa fa-folder"></i>
-        <a class="article-category-link" href="/categories/Redis/">Redis</a>
-    </div>
-
-                        
-    <div class="article-tag">
-        <i class="fa fa-tag"></i>
-        <a class="tag-link" href="/tags/redis/">redis</a>
-    </div>
-
-                    </div>
-                
-            </header>
-        
-        
-        <div class="article-entry" itemprop="articleBody">
-        
-            
-            <p>Redis是一个开源的 key-value 存储系统，它使用六种底层数据结构构建了包含字符串对象、列表对象、哈希对象、集合对象和有序集合对象的对象系统。今天我们就通过12张图来全面了解一下它的数据结构和对象系统的实现原理。</p>
-<p>本文的内容如下：</p>
-<ul>
-<li>首先介绍六种基础数据结构：动态字符串，链表，字典，跳跃表，整数集合和压缩列表。</li>
-<li>其次介绍 Redis 的对象系统中的字符串对象（String）、列表对象（List）、哈希对象（Hash）、集合对象（Set）和有序集合对象（ZSet）</li>
-<li>最后介绍 Redis 的键空间和过期键( expire )实现。</li>
-</ul>
-<h3 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h3><h4 id="简单动态字符串"><a href="#简单动态字符串" class="headerlink" title="简单动态字符串"></a>简单动态字符串</h4><p>Redis 使用动态字符串 SDS 来表示字符串值。下图展示了一个值为 Redis 的 SDS结构 :</p>
-<ul>
-<li>len: 表示字符串的真正长度（不包含NULL结束符在内）。</li>
-<li>alloc: 表示字符串的最大容量（不包含最后多余的那个字节）。</li>
-<li>flags: 总是占用一个字节。其中的最低3个bit用来表示header的类型。</li>
-<li>buf: 字符数组。<br><img src="/images/19_917/image1.webp" alt="动态字符串示意图"></li>
-</ul>
-<p>SDS 的结构可以减少修改字符串时带来的内存重分配的次数，这依赖于内存预分配和惰性空间释放两大机制。</p>
-<p>当 SDS 需要被修改，并且要对 SDS 进行空间扩展时，Redis 不仅会为 SDS 分配修改所必须要的空间，还会为 SDS 分配<strong><em>额外的未使用的空间</em></strong>。</p>
-<ul>
-<li>如果修改后， SDS 的长度(也就是len属性的值)将小于 1MB ，那么 Redis 预分配和 len 属性相同大小的未使用空间。</li>
-<li>如果修改后， SDS 的长度将大于 1MB ，那么 Redis 会分配 1MB 的未使用空间。</li>
-</ul>
-<p>比如说，进行修改后 SDS 的 len 长度为20字节，小于 1MB，那么 Redis 会预先再分配 20 字节的空间， SDS 的 buf数组的实际长度(除去最后一字节)变为 20 + 20 = 40 字节。当 SDS的 len 长度大于 1MB时，则只会再多分配 1MB的空间。</p>
-<p>类似的，当 SDS 缩短其保存的字符串长度时，并不会立即释放多出来的字节，而是等待之后使用。</p>
-<h4 id="链表"><a href="#链表" class="headerlink" title="链表"></a>链表</h4><p>链表在 Redis 中的应用非常广泛，比如列表对象的底层实现之一就是链表。除了链表对象外，发布和订阅、慢查询、监视器等功能也用到了链表。</p>
-<p><img src="/images/19_917/image2.webp" alt="链表示意图"></p>
-<p>Redis 的链表是双向链表，示意图如上图所示。链表是最为常见的数据结构，这里就不在细说。</p>
-<p>Redis 的链表结构的dup 、 free 和 match 成员属性是用于实现多态链表所需的类型特定函数：</p>
-<ul>
-<li>dup 函数用于复制链表节点所保存的值，用于深度拷贝。</li>
-<li>free 函数用于释放链表节点所保存的值。</li>
-<li>match 函数则用于对比链表节点所保存的值和另一个输入值是否相等。</li>
-</ul>
-<h4 id="字典"><a href="#字典" class="headerlink" title="字典"></a>字典</h4><p>字典被广泛用于实现 Redis 的各种功能，包括键空间和哈希对象。其示意图如下所示。</p>
-<p><img src="/images/19_917/image2.webp" alt="字典示意图"></p>
-<p>Redis 使用 MurmurHash2 算法来计算键的哈希值，并且使用链地址法来解决键冲突，被分配到同一个索引的多个键值对会连接成一个单向链表。</p>
-<h4 id="跳跃表"><a href="#跳跃表" class="headerlink" title="跳跃表"></a>跳跃表</h4><p>Redis 使用跳跃表作为有序集合对象的底层实现之一。它以有序的方式在层次化的链表中保存元素， 效率和平衡树媲美 —— 查找、删除、添加等操作都可以在对数期望时间下完成， 并且比起平衡树来说， 跳跃表的实现要简单直观得多。</p>
-<p><img src="/images/19_917/image4.webp" alt="跳表示意图"></p>
-<p>跳表的示意图如上图所示，这里只简单说一下它的核心思想，并不进行详细的解释。</p>
-<p>如示意图所示，zskiplistNode 是跳跃表的节点，其 ele 是保持的元素值，score 是分值，节点按照其 score 值进行有序排列，而 level 数组就是其所谓的层次化链表的体现。</p>
-<p>每个 node 的 level 数组大小都不同， level 数组中的值是指向下一个 node 的指针和 跨度值 (span)，跨度值是两个节点的score的差值。越高层的 level 数组值的跨度值就越大，底层的 level 数组值的跨度值越小。</p>
-<p>level 数组就像是不同刻度的尺子。度量长度时，先用大刻度估计范围，再不断地用缩小刻度，进行精确逼近。</p>
-<p>当在跳跃表中查询一个元素值时，都先从第一个节点的最顶层的 level 开始。比如说，在上图的跳表中查询 o2 元素时，先从o1 的节点开始，因为 zskiplist 的 header 指针指向它。</p>
-<p>先从其 level[3] 开始查询，发现其跨度是 2，o1 节点的score是1.0，所以加起来为 3.0，大于 o2 的score值2.0。所以，我们可以知道 o2 节点在 o1 和 o3 节点之间。这时，就改用小刻度的尺子了。就用level[1]的指针，顺利找到 o2 节点。</p>
-<h4 id="整数集合"><a href="#整数集合" class="headerlink" title="整数集合"></a>整数集合</h4><p>整数集合 intset 是集合对象的底层实现之一，当一个集合只包含整数值元素，并且这个集合的元素数量不多时， Redis 就会使用整数集合作为集合对象的底层实现。</p>
-<p><img src="/images/19_917/image5.webp" alt="整数集合的示意图"></p>
-<p>如上图所示，整数集合的 encoding 表示它的类型，有int16_t，int32_t 或者int64_t。其每个元素都是 contents 数组的一个数组项，各个项在数组中按值的大小从小到大有序的排列，并且数组中不包含任何重复项。length 属性就是整数集合包含的元素数量。</p>
-<h4 id="压缩列表"><a href="#压缩列表" class="headerlink" title="压缩列表"></a>压缩列表</h4><p>压缩队列 ziplist 是列表对象和哈希对象的底层实现之一。当满足一定条件时，列表对象和哈希对象都会以压缩队列为底层实现。</p>
-<p><img src="/images/19_917/image6.webp" alt="压缩队列的示意图"></p>
-<p>压缩队列是 Redis 为了节约内存而开发的，是由一系列特殊编码的连续内存块组成的顺序型数据结构。它的属性值有：</p>
-<ul>
-<li>zlbytes : 长度为 4 字节，记录整个压缩数组的内存字节数。</li>
-<li>zltail : 长度为 4 字节，记录压缩队列表尾节点距离压缩队列的起始地址有多少字节，通过该属性可以直接确定尾节点的地址。</li>
-<li>zllen : 长度为 2 字节，包含的节点数。当属性值小于 INT16_MAX时，该值就是节点总数，否则需要遍历整个队列才能确定总数。</li>
-<li>zlend : 长度为 1 字节，特殊值，用于标记压缩队列的末端。</li>
-</ul>
-<p>中间每个节点 entry 由三部分组成：</p>
-<ul>
-<li>previous_entry_length : 压缩列表中前一个节点的长度，和当前的地址进行指针运算，计算出前一个节点的起始地址。 </li>
-<li>encoding： 节点保存数据的类型和长度</li>
-<li>content ：节点值，可以为一个字节数组或者整数。</li>
-</ul>
-<h3 id="对象"><a href="#对象" class="headerlink" title="对象"></a>对象</h3><p>上面介绍了 6 种底层数据结构，Redis 并没有直接使用这些数据结构来实现键值数据库，而是基于这些数据结构创建了一个对象系统，这个系统包含字符串对象、列表对象、哈希对象、集合对象和有序集合这五种类型的对象，每个对象都使用到了至少一种前边讲的底层数据结构。</p>
-<p>Redis 根据不同的使用场景和内容大小来判断对象使用哪种数据结构，从而优化对象在不同场景下的使用效率和内存占用。</p>
-<p>Redis 的 redisObject 结构的定义如下所示。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">typedef struct redisObject {
-    unsigned type:4;
-    unsigned encoding:4;
-    unsigned lru:LRU_BITS; 
-    int refcount;
-    void *ptr;
-} robj;
-</code></pre></p>
-<p>其中 type 是对象类型，包括REDIS_STRING, REDIS_LIST, REDIS_HASH, REDIS_SET 和 REDIS_ZSET。</p>
-<p>encoding是指对象使用的数据结构，全集如下。<br><img src="/images/19_917/image7.webp" alt="对象的编码"></p>
-<h4 id="字符串对象"><a href="#字符串对象" class="headerlink" title="字符串对象"></a>字符串对象</h4><p>我们首先来看字符串对象的实现，如下图所示。</p>
-<p><img src="/images/19_917/image8.webp" alt="字符串对象示意图"></p>
-<p>如果一个字符串对象保存的是一个字符串值，并且长度大于32字节，那么该字符串对象将使用 SDS 进行保存，并将对象的编码设置为 raw，如图的上半部分所示。如果字符串的长度小于32字节，那么字符串对象将使用embstr 编码方式来保存。</p>
-<p>embstr 编码是专门用于保存短字符串的一种优化编码方式，这个编码的组成和 raw 编码一致，都使用 redisObject 结构和 sdshdr 结构来保存字符串，如上图的下半部所示。</p>
-<p>但是 raw 编码会调用两次内存分配来分别创建上述两个结构，而embstr则通过一次内存分配来分配一块连续的空间，空间中一次包含两个结构。</p>
-<p>embstr 只需一次内存分配，而且在同一块连续的内存中，更好的利用缓存带来的优势，但是 embstr 是只读的，不能进行修改，当一个 embstr 编码的字符串对象进行 append 操作时， redis 会现将其转变为 raw 编码再进行操作。</p>
-<h4 id="列表对象"><a href="#列表对象" class="headerlink" title="列表对象"></a>列表对象</h4><p>列表对象的编码可以是 ziplist 或 linkedlist。其示意图如下所示。</p>
-<p><img src="/images/19_917/image9.webp" alt="列表对象示意图"></p>
-<p>当列表对象可以同时满足以下两个条件时，列表对象使用 ziplist 编码：</p>
-<ul>
-<li>列表对象保存的所有字符串元素的长度都小于 64 字节。</li>
-<li>列表对象保存的元素数量数量小于 512 个。</li>
-</ul>
-<p>不能满足这两个条件的列表对象需要使用 linkedlist 编码或者转换为 linkedlist 编码。</p>
-<h4 id="哈希对象"><a href="#哈希对象" class="headerlink" title="哈希对象"></a>哈希对象</h4><p>哈希对象的编码可以使用 ziplist 或 dict。其示意图如下所示。</p>
-<p>当哈希对象使用压缩队列作为底层实现时，程序将键值对紧挨着插入到压缩队列中，保存键的节点在前，保存值的节点在后。如下图的上半部分所示，该哈希有两个键值对，分别是 name:Tom 和 age:25。</p>
-<p><img src="/images/19_917/image10.webp" alt="哈希对象示意图"></p>
-<p>当哈希对象可以同时满足以下两个条件时，哈希对象使用 ziplist 编码:</p>
-<ul>
-<li>哈希对象保存的所有键值对的键和值的字符串长度都小于64字节。</li>
-<li>哈希对象保存的键值对数量小于512个。</li>
-</ul>
-<p>不能满足这两个条件的哈希对象需要使用 dict 编码或者转换为 dict 编码。</p>
-<h4 id="集合对象"><a href="#集合对象" class="headerlink" title="集合对象"></a>集合对象</h4><p>集合对象的编码可以使用 intset 或者 dict。</p>
-<p>intset 编码的集合对象使用整数集合最为底层实现，所有元素都被保存在整数集合里边。</p>
-<p>而使用 dict 进行编码时，字典的每一个键都是一个字符串对象，每个字符串对象就是一个集合元素，而字典的值全部都被设置为NULL。如下图所示。</p>
-<p><img src="/images/19_917/image11.webp" alt="集合对象示意图"></p>
-<p>当集合对象可以同时满足以下两个条件时，对象使用 intset 编码:</p>
-<ul>
-<li>集合对象保存的所有元素都是整数值。</li>
-<li>集合对象保存的元素数量不超过512个。</li>
-</ul>
-<p>否则使用 dict 进行编码。</p>
-<h4 id="有序集合对象"><a href="#有序集合对象" class="headerlink" title="有序集合对象"></a>有序集合对象</h4><p>有序集合的编码可以为 ziplist 或者 skiplist。</p>
-<p>有序集合使用 ziplist 编码时，每个集合元素使用两个紧挨在一起的压缩列表节点表示，前一个节点是元素的值，第二个节点是元素的分值，也就是排序比较的数值。</p>
-<p>压缩列表内的集合元素按照分值从小到大进行排序，如下图上半部分所示。</p>
-<p>有序集合使用 skiplist 编码时使用 zset 结构作为底层实现，一个 zet 结构同时包含一个字典和一个跳跃表。</p>
-<p>其中，跳跃表按照分值从小到大保存所有元素，每个跳跃表节点保存一个元素，其score值是元素的分值。而字典则创建一个一个从成员到分值的映射，字典的键是集合成员的值，字典的值是集合成员的分值。通过字典可以在O(1)复杂度查找给定成员的分值。如下图所示。</p>
-<p>跳跃表和字典中的集合元素值对象都是共享的，所以不会额外消耗内存。</p>
-<p><img src="/images/19_917/image12.webp" alt="有序集合示意图"></p>
-<p>当有序集合对象可以同时满足以下两个条件时，对象使用 ziplist 编码：</p>
-<ul>
-<li>有序集合保存的元素数量少于128个；</li>
-<li>有序集合保存的所有元素的长度都小于64字节。</li>
-</ul>
-<p>否则使用 skiplist 编码。</p>
-<h3 id="数据库键空间"><a href="#数据库键空间" class="headerlink" title="数据库键空间"></a>数据库键空间</h3><p>Redis 服务器都有多个 Redis 数据库，每个Redis 数据都有自己独立的键值空间。每个 Redis 数据库使用 dict 保存数据库中所有的键值对。</p>
-<p><img src="/images/19_917/image13.webp" alt="redis server.jpg"></p>
-<p>键空间的键也就是数据库的键，每个键都是一个字符串对象，而值对象可能为字符串对象、列表对象、哈希表对象、集合对象和有序集合对象中的一种对象。</p>
-<p>除了键空间，Redis 也使用 dict 结构来保存键的过期时间，其键是键空间中的键值，而值是过期时间，如上图所示。</p>
-<p>通过过期字典，Redis 可以直接判断一个键是否过期，首先查看该键是否存在于过期字典，如果存在，则比较该键的过期时间和当前服务器时间戳，如果大于，则该键过期，否则未过期。</p>
-<p><img src="images/logo.png" alt=""></p>
-
-        
-        </div>
-        <footer class="article-footer">
-            <div class="share-container">
-
-
-
-</div>
-
-    <a data-url="http://remcarpediem.net/article/fa5c04fa/" data-id="ck9obstkk006g47se07hwh6jo" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/ec0c40ae/" data-id="cka150s2100782jsevc5shmry" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -3031,6 +3201,25 @@ database,type,key,size_in_bytes,encoding,num_elements,len_largest_element,expiry
                     <li>
                         
                         <!-- <div class="item-thumbnail">
+                            <a href="/article/e3e7a535/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/e3e7a535/" class="title">带你100% 地了解 Redis 6.0 的客户端缓存</a></p>
+                            <p class="item-date"><time datetime="2020-05-10T14:04:45.000Z" itemprop="datePublished">2020-05-10</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
                             <a href="/article/a94bd30a/" class="thumbnail">
     
     
@@ -3104,25 +3293,6 @@ database,type,key,size_in_bytes,encoding,num_elements,len_largest_element,expiry
                         </div>
                     </li>
                 
-                    <li>
-                        
-                        <!-- <div class="item-thumbnail">
-                            <a href="/article/1dd72ef8/" class="thumbnail">
-    
-    
-        <span class="thumbnail-image thumbnail-none"></span>
-    
-</a>
-
-                        </div> -->
-                        
-                        <div class="item-inner">
-                            <p class="item-category"><a class="article-category-link" href="/categories/Redis/">Redis</a></p>
-                            <p class="item-title"><a href="/article/1dd72ef8/" class="title">Redis 命令执行过程(下)</a></p>
-                            <p class="item-date"><time datetime="2019-12-11T15:09:14.000Z" itemprop="datePublished">2019-12-11</time></p>
-                        </div>
-                    </li>
-                
             </ul>
         </div>
     </div>
@@ -3141,7 +3311,7 @@ database,type,key,size_in_bytes,encoding,num_elements,len_largest_element,expiry
     <div class="widget-wrap">
         <h3 class="widget-title">archives</h3>
         <div class="widget">
-            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
         </div>
     </div>
 
@@ -3150,7 +3320,7 @@ database,type,key,size_in_bytes,encoding,num_elements,len_largest_element,expiry
     <div class="widget-wrap">
         <h3 class="widget-title">tag cloud</h3>
         <div class="widget tagcloud">
-            <a href="/tags/AOP/" style="font-size: 15px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 20px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/MySQL/" style="font-size: 10px;">MySQL</a> <a href="/tags/Netty/" style="font-size: 20px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 15px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 15px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 20px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 15px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/persistent/" style="font-size: 15px;">persistent</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 15px;">第三方库</a> <a href="/tags/算法/" style="font-size: 20px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 15px;">限流</a>
+            <a href="/tags/AOP/" style="font-size: 15px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 20px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/MySQL/" style="font-size: 10px;">MySQL</a> <a href="/tags/Netty/" style="font-size: 20px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/Redis/" style="font-size: 10px;">Redis</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 15px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 15px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 20px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 15px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/persistent/" style="font-size: 15px;">persistent</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 15px;">第三方库</a> <a href="/tags/算法/" style="font-size: 20px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 15px;">限流</a>
         </div>
     </div>
 

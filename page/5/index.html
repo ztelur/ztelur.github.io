@@ -170,11 +170,11 @@ var _hmt = _hmt || [];
         </div>
         <div class="article-info profile-block">
             <div class="article-info-block">
-                91
+                92
                 <span>posts</span>
             </div>
             <div class="article-info-block">
-                62
+                63
                 <span>tags</span>
             </div>
         </div>
@@ -211,6 +211,339 @@ var _hmt = _hmt || [];
 
             
             <section id="main">
+    <article id="post-《多处理器编程艺术》－链表：锁的作用" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+        
+            <header class="article-header">
+                
+    
+        <h1 itemprop="name">
+            <a class="article-title" href="/article/56d732a0/">《多处理器编程艺术》－链表：锁的作用</a>
+        </h1>
+    
+
+                
+                    <div class="article-meta">
+                        
+    <div class="article-date">
+        <i class="fa fa-calendar"></i>
+        <a href="/article/56d732a0/">
+            <time datetime="2017-06-19T13:57:31.000Z" itemprop="datePublished">2017-06-19</time>
+        </a>
+    </div>
+
+
+                        
+    <div class="article-category">
+    	<i class="fa fa-folder"></i>
+        <a class="article-category-link" href="/categories/并发/">并发</a>
+    </div>
+
+                        
+    <div class="article-tag">
+        <i class="fa fa-tag"></i>
+        <a class="tag-link" href="/tags/锁/">锁</a>
+    </div>
+
+                    </div>
+                
+            </header>
+        
+        
+        <div class="article-entry" itemprop="articleBody">
+        
+            
+            <p> 最近在阅读《多处理器编程艺术》一书，掌握了很多Java多线程的底层知识，现在就做一下书中链表-锁的作用一章的总结。<br>&emsp;为了节约你的时间，本文主要内容如下：</p>
+<ul>
+<li>带锁的链表队列</li>
+<li>细粒度同步</li>
+<li>乐观同步</li>
+<li>惰性同步</li>
+<li>非阻塞同步</li>
+</ul>
+<h3 id="粗粒度同步"><a href="#粗粒度同步" class="headerlink" title="粗粒度同步"></a>粗粒度同步</h3><p>&emsp;所谓粗粒度同步其实很简单，就是在List的<code>add</code>,<code>remove</code>,<code>contains</code>函数的开始就直接使用Lock加锁，然后在函数结尾释放。<br>&emsp;<code>add</code>函数的代码如下所示，函数的主体就是链表的遍历添加逻辑，只不过在开始和结束进行了锁的获取和释放。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">private Node head;
+private Lock lock = new ReentrantLock();
+public boolean add(T item) {
+    Node pred, curr;
+    int key = item.hashCode();
+    lock.lock();
+    try {
+        pred = head;
+        curr = pred.next;
+        while(curr.key &lt; key) {
+            pred = curr;
+            curr = pred.next;
+        }
+        if (key == curr.key) {
+            return false;
+        } else {
+            Node node = new Node(item);
+            node.next = curr;
+            pred.next = node;
+            return true;
+        }
+
+    } finally {
+        lock.unlock();
+    }
+}
+</code></pre></p>
+<p>&emsp;大家看到这里就会想到，这不就是类似于<code>Hashtable</code>的实现方式吗？把可能出现多线程问题的函数都用一个重入锁锁住。但是这个方法的缺点很明显，如果竞争激烈的话，对链表的操作效率会很低，因为<code>add</code>,<code>remove</code>,<code>contains</code>三个函数都需要获取锁，也都需要等待锁的释放。至于如何优化，我们可以一步一步往下看</p>
+<h3 id="细粒度同步"><a href="#细粒度同步" class="headerlink" title="细粒度同步"></a>细粒度同步</h3><p>&emsp;<strong><em>我们可以通过锁定单个节点而不是整个链表来提高并发</em></strong>。给每个节点增加一个Lock变量以及相关的lock()和unlock()函数,当线程遍历链表的时候，若它是第一个访问节点的线程，则锁住被访问的节点，在随后的某个时刻释放锁。这种细粒度的锁机制允许并发线程以流水线的方式遍历链表。<br>&emsp;使用这种方式来遍历链表，必须同时获取两个相邻节点的锁，通过“交叉手”的方式来获取锁：除了初始的head哨兵节点外，只有在已经获取pred的锁时，才能获取curr的锁。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">&#x2F;&#x2F;每个Node对象中都有一个Lock对象，可以进行lock()和unlock()操作
+public boolean add(T item) {
+    int key = item.hashCode();
+    head.lock();
+    Node pred = head;
+    try {
+        Node curr = pred.next;
+        curr.lock();
+
+        try {
+            while (curr.key &lt; key) {
+                pred.unlock();
+                pred = curr;
+                curr = pred.next;
+                curr.lock();
+            }
+
+            if (curr.key == key) {
+                return false;
+            }
+            Node newNode = new Node(item);
+            newNode.next = curr;
+            pred.next = newNode;
+            return true;
+        } finally {
+            curr.unlock();
+        }
+
+    } finally {
+        pred.unlock();
+    }
+}
+</code></pre>
+<h3 id="乐观同步"><a href="#乐观同步" class="headerlink" title="乐观同步"></a>乐观同步</h3><p>&emsp;虽然细粒度锁是对单一粒度锁的一种改进，但它仍然出现很长的获取锁和释放锁的序列。而且，访问链表中不同部分的线程仍然可能相互阻塞。例如，一个正在删除链表中第二个元素的线程将会阻塞所有试图查找后继节点的线程。<br>&emsp;减少同步代价的一种方式就是乐观：<strong><em>不需要获取锁就可以查找，对找到的节点进行加锁，然后确认锁住的节点是正确的；如果一个同步冲突导致节点被错误的锁定，则释放这些锁重新开始</em></strong>。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">public boolean add(T item) {
+    int key = item.hashCode();
+
+    while (true) { &#x2F;&#x2F;如果不成功，就进行重试
+        Node pred = head;
+        Node curr = pred.next;
+        while (curr.key &lt; key) {
+            pred = curr;
+            curr = pred.next;
+        }
+        &#x2F;&#x2F;找到目标相关的pred和curr之后再将二者锁住
+        pred.lock();
+        curr.lock();
+        try {
+            &#x2F;&#x2F;锁住二者之后再进行判断，是否存在并发冲突
+            if (validate(pred, curr)) {
+                &#x2F;&#x2F;如果不存在，那么就直接进行正常操作
+                if (curr.key == key) {
+                    return false;
+                } else {
+                    Node node = new Node(item);
+                    node.next = curr;
+                    pred.next = node;
+                }
+            }
+        } finally {
+            pred.unlock();
+            curr.unlock();
+        }
+    }
+}
+public boolean validate(Node pred, Node curr) {
+    &#x2F;&#x2F;从队列头开始查找pred和curr,判断是否存在并发冲突
+    Node node = head;
+    while (node.key &lt;= pred.key) {
+        if (node == pred) {
+            return pred.next == curr;
+        }
+        node = node.next;
+    }
+    return false;
+}
+</code></pre></p>
+<p>&emsp;由于不再使用能保护并发修改的锁，所以每个方法调用都可能遍历那些已经被删除的节点，所以在进行添加，删除获取判断是否存在的之前必须再次进行验证。</p>
+<h3 id="惰性同步"><a href="#惰性同步" class="headerlink" title="惰性同步"></a>惰性同步</h3><p>&emsp;当不用锁遍历两次链表的代价比使用锁遍历一次链表的代价小很多时，乐观同步的实现效果非常好。但是这种算法的缺点之一就是contains()方法在遍历时需要锁，这一点并不令人满意，其原因在于对contains()的调用要比其他方法的调用频繁得多。<br>&emsp;<strong><em>使用惰性同步的方法，使得contains()调用是无等待的，同时add()和remove()方法即使在被阻塞的情况下也只需要遍历一次链表</em></strong>。<br>&emsp;<strong><em>对每个节点增加一个布尔类型的marked域，用于说明该节点是否在节点集合中。现在，遍历不再需要锁定目标结点，也没有必须通过重新遍历整个链表来验证结点是否可达。所有未被标记的节点必然是可达的</em></strong>。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">&#x2F;&#x2F;add方法和乐观同步的方法一致，只有检验方法做了修改。
+&#x2F;&#x2F;只需要检测节点的marked变量就可以，并且查看pred的next是否还是指向curr，需要注意的是marked变量一定是voliate的。
+private boolean validate(Node pred, Node curr) {
+        return !pred.marked &amp;&amp; !curr.marked &amp;&amp; pred.next == curr;
+}
+</code></pre>
+<p>&emsp;惰性同步的优点之一就是能够将类似于设置一个flag这样的逻辑操作与类似于删除结点的链接这种对结构的物理改变分开。通常情况下，延迟操作可以是批量处理方式进行，且在某个方便的时候再懒惰地进行处理，从而降低了对结构进行物理修改的整体破裂性。惰性同步的主要缺点是add()和remove()调用是阻塞的：如果一个线程延迟，那么其他线程也将延迟。</p>
+<h3 id="非阻塞同步"><a href="#非阻塞同步" class="headerlink" title="非阻塞同步"></a>非阻塞同步</h3><p>&emsp;使用惰性同步的思维是非常有益处的。我们可以进一步将add(),remove()和contains()这三个方法都变成非阻塞的。前两个方法是无锁的，最后一个方法是无等待的。我们无法直接使用compareAndSet()来改变next域来实现，因为这样会出现问题。但是我们可以将结点的next域和marked域看作是单个的原子单位：当marked域为true时，对next域的任何修改都将失败。<br>&emsp;我们可以使用AtomicMarkableReference<t>对象将指向类型T的对象引用next和布尔值marked封装在一起。这些域可以一起或单个地原子更新。可以让每个结点的next域为一个AtomicMarkableReference<node>。线程可以通过设置结点next域中的标记位来逻辑地删除curr,和其他正在执行add()和remove()的线程共享物理删除:当每个线程遍历链表时，通过物理删除所有被标记的节点来清理链表。</node></t></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">
+    public Window find(Node head, int key) {
+        Node pred = null, curr = null, succ = null;
+        boolean[] marked = {false};
+        boolean snip;
+
+        retry: while(true) {
+            pred = head;
+            curr = curr.next.get(marked);
+            while(true) {
+                succ = curr.next.get(marked); &#x2F;&#x2F;获取succ,并且查看是被被标记
+                while (marked[0]) {&#x2F;&#x2F;如果被标记了，说明curr被逻辑删除了，需要继续物理删除
+                    snip = pred.next.compareAndSet(curr, succ, false, false);&#x2F;&#x2F;
+                    if (!snip) continue retry;
+                    curr = succ;
+                    succ = curr.next.get(marked);
+                }
+                &#x2F;&#x2F;当不需要删除后，才继续遍历
+                if (curr.key &gt;= key) {
+                    return new Window(pred, curr);
+                }
+                pred = curr;
+                curr = succ;
+            }
+        }
+    }
+
+    public boolean add(T item) {
+        int key = item.hashCode();
+        while(true) {
+            Window window = find(head, key);
+            Node pred = window.pred, curr = window.curr;
+            if (curr.key == key) {
+                return false;
+            } else {
+                Node node = new Node(item);
+                node.next = new AtomicMarkableReference&lt;&gt;(curr, false);
+                if (pred.next.compareAndSet(curr, node, false, false)) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    public boolean remove(T item) {
+        int key = item.hashCode();
+        boolean sinp;
+        while(true) {
+            Window window = find(head, key);
+            Node pred = window.pred, curr = window.curr;
+            if (curr.key != key) {
+                return false;
+            } else {
+                Node succ = curr.next.getReference();
+                &#x2F;&#x2F;要进行删除了，那么就直接将curr.next设置为false,然后在进行真正的物理删除。
+                sinp = curr.next.compareAndSet(curr, succ, false, true);
+                if (!sinp) {
+                    continue;
+                }
+                pred.next.compareAndSet(curr, succ, false, false);
+                return true;
+            }
+        }
+    }
+
+
+class Node {
+          AtomicMarkableReference&lt;Node&gt; next;
+}
+</code></pre>
+<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;文中的代码在我的github的这个<a href="https://github.com/ztelur/MultiprocessorProgramming/tree/master/src/com/company/nine" target="_blank" rel="noopener">repo</a>中都可以找到。</p>
+
+        
+        </div>
+        <footer class="article-footer">
+            <div class="share-container">
+
+
+
+</div>
+
+    <a data-url="http://remcarpediem.net/article/56d732a0/" data-id="cka150s0x005b2jsej6c7dv9f" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+<script>
+    (function ($) {
+        // Prevent duplicate binding
+        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
+            __SHARE_BUTTON_BINDED__ = true;
+        } else {
+            return;
+        }
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+            
+    
+
+        </footer>
+    </div>
+    
+</article>
+
+
+
     <article id="post-2017年，计划目录" class="article article-type-post" itemscope="" itemprop="blogPost">
     <div class="article-inner">
         
@@ -321,7 +654,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/904b40bc/" data-id="ck9obstez000347se6hkml64h" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/904b40bc/" data-id="cka150rxe00042jse7u0c19bs" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -635,7 +968,7 @@ final boolean transferForSignal(Node node) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/815f6f66/" data-id="ck9obstgr001g47se4co2orc7" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/815f6f66/" data-id="cka150ryf001f2jsesi0znphh" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -883,7 +1216,7 @@ final boolean transferForSignal(Node node) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/d29e90d8/" data-id="ck9obsth9002a47se2mx3vjnr" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/d29e90d8/" data-id="cka150ryv002a2jsegvko3u96" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1045,7 +1378,7 @@ final boolean transferForSignal(Node node) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/5635585c/" data-id="ck9obstk0006147se3rw70hkp" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/5635585c/" data-id="cka150s1b00612jse6ivo9h1m" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1387,7 +1720,7 @@ private final boolean parkAndCheckInterrupt() {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/d2edd1b8/" data-id="ck9obstff000a47se8kqlkcpo" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/d2edd1b8/" data-id="cka150rxu000c2jsewacsg9ov" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1684,7 +2017,7 @@ public Set&lt;SelectionKey&gt; selectedKeys() {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/dbc01bc2/" data-id="ck9obsthj002t47se0u5xjwm4" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/dbc01bc2/" data-id="cka150rzd002r2jsevjlfzpc6" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1838,7 +2171,7 @@ ServerBootstrap b = new ServerBootstrap();
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/815dc153/" data-id="ck9obsthk002w47se14uz7olf" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/815dc153/" data-id="cka150rzf002y2jseujzair64" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2046,7 +2379,7 @@ ServerBootstrap b = new ServerBootstrap();
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/bf1a30e4/" data-id="ck9obsthg002l47se4jam3rfo" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/bf1a30e4/" data-id="cka150rzc002o2jsee8z1w62r" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2285,167 +2618,7 @@ public class DataListPresenter implements DataContract.DataListPresenter {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/eca06a79/" data-id="ck9obstke006547sehrs6s46c" class="article-share-link"><i class="fa fa-share"></i>Share</a>
-<script>
-    (function ($) {
-        // Prevent duplicate binding
-        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
-            __SHARE_BUTTON_BINDED__ = true;
-        } else {
-            return;
-        }
-        $('body').on('click', function() {
-            $('.article-share-box.on').removeClass('on');
-        }).on('click', '.article-share-link', function(e) {
-            e.stopPropagation();
-
-            var $this = $(this),
-                url = $this.attr('data-url'),
-                encodedUrl = encodeURIComponent(url),
-                id = 'article-share-box-' + $this.attr('data-id'),
-                offset = $this.offset(),
-                box;
-
-            if ($('#' + id).length) {
-                box = $('#' + id);
-
-                if (box.hasClass('on')){
-                    box.removeClass('on');
-                    return;
-                }
-            } else {
-                var html = [
-                    '<div id="' + id + '" class="article-share-box">',
-                        '<input class="article-share-input" value="' + url + '">',
-                        '<div class="article-share-links">',
-                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
-                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
-                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
-                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
-                        '</div>',
-                    '</div>'
-                ].join('');
-
-              box = $(html);
-
-              $('body').append(box);
-            }
-
-            $('.article-share-box.on').hide();
-
-            box.css({
-                top: offset.top + 25,
-                left: offset.left
-            }).addClass('on');
-
-        }).on('click', '.article-share-box', function (e) {
-            e.stopPropagation();
-        }).on('click', '.article-share-box-input', function () {
-            $(this).select();
-        }).on('click', '.article-share-box-link', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
-        });
-    })(jQuery);
-</script>
-
-            
-    
-
-        </footer>
-    </div>
-    
-</article>
-
-
-
-    <article id="post-《暗时间》摘要一" class="article article-type-post" itemscope="" itemprop="blogPost">
-    <div class="article-inner">
-        
-        
-            <header class="article-header">
-                
-    
-        <h1 itemprop="name">
-            <a class="article-title" href="/article/b3904609/">《暗时间》摘要一</a>
-        </h1>
-    
-
-                
-                    <div class="article-meta">
-                        
-    <div class="article-date">
-        <i class="fa fa-calendar"></i>
-        <a href="/article/b3904609/">
-            <time datetime="2017-02-09T13:58:10.000Z" itemprop="datePublished">2017-02-09</time>
-        </a>
-    </div>
-
-
-                        
-    <div class="article-category">
-    	<i class="fa fa-folder"></i>
-        <a class="article-category-link" href="/categories/读书笔记/">读书笔记</a>
-    </div>
-
-                        
-    <div class="article-tag">
-        <i class="fa fa-tag"></i>
-        <a class="tag-link" href="/tags/思维/">思维</a>
-    </div>
-
-                    </div>
-                
-            </header>
-        
-        
-        <div class="article-entry" itemprop="articleBody">
-        
-            
-            <p>&emsp;我阅读刘未鹏学长的博客文章已经很长时间了，今年过年前买了这本《暗时间》，希望能够充分的理解和学习他思维相关的知识和见解。我在去年也读过了一些书籍，但是都是匆匆阅读，很少有思考和反思；不能光读书，还要进行必要的思考，否则只是海绵型的学习模型，以后要做读书笔记和读后感。</p>
-<h3 id="理智和情感"><a href="#理智和情感" class="headerlink" title="理智和情感"></a>理智和情感</h3><p>&emsp;这一章主要介绍了“一脑还是两脑”的问题。总所众知，我们的大脑分为左右两个半脑，不同的半脑的不同区域我们身体的不同部位。那么我们的思维是否也是如此？当我们进行思考或者做出决策时，这些大脑活动都来自于同一个区域吗？<br>&emsp;作者在本章的开始列举了很多因为大脑特定区域受伤而导致失去自控力和行为能力的例子，来证明我们大脑思维的分区域处理。作者将其分为情绪思维和理性思维。不同的大脑皮层区域负责二者，这些区域形成的时间不同。管理情绪思维的大脑皮层几乎从动物时代就存在了，但是理性思维的大脑皮层则是很晚才进化而来的。所以，理性思维区域要弱于情绪思维区域，这就导致了</p>
-<blockquote>
-<p>只要我们的情绪大脑首先认定了一件事情，我们那点可怜的理性思维便很容易屈从于情绪大脑发下的命令——把事情往利于自己的方向解释</p>
-</blockquote>
-<p>&emsp;细细想来，这使得生活中很多事情都得以解释。比如说，当人们为了一件事情付出了金钱，社会关系，很多很多以后，这些既有的付出便对他们的思维产生越来越强大的影响，我们的思维会被迫为自己的行为做出合理的解释，这也是为什么一些被骗钱的老年人会一次有一次的打给骗子越来越多的钱。在文章中，刘将其总结为</p>
-<blockquote>
-<p>只要一种解释是对自己有利的，我们便不想去推敲和反驳，再漏洞百出的事情看上去也不无可能，而且只要一种解释是有可能的，我们就认定其一定是的，强大的情绪大脑会阻止理性大脑去往深入了想。而对于对自己不利的解释，我们或者忽略，或者则会异常仔细去推敲，抓住一个漏洞则相信已完全推翻了该解释。</p>
-<p>社会心理学研究发现，我们会对那些对自己有利的证据不加细查，而对那些对自己不利的证据则死抠烂打揪住一点小辫子就不放；同样，我们还会倾向于勤劳收集有利证据，并忽视不利证据。事实是，当我们内心的天平早已经倾斜了之后，看来荒谬无比的理由也变得光辉灿烂，别人很有道理的反驳也能被抠出“致命”漏洞。</p>
-</blockquote>
-<p>&emsp;文章的后半部分是关于如何克服这种人类心理的先天漏斗的和习惯的。大脑都是用进废退的，越经常使用的区域会越来越强大。如果你总是用情绪用事，不假思索，那么这种思维习惯便会越来强大，如果你总是理性思考，那么这样的思维习惯也会越来越强大。作者还提到了对于习惯的一些思考。</p>
-<blockquote>
-<p>惯之所以难以改变，就是因为习惯是自我巩固的，越用越强，越强越用。要想从既有习惯中跳出来，必然要依赖于外界的力量——对于心理机制的知识</p>
-<p>能够改变既有的习惯，依靠的不是自制力，而是知识</p>
-<p>很多时候我们无法自制是因为情绪大脑并不知道也并不承认这件事情是错误的。举个最稀松平常的例子，去学习还是去玩游戏（并不是提倡不玩游戏，这里只是说在你希望自己能够不玩游戏做点别的事情的那些时候，你能够成功地实现自己的愿望而不是纠结半天并败下阵来。），理智上我们倾向于认为学习是件“好”事情，游戏则常常是件“不好”的事情，然而情感上，我们认为学习是痛苦的，游戏是开心的。而开心的的确确就是一件好事情，痛苦就是一件不好的事情。两个大脑模块的声音完全相反。如果你无法说服你的情绪大脑，那么所谓的自制就是强迫和纠结，天人交战，正如前文所说，最后败下阵来的也往往是理性大脑</p>
-</blockquote>
-<p>&emsp;习惯的养成单靠自制力确实很难。关于例子，我想到了自己以前尝试早起的事情。每次想要早起的头一天晚上，我都下定决心明天要早起，但是一旦到了该起床的时间，我竟然总是可以找出理由来说服自己不需要早起，这个例子也和作者提出的玩游戏的例子很象，就是情绪大脑战胜了理性大脑。</p>
-<h3 id="一直以来伴随我的一些学习习惯"><a href="#一直以来伴随我的一些学习习惯" class="headerlink" title="一直以来伴随我的一些学习习惯"></a>一直以来伴随我的一些学习习惯</h3><p>&emsp;作者列举了一些自己的学习习惯，很多都很重要，但是我只列出对我感触最大的几条，再加上自己的思考。</p>
-<blockquote>
-<p>看书只看经典，不解释。</p>
-<p>做读书笔记，一是将自己阅读的时候的思考总结下来，二是将书中好的例子摘抄下来。我认为，人和人学习的差距不在资质上，而是在花在思考的时间和思考的广度。</p>
-</blockquote>
-<p>&emsp;做读书笔记其实只是形式，重要的总结和回顾！现在是信息时代，人们每天得到的信息量很大很大，我们要学会总结，在总结过程中思考，将别人的知识转换为自己的见解。而回顾则是为了更好的思考，所谓温故而知新就是这个道理。</p>
-<blockquote>
-<p>提到思考，我有一个小习惯。利用走路和吃饭的时候思考。这样一来往往不知不觉中多出大量的思考时间。</p>
-</blockquote>
-<p>&emsp;利用小片时间，很多文章中都有，这些都不提，我想要说的是，人们有些时候不去做一些事情，不是因为他不想做，而是因为他们根本没有想到可以做这些事情。回想自己的走路和吃饭时候，不过我还是喜欢吃饭就是吃饭，走路就是走路，想那么多，万一吃了墨怎么办？</p>
-<blockquote>
-<p>学习一项知识，必须要问自己三个重要的问题：1它的本质是什么？2它的第一原则是什么?3它的知识结构是什么？</p>
-<p>关于习惯的养成，必须要说明的：经常看到有些人评论说，说说容易，做起来哪有那么容易啊（另一个无关习惯的“说起来容易做起来难”则是因为纸上谈兵不可能算计到所有现实中的因素，但那是另一个问题）。对此我要说的是，做起来当然不容易，所谓江山易改，本性难移。人的性格和认识事物的框架是长期积累养成的，并且人们非常珍视自己的信念（英语里面表达不相信某个东西叫做“I don’t buy it”）。从进化心理学上这是有依据的，一个经过时间检验的信念往往是更靠谱的。只不过可惜的是靠谱不代表最佳，一个信念能让你活下来并不代表能让你活得最好（详见<a href="http://www.douban.com/subject/1128662/" target="_blank" rel="noopener">《Mene Genes》</a>，更多的例子参见<a href="http://www.douban.com/subject/2383735/" target="_blank" rel="noopener">《How we know what isn’t so》</a>）。我们评判一个信念的标准是<a href="http://en.wikipedia.org/wiki/Satisficing" target="_blank" rel="noopener">satisficing</a>原则（即足够，能行就好，这个术语不是我提的，是大牛<a href="http://en.wikipedia.org/wiki/Herbert_A._Simon" target="_blank" rel="noopener">Herbert Simon</a>提的），并不是optimizing原则。话说回来，为什么说起来容易做起来难，是因为“说”只是理性上承认正确，并没有考虑到我们每个人大脑中居住的那个非理性自我。这个<a href="http://www.douban.com/subject/1193622/" target="_blank" rel="noopener">自我</a>以强大的情绪力量为动机，以习惯为己任，每时每刻都<a href="http://www.douban.com/subject/2990015/" target="_blank" rel="noopener">驱使着</a>我们的行为。因为它掌握了“情绪”这个武器，所以我们只能时时拿它当大爷。不记得是哪位哲学家说的了，理性是感性的奴隶。那么，是不是就是说无法克服既有习惯了？以我的经验（以及观察到的别人的经验），还是可以的。第一条就是认识到习惯的改变绝不是一天两天的事情，承认它的难度。第二条就是如果你真想改掉习惯，就需要在过程中常常注意观察自己的行为，否则习惯会以一种你根本觉察不到的方式左右你的行为让你功亏一篑。有一个认知技巧也许可以缓解更改习惯过程中的不适：即把居住在内心的那个非理性自我当成你自己的孩子（你要去培养他），或者你的对手（你要去打败他）也行。总之不能当成自己，因为每个人都不想改变自己。这里转一个认知技巧的例子：李笑来老师在<a href="http://www.xiaolai.net/?p=484" target="_blank" rel="noopener">《把时间当作朋友》</a>（顺便也推荐这本开放电子书）中<a href="http://www.xiaolai.net/?p=463" target="_blank" rel="noopener">提到</a>他一个朋友用另一个认知技巧来克服背单词的枯燥的</p>
-</blockquote>
-
-        
-        </div>
-        <footer class="article-footer">
-            <div class="share-container">
-
-
-
-</div>
-
-    <a data-url="http://remcarpediem.net/article/b3904609/" data-id="ck9obstjj005j47se82q8lu2a" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/eca06a79/" data-id="cka150s1d00652jsexczw0af3" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2538,6 +2711,25 @@ public class DataListPresenter implements DataContract.DataListPresenter {
                     <li>
                         
                         <!-- <div class="item-thumbnail">
+                            <a href="/article/e3e7a535/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/e3e7a535/" class="title">带你100% 地了解 Redis 6.0 的客户端缓存</a></p>
+                            <p class="item-date"><time datetime="2020-05-10T14:04:45.000Z" itemprop="datePublished">2020-05-10</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
                             <a href="/article/a94bd30a/" class="thumbnail">
     
     
@@ -2611,25 +2803,6 @@ public class DataListPresenter implements DataContract.DataListPresenter {
                         </div>
                     </li>
                 
-                    <li>
-                        
-                        <!-- <div class="item-thumbnail">
-                            <a href="/article/1dd72ef8/" class="thumbnail">
-    
-    
-        <span class="thumbnail-image thumbnail-none"></span>
-    
-</a>
-
-                        </div> -->
-                        
-                        <div class="item-inner">
-                            <p class="item-category"><a class="article-category-link" href="/categories/Redis/">Redis</a></p>
-                            <p class="item-title"><a href="/article/1dd72ef8/" class="title">Redis 命令执行过程(下)</a></p>
-                            <p class="item-date"><time datetime="2019-12-11T15:09:14.000Z" itemprop="datePublished">2019-12-11</time></p>
-                        </div>
-                    </li>
-                
             </ul>
         </div>
     </div>
@@ -2648,7 +2821,7 @@ public class DataListPresenter implements DataContract.DataListPresenter {
     <div class="widget-wrap">
         <h3 class="widget-title">archives</h3>
         <div class="widget">
-            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
         </div>
     </div>
 
@@ -2657,7 +2830,7 @@ public class DataListPresenter implements DataContract.DataListPresenter {
     <div class="widget-wrap">
         <h3 class="widget-title">tag cloud</h3>
         <div class="widget tagcloud">
-            <a href="/tags/AOP/" style="font-size: 15px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 20px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/MySQL/" style="font-size: 10px;">MySQL</a> <a href="/tags/Netty/" style="font-size: 20px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 15px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 15px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 20px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 15px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/persistent/" style="font-size: 15px;">persistent</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 15px;">第三方库</a> <a href="/tags/算法/" style="font-size: 20px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 15px;">限流</a>
+            <a href="/tags/AOP/" style="font-size: 15px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 20px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/MySQL/" style="font-size: 10px;">MySQL</a> <a href="/tags/Netty/" style="font-size: 20px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/Redis/" style="font-size: 10px;">Redis</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 15px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 15px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 20px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 15px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/persistent/" style="font-size: 15px;">persistent</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 15px;">第三方库</a> <a href="/tags/算法/" style="font-size: 20px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 15px;">限流</a>
         </div>
     </div>
 
