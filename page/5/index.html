@@ -90,7 +90,7 @@ var _hmt = _hmt || [];
             <div id="search-form-wrap">
 
     <form class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
         <button type="submit" class="search-form-submit"></button>
     </form>
     <div class="ins-search">
@@ -109,10 +109,10 @@ var _hmt = _hmt || [];
 (function (window) {
     var INSIGHT_CONFIG = {
         TRANSLATION: {
-            POSTS: 'Entradas',
+            POSTS: 'Posts',
             PAGES: 'Pages',
-            CATEGORIES: 'Categorias',
-            TAGS: 'Etiquetas',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
             UNTITLED: '(Untitled)',
         },
         ROOT_URL: '/',
@@ -145,7 +145,7 @@ var _hmt = _hmt || [];
                 <td>
                     
     <div class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
     </div>
 
                 </td>
@@ -170,12 +170,12 @@ var _hmt = _hmt || [];
         </div>
         <div class="article-info profile-block">
             <div class="article-info-block">
-                92
-                <span>Entradas</span>
+                93
+                <span>posts</span>
             </div>
             <div class="article-info-block">
                 63
-                <span>Etiquetas</span>
+                <span>tags</span>
             </div>
         </div>
         
@@ -211,6 +211,185 @@ var _hmt = _hmt || [];
 
             
             <section id="main">
+    <article id="post-Docker系列之Jenkins自动化部署" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+        
+            <header class="article-header">
+                
+    
+        <h1 itemprop="name">
+            <a class="article-title" href="/article/b4f6f76f/">Docker系列之Jenkins自动化部署</a>
+        </h1>
+    
+
+                
+                    <div class="article-meta">
+                        
+    <div class="article-date">
+        <i class="fa fa-calendar"></i>
+        <a href="/article/b4f6f76f/">
+            <time datetime="2017-07-02T13:23:35.000Z" itemprop="datePublished">2017-07-02</time>
+        </a>
+    </div>
+
+
+                        
+    <div class="article-category">
+    	<i class="fa fa-folder"></i>
+        <a class="article-category-link" href="/categories/docker/">docker</a>
+    </div>
+
+                        
+    <div class="article-tag">
+        <i class="fa fa-tag"></i>
+        <a class="tag-link" href="/tags/Docker/">Docker</a>, <a class="tag-link" href="/tags/Jenkins/">Jenkins</a>
+    </div>
+
+                    </div>
+                
+            </header>
+        
+        
+        <div class="article-entry" itemprop="articleBody">
+        
+            
+            <p> Devops的概念已经火了很久了，我一直想对这方面进行一定的了解；再加上实验室项目环境依赖比较复杂，希望使用Docker来解决，所以最近就好好研究了一波Docker的相关实践和原理。这里整理一下，希望组成一个系列，从实践到原理详细讲解一下Docker的使用。<br> 第一篇就讲一下Jenkins+Docker的自动化部署实践。大致的流程如下：目前我有两个服务器，分别是阿里云和bandwagon,代码存储在github上，每次push都会触发阿里云上的jenkins的构建任务，jenkins将github上的代码fetch到本地，编译打包成war文件，生成docker image并上传到docker registry上，然后通过ssh来登录bandwagon服务器pull下来新生成的image并启动。由于篇幅问题，本篇文章不会介绍有关docker image的build和docker registry的搭建，但是我会在后续文章中再做详细讲解。<br> 学习Docker，我推荐先在网络上找说明指南，一步一步自己尝试的使用，然后如果觉得有必要可以看一下《Docker容器和容器云》这本书。<br> 本文内容都是docker和jenkins的基础知识，为了节约你的时间，本文的主要内容如下：</p>
+<ul>
+<li>docker 基础命令</li>
+<li>jenkins docker版本的搭建，构建任务的配置</li>
+<li>Pubish Over SSH 安装和配置</li>
+<li>通过github的webhook来触发jenkins构建任务</li>
+</ul>
+<h4 id="Docker运行jenkins"><a href="#Docker运行jenkins" class="headerlink" title="Docker运行jenkins"></a>Docker运行jenkins</h4><p> Docker如此火爆的一个原因是因为它形成了一个良好的生态圈，基本上主流的软件应用都有相应的Docker image。如果大家不清楚Docker image的含义，建议大家看一下<a href="https://www.gitbook.com/book/richardhc/chinese_docker/details" target="_blank" rel="noopener">Docker中文指南</a>，我们可以通过<code>docker pull</code>命令来下载响应的image,然后运行。比如我们希望在阿里云服务器上部署一个jenkins应用，首先可以执行下列语句来获取一个jenkins的image。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">docker pull jenkinsci&#x2F;jenkins:lts
+</code></pre></p>
+<p> 这里我们使用pull从docker registry上拉取image,但是目前业界上有很多共有或在私有的docker registry,比如说docker hub和daoCloud。所以image的全称就由三部分组成:域名或在ip + / + 软件名称 + : + 版本号，所以上边的这条命令就是让docker去jenkinsci这个Jenkins机构自己部署的registry上下载jenkins的lts版本的image.你也可以直接使用<code>docker pull jenkins</code>来下载image,但docker会默认的从docker hub上下载jenkins的laster版本。</p>
+<p> 下载成功之后，你可以使用<code>docker images</code>命令来查看当前下载的image信息</p>
+<p> 你可以通过<code>docker run</code>命令来运行docker容器，请注意我这里的用词，在Docker中image和container是不同的概念，你可以将他们简单的理解成Java中类和对象的关系。我们使用下面的命令来启动这个jenkins容器。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">sudo docker run -d --name jenkins -p 9090:8080 -v &#x2F;var&#x2F;jenkins_home:&#x2F;var&#x2F;jenkins_home jenkinsci&#x2F;jenkins:lts
+</code></pre></p>
+<p> 我们来依次讲解一下run命令的几个参数把：</p>
+<ul>
+<li><p><code>-d</code> 后台运行docker容器并打印容器ID。如果不加<code>-d</code>参数，那么容器运行会和终端绑定，如果终端关闭，那么容器也会关闭，但是容器不会被删除。但是如果你只是想试一试某个容器，运行后自动进入命令行，那么可以使用-it参数;如果你想容器关闭之后自动删除，那么就使用-rm参数。</p>
+</li>
+<li><p><code>--name</code> 给docker container起一个别名，后续可以通过别名来管理容器，否在会系统会默认分配一个随机的别名。</p>
+</li>
+<li><p><code>-p</code> docker容器和外侧的端口映射，jenkins服务是运行在docker容器内部的，但是docker容器默认不对外暴露接口，所以通过这个参数将内部的8080端口映射到服务器本身的9090端口上。</p>
+</li>
+<li><p><code>-v</code> 数据卷的挂载。这里涉及到docker container的一个特性，container如果停止运行了，那么再次启动时，之前所有运行相关的数据和文件就都不存在了，就类似于设置了自动还原的电脑一般，无论你做了多少的操作，一旦关机重启之后就又恢复到最初的状态。数据卷就是来解决上述问题的，通过Docker container外部的文件夹的挂载，将可持久化的文件存储到外部挂载的文件夹中。</p>
+</li>
+</ul>
+<p> 然后你就可以根据你自己的ip地址来键入下列地址http:ip:9090来访问jenkins的主页了。<br>&emsp;这里有一点需要注意的是，需要注意你阿里云服务器设置的网络安全协议，是否禁用掉了9090这个端口。</p>
+<h4 id="Publish-over-SSH配置"><a href="#Publish-over-SSH配置" class="headerlink" title="Publish over SSH配置"></a>Publish over SSH配置</h4><p>&emsp;Jenkins的初始化配置和SSH Over Publish的安装请大家自行百度，这里我主要讲解一下SSH Over Pushlish配置。<br>&emsp;首先我们要在jenkins服务器上生成密钥对，使用<code>ssh-keygen -t rsa</code>命令来生成秘密对，这样的话，在~/.ssh/下就会有私钥id_rsa和公钥id_rsa.pub。<br>&emsp;然后你需要上传公钥到目标服务器上，也就是我的bandwagon服务器上，可以使用<code>ssh-copy-id</code>来将文件上传到服务器上，类似于<code>scp</code>命令的使用方式。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">ssh-copy-id -i ~&#x2F;.ssh&#x2F;id_rsa.pub &lt;username&gt;@&lt;host&gt;
+</code></pre></p>
+<p>&emsp;最后我们需要修改目标服务器的ssh配置文件，配置文件为/etc/ssh/sshd_config。设置ssh-server允许使用私钥和公钥对的方式登录，然后使用<code>sudo /etc/init.d/ssh restart</code>命令重启ssh服务。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">RSAAuthentication yes
+PubkeyAuthentication yes
+#AuthorizedKeysFile     %h&#x2F;.ssh&#x2F;authorized_keys
+</code></pre></p>
+<p>&emsp;上述步骤成功之后，大家在系统管理中配置Publish over SSH。相关的配置信息如下图所示。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201772-docker-jenkins1.png" alt="jenkins1.png"></p>
+<p>&emsp;你还可以点击下方的高级选项，来配置ssh服务器的端口，超时时间等信息，还可以点击Test Configuration来检测是否配置成功。</p>
+<h4 id="构建任务配置"><a href="#构建任务配置" class="headerlink" title="构建任务配置"></a>构建任务配置</h4><p>&emsp;我们先创建一个构建任务，该任务从github repo上将代码拉取下来，然后执行构建任务，然后通过Publish Over SSH在目标服务器上进行部署。<br>&emsp;我们首先配置源码管理模块，选择Git选项，然后配置Repository URL 并添加认证信息。可以将自己的github帐号和密码加入其中。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201772-docker-jenkins2.png" alt="jenkins2.png"></p>
+<p>&emsp;不同的项目的构建命令不同，但是我们可以在构建后操作模块设置后续操作，通过ssh登录目标服务器，让目标服务器执行命令行操作来pull最新上传的image并且执行，这样就完成了部署。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/201772-docker-jenkins3.png" alt="jenkins3.png"></p>
+<h4 id="Push触发构建任务"><a href="#Push触发构建任务" class="headerlink" title="Push触发构建任务"></a>Push触发构建任务</h4><p>&emsp;完成上述配置，你就可以手动在jenkins上启动构架任务了，但是要做到自动化部署，还必须设置Push操作自动触发jenkins构建任务的机制。<br>&emsp;我们先到首页-用户管理界面打开自己的用户界面，然后点击左侧的设置按钮，并点击<code>show API token</code>按钮来获取API token.然后在构建任务设置页面的构建触发器模块勾选触发远程构建选项，并将token填到里边去。这是jenkins会提示你如何通过URL来触发构建任务。<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/201772-docker-jenkins5.png" alt="jenkins5.png"></p>
+<p>&emsp;然后我们打开github上相应库的设置页面。点击左侧的Webhooks选项，然后添加hook.将上述的url填写到Payload URL栏中，点击添加。如果添加成功之后，每次你push一个新版本，那么jenkins就会自动进行部署了。<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/201772-docker-jenkins6.png" alt="jenkins6.png"></p>
+<p>&emsp;如果你发现webhooks发送请求失败，那可能是因为你jenkins安全设置的问题，禁止掉了发送请求自动化构建。</p>
+<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;本篇讲的都是十分基础性的内容，后一篇文章讲一下dockerfile的原理和注意事项与docker registry。</p>
+
+        
+        </div>
+        <footer class="article-footer">
+            <div class="share-container">
+
+
+
+</div>
+
+    <a data-url="http://remcarpediem.net/article/b4f6f76f/" data-id="ckao1h4dn001j97sehswnv2k2" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+<script>
+    (function ($) {
+        // Prevent duplicate binding
+        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
+            __SHARE_BUTTON_BINDED__ = true;
+        } else {
+            return;
+        }
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+            
+    
+
+        </footer>
+    </div>
+    
+</article>
+
+
+
     <article id="post-《多处理器编程艺术》－链表：锁的作用" class="article article-type-post" itemscope="" itemprop="blogPost">
     <div class="article-inner">
         
@@ -468,7 +647,7 @@ class Node {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/56d732a0/" data-id="cka2hxto5005h7ssee7261gso" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/56d732a0/" data-id="ckao1h4go005f97se1h7tz13o" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -654,7 +833,7 @@ class Node {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/904b40bc/" data-id="cka2hxtao00017sse39dveonb" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/904b40bc/" data-id="ckao1h4cg000797sehpbyokmp" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -968,7 +1147,7 @@ final boolean transferForSignal(Node node) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/815f6f66/" data-id="cka2hxtde001c7ssel4db4jle" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/815f6f66/" data-id="ckao1h4dj001b97se2oev8aur" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1216,7 +1395,7 @@ final boolean transferForSignal(Node node) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/d29e90d8/" data-id="cka2hxtev002b7ssefwb8eu4h" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/d29e90d8/" data-id="ckao1h4dy001x97se4fc0d1hr" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1378,7 +1557,7 @@ final boolean transferForSignal(Node node) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/5635585c/" data-id="cka2hxtqo00667ssessv2x9lb" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/5635585c/" data-id="ckao1h4h8006797sekbp5adrk" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1720,7 +1899,7 @@ private final boolean parkAndCheckInterrupt() {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/d2edd1b8/" data-id="cka2hxtb6000d7ssesfy4w8ce" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/d2edd1b8/" data-id="ckao1h4cs000c97segzu3oe1y" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2017,7 +2196,7 @@ public Set&lt;SelectionKey&gt; selectedKeys() {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/dbc01bc2/" data-id="cka2hxtfo002v7ssegx64370i" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/dbc01bc2/" data-id="ckao1h4eh002v97segy1wqpft" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2171,7 +2350,7 @@ ServerBootstrap b = new ServerBootstrap();
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/815dc153/" data-id="cka2hxtfh002s7ssegqqc600s" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/815dc153/" data-id="ckao1h4ei002z97sey77tlxki" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2379,246 +2558,7 @@ ServerBootstrap b = new ServerBootstrap();
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/bf1a30e4/" data-id="cka2hxtf9002p7sselcm8bd9m" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
-<script>
-    (function ($) {
-        // Prevent duplicate binding
-        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
-            __SHARE_BUTTON_BINDED__ = true;
-        } else {
-            return;
-        }
-        $('body').on('click', function() {
-            $('.article-share-box.on').removeClass('on');
-        }).on('click', '.article-share-link', function(e) {
-            e.stopPropagation();
-
-            var $this = $(this),
-                url = $this.attr('data-url'),
-                encodedUrl = encodeURIComponent(url),
-                id = 'article-share-box-' + $this.attr('data-id'),
-                offset = $this.offset(),
-                box;
-
-            if ($('#' + id).length) {
-                box = $('#' + id);
-
-                if (box.hasClass('on')){
-                    box.removeClass('on');
-                    return;
-                }
-            } else {
-                var html = [
-                    '<div id="' + id + '" class="article-share-box">',
-                        '<input class="article-share-input" value="' + url + '">',
-                        '<div class="article-share-links">',
-                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
-                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
-                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
-                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
-                        '</div>',
-                    '</div>'
-                ].join('');
-
-              box = $(html);
-
-              $('body').append(box);
-            }
-
-            $('.article-share-box.on').hide();
-
-            box.css({
-                top: offset.top + 25,
-                left: offset.left
-            }).addClass('on');
-
-        }).on('click', '.article-share-box', function (e) {
-            e.stopPropagation();
-        }).on('click', '.article-share-box-input', function () {
-            $(this).select();
-        }).on('click', '.article-share-box-link', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
-        });
-    })(jQuery);
-</script>
-
-            
-    
-
-        </footer>
-    </div>
-    
-</article>
-
-
-
-    <article id="post-关于Android-MVP模式的思考" class="article article-type-post" itemscope="" itemprop="blogPost">
-    <div class="article-inner">
-        
-        
-            <header class="article-header">
-                
-    
-        <h1 itemprop="name">
-            <a class="article-title" href="/article/eca06a79/">关于Android MVP模式的思考</a>
-        </h1>
-    
-
-                
-                    <div class="article-meta">
-                        
-    <div class="article-date">
-        <i class="fa fa-calendar"></i>
-        <a href="/article/eca06a79/">
-            <time datetime="2017-03-12T09:09:22.000Z" itemprop="datePublished">2017-03-12</time>
-        </a>
-    </div>
-
-
-                        
-    <div class="article-category">
-    	<i class="fa fa-folder"></i>
-        <a class="article-category-link" href="/categories/Android/">Android</a>
-    </div>
-
-                        
-    <div class="article-tag">
-        <i class="fa fa-tag"></i>
-        <a class="tag-link" href="/tags/框架/">框架</a>
-    </div>
-
-                    </div>
-                
-            </header>
-        
-        
-        <div class="article-entry" itemprop="articleBody">
-        
-            
-            <p> 这一周对现有的Android项目进行了框架重构，使用MVP模式来重新构建整个项目和包结构。今天就来总结一下我在这个过程中理解和实践吧。</p>
-<h3 id="MVP概述"><a href="#MVP概述" class="headerlink" title="MVP概述"></a>MVP概述</h3><p> MVP是指Model，View和Presenter的缩写，是MVC模式的一种改进版。MVP是一种非常适合Android应用的开发模式，它<strong>将把逻辑相关代码从presentation Layer中分离出去</strong>，所以，所有界面应该显示什么和界面如何显示这些是相互分离的，  在理想状态下，MVP模式可以随意切换视图显示的形式。<br> 但是，需要首先声明的是，MVP并不是<strong>一个框架模式</strong>，它只负责presentation Layer。在Android项目中，还可能存在Domain Layer和Data Layer，它们分别负责业务逻辑和数据存储。关于三个layer的讨论，可以查看<a href="https://github.com/android10/Android-CleanArchitecture" target="_blank" rel="noopener">clear Architecture</a>。</p>
-<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017312-mvp-mvp.png" alt="mvp.png"></p>
-<h4 id="The-presenter"><a href="#The-presenter" class="headerlink" title="The presenter"></a>The presenter</h4><p> The presenter充当的是view和model模块中间人的角色。它从model模块获得数据并发送给view模块。<strong>但是不同于MVC，presenter模块也决定用户和界面交互时界面如何响应</strong>。</p>
-<h4 id="The-View"><a href="#The-View" class="headerlink" title="The View"></a>The View</h4><p> View模块，一般由Activity或者Fragment实现，每个View实例一般都包含一个presenter实例的引用，并负责实例化presenter。理想情况下，你可以使用dagger来实现依赖注入。view的任务就是当用户操作界面时，调用presenter实例的功能来进行响应。</p>
-<h4 id="The-Model"><a href="#The-Model" class="headerlink" title="The Model"></a>The Model</h4><p> 在设计良好的分层架构中，model应该只是domain layer和业务逻辑的入口，比如说，<a href="http://blog.8thlight.com/uncle-bob/2012/08/13/the-clean-architecture.html" target="_blank" rel="noopener">clear architecture</a>。但是你也可以把所有界面显示无关的逻辑都作为model。</p>
-<h3 id="MVP示例"><a href="#MVP示例" class="headerlink" title="MVP示例"></a>MVP示例</h3><p> 关于MVP架构的实例有很多，比如<a href="https://github.com/googlesamples/android-architecture" target="_blank" rel="noopener">google官方架构</a>。这里我就给出一下我重构项目一个模块的类图，然后大致说一下实现。</p>
-<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017312-mvp-webwxgetmsgimg.jpg" alt="webwxgetmsgimg.jpg"></p>
-<p>&emsp;首先定义了<code>BaseView</code>和<code>BasePresenter</code>两个接口，实现了<code>BaseActivity</code>和<code>BaseFragment</code>两个基础类。需要注意的是，因为每个View都需要持有一个特定类型的presenter对象，所以，在<code>BaseView</code>定义时，使用了范型。除此之外，你可以在<code>initPresenter</code>函数中构造出所需要的presenter对象。<code>showLoading</code>和<code>stopLoading</code>函数是所有视图进行网络数据加载时所需要的方法，其具体使用场景后边可以看到，这里这两个接口是在<code>BaseActivity</code>中实现的。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">public interface BaseView&lt;T&gt; {
-    void showLoading();
-    void stopLoading();
-    void initPresnter();
-    T getPresenter();
-}
-
-public interface BasePresenter {
-
-}
-
-public class BaseActivity extends Activity{
-    public void showLoading() {
-    }
-
-    public void stopLoading() {
-    }
-}
-
-public class BaseFragment extends Fragment {
-    public void showLoading() {
-
-    }
-
-    public void stopLoading() {
-
-    }
-}
-</code></pre>
-<p>&emsp;然后是data模块中的相关类和接口的定义。我们在<code>DataContract</code>接口中定义所有相关的view和data。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">public interface DataContract {
-    interface DataView extends BaseView&lt;DataPresenter&gt; {
-        void showFragment(BaseFragment fragment);
-    }
-    interface DataPresenter extends BasePresenter {
-        void switchToDataList();
-        void switchToDataTree();
-    }
-    interface DataListView extends BaseView&lt;DataListPresenter&gt; {
-        void showDataList(List&lt;String&gt; data);
-    }
-    interface DataListPresenter extends BasePresenter {
-        void loadDataList();
-    }
-    interface DataTreeView extends BaseView&lt;DataTreePresenter&gt; {}
-    interface DataTreePresenter extends BasePresenter {}
-}
-</code></pre></p>
-<p>&emsp;在<code>DataContract</code>接口中，我们可以清晰的看到这个模块中所有的view和presenter类型和他们的接口。这样无疑可以帮助其他程序员快速了解本模块的业务逻辑。下面，我们来看一下<code>DataListFragmnet</code>和<code>DataListPresenter</code>的实现。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">public class DataListFragment extends BaseFragment implements DataContract.DataListView {
-    private DataContract.DataListPresenter mPresenter;
-    @Override
-    public void initPresnter() {
-        mPresenter = new DataListPresenter(this);
-    }
-    @Override
-    public DataContract.DataListPresenter getPresenter() {
-        return mPresenter;
-    }
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        initPresnter();
-        &#x2F;&#x2F;需要加载数据或者接收到界面点击事件时，调用presenter接口进行初始化或者响应。
-        mPresenter.loadDataList();
-    }
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_data_list, container, false);
-    }
-    @Override
-    public void showDataList(List&lt;String&gt; data) {
-        &#x2F;&#x2F;将数据传给adapter等数据展示的视图
-    }
-}
-
-public class DataListPresenter implements DataContract.DataListPresenter {
-    private DataContract.DataListView mView;
-    public DataListPresenter(DataContract.DataListView view) {
-        super();
-        this.mView = view;
-    }
-
-    @Override
-    public void loadDataList() {
-        &#x2F;&#x2F;调用baseview的接口，这些接口实现在baseFragment或者BaseActivity中
-        mView.showLoading();
-        &#x2F;&#x2F;getdata from network
-        mView.stopLoading();
-        mView.showDataList(Arrays.asList(&quot;a&quot;,&quot;b&quot;,&quot;c&quot;));
-    }
-}
-</code></pre>
-<p>&emsp;上述代码中有很多可以好好思考的地方。首先是<code>showLoading</code>和<code>stopLoading</code>这两个函数。这两个函数接口定义在<code>BaseView</code>,实现在<code>BaseFragment</code>，所以当<code>DataListFragment</code>继承了<code>BaseFragment</code>并且实现了<code>BaseView</code>时，它并不需要再次定义上述两个接口，毕竟在一个app中，网络加载时的laoding动画一般都是一致的。然后是view和presenter之间函数调用的问题。首先，view在需要初始化或者需要处理点击事件时，需要调用presenter的函数，而不是自己来进行处理。而且二者之间的数据传递必须是presenter调用view的接口传递给view数据，而不是view调用presenter接口获得数据然后自己展示。</p>
-<h3 id="MVP实践中的问题和思考"><a href="#MVP实践中的问题和思考" class="headerlink" title="MVP实践中的问题和思考"></a>MVP实践中的问题和思考</h3><p>&emsp;在实现MVP的过程中，我发现有些模块的代码很容易重构为MVP模式，而有些模块的代码却需要花费大量的时间。那些难重构的模块的所有代码都写在了Activity类中，而那些容易重构的模块已经做了逻辑代码和视图代码的分离。可以说，MVP模式不就是将视图和逻辑分离嘛，你不使用MVP模式，也可以按照自己的理解进行良好的设计。但是，当一个团队开发项目时，问题就变得不同了。不同程序员的水平有一定差异，你无法通过他们的水平来确保他们代码都是良好设计的。<strong>你必须通过MVP模式来强制他们去思考如何分离界面和逻辑,否则，他们估计会把所有代码都写在Activity类中</strong>。我认为这是所谓模式和框架的第一层好处，也就是<strong>强迫程序员使用一个种良好的思维方式去思考如何进行代码组织</strong>。<br>&emsp;第二点的思考是，模式其实就是良好的代码思考的结晶，如何写出内聚的函数？如何写入内聚的类？如何让模块之间耦合小？如何命名？很多模式都是对这些问题思考结果的总和。<br>&emsp;如果大家对MVP或者移动开发框架有什么思考，欢迎在文章底下进行评论。</p>
-
-        
-        </div>
-        <footer class="article-footer">
-            <div class="share-container">
-
-
-
-</div>
-
-    <a data-url="http://remcarpediem.net/article/eca06a79/" data-id="cka2hxtpa005y7sse2r5oct7z" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/bf1a30e4/" data-id="ckao1h4ef002s97sef17i6wqt" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2695,7 +2635,7 @@ public class DataListPresenter implements DataContract.DataListPresenter {
 
 
     <nav id="page-nav">
-        <a class="extend prev" rel="prev" href="/page/4/">&laquo; Anterior</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><a class="page-number" href="/page/4/">4</a><span class="page-number current">5</span><a class="page-number" href="/page/6/">6</a><a class="page-number" href="/page/7/">7</a><span class="space">&hellip;</span><a class="page-number" href="/page/10/">10</a><a class="extend next" rel="next" href="/page/6/">Siguiente  &raquo;</a>
+        <a class="extend prev" rel="prev" href="/page/4/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><a class="page-number" href="/page/4/">4</a><span class="page-number current">5</span><a class="page-number" href="/page/6/">6</a><a class="page-number" href="/page/7/">7</a><span class="space">&hellip;</span><a class="page-number" href="/page/10/">10</a><a class="extend next" rel="next" href="/page/6/">Next &raquo;</a>
     </nav>
 </section>
             
@@ -2704,9 +2644,28 @@ public class DataListPresenter implements DataContract.DataListPresenter {
    
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Recientes</h3>
+        <h3 class="widget-title">recent</h3>
         <div class="widget">
             <ul id="recent-post" class="">
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/5a35e6d9/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/5a35e6d9/" class="title">MySQL死锁系列-加锁场景分析</a></p>
+                            <p class="item-date"><time datetime="2020-05-21T14:25:30.000Z" itemprop="datePublished">2020-05-21</time></p>
+                        </div>
+                    </li>
                 
                     <li>
                         
@@ -2784,25 +2743,6 @@ public class DataListPresenter implements DataContract.DataListPresenter {
                         </div>
                     </li>
                 
-                    <li>
-                        
-                        <!-- <div class="item-thumbnail">
-                            <a href="/article/24b8edbf/" class="thumbnail">
-    
-    
-        <span class="thumbnail-image thumbnail-none"></span>
-    
-</a>
-
-                        </div> -->
-                        
-                        <div class="item-inner">
-                            <p class="item-category"><a class="article-category-link" href="/categories/Redis/">Redis</a></p>
-                            <p class="item-title"><a href="/article/24b8edbf/" class="title">Redis Cluster 的数据分片机制</a></p>
-                            <p class="item-date"><time datetime="2019-12-21T13:24:26.000Z" itemprop="datePublished">2019-12-21</time></p>
-                        </div>
-                    </li>
-                
             </ul>
         </div>
     </div>
@@ -2810,7 +2750,7 @@ public class DataListPresenter implements DataContract.DataListPresenter {
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Categorias</h3>
+        <h3 class="widget-title">categories</h3>
         <div class="widget">
             <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">25</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MySQL/">MySQL</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Netty/">Netty</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Redis/">Redis</a><span class="category-list-count">16</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SICP/">SICP</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/docker/">docker</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/java-persistent/">java persistent</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/plan/">plan</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">2</span></li></ul>
         </div>
@@ -2819,25 +2759,25 @@ public class DataListPresenter implements DataContract.DataListPresenter {
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Archivos</h3>
+        <h3 class="widget-title">archives</h3>
         <div class="widget">
-            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
         </div>
     </div>
 
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Nube de etiquetas</h3>
+        <h3 class="widget-title">tag cloud</h3>
         <div class="widget tagcloud">
-            <a href="/tags/AOP/" style="font-size: 15px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 20px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/MySQL/" style="font-size: 10px;">MySQL</a> <a href="/tags/Netty/" style="font-size: 20px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/Redis/" style="font-size: 10px;">Redis</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 15px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 15px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 20px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 15px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/persistent/" style="font-size: 15px;">persistent</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 15px;">第三方库</a> <a href="/tags/算法/" style="font-size: 20px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 15px;">限流</a>
+            <a href="/tags/AOP/" style="font-size: 15px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 20px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/tags/Netty/" style="font-size: 20px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/Redis/" style="font-size: 10px;">Redis</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 15px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 15px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 20px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 15px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/persistent/" style="font-size: 15px;">persistent</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 15px;">第三方库</a> <a href="/tags/算法/" style="font-size: 20px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 15px;">限流</a>
         </div>
     </div>
 
     
         
     <div class="widget-wrap widget-list">
-        <h3 class="widget-title">Links</h3>
+        <h3 class="widget-title">links</h3>
         <div class="widget">
             <ul>
                 

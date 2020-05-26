@@ -3,20 +3,21 @@
 <head><meta name="generator" content="Hexo 3.8.0">
     <meta charset="utf-8">
     
-    <title>[译]使用注解处理器生成代码-3 生成源代码 | 程序员历小冰</title>
+    <title>程序员历小冰</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <meta name="description" content="本博文原文地址摸我 本篇博文是关于使用注解处理器生成java代码系列的第三篇也是最后一篇文章。在第一篇（在这里）中，我们介绍了注解和其一般用法。在第二篇（在这里）中，我们介绍了注解处理器，如何构造并且使用它。 在本篇博文中，我们将想你展示如何使用注解处理器来生成源代码。 简介 生成源代码很简单。生成正确的源代码却很难。优雅高效的去生成正确的代码是很麻烦的任务。 幸运的是，Model-Driver">
-<meta name="keywords" content="注解">
-<meta property="og:type" content="article">
-<meta property="og:title" content="[译]使用注解处理器生成代码-3 生成源代码">
-<meta property="og:url" content="http://remcarpediem.net/article/bc9d3ce1/index.html">
+    <meta name="description" content="如何实现熔断机制：Hystric的使用和原理你好，我是aoho，今天我和你分享的主题是：如何实现熔断机制：Hystric 的使用和原理 在上一篇文章中，我们已经了解了熔断的基本原理和断路器在服务高可用架构中的重要性。相信小伙伴们已经迫不及待地准备在项目中使用断路器保护自己的服务了。自研断路器组件往往费时费力，秉承不能重复造轮子的理念，笔者这里推荐使用 Hystric。  Hystric 简介Hyt">
+<meta property="og:type" content="website">
+<meta property="og:title" content="程序员历小冰">
+<meta property="og:url" content="http://remcarpediem.net/6.2如何实现熔断机制.html">
 <meta property="og:site_name" content="程序员历小冰">
-<meta property="og:description" content="本博文原文地址摸我 本篇博文是关于使用注解处理器生成java代码系列的第三篇也是最后一篇文章。在第一篇（在这里）中，我们介绍了注解和其一般用法。在第二篇（在这里）中，我们介绍了注解处理器，如何构造并且使用它。 在本篇博文中，我们将想你展示如何使用注解处理器来生成源代码。 简介 生成源代码很简单。生成正确的源代码却很难。优雅高效的去生成正确的代码是很麻烦的任务。 幸运的是，Model-Driver">
+<meta property="og:description" content="如何实现熔断机制：Hystric的使用和原理你好，我是aoho，今天我和你分享的主题是：如何实现熔断机制：Hystric 的使用和原理 在上一篇文章中，我们已经了解了熔断的基本原理和断路器在服务高可用架构中的重要性。相信小伙伴们已经迫不及待地准备在项目中使用断路器保护自己的服务了。自研断路器组件往往费时费力，秉承不能重复造轮子的理念，笔者这里推荐使用 Hystric。  Hystric 简介Hyt">
 <meta property="og:locale" content="Chinese">
-<meta property="og:updated_time" content="2019-09-15T15:43:26.000Z">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2020-05-24-hystric.png">
+<meta property="og:updated_time" content="2020-05-25T13:34:01.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="[译]使用注解处理器生成代码-3 生成源代码">
-<meta name="twitter:description" content="本博文原文地址摸我 本篇博文是关于使用注解处理器生成java代码系列的第三篇也是最后一篇文章。在第一篇（在这里）中，我们介绍了注解和其一般用法。在第二篇（在这里）中，我们介绍了注解处理器，如何构造并且使用它。 在本篇博文中，我们将想你展示如何使用注解处理器来生成源代码。 简介 生成源代码很简单。生成正确的源代码却很难。优雅高效的去生成正确的代码是很麻烦的任务。 幸运的是，Model-Driver">
+<meta name="twitter:title" content="程序员历小冰">
+<meta name="twitter:description" content="如何实现熔断机制：Hystric的使用和原理你好，我是aoho，今天我和你分享的主题是：如何实现熔断机制：Hystric 的使用和原理 在上一篇文章中，我们已经了解了熔断的基本原理和断路器在服务高可用架构中的重要性。相信小伙伴们已经迫不及待地准备在项目中使用断路器保护自己的服务了。自研断路器组件往往费时费力，秉承不能重复造轮子的理念，笔者这里推荐使用 Hystric。  Hystric 简介Hyt">
+<meta name="twitter:image" content="http://cdn.remcarpediem.net/2020-05-24-hystric.png">
     
 
     
@@ -215,386 +216,116 @@ var _hmt = _hmt || [];
 </aside>
 
             
-            <section id="main"><article id="post-译-使用注解处理器生成代码-3-生成源代码" class="article article-type-post" itemscope="" itemprop="blogPost">
+            <section id="main"><article id="page-undefined" class="article article-type-page" itemscope="" itemprop="blogPost">
     <div class="article-inner">
         
-        
-            <header class="article-header">
-                
-    
-        <h1 class="article-title" itemprop="name">
-            [译]使用注解处理器生成代码-3 生成源代码
-        </h1>
-    
-
-                
-                    <div class="article-meta">
-                        
-    <div class="article-date">
-        <i class="fa fa-calendar"></i>
-        <a href="/article/bc9d3ce1/">
-            <time datetime="2016-03-07T13:51:20.000Z" itemprop="datePublished">2016-03-07</time>
-        </a>
-    </div>
-
-
-                        
-    <div class="article-category">
-    	<i class="fa fa-folder"></i>
-        <a class="article-category-link" href="/categories/Android/">Android</a>
-    </div>
-
-                        
-    <div class="article-tag">
-        <i class="fa fa-tag"></i>
-        <a class="tag-link" href="/tags/注解/">注解</a>
-    </div>
-
-                    </div>
-                
-            </header>
         
         
         <div class="article-entry" itemprop="articleBody">
         
             
-            <p> 本博文原文地址<a href="https://deors.wordpress.com/2011/10/31/annotation-generators/" target="_blank" rel="noopener">摸我</a><br> 本篇博文是关于使用注解处理器生成java代码系列的第三篇也是最后一篇文章。在第一篇（在<a href="http://www.jianshu.com/p/ed2a755fc053" target="_blank" rel="noopener">这里</a>）中，我们介绍了注解和其一般用法。在第二篇（在<a href="http://www.jianshu.com/p/d294bf008bec" target="_blank" rel="noopener">这里</a>）中，我们介绍了注解处理器，如何构造并且使用它。 在本篇博文中，我们将想你展示如何使用注解处理器来生成源代码。</p>
-<h4 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h4><p> 生成源代码很简单。生成正确的源代码却很难。优雅高效的去生成正确的代码是很麻烦的任务。<br> 幸运的是，Model-Driver Engineering(1)为我们提供了基于已经证明有效的过程和工具的成熟的方法理论。</p>
-<h4 id="MDE-的-Model-和-Meta-model"><a href="#MDE-的-Model-和-Meta-model" class="headerlink" title="MDE 的 Model 和 Meta-model"></a>MDE 的 Model 和 Meta-model</h4><p> 在讨论如何使用注解处理器生成源代码之前，有几个相关的概念我们要实现讲明，那就是<strong>models</strong> 和 <strong>meta-model</strong><br> MDE的理论基础之一为抽象的构造(construction of abstractions)。我们将软件系统在不同的层次和细节上使用不同的方法进行建模。当软件在一个抽象层次上被建模完成之后，我们就开始对下一个抽象层次进行建模，知道建立一个完备的，可部署的产品。<br> 在这种理论环境下，一个model 就是我们用来在某一抽象层级上表示软件系统的抽象。<br> meta-model就是我们用来写model的规则，你可以理解为model的纲要或者语法。</p>
-<h4 id="使用注解处理器生成源代码"><a href="#使用注解处理器生成源代码" class="headerlink" title="使用注解处理器生成源代码"></a>使用注解处理器生成源代码</h4><p> 由上述描述可见，注解是定义model和meta-model的好方法，注解类型(Annotation Type)充当meta-model的角色，标注在一段代码上的注解来提供model。<br> 我们可以使用这个model来生成配置文件或者从现有代码中生成新代码。比如，通过注解bean来生成远程代理或者数据访问对象。<br> 这个方法的核心就是使用注解处理器。注解处理器可以读取在源代码中发现的注解，并且对注解做任何想做的事情-比如，打开文件，写文件，等等。</p>
-<h4 id="Filter"><a href="#Filter" class="headerlink" title="Filter"></a>Filter</h4><p> 我们在第二篇博文中曾经说过，每个处理器都可以通过处理环境(processing environment)对象获得一些有用的工具，Filter就是其中之一。<br> <strong>javax.annotation.processing.Filer</strong>接口定义了一些关于创建源文件，类文件和一般资源的方法。通过使用<code>Filter</code>我们可以使用正确的文件目录，并且确保不会丢失文件系统中的生成的文件或者资源。<br> 下面这个例子可以显示如何在注解处理器中生成代码。生成的类名就是被注解的类名加上BeanInfo的后缀：<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">
-if (e.getKind() == ElementKind.CLASS) {     
-  TypeElement classElement = (TypeElement) e;
-  PackageElement packageElement =         
-        (PackageElement) classElement.getEnclosingElement();  
-  JavaFileObject jfo =  processingEnv.getFiler().
-        createSourceFile(classElement.getQualifiedName() 
-        + &quot;BeanInfo&quot;);     
+            <h3 id="如何实现熔断机制：Hystric的使用和原理"><a href="#如何实现熔断机制：Hystric的使用和原理" class="headerlink" title="如何实现熔断机制：Hystric的使用和原理"></a>如何实现熔断机制：Hystric的使用和原理</h3><p>你好，我是aoho，今天我和你分享的主题是：如何实现熔断机制：Hystric 的使用和原理</p>
+<p>在上一篇文章中，我们已经了解了熔断的基本原理和断路器在服务高可用架构中的重要性。相信小伙伴们已经迫不及待地准备在项目中使用断路器保护自己的服务了。自研断路器组件往往费时费力，秉承不能重复造轮子的理念，笔者这里推荐使用 Hystric。 </p>
+<h3 id="Hystric-简介"><a href="#Hystric-简介" class="headerlink" title="Hystric 简介"></a>Hystric 简介</h3><p>Hytrix 是 Netflix 开源的一个优秀的服务间断路器，它能够在服务提供者故障时，隔离服务调用者和服务提供者，防止服务级联失败；同时提供失败回滚逻辑，使系统快速从异常中恢复。Hytrix完美地实现了断路器模式，同时还提供信号量和线程隔离的方式保护服务调用者的线程资源，它对延迟和失败提供强大的容错能力，为系统提供保护和控制。</p>
+<p>典型的 Hystric 编程形式如下所示：</p>
 
-  BufferedWriter bw = new BufferedWriter(jfo.openWriter());       
-  bw.append(&quot;package &quot;);      
-  bw.append(packageElement.getQualifiedName());     
-  bw.append(&quot;;&quot;);     
-  bw.newLine();     
-  bw.newLine();     
-  &#x2F;&#x2F; rest of generated class contents
-</code></pre></p>
-<p>####不要这样生成代码<br> 上边这个例子十分简单，有趣但是很混乱。<br> 我们把从注解中读取信息的逻辑和写生成的源文件的逻辑混一起拉。<br> 按照上述那种方式很难写出简洁的代码，如果当我们遇到一些更加复杂的逻辑时，就更难啦。<br> 我们需要一个更加优雅的实现方式：- 将不同逻辑分离- 使用模版来让代码生成更加简单<br> 让我们看看使用Apache的Velocity构造代码生成器的例子吧。</p>
-<h4 id="Velocity简介"><a href="#Velocity简介" class="headerlink" title="Velocity简介"></a>Velocity简介</h4><p> <a href="http://velocity.apache.org/" target="_blank" rel="noopener">Velocity</a> 是通过混合模版和java类的数据来生成各类文本文件的模版引擎。 <code>Velocity</code>可以在<code>MVC</code>框架中渲染视图或者在<code>xml</code>传输数据时替代<code>XSLT</code><br> <code>Velocity</code>有它自己的语言叫做Velocity Template Language（VTL）。在VTL中，我们可以定义变量，控制流，迭代和获取java对象中的数据。<br> 下面就是<code>Velocity</code>模版的一个片段:<br>
 <!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">**#foreach($field in $fields)**     
-&#x2F;**      
-* Returns the ${field.simpleName} property descriptor.      
-*      
-* @return the property descriptor      
-*&#x2F;     
-public PropertyDescriptor 
-${field.simpleName}PropertyDescriptor() {         
-  PropertyDescriptor theDescriptor = null;         
-  return theDescriptor;     
-} 
-#end 
-#foreach($method in $methods)     
-&#x2F;**      
-* Returns the 
-*
-*${method.simpleName}**() method descriptor.      
-*      
-* @return the method descriptor      
-*&#x2F;     
-public MethodDescriptor
-${method.simpleName}MethodDescriptor() {         
-  MethodDescriptor descriptor = null;
-</code></pre></p>
-<p> 正如你所看到的，VTL十分简单并且易于理解。<code>#foreach($field in $fields)</code>代表对对象集合的迭代；<code>${method.simpleName}</code>则是打印数据信息。</p>
-<h4 id="Velocity代码生成器"><a href="#Velocity代码生成器" class="headerlink" title="Velocity代码生成器"></a>Velocity代码生成器</h4><p> 既然我们决定使用<code>Veloctiy</code>来增强我们的代码生成器，那么我们就要重新进行设计：</p>
-<ul>
-<li>设计用来生成代码的模版</li>
-<li>注解处理器会从<code>round environment</code>中读取被注解元素，并且将其保存到对象中，比如保存成员变量，方法，或者类，包的表.</li>
-<li>注解处理器需要初始化<code>Velocity</code>相关上下文- 注解处理器需要加载<code>Velocity</code>模版- 注解处理器会创建源文件(使用<code>Filer</code>)并且传递一个<code>Writer</code>给<code>Velocity</code>模版</li>
-<li><code>Veloctiy</code>引擎生成源代码<br> 使用这个方案，我们会发现处理器和生成器相关的代码是清晰，良好组织并且易于理解和维护。<br> 让我们一步一步的来实现这个方案吧。<br>####步骤一:实现一个模版<br> 为了简单，我们并不会展示<code>BeanInfo</code>生成器的全部代码，而是只展示我们注解处理器需要使用的一部分成员变量和方法。<br> 我们先创建一个名为beaninfovm的文件，并且放置在Maven的<code>src/main/resource</code>下。文件内容如下:
+<pre class="line-numbers" style=""><code class="language-go">err := hystrix.Do(&quot;test_command&quot;, func() error {
+		&#x2F;&#x2F; 远程调用&amp;或者其他需要保护的方法
+		return nil
+	}, func(err error) error{
+		&#x2F;&#x2F; 失败回滚方法
+		return nil
+	})
+</code></pre>
+<p>被 hystrix 包装的远程调用逻辑都会封装为一个 hystrix 命令，其内包含制远程调用逻辑和失败回滚逻辑，根据 hystrix 命名唯一确认一个 hystrix 命令；</p>
+<p>上述代码执行时会先根据 hystrix 命令的命名获取到对应的断路器，判断断路器是否打开。如果断路器打开，说明此时服务调用已经被熔断了，将直接执行失败回滚逻辑，不执行真正的远程调用逻辑；如果断路器关闭或者处于半开状态，则执行远程调用逻辑。</p>
+<p>接下来我们将通过一个简单例子的了解 hytrix 的使用方式。详细代码见课程提供的代码库的 xxx 文件夹。</p>
+<h3 id="Hystric-基础使用案例"><a href="#Hystric-基础使用案例" class="headerlink" title="Hystric 基础使用案例"></a>Hystric 基础使用案例</h3>
 <!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">package ${packageName};
-import java.beans.MethodDescriptor;
-import java.beans.ParameterDescriptor;
-import java.beans.PropertyDescriptor;
-import java.lang.reflect.Method;
-public class ${className}BeanInfo 
-        extends java.beans.SimpleBeanInfo 
-{ 
-  &#x2F;** * Gets the bean class object. 
-  * 
-  * @return the bean class 
-  *&#x2F; 
-  public static Class getBeanClass() { 
-    return ${packageName}.${className}.class; 
-  } 
-  &#x2F;** 
-  * Gets the bean class name. 
-  * 
-  * @return the bean class name 
-  *&#x2F; 
-  public static String getBeanClassName() { 
-    return &quot;${packageName}.${className}&quot;; 
-  } 
-  &#x2F;** 
-  * Finds the right method by comparing name &amp; number of parameters in the class 
-  * method list. 
-  * 
-  * @param classObject the class object 
-  * @param methodName the method name 
-  * @param parameterCount the number of parameters 
-  * 
-  * @return the method if found, &lt;code&gt;null&lt;&#x2F;code&gt; otherwise       
-  *&#x2F; 
-  public static Method findMethod(Class classObject, String methodName, int parameterCount) { 
-    try { 
-      &#x2F;&#x2F; since this method attempts to find a method by getting all     
-      &#x2F;&#x2F; methods from the class, this method should only be called if 
-      &#x2F;&#x2F; getMethod cannot find the method 
-      Method[] methods = classObject.getMethods(); 
-      for (Method method : methods) { 
-        if (method.getParameterTypes().length ==
-            parameterCount &amp;&amp;method.getName().
-                equals(methodName)) { 
-          return method; 
-        } 
-      } 
-    } catch (Throwable t) { 
-      return null; 
-    } 
-    return null; 
-    }
-#foreach($field in $fields) 
-&#x2F;** 
-  * Returns the ${field.simpleName} property descriptor. 
-  * 
-  * @return the property descriptor 
-  *&#x2F; 
-public PropertyDescriptor 
-${field.simpleName}PropertyDescriptor() { 
-   PropertyDescriptor theDescriptor = null; 
-   return theDescriptor; 
-}
-#end#foreach($method in $methods) 
-&#x2F;** 
-  * Returns the ${method.simpleName}() method descriptor. 
-  * 
-  * @return the method descriptor 
-  *&#x2F; 
-public MethodDescriptor ${method.simpleName}MethodDescriptor() { 
-   MethodDescriptor descriptor = null; 
-   Method method = null; 
-   try { 
-    &#x2F;&#x2F; finds the method using getMethod with parameter types 
-    &#x2F;&#x2F; TODO parameterize parameter types 
-      Class[] parameterTypes =  
-        {java.beans.PropertyChangeListener.class}; 
-     method=getBeanClass().
-         getMethod(&quot;${method.simpleName}&quot;, parameterTypes); 
-  } catch (Throwable t) { 
-    &#x2F;&#x2F; alternative: use findMethod 
-    &#x2F;&#x2F; TODO parameterize number of parameters 
-    method = findMethod(getBeanClass(), &quot;${method.simpleName}&quot;, 1); 
- } 
-  try { 
-    &#x2F;&#x2F; creates the method descriptor with parameter descriptors     
-    &#x2F;&#x2F; TODO parameterize parameter descriptors     
-    ParameterDescriptor parameterDescriptor1 = new   
-        ParameterDescriptor();     
-    parameterDescriptor1.setName(&quot;listener&quot;); 
-    parameterDescriptor1.setDisplayName(&quot;listener&quot;); 
-    ParameterDescriptor[] parameterDescriptors = 
-      {parameterDescriptor1}; 
-    descriptor = new MethodDescriptor(method,   
-        parameterDescriptors); 
-   } catch (Throwable t) { 
-      &#x2F;&#x2F; alternative: create a plain method descriptor 
-      descriptor = new MethodDescriptor(method); 
-   } 
-  &#x2F;&#x2F; TODO parameterize descriptor properties   
-   descriptor.setDisplayName(&quot;${method.simpleName}    
-        (java.beans.PropertyChangeListener)&quot;); 
-   descriptor.setShortDescription(&quot;Adds a property change 
-        listener.&quot;); 
-   descriptor.setExpert(false); 
-   descriptor.setHidden(false); 
-   descriptor.setValue(&quot;preferred&quot;, false); 
-   return descriptor; 
- }
-#end
+<pre class="line-numbers" style=""><code class="language-go">func getCalculateResult(a, b int) (string, error) {
+
+	serviceName := &quot;Calculate&quot;
+
+	var result string
+
+	err := hystrix.Do(serviceName+ &quot;.&quot; + &quot;calculate&quot;, func() error{
+		&#x2F;&#x2F; 从 consul 中获取 Calculate 服务服务实例列表
+		instances := consulClient.DiscoverServices(serviceName)
+
+		if instances == nil || len(instances) == 0 {
+			logger.Println(&quot;No &quot; + serviceName + &quot; instances are working!&quot;)
+			return errors.New(&quot;No &quot; + serviceName + &quot; instances are working&quot;)
+		}
+
+		&#x2F;&#x2F; 随机选取一个服务实例进行计算
+		rand.Seed(time.Now().UnixNano())
+		selectInstance := instances[rand.Intn(len(instances))].(*api.AgentService)
+
+		requestUrl := url.URL{
+			Scheme:&quot;http&quot;,
+			Host:selectInstance.Address + &quot;:&quot; + strconv.Itoa(selectInstance.Port),
+			Path:&quot;&#x2F;calculate&quot;,
+			RawQuery:&quot;a=&quot; + strconv.Itoa(a) + &quot;&amp;b=&quot; + strconv.Itoa(b),
+		}
+
+		resp, err := http.Get(requestUrl.String())
+		if err != nil{
+			return err
+		}
+		body, _ := ioutil.ReadAll(resp.Body)
+		result = string(body)
+
+		return nil
+
+	}, func(e error) error {
+		&#x2F;&#x2F; 失败回滚函数
+		return errors.New(&quot;Http errors！&quot;)
+	})
+
+	if err == nil {
+		return result, nil
+	}else {
+		return &quot;&quot;, err
+	}
 }
 </code></pre>
-</li>
-</ul>
-<p> 为了使用上述的模版，我们需要向<code>Velocity</code>传递下边这些信息:</p>
-<ul>
-<li><code>packageName</code>:生成类的全限定包名</li>
-<li><code>className</code>:生成类名</li>
-<li><code>field</code>:生成类中的成员变量集合；每个成员变量我们需要以下信息:<ul>
-<li><code>simpleName</code>:成员变量名 - <code>type</code>:成员变量的类型(在本例中并未使用)</li>
-<li><code>description</code>:自我解释型信息(在本例中并未使用) </li>
-<li>…</li>
-</ul>
-</li>
-<li><p><code>method</code>:生成类中函数的集合；每个函数我们需要一下信息：       </p>
-<ul>
-<li><code>simpleName</code>:函数名 </li>
-<li><code>arguments</code>:函数的参数(在本例中并未使用) </li>
-<li><code>returnType</code>: 函数返回值类型(在本例中并未使用) </li>
-<li><code>description</code>:自我解释性信息(在本例中并未使用) </li>
-<li>…</li>
-</ul>
-</li>
-</ul>
-<p> 所有的这些信息都会从源文件中的注解中获得，并保存到<code>JavaBean</code>中，再传递给<code>Velocity</code>。</p>
-<h4 id="步骤二-注解处理器读取信息"><a href="#步骤二-注解处理器读取信息" class="headerlink" title="步骤二:注解处理器读取信息"></a>步骤二:注解处理器读取信息</h4><p> 让我们来实现一个注解处理器，并且注解它支持处理<code>BeanInfo</code>注解类型，相关原理请查看第二篇博文。<br>
+<p>我们能够发现 Calculate 和 UseCalculate 服务都已经注册上去了，接着我们访问 UseCalculate 的 /use/calculate 接口，发起对 Calculate 的远程调用。访问地址如下：</p>
+
 <!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">@SupportedAnnotationTypes(&quot;example.annotations.beaninfo.BeanInfo&quot;)
-@SupportedSourceVersion(SourceVersion.RELEASE_6)
-public class BeanInfoProcessor extends AbstractProcessor {
-</code></pre></p>
-<p> 注解处理器需要从注解和源文件中提取。你可以使用<code>JavaBean</code>来保存你需要的信息。但是在这个例子中，我们将使用<code>javax.lang.model.element</code>,因为我们不计划传递给<code>Velocity</code>过多信息:<br>
+<pre class="line-numbers" style=""><code class="language-clike">http:&#x2F;&#x2F;localhost:10086&#x2F;use&#x2F;calculate?a=2&amp;b=3
+</code></pre>
+<p>可以获取到正确的响应如下：</p>
+
 <!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">  String packageName = null; 
-  Map&lt;String, VariableElement&gt; fields = new HashMap&lt;String,     
-    VariableElement&gt;(); 
-  Map&lt;String, ExecutableElement&gt; methods = new 
-    HashMap&lt;String, ExecutableElement&gt;(); 
-  for (Element e : roundEnv.
-      getElementsAnnotatedWith(BeanInfo.class)) { 
-    if (e.getKind() == ElementKind.CLASS) { 
-      TypeElement classElement = (TypeElement) e; 
-      PackageElement packageElement = (PackageElement) 
-        classElement.getEnclosingElement();   
-      processingEnv.getMessager().printMessage( 
-            Diagnostic.Kind.NOTE, &quot;annotated class: &quot; + 
-            classElement.getQualifiedName(), e); 
-      fqClassName = classElement.getQualifiedName().
-                toString(); 
-      className =  classElement.getSimpleName().toString(); 
-      packageName = packageElement.getQualifiedName().
-                toString(); 
-   } else if (e.getKind() == ElementKind.FIELD) { 
-      VariableElement varElement = (VariableElement) e;   
-      processingEnv.getMessager().printMessage( 
-        Diagnostic.Kind.NOTE, &quot;annotated field: &quot; + 
-        varElement.getSimpleName(), e); 
-      fields.put(varElement.getSimpleName().toString(),       
-        varElement); 
-    } else if (e.getKind() == ElementKind.METHOD) { 
-      ExecutableElement exeElement = (ExecutableElement) e;     
-      processingEnv.getMessager().printMessage( 
-        Diagnostic.Kind.NOTE, &quot;annotated method: &quot; + 
-        exeElement.getSimpleName(), e); 
-      methods.put(exeElement.getSimpleName().toString(),   
-        exeElement); 
-} 
-</code></pre></p>
-<h4 id="步骤三-初始化Velocity并且加载模版"><a href="#步骤三-初始化Velocity并且加载模版" class="headerlink" title="步骤三:初始化Velocity并且加载模版"></a>步骤三:初始化<code>Velocity</code>并且加载模版</h4><p> 下边的代码片段展示了如何初始化<code>Velocity</code>并且加载模版<br>
+<pre class="line-numbers" style=""><code class="language-clike">Get result from Calculate is 5
+</code></pre>
+<p>接着我们关闭 Calcaulte 服务，继续访问 <a href="http://localhost:10086/use/calculate?a=2&amp;b=3" target="_blank" rel="noopener">http://localhost:10086/use/calculate?a=2&amp;b=3</a> 将会得到以下结果：</p>
+
 <!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">  if (fqClassName != null) { 
-    Properties props = new Properties(); 
-    URL url = this.getClass().getClassLoader().
-          getResource(&quot;velocity.properties&quot;); 
-    props.load(url.openStream()); 
-    VelocityEngine ve = new VelocityEngine(props); 
-    ve.init(); 
-    VelocityContext vc = new VelocityContext(); 
-    vc.put(&quot;classNameassName); 
-    vc.put(&quot;packageNameckageName); 
-    vc.put(&quot;fieldselds); 
-    vc.put(&quot;methodsthods); 
-    Template vt = ve.getTemplate(&quot;beaninfo.vm&quot;);
-</code></pre></p>
-<p> <code>Velocity</code>的配置文件，应该命名为<code>Velocity.properties</code>,并放置在<code>src/main/resources</code>文件夹下。配置文件的内容如下：<br>
+<pre class="line-numbers" style=""><code class="language-clike">Get result from Calculate is fallback failed with &#39;Http errors！&#39;. run error was &#39;No Calculate instances are working&#39;
+</code></pre>
+<p>返回结果中直接把异常输出了，同时日志中也会输出 <code>No Calculate instances are working!</code>，说明 hystrix.Do 中包装代码被执行。我们多次访问 <a href="http://localhost:10086/use/calculate?a=2&amp;b=3，会发现被包装的代码会被一直执行，并没有触发断路器打开逻辑。原来" target="_blank" rel="noopener">http://localhost:10086/use/calculate?a=2&amp;b=3，会发现被包装的代码会被一直执行，并没有触发断路器打开逻辑。原来</a> hystrix 的默认配置是访问请求数在 20 次以上才会触发断路器计算的逻辑，我们可以在程序启动时修改断路器最低启动阀值为 4 次，来验证断路器打开后效果，在 use_calculate_service.go 的 main 函数中添加 hystrix 的配置信息，如下所示：</p>
+
 <!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">runtime.log.logsystem.class = org.apache.velocity.runtime.log.SystemLogChute
-resource.loader = classpath
-classpath.resource.loader.class = org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader
-</code></pre></p>
-<p> 这些属性配置了<code>Velocity</code>的日志和寻找模版的类路径。</p>
-<h4 id="步骤四：创建新的文件并且生成代码"><a href="#步骤四：创建新的文件并且生成代码" class="headerlink" title="步骤四：创建新的文件并且生成代码"></a>步骤四：创建新的文件并且生成代码</h4><p> 最后，我们建立新的代码文件并以这个文件为目标运行模版。下边的代码片段展示了如何如何去做上述操作:<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">JavaFileObject jfo = processingEnv.getFiler().createSourceFile
-    ( fqClassName + &quot;BeanInfo&quot;); 
-processingEnv.getMessager().printMessage( 
-    Diagnostic.Kind.NOTE, &quot;creating source file: &quot; + jfo.toUri()); 
-Writer writer = jfo.openWriter(); 
-processingEnv.getMessager().printMessage(   
-    Diagnostic.Kind.NOTE, &quot;applying velocity template: &quot; + 
-    vt.getName());
-vt.merge(vc, writer); 
-writer.close();
-</code></pre></p>
-<h4 id="步骤五：打包并运行"><a href="#步骤五：打包并运行" class="headerlink" title="步骤五：打包并运行"></a>步骤五：打包并运行</h4><p> 最终，注册注解处理器（可以回想一下在第二篇博文中的服务配置相关内容），打包处理器并且在命令行，eclipse和Maven构建项目时使用它。<br> 假设下边就是需要处理的类：<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">package example.velocity.client;
-import example.annotations.beaninfo.BeanInfo;
-@BeanInfo 
-public class Article { 
-  @BeanInfo 
-  private String id; 
-  @BeanInfo 
-  private int department; 
-  @BeanInfo 
-  private String status; 
-  public Article() { super(); } 
-  public String getId() { return id; } 
-  public void setId(String id) { this.id = id; } 
-  public int getDepartment() { 
-    return department; 
-  } 
-  public void setDepartment(int department) { 
-    this.department = department; 
-  } 
-  public String getStatus() { return status; } 
-  public void setStatus(String status) { 
-    this.status = status; 
-  } 
-  @BeanInfo 
-  public void activate() { setStatus(&quot;active&quot;); } 
-  @BeanInfo public void deactivate() { 
-    setStatus(&quot;inactive&quot;); 
-  }
+<pre class="line-numbers" style=""><code class="language-clike">func main()  {
+	&#x2F;&#x2F; 设置断路器最低启动阀值为 4
+	hystrix.ConfigureCommand(&quot;Calculate.calculate&quot;, hystrix.CommandConfig{
+		RequestVolumeThreshold:4,
+	})
+
+	startService(&quot;UseCalculate&quot;, &quot;&quot;, 10086, startUseCalculateHttpListener)
+
 }
-</code></pre></p>
-<p> 当我们使用命令行执行编译任务时，我们在终端上看到被注解标注的元素被找到并且BeanInfo类被生成。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-bash">Article.java:6: Note: annotated class: 
-example.annotations.velocity.client.Article
-public class Article { 
-  ^
-Article.java:9: Note: annotated field: id 
-  private String id; 
-    ^
-Article.java:12: Note: annotated field: department 
-  private int department; 
-    ^
-Article.java:15: Note: annotated field: status 
-  private String status; 
-    ^
-Article.java:53: Note: annotated method: activate 
-  public void activate() { 
-    ^
-Article.java:59: Note: annotated method: deactivate 
-  public void deactivate() { 
-    ^ 
-Note: creating source file: file:&#x2F;c:&#x2F;projects&#x2F;example.annotations.velocity.client&#x2F;src&#x2F;main&#x2F;java&#x2F;example&#x2F;annotations&#x2F;velocity&#x2F;client&#x2F;ArticleBeanInfo.java
-Note: applying velocity template: beaninfo.vm
-Note: example\annotations\velocity\client\ArticleBeanInfo.java uses unchecked or unsafe operations.
-Note: Recompile with -Xlint:unchecked for details.
-</code></pre></p>
-<p> 检查相应的文件夹我们会发现<code>BeanInfo</code>类文件被创建。任务完成！</p>
-<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p> 在这个系列文章中，我们学习了如何使用Java6中的注解处理器框架生成源代码：</p>
+</code></pre>
+<p>重新启动 UseCalculate 服务，连续访问 <a href="http://localhost:10086/use/calculate?a=2&amp;b=3" target="_blank" rel="noopener">http://localhost:10086/use/calculate?a=2&amp;b=3</a> 接口失败 4 次之后继续访问将不会持续出现<code>No Calculate instances are working!</code>的错误日志，说明此时断路器已经打开，直接执行了失败回滚函数返回异常结果。如果 5 秒之后我们重新访问 <a href="http://localhost:10086/use/calculate?a=2&amp;b=3" target="_blank" rel="noopener">http://localhost:10086/use/calculate?a=2&amp;b=3</a> 接口，将会发现请求重新执行了 hystrix.Do 中的远程调用代码，这是因为断路器打开之后的超时时间已经结束(默认为 5 秒钟)，断路器进入了半开状态，允许程序重新执行远程调用，试探下游服务是否恢复可用状态，因为 Calculate 服务处于一直不可用的状态，请求失败后，断路器又回到的打开状态。</p>
+<h3 id="Hystric-简介和原理"><a href="#Hystric-简介和原理" class="headerlink" title="Hystric 简介和原理"></a>Hystric 简介和原理</h3><p><img src="http://cdn.remcarpediem.net/2020-05-24-hystric.png" alt=""></p>
+<p>从这个流程图中，可以看到：</p>
 <ul>
-<li>我们学习了注解和注解类型的概念和他们的基本用法</li>
-<li>我们学习了注解处理器的概念，还有如何编写，以及从不同工具运行它。</li>
-<li>我们大致讨论了一下<code>Model-Drive Engineer</code>和代码生成。</li>
-<li>我们展示了如何使用注解处理器生成代码</li>
-<li>我们学习了如何使用<code>Velocity</code>来创建优雅的，强大的，可维护的基于注解处理器的代码生成器。<br> 现在是时候实现你自己的项目去啦。<br>-<br>(1) 如何你想详细了解<code>MDE</code>,请查看<a href="http://en.wikipedia.org/wiki/Model-driven_engineering" target="_blank" rel="noopener">这篇文件</a><br>(2) <code>Filter</code>的API文档可以在<a href="http://download.oracle.com/javase/6/docs/api/javax/annotation/processing/Filer.html" target="_blank" rel="noopener">这里</a>进行查看</li>
+<li>有请求来了，首先调用 allowRequest 函数判断是否在熔断状态中，如果不是则放行；如果是的话，还要看是否到达预定熔断时长，如果熔断时长到了，也是放行，否则直接返回出错。</li>
+<li>每次调用结束前都会调用 markSuccess(duration) 或 markFailure(duration) 函数统计一下在一定的 duration 内有多少调用是成功还是失败的。</li>
+<li>isOpen 函数判断是否熔断的条件，是计算一下 failure/(success+failure) 当前的错误率，如果高于一个阈值，那么打开熔断，否则关闭。</li>
+<li>Hystrix 会在内存中维护一个数组，其中记录着每一个周期的请求结果的统计。超过时间窗口的元素会被删除掉。</li>
 </ul>
 
         
@@ -606,7 +337,7 @@ Note: Recompile with -Xlint:unchecked for details.
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/bc9d3ce1/" data-id="ckao1h4ip007u97se9eo2bicz" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/6.2如何实现熔断机制.html" data-id="ckao1h48x000097se0g0d6oj1" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -679,25 +410,6 @@ Note: Recompile with -Xlint:unchecked for details.
     </div>
     
         
-<nav id="article-nav">
-    
-        <a href="/article/e89a231a/" id="article-nav-newer" class="article-nav-link-wrap">
-            <strong class="article-nav-caption">Newer</strong>
-            <div class="article-nav-title">
-                
-                    Android MotionEvent详解
-                
-            </div>
-        </a>
-    
-    
-        <a href="/article/47a9c0e4/" id="article-nav-older" class="article-nav-link-wrap">
-            <strong class="article-nav-caption">Older</strong>
-            <div class="article-nav-title">2016年，计划目录</div>
-        </a>
-    
-</nav>
-
 
     
 </article>

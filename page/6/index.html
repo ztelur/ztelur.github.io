@@ -90,7 +90,7 @@ var _hmt = _hmt || [];
             <div id="search-form-wrap">
 
     <form class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
         <button type="submit" class="search-form-submit"></button>
     </form>
     <div class="ins-search">
@@ -109,10 +109,10 @@ var _hmt = _hmt || [];
 (function (window) {
     var INSIGHT_CONFIG = {
         TRANSLATION: {
-            POSTS: 'Entradas',
+            POSTS: 'Posts',
             PAGES: 'Pages',
-            CATEGORIES: 'Categorias',
-            TAGS: 'Etiquetas',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
             UNTITLED: '(Untitled)',
         },
         ROOT_URL: '/',
@@ -145,7 +145,7 @@ var _hmt = _hmt || [];
                 <td>
                     
     <div class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
     </div>
 
                 </td>
@@ -170,12 +170,12 @@ var _hmt = _hmt || [];
         </div>
         <div class="article-info profile-block">
             <div class="article-info-block">
-                92
-                <span>Entradas</span>
+                93
+                <span>posts</span>
             </div>
             <div class="article-info-block">
                 63
-                <span>Etiquetas</span>
+                <span>tags</span>
             </div>
         </div>
         
@@ -211,6 +211,245 @@ var _hmt = _hmt || [];
 
             
             <section id="main">
+    <article id="post-关于Android-MVP模式的思考" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+        
+            <header class="article-header">
+                
+    
+        <h1 itemprop="name">
+            <a class="article-title" href="/article/eca06a79/">关于Android MVP模式的思考</a>
+        </h1>
+    
+
+                
+                    <div class="article-meta">
+                        
+    <div class="article-date">
+        <i class="fa fa-calendar"></i>
+        <a href="/article/eca06a79/">
+            <time datetime="2017-03-12T09:09:22.000Z" itemprop="datePublished">2017-03-12</time>
+        </a>
+    </div>
+
+
+                        
+    <div class="article-category">
+    	<i class="fa fa-folder"></i>
+        <a class="article-category-link" href="/categories/Android/">Android</a>
+    </div>
+
+                        
+    <div class="article-tag">
+        <i class="fa fa-tag"></i>
+        <a class="tag-link" href="/tags/框架/">框架</a>
+    </div>
+
+                    </div>
+                
+            </header>
+        
+        
+        <div class="article-entry" itemprop="articleBody">
+        
+            
+            <p> 这一周对现有的Android项目进行了框架重构，使用MVP模式来重新构建整个项目和包结构。今天就来总结一下我在这个过程中理解和实践吧。</p>
+<h3 id="MVP概述"><a href="#MVP概述" class="headerlink" title="MVP概述"></a>MVP概述</h3><p> MVP是指Model，View和Presenter的缩写，是MVC模式的一种改进版。MVP是一种非常适合Android应用的开发模式，它<strong>将把逻辑相关代码从presentation Layer中分离出去</strong>，所以，所有界面应该显示什么和界面如何显示这些是相互分离的，  在理想状态下，MVP模式可以随意切换视图显示的形式。<br> 但是，需要首先声明的是，MVP并不是<strong>一个框架模式</strong>，它只负责presentation Layer。在Android项目中，还可能存在Domain Layer和Data Layer，它们分别负责业务逻辑和数据存储。关于三个layer的讨论，可以查看<a href="https://github.com/android10/Android-CleanArchitecture" target="_blank" rel="noopener">clear Architecture</a>。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017312-mvp-mvp.png" alt="mvp.png"></p>
+<h4 id="The-presenter"><a href="#The-presenter" class="headerlink" title="The presenter"></a>The presenter</h4><p> The presenter充当的是view和model模块中间人的角色。它从model模块获得数据并发送给view模块。<strong>但是不同于MVC，presenter模块也决定用户和界面交互时界面如何响应</strong>。</p>
+<h4 id="The-View"><a href="#The-View" class="headerlink" title="The View"></a>The View</h4><p> View模块，一般由Activity或者Fragment实现，每个View实例一般都包含一个presenter实例的引用，并负责实例化presenter。理想情况下，你可以使用dagger来实现依赖注入。view的任务就是当用户操作界面时，调用presenter实例的功能来进行响应。</p>
+<h4 id="The-Model"><a href="#The-Model" class="headerlink" title="The Model"></a>The Model</h4><p> 在设计良好的分层架构中，model应该只是domain layer和业务逻辑的入口，比如说，<a href="http://blog.8thlight.com/uncle-bob/2012/08/13/the-clean-architecture.html" target="_blank" rel="noopener">clear architecture</a>。但是你也可以把所有界面显示无关的逻辑都作为model。</p>
+<h3 id="MVP示例"><a href="#MVP示例" class="headerlink" title="MVP示例"></a>MVP示例</h3><p> 关于MVP架构的实例有很多，比如<a href="https://github.com/googlesamples/android-architecture" target="_blank" rel="noopener">google官方架构</a>。这里我就给出一下我重构项目一个模块的类图，然后大致说一下实现。</p>
+<p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017312-mvp-webwxgetmsgimg.jpg" alt="webwxgetmsgimg.jpg"></p>
+<p>&emsp;首先定义了<code>BaseView</code>和<code>BasePresenter</code>两个接口，实现了<code>BaseActivity</code>和<code>BaseFragment</code>两个基础类。需要注意的是，因为每个View都需要持有一个特定类型的presenter对象，所以，在<code>BaseView</code>定义时，使用了范型。除此之外，你可以在<code>initPresenter</code>函数中构造出所需要的presenter对象。<code>showLoading</code>和<code>stopLoading</code>函数是所有视图进行网络数据加载时所需要的方法，其具体使用场景后边可以看到，这里这两个接口是在<code>BaseActivity</code>中实现的。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">public interface BaseView&lt;T&gt; {
+    void showLoading();
+    void stopLoading();
+    void initPresnter();
+    T getPresenter();
+}
+
+public interface BasePresenter {
+
+}
+
+public class BaseActivity extends Activity{
+    public void showLoading() {
+    }
+
+    public void stopLoading() {
+    }
+}
+
+public class BaseFragment extends Fragment {
+    public void showLoading() {
+
+    }
+
+    public void stopLoading() {
+
+    }
+}
+</code></pre>
+<p>&emsp;然后是data模块中的相关类和接口的定义。我们在<code>DataContract</code>接口中定义所有相关的view和data。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">public interface DataContract {
+    interface DataView extends BaseView&lt;DataPresenter&gt; {
+        void showFragment(BaseFragment fragment);
+    }
+    interface DataPresenter extends BasePresenter {
+        void switchToDataList();
+        void switchToDataTree();
+    }
+    interface DataListView extends BaseView&lt;DataListPresenter&gt; {
+        void showDataList(List&lt;String&gt; data);
+    }
+    interface DataListPresenter extends BasePresenter {
+        void loadDataList();
+    }
+    interface DataTreeView extends BaseView&lt;DataTreePresenter&gt; {}
+    interface DataTreePresenter extends BasePresenter {}
+}
+</code></pre></p>
+<p>&emsp;在<code>DataContract</code>接口中，我们可以清晰的看到这个模块中所有的view和presenter类型和他们的接口。这样无疑可以帮助其他程序员快速了解本模块的业务逻辑。下面，我们来看一下<code>DataListFragmnet</code>和<code>DataListPresenter</code>的实现。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-java">public class DataListFragment extends BaseFragment implements DataContract.DataListView {
+    private DataContract.DataListPresenter mPresenter;
+    @Override
+    public void initPresnter() {
+        mPresenter = new DataListPresenter(this);
+    }
+    @Override
+    public DataContract.DataListPresenter getPresenter() {
+        return mPresenter;
+    }
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        initPresnter();
+        &#x2F;&#x2F;需要加载数据或者接收到界面点击事件时，调用presenter接口进行初始化或者响应。
+        mPresenter.loadDataList();
+    }
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_data_list, container, false);
+    }
+    @Override
+    public void showDataList(List&lt;String&gt; data) {
+        &#x2F;&#x2F;将数据传给adapter等数据展示的视图
+    }
+}
+
+public class DataListPresenter implements DataContract.DataListPresenter {
+    private DataContract.DataListView mView;
+    public DataListPresenter(DataContract.DataListView view) {
+        super();
+        this.mView = view;
+    }
+
+    @Override
+    public void loadDataList() {
+        &#x2F;&#x2F;调用baseview的接口，这些接口实现在baseFragment或者BaseActivity中
+        mView.showLoading();
+        &#x2F;&#x2F;getdata from network
+        mView.stopLoading();
+        mView.showDataList(Arrays.asList(&quot;a&quot;,&quot;b&quot;,&quot;c&quot;));
+    }
+}
+</code></pre>
+<p>&emsp;上述代码中有很多可以好好思考的地方。首先是<code>showLoading</code>和<code>stopLoading</code>这两个函数。这两个函数接口定义在<code>BaseView</code>,实现在<code>BaseFragment</code>，所以当<code>DataListFragment</code>继承了<code>BaseFragment</code>并且实现了<code>BaseView</code>时，它并不需要再次定义上述两个接口，毕竟在一个app中，网络加载时的laoding动画一般都是一致的。然后是view和presenter之间函数调用的问题。首先，view在需要初始化或者需要处理点击事件时，需要调用presenter的函数，而不是自己来进行处理。而且二者之间的数据传递必须是presenter调用view的接口传递给view数据，而不是view调用presenter接口获得数据然后自己展示。</p>
+<h3 id="MVP实践中的问题和思考"><a href="#MVP实践中的问题和思考" class="headerlink" title="MVP实践中的问题和思考"></a>MVP实践中的问题和思考</h3><p>&emsp;在实现MVP的过程中，我发现有些模块的代码很容易重构为MVP模式，而有些模块的代码却需要花费大量的时间。那些难重构的模块的所有代码都写在了Activity类中，而那些容易重构的模块已经做了逻辑代码和视图代码的分离。可以说，MVP模式不就是将视图和逻辑分离嘛，你不使用MVP模式，也可以按照自己的理解进行良好的设计。但是，当一个团队开发项目时，问题就变得不同了。不同程序员的水平有一定差异，你无法通过他们的水平来确保他们代码都是良好设计的。<strong>你必须通过MVP模式来强制他们去思考如何分离界面和逻辑,否则，他们估计会把所有代码都写在Activity类中</strong>。我认为这是所谓模式和框架的第一层好处，也就是<strong>强迫程序员使用一个种良好的思维方式去思考如何进行代码组织</strong>。<br>&emsp;第二点的思考是，模式其实就是良好的代码思考的结晶，如何写出内聚的函数？如何写入内聚的类？如何让模块之间耦合小？如何命名？很多模式都是对这些问题思考结果的总和。<br>&emsp;如果大家对MVP或者移动开发框架有什么思考，欢迎在文章底下进行评论。</p>
+
+        
+        </div>
+        <footer class="article-footer">
+            <div class="share-container">
+
+
+
+</div>
+
+    <a data-url="http://remcarpediem.net/article/eca06a79/" data-id="ckao1h4h2006497semev2g8e2" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+<script>
+    (function ($) {
+        // Prevent duplicate binding
+        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
+            __SHARE_BUTTON_BINDED__ = true;
+        } else {
+            return;
+        }
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+            
+    
+
+        </footer>
+    </div>
+    
+</article>
+
+
+
     <article id="post-《暗时间》摘要一" class="article article-type-post" itemscope="" itemprop="blogPost">
     <div class="article-inner">
         
@@ -295,7 +534,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/b3904609/" data-id="cka2hxtoc005k7ssehhempy07" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/b3904609/" data-id="ckao1h4gs005p97se6wp1sp0f" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -458,7 +697,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/e21717d9/" data-id="cka2hxtcz00127ssenhfs6o9d" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/e21717d9/" data-id="ckao1h4dd001597sek6rxfgz1" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -701,7 +940,7 @@ private void performTraversals() {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/251abaf9/" data-id="cka2hxtnk00577ssejbvqmc6q" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/251abaf9/" data-id="ckao1h4gh005697sew8bj83fv" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -904,7 +1143,7 @@ private void performTraversals() {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/fd3a41af/" data-id="cka2hxtth00847sse492fd5bc" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/fd3a41af/" data-id="ckao1h4iz008597sexv9b8zdv" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1100,7 +1339,7 @@ ComposeShader (Shader shaderA, Shader shaderB, PorterDuff.Mode mode)
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/321580a2/" data-id="cka2hxtd500167sseqwo77kvl" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/321580a2/" data-id="ckao1h4d8000z97senpd1m4c9" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1437,7 +1676,7 @@ objectAnimator.start();
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/283058df/" data-id="cka2hxtck000w7sse91bntojk" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/283058df/" data-id="ckao1h4d6000v97sedwsud2fx" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1744,7 +1983,7 @@ span = new MaskFilterSpan(new EmbossMaskFilter(new float[] { 1, 1, 1 }, 0.4f, 6,
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/29372fe3/" data-id="cka2hxtch000u7sse8k9i65ka" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/29372fe3/" data-id="ckao1h4d5000t97se5xosrf1z" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2020,7 +2259,7 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/413b422c/" data-id="cka2hxtst007n7sse6xrkxcec" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/413b422c/" data-id="ckao1h4il007o97sew4njnznz" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2185,162 +2424,7 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/69b8b4a1/" data-id="cka2hxtgt003e7ssevh4ez6iq" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
-<script>
-    (function ($) {
-        // Prevent duplicate binding
-        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
-            __SHARE_BUTTON_BINDED__ = true;
-        } else {
-            return;
-        }
-        $('body').on('click', function() {
-            $('.article-share-box.on').removeClass('on');
-        }).on('click', '.article-share-link', function(e) {
-            e.stopPropagation();
-
-            var $this = $(this),
-                url = $this.attr('data-url'),
-                encodedUrl = encodeURIComponent(url),
-                id = 'article-share-box-' + $this.attr('data-id'),
-                offset = $this.offset(),
-                box;
-
-            if ($('#' + id).length) {
-                box = $('#' + id);
-
-                if (box.hasClass('on')){
-                    box.removeClass('on');
-                    return;
-                }
-            } else {
-                var html = [
-                    '<div id="' + id + '" class="article-share-box">',
-                        '<input class="article-share-input" value="' + url + '">',
-                        '<div class="article-share-links">',
-                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
-                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
-                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
-                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
-                        '</div>',
-                    '</div>'
-                ].join('');
-
-              box = $(html);
-
-              $('body').append(box);
-            }
-
-            $('.article-share-box.on').hide();
-
-            box.css({
-                top: offset.top + 25,
-                left: offset.left
-            }).addClass('on');
-
-        }).on('click', '.article-share-box', function (e) {
-            e.stopPropagation();
-        }).on('click', '.article-share-box-input', function () {
-            $(this).select();
-        }).on('click', '.article-share-box-link', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
-        });
-    })(jQuery);
-</script>
-
-            
-    
-
-        </footer>
-    </div>
-    
-</article>
-
-
-
-    <article id="post-TCP-IP协议详解-二-：建立和关闭连接" class="article article-type-post" itemscope="" itemprop="blogPost">
-    <div class="article-inner">
-        
-        
-            <header class="article-header">
-                
-    
-        <h1 itemprop="name">
-            <a class="article-title" href="/article/a5f1cf16/">TCP/IP协议详解(二)：建立和关闭连接</a>
-        </h1>
-    
-
-                
-                    <div class="article-meta">
-                        
-    <div class="article-date">
-        <i class="fa fa-calendar"></i>
-        <a href="/article/a5f1cf16/">
-            <time datetime="2016-06-15T07:15:36.000Z" itemprop="datePublished">2016-06-15</time>
-        </a>
-    </div>
-
-
-                        
-    <div class="article-category">
-    	<i class="fa fa-folder"></i>
-        <a class="article-category-link" href="/categories/网络/">网络</a>
-    </div>
-
-                        
-    <div class="article-tag">
-        <i class="fa fa-tag"></i>
-        <a class="tag-link" href="/tags/TCP-IP/">TCP/IP</a>
-    </div>
-
-                    </div>
-                
-            </header>
-        
-        
-        <div class="article-entry" itemprop="articleBody">
-        
-            
-            <p>作者： <a href="http://ztelur.github.io/" target="_blank" rel="noopener">remcarpediem</a><br>联系方式：<a href="https://segmentfault.com/u/remcarpediem" target="_blank" rel="noopener">segmentfault</a>，<a href="http://blog.csdn.net/u012422440" target="_blank" rel="noopener">csdn</a>，<a href="http://www.jianshu.com/users/481d9f540fb9/latest_articles" target="_blank" rel="noopener">简书</a></p>
-<blockquote>
-<p>本文转载请注明作者、文章来源，链接，版权归作者所有。</p>
-</blockquote>
-<p>&emsp;看了酷壳网站上的《TCP 的那些事儿》系列文章，有一点很受启发：锻炼一下自己是否使用较少的篇幅将TCP协议讲解清楚。一般的同学写博文，可能像摊大饼一样，篇幅较多并且罗嗦。我以前写文章时也是这个习惯，所以希望在以后的博文写作过程中，尽量使用比较短的篇幅来讲完想要讲的内容。<br>&emsp;为了节约你的时间，本片文章主要讲解一下内容：</p>
-<ul>
-<li>TCP连接的建立和关闭</li>
-<li>TCP报文的ack number和 seq number的含义</li>
-</ul>
-<h3 id="TCP状态机"><a href="#TCP状态机" class="headerlink" title="TCP状态机"></a><strong>TCP状态机</strong></h3><blockquote>
-<p><strong>我们都说TCP是面向连接的传输协议，但是网络传输都是没有连接的，包括TCP也是一样</strong>。TCP所谓的“连接”，其实就是通讯双方维护的一个“连接状态”，让它看上去像是有连接一样。所以，TCP的状态转移是非常重要的。</p>
-</blockquote>
-<p>&emsp;TCP的不同状态和状态转移构成了所谓的TCP状态机，如下图所示。我们先在介绍一下其中的几个术语和状态<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160615-TCP/IP-tcpfsm.png" alt="TCP状态机"></p>
-<ul>
-<li>主动打开（active open）是指客户端发送第一个SYN报文，它主动发起建立TCP连接的请求。</li>
-<li>被动打开（passive open）是指服务端接受第一个SYN报文并且发回一个SYN报文，它响应建立TCP连接的请求。</li>
-<li>SYN-SENT是指客户端发送第一个SYN报文并等待接受服务端SYN+ACK报文时的状态，一旦接受到SYN+ACK报文，客户端状态就变为建立连接（ESTABLISHED）了。</li>
-<li>SYN-RECEIVED是指服务端接受到第一个SYN报文并发回SYN+ACK报文等待客户端ACK报文时的状态，一旦接受到客户端发送的ACK报文，服务端状态就变成了建立连接。</li>
-<li>FIN-WAIT-1是指首先希望关闭TCP连接的一端的状态，当这一段发送FIN报文并等待ACK报文时，它就处于这个状态下。当这一端接受到ACK报文时，它的状态就变成了FIN-WAIT-2。</li>
-<li>FIN-WAIT-2是指已经关闭自己这端TCP连接的一端等待接受另一端FIN报文的状态。等到接受到另外一端的FIN报文，它的状态就会变成TIME-WAIT。</li>
-<li>CLOSE-WAIT是指首先收到FIN报文一端的状态，这一端知道另一端已经要关闭TCP连接了，但是自己这一端还未关闭TCP。</li>
-<li>LAST-ACK是指首先收到FIN报文一端的状态，这一端也要关闭TCP连接了，并且向另一端发送了FIN报文。<h3 id="sequence-number和acknowledge-number"><a href="#sequence-number和acknowledge-number" class="headerlink" title="sequence number和acknowledge number"></a><strong>sequence number和acknowledge number</strong></h3>&emsp;sequence number（之后简称为seq）是用来标识从TCP发端到TCP收端发送的数据字节流，它表示在这个报文段中的第一个数据字节的序号。第一条报文的seq为TCP协议自己计算出来的数值ISN，以后的报文的seq为INS加上已经发送数据的长度，比如第一条报文的seq为x，length为100,那么下一条带有数据的报文的seq为x+101。<br>&emsp;而acknowledge number(之后简称为ack)是表示发送确认的一端所期望收到的下一个序号，因此ack是上次成功接收报文的seq数值加一。只有ACK标志为1时，ack才有效。需要注意的是，TCP有些报文是不包含数据字节流信息的，那么它就不会影响到下一个报文的seqence number。在上一端的例子中，一端接受到这个seq为x，长度为100的报文之后，需要发送一个带有ACK标志的报文，其ack值为x+101。<h3 id="TCP建立连接和关闭连接"><a href="#TCP建立连接和关闭连接" class="headerlink" title="TCP建立连接和关闭连接"></a><strong>TCP建立连接和关闭连接</strong></h3>&emsp;TCP建立连接和关闭连接是TCP协议中比较重要的一部分，也是面试经常会涉及的部分，我们在这里就来详细讲解一下TCP建立连接和关闭连接过程中的每一步报文和其目的。<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/20160615-TCP/IP-tcp.jpg" alt="TCP建立和关闭连接"></li>
-</ul>
-<p>&emsp;TCP建立连接和关闭连接的过程也被称为三次握手和四次握手，其中涉及两军通讯问题。因为网络通讯是不可靠的，所以你无法知道自己发送的报文另外一端是否收到，所以必须等待对方发送一个确认接受的报文;对于另外一方也是如此，另外一方也不清楚自己发送的确认接受报文是否被接受到，所以也希望对方再发送一个确认报文。但是在不可靠的通信中，不管几次握手（发送报文）都是有风险的，因为永远无法确认最后一次通信被送达。一般来说，握手次数达到3就可以保证通信信息被正确传达。</p>
-<p>&emsp;客户端首先发送一个带有SYN标志的报文给服务端，seq为ISN，就是初始化的Sequence Number。如图所示，client发送的SYN报文的seq为x。客户端发送这个报文的目的是通知服务端自己希望建立一个TCP连接。<br>&emsp;服务端接受到客户端发送的SYN报文，需要返回一个带有SYN和ACK标志的报文，它的seq为服务器端计算获得的ISN,也就是y。它的ack数值是已经收到报文的seq数值+1,也就是x+1。服务器端发送这个报文来通知客户端自己已经收到客户端希望建立连接的报文，并且同意建立连接。<br>&emsp;客户端接受到服务端的报文，发送一个带有ACK标志的报文，它的ack数值为y+1。客户端发送这个报文是为了通知服务端自己已经收到了它的报文，可以进行数据传输了。客户端发送完这个报文之后，默认TCP连接已经建立，就可以直接开始发送数据报文了。<br>&emsp;服务端接受到客户端发送的ACK报文之后，就可以直接发送数据啦。</p>
-<p>&emsp;由于TCP是全双工的协议，也就是说两端可以同时进行数据传输，所以，TCP连接的关闭在两端都关闭之后才正式关闭。当一端已经没有可以传输的数据时，就会发送带有FIN标记的报文，向另一端表示自己不会在传输数据啦。接受到另一端的ack报文之后，<strong>这一端就不会在发送数据报文（也就是tcp负载）了。但是ack等控制信息报文还是会发送的</strong>。也就是说，两端的FIN报文不一定是连在一起的，服务端可能很早就发送FIN报文了，但是客户端可以在服务端发送FIN报文之后继续发送数据报文，然后在发送FIN报文。<br>&emsp;如图所示，client先发送带有FIN标志的报文给服务端，表面自己这端已经无数据可以发送了，希望关闭TCP连接。报文的seq为x+2，ack为y+1。<br>&emsp;服务端接受到这个报文之后发送带有ACK标志的报文，其ack为（x+2）+1，也就是x+3。<br>&emsp;服务端无数据发送之后，也向客户端发送带有FIN标志的报文，seq为y+1。<br>&emsp;客户端接受到该报文之后，发送一个带有ACK标志的报文，其ack为y+2。</p>
-
-        
-        </div>
-        <footer class="article-footer">
-            <div class="share-container">
-
-
-
-</div>
-
-    <a data-url="http://remcarpediem.net/article/a5f1cf16/" data-id="cka2hxtmj004n7ssedqy9exdw" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/69b8b4a1/" data-id="ckao1h4ex003k97seimijx05v" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2417,7 +2501,7 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 
 
     <nav id="page-nav">
-        <a class="extend prev" rel="prev" href="/page/5/">&laquo; Anterior</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><a class="page-number" href="/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/page/7/">7</a><a class="page-number" href="/page/8/">8</a><span class="space">&hellip;</span><a class="page-number" href="/page/10/">10</a><a class="extend next" rel="next" href="/page/7/">Siguiente  &raquo;</a>
+        <a class="extend prev" rel="prev" href="/page/5/">&laquo; Prev</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><a class="page-number" href="/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/page/7/">7</a><a class="page-number" href="/page/8/">8</a><span class="space">&hellip;</span><a class="page-number" href="/page/10/">10</a><a class="extend next" rel="next" href="/page/7/">Next &raquo;</a>
     </nav>
 </section>
             
@@ -2426,9 +2510,28 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
    
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Recientes</h3>
+        <h3 class="widget-title">recent</h3>
         <div class="widget">
             <ul id="recent-post" class="">
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/5a35e6d9/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/5a35e6d9/" class="title">MySQL死锁系列-加锁场景分析</a></p>
+                            <p class="item-date"><time datetime="2020-05-21T14:25:30.000Z" itemprop="datePublished">2020-05-21</time></p>
+                        </div>
+                    </li>
                 
                     <li>
                         
@@ -2506,25 +2609,6 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
                         </div>
                     </li>
                 
-                    <li>
-                        
-                        <!-- <div class="item-thumbnail">
-                            <a href="/article/24b8edbf/" class="thumbnail">
-    
-    
-        <span class="thumbnail-image thumbnail-none"></span>
-    
-</a>
-
-                        </div> -->
-                        
-                        <div class="item-inner">
-                            <p class="item-category"><a class="article-category-link" href="/categories/Redis/">Redis</a></p>
-                            <p class="item-title"><a href="/article/24b8edbf/" class="title">Redis Cluster 的数据分片机制</a></p>
-                            <p class="item-date"><time datetime="2019-12-21T13:24:26.000Z" itemprop="datePublished">2019-12-21</time></p>
-                        </div>
-                    </li>
-                
             </ul>
         </div>
     </div>
@@ -2532,7 +2616,7 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Categorias</h3>
+        <h3 class="widget-title">categories</h3>
         <div class="widget">
             <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">25</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MySQL/">MySQL</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Netty/">Netty</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Redis/">Redis</a><span class="category-list-count">16</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SICP/">SICP</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/docker/">docker</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/java-persistent/">java persistent</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/plan/">plan</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">2</span></li></ul>
         </div>
@@ -2541,25 +2625,25 @@ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Archivos</h3>
+        <h3 class="widget-title">archives</h3>
         <div class="widget">
-            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
         </div>
     </div>
 
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Nube de etiquetas</h3>
+        <h3 class="widget-title">tag cloud</h3>
         <div class="widget tagcloud">
-            <a href="/tags/AOP/" style="font-size: 15px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 20px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/MySQL/" style="font-size: 10px;">MySQL</a> <a href="/tags/Netty/" style="font-size: 20px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/Redis/" style="font-size: 10px;">Redis</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 15px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 15px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 20px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 15px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/persistent/" style="font-size: 15px;">persistent</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 15px;">第三方库</a> <a href="/tags/算法/" style="font-size: 20px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 15px;">限流</a>
+            <a href="/tags/AOP/" style="font-size: 15px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 20px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/tags/Netty/" style="font-size: 20px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/Redis/" style="font-size: 10px;">Redis</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 15px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 15px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 20px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 15px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/persistent/" style="font-size: 15px;">persistent</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 15px;">第三方库</a> <a href="/tags/算法/" style="font-size: 20px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 15px;">限流</a>
         </div>
     </div>
 
     
         
     <div class="widget-wrap widget-list">
-        <h3 class="widget-title">Links</h3>
+        <h3 class="widget-title">links</h3>
         <div class="widget">
             <ul>
                 

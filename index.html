@@ -90,7 +90,7 @@ var _hmt = _hmt || [];
             <div id="search-form-wrap">
 
     <form class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
         <button type="submit" class="search-form-submit"></button>
     </form>
     <div class="ins-search">
@@ -109,10 +109,10 @@ var _hmt = _hmt || [];
 (function (window) {
     var INSIGHT_CONFIG = {
         TRANSLATION: {
-            POSTS: 'Entradas',
+            POSTS: 'Posts',
             PAGES: 'Pages',
-            CATEGORIES: 'Categorias',
-            TAGS: 'Etiquetas',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
             UNTITLED: '(Untitled)',
         },
         ROOT_URL: '/',
@@ -145,7 +145,7 @@ var _hmt = _hmt || [];
                 <td>
                     
     <div class="search-form">
-        <input type="text" class="ins-search-input search-form-input" placeholder="Buscar">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
     </div>
 
                 </td>
@@ -170,12 +170,12 @@ var _hmt = _hmt || [];
         </div>
         <div class="article-info profile-block">
             <div class="article-info-block">
-                92
-                <span>Entradas</span>
+                93
+                <span>posts</span>
             </div>
             <div class="article-info-block">
                 63
-                <span>Etiquetas</span>
+                <span>tags</span>
             </div>
         </div>
         
@@ -211,6 +211,242 @@ var _hmt = _hmt || [];
 
             
             <section id="main">
+    <article id="post-MySQL死锁系列-加锁场景分析" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+        
+            <header class="article-header">
+                
+    
+        <h1 itemprop="name">
+            <a class="article-title" href="/article/5a35e6d9/">MySQL死锁系列-加锁场景分析</a>
+        </h1>
+    
+
+                
+                    <div class="article-meta">
+                        
+    <div class="article-date">
+        <i class="fa fa-calendar"></i>
+        <a href="/article/5a35e6d9/">
+            <time datetime="2020-05-21T14:25:30.000Z" itemprop="datePublished">2020-05-21</time>
+        </a>
+    </div>
+
+
+                        
+                        
+    <div class="article-tag">
+        <i class="fa fa-tag"></i>
+        <a class="tag-link" href="/tags/MySQL/">MySQL</a>
+    </div>
+
+                    </div>
+                
+            </header>
+        
+        
+        <div class="article-entry" itemprop="articleBody">
+        
+            
+            <p>在上一篇文章<a href="https://mp.weixin.qq.com/s/QVEUIfD0RBbtvUDORaz2vQ" target="_blank" rel="noopener">《锁的类型以及加锁原理》</a>主要总结了 MySQL 锁的类型和模式以及基本的加锁原理，今天我们就从原理走向实战，分析常见 SQL 语句的加锁场景。了解了这几种场景，相信小伙伴们也能举一反三，灵活地分析真实开发过程中遇到的加锁问题。</p>
+<p>如下图所示，<strong>数据库的隔离等级，SQL 语句和当前数据库数据会共同影响该条 SQL 执行时数据库生成的锁模式，锁类型和锁数量</strong>。</p>
+<p><img src="http://cdn.remcarpediem.net/2020-05-26-121712.png" alt=""></p>
+<p>下面，我们会首先讲解一下隔离等级、不同 SQL 语句 和 当前数据库数据对生成锁影响的基本规则，然后再依次具体 SQL 的加锁场景。</p>
+<h3 id="隔离等级对加锁的影响"><a href="#隔离等级对加锁的影响" class="headerlink" title="隔离等级对加锁的影响"></a>隔离等级对加锁的影响</h3><p>MySQL 的隔离等级对加锁有影响，所以<strong>在分析具体加锁场景时，首先要确定当前的隔离等级</strong>。</p>
+<ul>
+<li>读未提交（Read Uncommitted 后续简称 RU）：可以读到未提交的读，基本上不会使用该隔离等级，所以暂时忽略。</li>
+<li>读已提交（Read Committed 后续简称 RC）：存在幻读问题，<strong>对当前读获取的数据加记录锁</strong>。</li>
+<li>可重复读（Repeatable Read 后续简称 RR）：不存在幻读问题，对当前读获取的数据加记录锁，同时对涉及的范围加间隙锁，防止新的数据插入，导致幻读。</li>
+<li>序列化（Serializable）：从 MVCC 并发控制退化到基于锁的并发控制，不存在快照读，都是当前读，并发效率急剧下降，不建议使用。</li>
+</ul>
+<p>这里说明一下，<strong>RC 总是读取记录的最新版本，而 RR 是读取该记录事务开始时的那个版本</strong>，虽然这两种读取的版本不同，但是都是快照数据，并不会被写操作阻塞，所以这种读操作称为 <strong>快照读（Snapshot Read）</strong></p>
+<p>MySQL 还提供了另一种读取方式叫<strong>当前读（Current Read）</strong>，它读的不再是数据的快照版本，而是数据的最新版本，并会对数据加锁，根据语句和加锁的不同，又分成三种情况：</p>
+<ul>
+<li>SELECT … LOCK IN SHARE MODE：加共享(S)锁</li>
+<li>SELECT … FOR UPDATE：加排他(X)锁</li>
+<li>INSERT / UPDATE / DELETE：加排他(X)锁</li>
+</ul>
+<p>当前读在 RR 和 RC 两种隔离级别下的实现也是不一样的：<strong>RC 只加记录锁，RR 除了加记录锁，还会加间隙锁，用于解决幻读问题</strong>。</p>
+<h3 id="不同-SQL-语句对加锁的影响"><a href="#不同-SQL-语句对加锁的影响" class="headerlink" title="不同 SQL 语句对加锁的影响"></a>不同 SQL 语句对加锁的影响</h3><p>不同的 SQL 语句当然会加不同的锁，总结起来主要分为五种情况：</p>
+<ul>
+<li>SELECT … 语句正常情况下为快照读，不加锁；</li>
+<li>SELECT … LOCK IN SHARE MODE 语句为当前读，加 S 锁；</li>
+<li>SELECT … FOR UPDATE 语句为当前读，加 X 锁；</li>
+<li>常见的 DML 语句（如 INSERT、DELETE、UPDATE）为当前读，加 X 锁；</li>
+<li>常见的 DDL 语句（如 ALTER、CREATE 等）加表级锁，且这些语句为隐式提交，不能回滚。</li>
+</ul>
+<p>其中，当前读的 SQL 语句的 where 从句的不同也会影响加锁，包括是否使用索引，索引是否是唯一索引等等。</p>
+<h3 id="当前数据对加锁的影响"><a href="#当前数据对加锁的影响" class="headerlink" title="当前数据对加锁的影响"></a>当前数据对加锁的影响</h3><p>SQL 语句执行时数据库中的数据也会对加锁产生影响。</p>
+<p>比如一条最简单的根据主键进行更新的 SQL 语句，如果主键存在，则只需要对其加记录锁，如果不存在，则需要在加间隙锁。</p>
+<p>至于其他非唯一性索引更新或者插入时的加锁也都不同程度的收到现存数据的影响，后续我们会一一说明。</p>
+<h3 id="具体场景分析"><a href="#具体场景分析" class="headerlink" title="具体场景分析"></a>具体场景分析</h3><p>具体 SQL 场景分析主要借鉴何登成前辈的《MySQL 加锁处理分析》文章和 aneasystone 的系列文章，在他们的基础上进行了总结和整理。</p>
+<p>我们使用下面这张 book 表作为实例，其中 id 为主键，ISBN（书号）为二级唯一索引，Author（作者）为二级非唯一索引，score（评分）无索引。</p>
+<p><img src="http://cdn.remcarpediem.net/2020-05-26-121732.png" alt=""></p>
+<h3 id="UPDATE-语句加锁分析"><a href="#UPDATE-语句加锁分析" class="headerlink" title="UPDATE 语句加锁分析"></a>UPDATE 语句加锁分析</h3><p>下面，我们先来分析 UPDATE 相关 SQL 在使用较为简单 where 从句情况下加锁情况。其中的分析原则也适用于 UPDATE,DELETE 和 SELECT … FOR UPDATE等当前读的语句。</p>
+<h4 id="聚簇索引，查询命中"><a href="#聚簇索引，查询命中" class="headerlink" title="聚簇索引，查询命中"></a>聚簇索引，查询命中</h4><p>聚簇索引就是 InnoDB 存储引擎下的主键索引，具体可参考<a href="https://mp.weixin.qq.com/s/FX0bPiBIWWjSI9yRy715FQ" target="_blank" rel="noopener">《MySQL索引》</a>。</p>
+<p>下图展示了使用 UPDATE book SET score = 9.2 WHERE ID = 10 语句命中的情况下在 RC 和 RR 隔离等级下的加锁，两种隔离等级下没有任何区别，都是对 ID = 10 这个索引加排他记录锁。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-9aa0c26774b0ed32.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="lock_1.png"></p>
+<h4 id="聚簇索引，查询未命中"><a href="#聚簇索引，查询未命中" class="headerlink" title="聚簇索引，查询未命中"></a>聚簇索引，查询未命中</h4><p>下图展示了 UPDATE book SET score = 9.2 WHERE ID = 16 语句未命中时 RR 隔离级别下的加锁情况。</p>
+<p>在 RC 隔离等级下，不需要加锁；而在 RR 隔离级别会在 ID = 16 前后两个索引之间加上间隙锁。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-a71c4e540a4c9939.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="lock_2.png"></p>
+<p>值得注意的是，间隙锁和间隙锁之间是互不冲突的，间隙锁唯一的作用就是为了防止其他事务的插入新行，导致幻读，所以加间隙 S 锁和加间隙 X 锁没有任何区别。</p>
+<h4 id="二级唯一索引，查询命中"><a href="#二级唯一索引，查询命中" class="headerlink" title="二级唯一索引，查询命中"></a>二级唯一索引，查询命中</h4><p>下图展示了 UPDATE book SET score = 9.2 WHERE ISBN = ‘N0003’ 在 RC 和 RR 隔离等级下命中时的加锁情况。</p>
+<p>在 InnoDB 存储引擎中，二级索引的叶子节点保存着主键索引的值，然后再拿主键索引去获取真正的数据行，所以在这种情况下，二级索引和主键索引都会加排他记录锁。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-f2df4b02fa76e924.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="lock3_1.png"></p>
+<h4 id="二级唯一索引，查询未命中"><a href="#二级唯一索引，查询未命中" class="headerlink" title="二级唯一索引，查询未命中"></a>二级唯一索引，查询未命中</h4><p>下图展示了 UPDATE book SET score = 9.2 WHERE ISBN = ‘N0008’ 语句在 RR 隔离等级下未命中时的加锁情况，RC 隔离等级下该语句未命中不会加锁。</p>
+<p>因为 N0008 大于 N0007，所以要锁住 (N0007,正无穷)这段区间，而 InnoDB 的索引一般都使用 Suprenum Record 和 Infimum Record 来分别表示记录的上下边界。Infimum 是比该页中任何记录都要小的值，而 Supremum 比该页中最大的记录值还要大，这两条记录在创建页的时候就有了，并且不会删除。</p>
+<p>所以，在 N0007 和 Suprenum Record 之间加了间隙锁。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-16d854a96f4275d4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="lock3-2.png"></p>
+<p>为什么不在主键上也加 GAP 锁呢？欢迎留言说出你的想法。</p>
+<h4 id="二级非唯一索引，查询命中"><a href="#二级非唯一索引，查询命中" class="headerlink" title="二级非唯一索引，查询命中"></a>二级非唯一索引，查询命中</h4><p>下图展示了 UPDATE book SET score = 9.2 WHERE Author = ‘Tom’ 语句在 RC 隔离等级下命中时的加锁情况。</p>
+<p>我们可以看到，在 RC 等级下，二级唯一索引和二级非唯一索引的加锁情况是一致的，都是在涉及的二级索引和对应的主键索引上加上排他记录锁。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-f897052c7564c31a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>但是在 RR 隔离等级下，加锁的情况产生了变化，它不仅对涉及的二级索引和主键索引加了排他记录锁，还在非唯一二级索引上加了三个间隙锁，锁住了两个 Tom 索引值相关的三个范围。</p>
+<p>那为什么唯一索引不需要加间隙锁呢？间隙锁的作用是为了解决幻读，防止其他事务插入相同索引值的记录，而唯一索引和主键约束都已经保证了该索引值肯定只有一条记录，所以无需加间隙锁。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-92ce2a5dc5a2f787.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>需要注意的是，上图虽然画着 4 个记录锁，三个间隙锁，但是实际上间隙锁和它右侧的记录锁会合并成 Next-Key 锁。</p>
+<p>所以实际情况有两个 Next-Key 锁，一个间隙锁(Tom60,正无穷)和两个记录锁。</p>
+<h4 id="二级非唯一索引，查询未命中"><a href="#二级非唯一索引，查询未命中" class="headerlink" title="二级非唯一索引，查询未命中"></a>二级非唯一索引，查询未命中</h4><p>下图展示了 UPDATE book SET score = 9.2 WHERE Author = ‘Sarah’ 在 RR 隔离等级下未命中的加锁情况，它会在二级索引 Rose 和 Tom 之间加间隙锁。而 RC 隔离等级下不需要加锁。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-c137f7789e60a986.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<h4 id="无索引"><a href="#无索引" class="headerlink" title="无索引"></a>无索引</h4><p>当 Where 从句的条件并不使用索引时，则会对全表进行扫描，在 RC 隔离等级下对所有的数据加排他记录锁。在RR 隔离等级下，除了给记录加锁，还会对记录和记录之间加间隙锁。和上边一样，间隙锁会和左侧的记录锁合并成 Next-Key 锁。</p>
+<p>下图就是 UPDATE book SET score = 9.2 WHERE score = 22 语句在两种隔离等级下的加锁情况。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-08c428ebfebf3bdc.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<h4 id="聚簇索引，范围查询"><a href="#聚簇索引，范围查询" class="headerlink" title="聚簇索引，范围查询"></a>聚簇索引，范围查询</h4><p>上面介绍的场景都是 where 从句的等值查询，而范围查询的加锁又是怎么样的呢？我们慢慢来看。</p>
+<p>下图是 UPDATE book SET score = 9.2 WHERE ID &lt;= 25 在 RC 和 RR 隔离等级下的加锁情况。</p>
+<p>RC 场景下与等值查询类似，只会在涉及的 ID = 10，ID = 18 和 ID = 25 索引上加排他记录锁。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-c68266e9ee9da19e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>而在 RR 隔离等级下则有所不同，它会加上间隙锁，和对应的记录锁合并称为 Next-Key 锁。除此之外，它还会在(25, 30] 上分别加 Next-Key 锁。这一点是十分特殊的，具体原因还需要再探究。</p>
+<h4 id="二级索引，范围查询"><a href="#二级索引，范围查询" class="headerlink" title="二级索引，范围查询"></a>二级索引，范围查询</h4><p>下图展示了 UPDATE book SET ISBN = N0001 WHERE score &lt;= 7.9 在 RR 级别下的加锁情况。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-71b90974da56dffe.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<h4 id="修改索引值"><a href="#修改索引值" class="headerlink" title="修改索引值"></a>修改索引值</h4><p>UPDATE 语句修改索引值的情况可以分开分析，首先 Where 从句的加锁分析如上文所述，多了一步 Set 部分的加锁。</p>
+<p>下图展示了 UPDATE book SET Author = ‘John’ WHERE ID = 10 在 RC 和 RR 隔离等级下的加锁情况。除了在主键 ID 上进行加锁，还会对二级索引上的 Bob(就值) 和 John(新值) 上进行加锁。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-4bcbe899fee57785.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<h3 id="DELETE-语句加锁分析"><a href="#DELETE-语句加锁分析" class="headerlink" title="DELETE 语句加锁分析"></a>DELETE 语句加锁分析</h3><p>一般来说，DELETE 的加锁和 SELECT FOR UPDATE 或 UPDATE 并没有太大的差异。</p>
+<p>因为，在 MySQL 数据库中，执行 DELETE 语句其实并没有直接删除记录，而是在记录上打上一个删除标记，然后通过后台的一个叫做 purge 的线程来清理。从这一点来看，DELETE 和 UPDATE 确实是非常相像。事实上，DELETE 和 UPDATE 的加锁也几乎是一样的。</p>
+<h3 id="INSERT-语句加锁分析"><a href="#INSERT-语句加锁分析" class="headerlink" title="INSERT 语句加锁分析"></a>INSERT 语句加锁分析</h3><p>接下来，我们来看一下 Insert 语句的加锁情况。 </p>
+<p>Insert 语句在两种情况下会加锁：</p>
+<ul>
+<li>为了防止幻读，如果记录之间加有间隙锁，此时不能 Insert；</li>
+<li>如果 Insert 的记录和已有记录造成唯一键冲突，此时不能 Insert；</li>
+</ul>
+<p>除了上述情况，Insert 语句的锁都是隐式锁。隐式锁是 InnoDB 实现的一种延迟加锁的机制来减少加锁的数量。</p>
+<p>隐式锁的特点是只有在可能发生冲突时才加锁，减少了锁的数量。另外，隐式锁是针对被修改的 B+Tree 记录，因此都是记录类型的锁，不可能是间隙锁或 Next-Key 类型。</p>
+<p>具体 Insert 语句的加锁流程如下：</p>
+<ul>
+<li><p>首先对插入的间隙加插入意向锁（Insert Intension Locks）</p>
+<ul>
+<li>如果该间隙已被加上了间隙锁或 Next-Key 锁，则加锁失败进入等待；</li>
+<li>如果没有，则加锁成功，表示可以插入；</li>
+</ul>
+</li>
+<li><p>然后判断插入记录是否有唯一键，如果有，则进行唯一性约束检查</p>
+<ul>
+<li>如果不存在相同键值，则完成插入</li>
+<li><p>如果存在相同键值，则判断该键值是否加锁</p>
+<ul>
+<li><p>如果没有锁， 判断该记录是否被标记为删除</p>
+<ul>
+<li>如果标记为删除，说明事务已经提交，还没来得及 purge，这时加 S 锁等待；</li>
+<li>如果没有标记删除，则报 duplicate key 错误；</li>
+</ul>
+</li>
+<li>如果有锁，说明该记录正在处理（新增、删除或更新），且事务还未提交，加 S 锁等待；</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>插入记录并对记录加 X 记录锁；</li>
+</ul>
+<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>本文中讲解的 SQL 语句都是十分简单的，当 SQL 语句包含多个查询条件时，加锁的分析过程就往往更加复杂。我们需要使用 MySQL 相关的工具进行分析，并且有时甚至需要查询 MySQL 相关的日志信息来了解到底语句加了什么锁或者为什么产生死锁，下篇文章中我们就主要了解一下这些内容，请大家持续关注。</p>
+<p><a href="http://remcarpediem.net/">个人博客，欢迎来玩</a></p>
+<p><img src="http://cdn.remcarpediem.net/2020-05-26-144752.png" alt=""></p>
+
+        
+        </div>
+        <footer class="article-footer">
+            <div class="share-container">
+
+
+
+</div>
+
+    <a data-url="http://remcarpediem.net/article/5a35e6d9/" data-id="ckao1h4eb002l97serqwj60j4" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+<script>
+    (function ($) {
+        // Prevent duplicate binding
+        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
+            __SHARE_BUTTON_BINDED__ = true;
+        } else {
+            return;
+        }
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+            
+    
+
+        </footer>
+    </div>
+    
+</article>
+
+
+
     <article id="post-带你100-地了解-Redis-6-0-的客户端缓存" class="article article-type-post" itemscope="" itemprop="blogPost">
     <div class="article-inner">
         
@@ -508,7 +744,7 @@ a
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/e3e7a535/" data-id="cka2hxtrd006r7ssee1jdbyrt" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/e3e7a535/" data-id="ckao1h4hw007097sel93oayrp" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -733,7 +969,7 @@ update user set age = 10 where name = &#39;Tom&#39;;
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/a94bd30a/" data-id="cka2hxtf6002m7ssedx2ngerh" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/a94bd30a/" data-id="ckao1h4ed002p97seq9egywwp" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1308,7 +1544,7 @@ public void evict() throws Exception {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/d5009955/" data-id="cka2hxtef001y7sseg60w51bf" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/d5009955/" data-id="ckao1h4e2002897seavhl5b76" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1457,7 +1693,7 @@ public void evict() throws Exception {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/75dc863d/" data-id="cka2hxtas00037sse73zgqeza" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/75dc863d/" data-id="ckao1h4cm000997seekm59l42" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1645,7 +1881,7 @@ public void evict() throws Exception {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/24b8edbf/" data-id="cka2hxthd003p7sseitrbur8o" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/24b8edbf/" data-id="ckao1h4f3003r97sev2l0fik8" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2172,7 +2408,7 @@ int writeToClient(int fd, client *c, int handler_installed) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/1dd72ef8/" data-id="cka2hxtjx00417ssecg0eh6yc" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/1dd72ef8/" data-id="ckao1h4fe004397semg2iup2g" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2799,7 +3035,7 @@ void call(client *c, int flags) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/4cc1fb9/" data-id="cka2hxtjv003z7sseon705prz" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/4cc1fb9/" data-id="ckao1h4fd004097sent8gl3kn" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -3126,7 +3362,7 @@ statement.getConnection().commit();
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/8c16d4e4/" data-id="cka2hxte8001u7sseghk60mtj" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/8c16d4e4/" data-id="ckao1h4dt001t97sewhjsrd5f" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -3353,173 +3589,7 @@ Swap: 0 kB
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/ef4e619/" data-id="cka2hxtrr00727sser11f59vc" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
-<script>
-    (function ($) {
-        // Prevent duplicate binding
-        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
-            __SHARE_BUTTON_BINDED__ = true;
-        } else {
-            return;
-        }
-        $('body').on('click', function() {
-            $('.article-share-box.on').removeClass('on');
-        }).on('click', '.article-share-link', function(e) {
-            e.stopPropagation();
-
-            var $this = $(this),
-                url = $this.attr('data-url'),
-                encodedUrl = encodeURIComponent(url),
-                id = 'article-share-box-' + $this.attr('data-id'),
-                offset = $this.offset(),
-                box;
-
-            if ($('#' + id).length) {
-                box = $('#' + id);
-
-                if (box.hasClass('on')){
-                    box.removeClass('on');
-                    return;
-                }
-            } else {
-                var html = [
-                    '<div id="' + id + '" class="article-share-box">',
-                        '<input class="article-share-input" value="' + url + '">',
-                        '<div class="article-share-links">',
-                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
-                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
-                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
-                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
-                        '</div>',
-                    '</div>'
-                ].join('');
-
-              box = $(html);
-
-              $('body').append(box);
-            }
-
-            $('.article-share-box.on').hide();
-
-            box.css({
-                top: offset.top + 25,
-                left: offset.left
-            }).addClass('on');
-
-        }).on('click', '.article-share-box', function (e) {
-            e.stopPropagation();
-        }).on('click', '.article-share-box-input', function () {
-            $(this).select();
-        }).on('click', '.article-share-box-link', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
-        });
-    })(jQuery);
-</script>
-
-            
-    
-
-        </footer>
-    </div>
-    
-</article>
-
-
-
-    <article id="post-公理设计-由奇怪海战引发的软件设计思考" class="article article-type-post" itemscope="" itemprop="blogPost">
-    <div class="article-inner">
-        
-        
-            <header class="article-header">
-                
-    
-        <h1 itemprop="name">
-            <a class="article-title" href="/article/f4b7b3d6/">公理设计-由奇怪海战引发的软件设计思考</a>
-        </h1>
-    
-
-                
-                    <div class="article-meta">
-                        
-    <div class="article-date">
-        <i class="fa fa-calendar"></i>
-        <a href="/article/f4b7b3d6/">
-            <time datetime="2019-11-01T14:46:16.000Z" itemprop="datePublished">2019-11-01</time>
-        </a>
-    </div>
-
-
-                        
-                        
-    <div class="article-tag">
-        <i class="fa fa-tag"></i>
-        <a class="tag-link" href="/tags/软件设计/">软件设计</a>
-    </div>
-
-                    </div>
-                
-            </header>
-        
-        
-        <div class="article-entry" itemprop="articleBody">
-        
-            
-            <p>前几天看到了一个博客，推荐了《公理设计》一书，还有其相关的<a href="http://blog.sciencenet.cn/home.php?mod=attachment&amp;id=40989" target="_blank" rel="noopener">文档</a>以及<a href="[https://www.bilibili.com/video/av74189173/](https://www.bilibili.com/video/av74189173/">视频</a><br>)。简单了解了一下，增深了一些对软件设计的理解，特此也推荐给大家。</p>
-<p>公理设计理论将设计建立在科学公理、定理和推论的基础上，由麻省理工学院教授 Nam. P. Suh 领导的研究小组于 1978 年提出，适用于各种类别的设计活动。软件设计当然也属于一类工程设计过程，下面我们就来看一下两者的关联。</p>
-<h3 id="奇怪的海战"><a href="#奇怪的海战" class="headerlink" title="奇怪的海战"></a>奇怪的海战</h3><p>首先从1862年11月13日的一场海战讲起。这场海战“标志着蒸汽动力铁甲舰新时代的到来。为了便于理解，我这里对舰船名称进行了修改，想了解的朋友可以百度 U.S.S. Monitor battles C.S.S. Virginia.</p>
-<p>南方叛军的大大号战舰，体型庞大，非常凶悍。已经击沉了两艘联邦军舰。北方政府军则只派出小小号，一艘非常小，火力也小多的军舰。</p>
-<p><img src="/images/19_112/image1.jpeg" alt=""></p>
-<p>大大号顾名思义，它船体特别的大，但是都是固定炮塔，两侧和首尾有很多门炮。而小小号虽然小，却有一个可以旋转的炮台。</p>
-<p>我们可以理解为一条战舰需要有两个基础功能：调整航行方向和调整炮击方向。</p>
-<p>对于大大号，这两个功能需求是耦合 couple 的，要改变炮击方向，就需要将船只转向。而对于小小号，这两个功能需求则是解耦合 decouple 的，航行方向与炮击方向无关，炮击方向可以独立调整。</p>
-<p>于是小小号一直尽量守在大大号的射击死角攻击，而大大号虽然火力猛烈则必须不断通过改变航线来调整炮击方向，于是就不断绕圈。这两条船打了4个小时，大大号不得不撤退了，小小号获得了胜利。</p>
-<p>由此可见功能之间的解耦十分重要，它增加了便捷性和灵活性。</p>
-<h3 id="工科生最爱的映射矩阵"><a href="#工科生最爱的映射矩阵" class="headerlink" title="工科生最爱的映射矩阵"></a>工科生最爱的映射矩阵</h3><p><img src="/images/19_112/image2.jpeg" alt=""></p>
-<p>​书中由海战作为引子，介绍了设计过程中的四个域（Domain）：</p>
-<ul>
-<li>CNs：Customer Needs，客户域，就是客户描述的一大堆自然语言也说不清楚的事情，什么高端大气上档次之类的东西。</li>
-<li>FRs：Functional Requirements，功能域，从 CNs 域到 FRs 域的变换，就是把客户漫无边际的需求翻译成一些可定量的参数，比如战舰控制系统的 FR 是控制航行方向和控制开炮方向。</li>
-<li>DPs：Design Parameters，设计参数，或者叫物理域，实现 FRs 的物理参数，比如航向控制器和炮塔控制器。</li>
-<li>PVs：Process Variables，过程变量，或者叫过程域，是描述实现功能过程中涉及的过程变量。</li>
-</ul>
-<p>相邻域之间的映射，可以看成目标（做什么？）和手段（怎样做？）之间的对应关系。设计过程是相邻域中特征向量之间映射和转换过程。</p>
-<p>例如，用户域元素映射到功能域的过程，实际上是将用户需求转变成产品功能要素的过程，即产品规划；功能域向物理域的映射过程是产品的设计过程；从物理域到过程域的映射则可看成“加工产品”的过程。</p>
-<p>其中最为重要的是FRs（功能需求）到DPs（设计参数）的映射，这也是我们软件开发过程中最长接触的步骤，需求文档有了，如何进行代码设计并实现。</p>
-<p><img src="/images/19_112/image3.jpeg" alt=""></p>
-<p>书中以矩阵向量的方式讲述了 FRs (功能需求) 和 DPs (设计参数) 的映射关系，也就是上图中由 A 变量组成的矩阵代表着 FPs 到 DPs 的映射。不同的矩阵代表着不同的映射关系，其实我们不需要关心矩阵各个位置的具体值如何计算，只需简化的了解如果 FP 和 DP 有关联，则矩阵相应位置上的值为1，否则为0。</p>
-<p>比如说小小号上的情况，有两个功能需要：FR1（调整航向）和FR2（调整开炮方向）；以及两个设计参数：DP1（船舵）和DP2（旋转炮塔）<br><img src="/images/19_112/image4.jpeg" alt=""></p>
-<p>其中转动船舵的时候，船会转向，所以A11这里是X，同时船身上的炮塔也跟着船一起转向，所以也影响开炮方向FR2，因此A21也是X。 而在旋转炮塔的时候，不影响船的航行方向，所以A12这里是0。</p>
-<h3 id="好的设计？"><a href="#好的设计？" class="headerlink" title="好的设计？"></a>好的设计？</h3><p>所以，基于上边这个映射矩阵，好的设计应该有两个特点：</p>
-<ul>
-<li>首先FRs（功能需求）的数量N，应当等于DPs (设计参数）的数量M。</li>
-<li>每一个FR（功能需求）与且只与一个DP（设计参数）相互关联。</li>
-</ul>
-<p>也就是说映射矩阵是一个对角矩阵，对角线上有值，其他位置都是0。《程序员修炼之道》中也提及了类似的思想，也就是正交性一节。那一节的提示是消除无关事务之间的影响，正好和这里映射矩阵是对角矩阵不谋而合。当映射举证是对角矩阵时，说明 FR 和 DP 一一对应，不会有交叉影响。当某一个 FR也就是需求发生变更时，只需要修改一个DP。</p>
-<p>当然对角矩阵属于比较理想的情况，书中也罗列了一些其他类型的映射矩阵。<br><img src="/images/19_112/image5.jpeg" alt=""></p>
-<p>其中最差的情况是 FRs（功能需求）的数量N，小于 DPs(设计参数）的数量M。也就是大大号中的情景：它有两个功能需求，FR1 调整航向<br>和FR2 调整开炮方向，但只有一个DP1 船舵。所以它的映射矩阵如下图所示。</p>
-<p><img src="/images/19_112/image6.png" alt=""></p>
-<p>书中还继续讲解了矩阵分解的知识，也就是对应了需求功能点细分到软件详细设计细分等部分的内容，有兴趣的小伙伴可以自己去看看。</p>
-<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>所以书中最后给出两个公里：</p>
-<ul>
-<li>独立公理（功能独立性公理)</li>
-<li>信息公理（信息量最少公理）</li>
-</ul>
-<p>这不正是软件设计中经常提及的松耦合和高内聚嘛。模块相互独立互不影响就是松耦合，最小化信息量就是不对外暴露过多信息，也就是高内聚或者信息隐藏。</p>
-<p><img src="images/logo.png" alt=""></p>
-
-        
-        </div>
-        <footer class="article-footer">
-            <div class="share-container">
-
-
-
-</div>
-
-    <a data-url="http://remcarpediem.net/article/f4b7b3d6/" data-id="cka2hxtqh00657ssekz2ei88i" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/ef4e619/" data-id="ckao1h4i0007397sep7u80i6e" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -3596,7 +3666,7 @@ Swap: 0 kB
 
 
     <nav id="page-nav">
-        <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/10/">10</a><a class="extend next" rel="next" href="/page/2/">Siguiente  &raquo;</a>
+        <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/10/">10</a><a class="extend next" rel="next" href="/page/2/">Next &raquo;</a>
     </nav>
 </section>
             
@@ -3605,9 +3675,28 @@ Swap: 0 kB
    
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Recientes</h3>
+        <h3 class="widget-title">recent</h3>
         <div class="widget">
             <ul id="recent-post" class="">
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/5a35e6d9/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/5a35e6d9/" class="title">MySQL死锁系列-加锁场景分析</a></p>
+                            <p class="item-date"><time datetime="2020-05-21T14:25:30.000Z" itemprop="datePublished">2020-05-21</time></p>
+                        </div>
+                    </li>
                 
                     <li>
                         
@@ -3685,25 +3774,6 @@ Swap: 0 kB
                         </div>
                     </li>
                 
-                    <li>
-                        
-                        <!-- <div class="item-thumbnail">
-                            <a href="/article/24b8edbf/" class="thumbnail">
-    
-    
-        <span class="thumbnail-image thumbnail-none"></span>
-    
-</a>
-
-                        </div> -->
-                        
-                        <div class="item-inner">
-                            <p class="item-category"><a class="article-category-link" href="/categories/Redis/">Redis</a></p>
-                            <p class="item-title"><a href="/article/24b8edbf/" class="title">Redis Cluster 的数据分片机制</a></p>
-                            <p class="item-date"><time datetime="2019-12-21T13:24:26.000Z" itemprop="datePublished">2019-12-21</time></p>
-                        </div>
-                    </li>
-                
             </ul>
         </div>
     </div>
@@ -3711,7 +3781,7 @@ Swap: 0 kB
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Categorias</h3>
+        <h3 class="widget-title">categories</h3>
         <div class="widget">
             <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">25</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MySQL/">MySQL</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Netty/">Netty</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Redis/">Redis</a><span class="category-list-count">16</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SICP/">SICP</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/docker/">docker</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/java-persistent/">java persistent</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/plan/">plan</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">2</span></li></ul>
         </div>
@@ -3720,25 +3790,25 @@ Swap: 0 kB
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Archivos</h3>
+        <h3 class="widget-title">archives</h3>
         <div class="widget">
-            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
         </div>
     </div>
 
     
         
     <div class="widget-wrap">
-        <h3 class="widget-title">Nube de etiquetas</h3>
+        <h3 class="widget-title">tag cloud</h3>
         <div class="widget tagcloud">
-            <a href="/tags/AOP/" style="font-size: 15px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 20px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/MySQL/" style="font-size: 10px;">MySQL</a> <a href="/tags/Netty/" style="font-size: 20px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/Redis/" style="font-size: 10px;">Redis</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 15px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 15px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 20px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 15px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/persistent/" style="font-size: 15px;">persistent</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 15px;">第三方库</a> <a href="/tags/算法/" style="font-size: 20px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 15px;">限流</a>
+            <a href="/tags/AOP/" style="font-size: 15px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 20px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/tags/Netty/" style="font-size: 20px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 15px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/Redis/" style="font-size: 10px;">Redis</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 15px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 15px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 15px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 20px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 15px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/persistent/" style="font-size: 15px;">persistent</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/scroll/" style="font-size: 15px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 15px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 20px;">注解</a> <a href="/tags/第三方库/" style="font-size: 15px;">第三方库</a> <a href="/tags/算法/" style="font-size: 20px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 15px;">限流</a>
         </div>
     </div>
 
     
         
     <div class="widget-wrap widget-list">
-        <h3 class="widget-title">Links</h3>
+        <h3 class="widget-title">links</h3>
         <div class="widget">
             <ul>
                 
