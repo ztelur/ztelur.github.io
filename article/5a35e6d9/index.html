@@ -27,7 +27,7 @@
 <meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-71b90974da56dffe.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
 <meta property="og:image" content="https://upload-images.jianshu.io/upload_images/623378-4bcbe899fee57785.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
 <meta property="og:image" content="http://cdn.remcarpediem.net/2020-05-26-144752.png">
-<meta property="og:updated_time" content="2020-05-26T14:50:50.000Z">
+<meta property="og:updated_time" content="2020-05-26T14:57:39.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="MySQL死锁系列-加锁场景分析">
 <meta name="twitter:description" content="在上一篇文章《锁的类型以及加锁原理》主要总结了 MySQL 锁的类型和模式以及基本的加锁原理，今天我们就从原理走向实战，分析常见 SQL 语句的加锁场景。了解了这几种场景，相信小伙伴们也能举一反三，灵活地分析真实开发过程中遇到的加锁问题。 如下图所示，数据库的隔离等级，SQL 语句和当前数据库数据会共同影响该条 SQL 执行时数据库生成的锁模式，锁类型和锁数量。  下面，我们会首先讲解一下隔离等级">
@@ -298,25 +298,25 @@ var _hmt = _hmt || [];
 <p>其中，当前读的 SQL 语句的 where 从句的不同也会影响加锁，包括是否使用索引，索引是否是唯一索引等等。</p>
 <h3 id="当前数据对加锁的影响"><a href="#当前数据对加锁的影响" class="headerlink" title="当前数据对加锁的影响"></a>当前数据对加锁的影响</h3><p>SQL 语句执行时数据库中的数据也会对加锁产生影响。</p>
 <p>比如一条最简单的根据主键进行更新的 SQL 语句，如果主键存在，则只需要对其加记录锁，如果不存在，则需要在加间隙锁。</p>
-<p>至于其他非唯一性索引更新或者插入时的加锁也都不同程度的收到现存数据的影响，后续我们会一一说明。</p>
+<p>至于其他非唯一性索引更新或者插入时的加锁也都不同程度的受到现存数据的影响，后续我们会一一说明。</p>
 <h3 id="具体场景分析"><a href="#具体场景分析" class="headerlink" title="具体场景分析"></a>具体场景分析</h3><p>具体 SQL 场景分析主要借鉴何登成前辈的《MySQL 加锁处理分析》文章和 aneasystone 的系列文章，在他们的基础上进行了总结和整理。</p>
 <p>我们使用下面这张 book 表作为实例，其中 id 为主键，ISBN（书号）为二级唯一索引，Author（作者）为二级非唯一索引，score（评分）无索引。</p>
 <p><img src="http://cdn.remcarpediem.net/2020-05-26-121732.png" alt=""></p>
 <h3 id="UPDATE-语句加锁分析"><a href="#UPDATE-语句加锁分析" class="headerlink" title="UPDATE 语句加锁分析"></a>UPDATE 语句加锁分析</h3><p>下面，我们先来分析 UPDATE 相关 SQL 在使用较为简单 where 从句情况下加锁情况。其中的分析原则也适用于 UPDATE,DELETE 和 SELECT … FOR UPDATE等当前读的语句。</p>
 <h4 id="聚簇索引，查询命中"><a href="#聚簇索引，查询命中" class="headerlink" title="聚簇索引，查询命中"></a>聚簇索引，查询命中</h4><p>聚簇索引就是 InnoDB 存储引擎下的主键索引，具体可参考<a href="https://mp.weixin.qq.com/s/FX0bPiBIWWjSI9yRy715FQ" target="_blank" rel="noopener">《MySQL索引》</a>。</p>
 <p>下图展示了使用 UPDATE book SET score = 9.2 WHERE ID = 10 语句命中的情况下在 RC 和 RR 隔离等级下的加锁，两种隔离等级下没有任何区别，都是对 ID = 10 这个索引加排他记录锁。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-9aa0c26774b0ed32.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="lock_1.png"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-9aa0c26774b0ed32.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
 <h4 id="聚簇索引，查询未命中"><a href="#聚簇索引，查询未命中" class="headerlink" title="聚簇索引，查询未命中"></a>聚簇索引，查询未命中</h4><p>下图展示了 UPDATE book SET score = 9.2 WHERE ID = 16 语句未命中时 RR 隔离级别下的加锁情况。</p>
 <p>在 RC 隔离等级下，不需要加锁；而在 RR 隔离级别会在 ID = 16 前后两个索引之间加上间隙锁。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-a71c4e540a4c9939.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="lock_2.png"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-a71c4e540a4c9939.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
 <p>值得注意的是，间隙锁和间隙锁之间是互不冲突的，间隙锁唯一的作用就是为了防止其他事务的插入新行，导致幻读，所以加间隙 S 锁和加间隙 X 锁没有任何区别。</p>
 <h4 id="二级唯一索引，查询命中"><a href="#二级唯一索引，查询命中" class="headerlink" title="二级唯一索引，查询命中"></a>二级唯一索引，查询命中</h4><p>下图展示了 UPDATE book SET score = 9.2 WHERE ISBN = ‘N0003’ 在 RC 和 RR 隔离等级下命中时的加锁情况。</p>
 <p>在 InnoDB 存储引擎中，二级索引的叶子节点保存着主键索引的值，然后再拿主键索引去获取真正的数据行，所以在这种情况下，二级索引和主键索引都会加排他记录锁。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-f2df4b02fa76e924.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="lock3_1.png"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-f2df4b02fa76e924.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
 <h4 id="二级唯一索引，查询未命中"><a href="#二级唯一索引，查询未命中" class="headerlink" title="二级唯一索引，查询未命中"></a>二级唯一索引，查询未命中</h4><p>下图展示了 UPDATE book SET score = 9.2 WHERE ISBN = ‘N0008’ 语句在 RR 隔离等级下未命中时的加锁情况，RC 隔离等级下该语句未命中不会加锁。</p>
 <p>因为 N0008 大于 N0007，所以要锁住 (N0007,正无穷)这段区间，而 InnoDB 的索引一般都使用 Suprenum Record 和 Infimum Record 来分别表示记录的上下边界。Infimum 是比该页中任何记录都要小的值，而 Supremum 比该页中最大的记录值还要大，这两条记录在创建页的时候就有了，并且不会删除。</p>
 <p>所以，在 N0007 和 Suprenum Record 之间加了间隙锁。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-16d854a96f4275d4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="lock3-2.png"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-16d854a96f4275d4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
 <p>为什么不在主键上也加 GAP 锁呢？欢迎留言说出你的想法。</p>
 <h4 id="二级非唯一索引，查询命中"><a href="#二级非唯一索引，查询命中" class="headerlink" title="二级非唯一索引，查询命中"></a>二级非唯一索引，查询命中</h4><p>下图展示了 UPDATE book SET score = 9.2 WHERE Author = ‘Tom’ 语句在 RC 隔离等级下命中时的加锁情况。</p>
 <p>我们可以看到，在 RC 等级下，二级唯一索引和二级非唯一索引的加锁情况是一致的，都是在涉及的二级索引和对应的主键索引上加上排他记录锁。</p>
@@ -390,7 +390,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/5a35e6d9/" data-id="ckao1h4eb002l97serqwj60j4" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/5a35e6d9/" data-id="ckao1kjsd002ff0se7ctxxptr" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -658,11 +658,11 @@ var _hmt = _hmt || [];
 	<script src="https://imsun.github.io/gitment/dist/gitment.browser.js"></script>
 	<script>
 		var gitment = new Gitment({
-			owner: 'lexburner',
-			repo: 'lexburner.github.io',
+			owner: 'ztelur',
+			repo: 'blog-comments',
 			oauth: {
-				client_id: 'd5fc3e1150477a0d433d',
-				client_secret: 'aa94acd5f130281051b9e703c19b4c6d878e90c4',
+				client_id: 'e11eded7e31cb8e81cf9',
+				client_secret: '693e956d72348c934f998ef0494354e4d5781072',
 			},
 		})
 		gitment.render('commentContainer')

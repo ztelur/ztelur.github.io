@@ -279,25 +279,25 @@ var _hmt = _hmt || [];
 <p>其中，当前读的 SQL 语句的 where 从句的不同也会影响加锁，包括是否使用索引，索引是否是唯一索引等等。</p>
 <h3 id="当前数据对加锁的影响"><a href="#当前数据对加锁的影响" class="headerlink" title="当前数据对加锁的影响"></a>当前数据对加锁的影响</h3><p>SQL 语句执行时数据库中的数据也会对加锁产生影响。</p>
 <p>比如一条最简单的根据主键进行更新的 SQL 语句，如果主键存在，则只需要对其加记录锁，如果不存在，则需要在加间隙锁。</p>
-<p>至于其他非唯一性索引更新或者插入时的加锁也都不同程度的收到现存数据的影响，后续我们会一一说明。</p>
+<p>至于其他非唯一性索引更新或者插入时的加锁也都不同程度的受到现存数据的影响，后续我们会一一说明。</p>
 <h3 id="具体场景分析"><a href="#具体场景分析" class="headerlink" title="具体场景分析"></a>具体场景分析</h3><p>具体 SQL 场景分析主要借鉴何登成前辈的《MySQL 加锁处理分析》文章和 aneasystone 的系列文章，在他们的基础上进行了总结和整理。</p>
 <p>我们使用下面这张 book 表作为实例，其中 id 为主键，ISBN（书号）为二级唯一索引，Author（作者）为二级非唯一索引，score（评分）无索引。</p>
 <p><img src="http://cdn.remcarpediem.net/2020-05-26-121732.png" alt=""></p>
 <h3 id="UPDATE-语句加锁分析"><a href="#UPDATE-语句加锁分析" class="headerlink" title="UPDATE 语句加锁分析"></a>UPDATE 语句加锁分析</h3><p>下面，我们先来分析 UPDATE 相关 SQL 在使用较为简单 where 从句情况下加锁情况。其中的分析原则也适用于 UPDATE,DELETE 和 SELECT … FOR UPDATE等当前读的语句。</p>
 <h4 id="聚簇索引，查询命中"><a href="#聚簇索引，查询命中" class="headerlink" title="聚簇索引，查询命中"></a>聚簇索引，查询命中</h4><p>聚簇索引就是 InnoDB 存储引擎下的主键索引，具体可参考<a href="https://mp.weixin.qq.com/s/FX0bPiBIWWjSI9yRy715FQ" target="_blank" rel="noopener">《MySQL索引》</a>。</p>
 <p>下图展示了使用 UPDATE book SET score = 9.2 WHERE ID = 10 语句命中的情况下在 RC 和 RR 隔离等级下的加锁，两种隔离等级下没有任何区别，都是对 ID = 10 这个索引加排他记录锁。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-9aa0c26774b0ed32.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="lock_1.png"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-9aa0c26774b0ed32.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
 <h4 id="聚簇索引，查询未命中"><a href="#聚簇索引，查询未命中" class="headerlink" title="聚簇索引，查询未命中"></a>聚簇索引，查询未命中</h4><p>下图展示了 UPDATE book SET score = 9.2 WHERE ID = 16 语句未命中时 RR 隔离级别下的加锁情况。</p>
 <p>在 RC 隔离等级下，不需要加锁；而在 RR 隔离级别会在 ID = 16 前后两个索引之间加上间隙锁。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-a71c4e540a4c9939.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="lock_2.png"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-a71c4e540a4c9939.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
 <p>值得注意的是，间隙锁和间隙锁之间是互不冲突的，间隙锁唯一的作用就是为了防止其他事务的插入新行，导致幻读，所以加间隙 S 锁和加间隙 X 锁没有任何区别。</p>
 <h4 id="二级唯一索引，查询命中"><a href="#二级唯一索引，查询命中" class="headerlink" title="二级唯一索引，查询命中"></a>二级唯一索引，查询命中</h4><p>下图展示了 UPDATE book SET score = 9.2 WHERE ISBN = ‘N0003’ 在 RC 和 RR 隔离等级下命中时的加锁情况。</p>
 <p>在 InnoDB 存储引擎中，二级索引的叶子节点保存着主键索引的值，然后再拿主键索引去获取真正的数据行，所以在这种情况下，二级索引和主键索引都会加排他记录锁。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-f2df4b02fa76e924.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="lock3_1.png"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-f2df4b02fa76e924.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
 <h4 id="二级唯一索引，查询未命中"><a href="#二级唯一索引，查询未命中" class="headerlink" title="二级唯一索引，查询未命中"></a>二级唯一索引，查询未命中</h4><p>下图展示了 UPDATE book SET score = 9.2 WHERE ISBN = ‘N0008’ 语句在 RR 隔离等级下未命中时的加锁情况，RC 隔离等级下该语句未命中不会加锁。</p>
 <p>因为 N0008 大于 N0007，所以要锁住 (N0007,正无穷)这段区间，而 InnoDB 的索引一般都使用 Suprenum Record 和 Infimum Record 来分别表示记录的上下边界。Infimum 是比该页中任何记录都要小的值，而 Supremum 比该页中最大的记录值还要大，这两条记录在创建页的时候就有了，并且不会删除。</p>
 <p>所以，在 N0007 和 Suprenum Record 之间加了间隙锁。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-16d854a96f4275d4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="lock3-2.png"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/623378-16d854a96f4275d4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
 <p>为什么不在主键上也加 GAP 锁呢？欢迎留言说出你的想法。</p>
 <h4 id="二级非唯一索引，查询命中"><a href="#二级非唯一索引，查询命中" class="headerlink" title="二级非唯一索引，查询命中"></a>二级非唯一索引，查询命中</h4><p>下图展示了 UPDATE book SET score = 9.2 WHERE Author = ‘Tom’ 语句在 RC 隔离等级下命中时的加锁情况。</p>
 <p>我们可以看到，在 RC 等级下，二级唯一索引和二级非唯一索引的加锁情况是一致的，都是在涉及的二级索引和对应的主键索引上加上排他记录锁。</p>
@@ -371,7 +371,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/5a35e6d9/" data-id="ckao1h4eb002l97serqwj60j4" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/5a35e6d9/" data-id="ckao1kjsd002ff0se7ctxxptr" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -744,7 +744,7 @@ a
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/e3e7a535/" data-id="ckao1h4hw007097sel93oayrp" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/e3e7a535/" data-id="ckao1kjvm0072f0sefv7n2zpl" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -969,7 +969,7 @@ update user set age = 10 where name = &#39;Tom&#39;;
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/a94bd30a/" data-id="ckao1h4ed002p97seq9egywwp" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/a94bd30a/" data-id="ckao1kjsk002qf0seasia75l1" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1544,7 +1544,7 @@ public void evict() throws Exception {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/d5009955/" data-id="ckao1h4e2002897seavhl5b76" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/d5009955/" data-id="ckao1kjs4001yf0sedgnbs0po" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1693,7 +1693,7 @@ public void evict() throws Exception {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/75dc863d/" data-id="ckao1h4cm000997seekm59l42" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/75dc863d/" data-id="ckao1kjqk0009f0set8ke26hr" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1881,7 +1881,7 @@ public void evict() throws Exception {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/24b8edbf/" data-id="ckao1h4f3003r97sev2l0fik8" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/24b8edbf/" data-id="ckao1kjth003pf0se0un0sqoq" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2408,7 +2408,7 @@ int writeToClient(int fd, client *c, int handler_installed) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/1dd72ef8/" data-id="ckao1h4fe004397semg2iup2g" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/1dd72ef8/" data-id="ckao1kjtn0041f0se2155k2kd" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -3035,7 +3035,7 @@ void call(client *c, int flags) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/4cc1fb9/" data-id="ckao1h4fd004097sent8gl3kn" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/4cc1fb9/" data-id="ckao1kjtp0044f0seps8d4ebw" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -3362,7 +3362,7 @@ statement.getConnection().commit();
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/8c16d4e4/" data-id="ckao1h4dt001t97sewhjsrd5f" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/8c16d4e4/" data-id="ckao1kjs1001uf0seke8rmrtl" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -3589,7 +3589,7 @@ Swap: 0 kB
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/ef4e619/" data-id="ckao1h4i0007397sep7u80i6e" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/ef4e619/" data-id="ckao1kjvq0079f0se9x4stszl" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -3841,11 +3841,11 @@ Swap: 0 kB
 	<script src="https://imsun.github.io/gitment/dist/gitment.browser.js"></script>
 	<script>
 		var gitment = new Gitment({
-			owner: 'lexburner',
-			repo: 'lexburner.github.io',
+			owner: 'ztelur',
+			repo: 'blog-comments',
 			oauth: {
-				client_id: 'd5fc3e1150477a0d433d',
-				client_secret: 'aa94acd5f130281051b9e703c19b4c6d878e90c4',
+				client_id: 'e11eded7e31cb8e81cf9',
+				client_secret: '693e956d72348c934f998ef0494354e4d5781072',
 			},
 		})
 		gitment.render('commentContainer')
