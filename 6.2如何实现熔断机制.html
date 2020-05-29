@@ -12,12 +12,13 @@
 <meta property="og:site_name" content="程序员历小冰">
 <meta property="og:description" content="如何实现熔断机制：Hystric的使用和原理你好，我是aoho，今天我和你分享的主题是：如何实现熔断机制：Hystric 的使用和原理 在上一篇文章中，我们已经了解了熔断的基本原理和断路器在服务高可用架构中的重要性。相信小伙伴们已经迫不及待地准备在项目中使用断路器保护自己的服务了。自研断路器组件往往费时费力，秉承不能重复造轮子的理念，笔者这里推荐使用 Hystric。  Hystric 简介Hyt">
 <meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2020-05-29-120648.png">
 <meta property="og:image" content="http://cdn.remcarpediem.net/2020-05-24-hystric.png">
-<meta property="og:updated_time" content="2020-05-25T13:34:01.000Z">
+<meta property="og:updated_time" content="2020-05-29T12:29:47.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="程序员历小冰">
 <meta name="twitter:description" content="如何实现熔断机制：Hystric的使用和原理你好，我是aoho，今天我和你分享的主题是：如何实现熔断机制：Hystric 的使用和原理 在上一篇文章中，我们已经了解了熔断的基本原理和断路器在服务高可用架构中的重要性。相信小伙伴们已经迫不及待地准备在项目中使用断路器保护自己的服务了。自研断路器组件往往费时费力，秉承不能重复造轮子的理念，笔者这里推荐使用 Hystric。  Hystric 简介Hyt">
-<meta name="twitter:image" content="http://cdn.remcarpediem.net/2020-05-24-hystric.png">
+<meta name="twitter:image" content="http://cdn.remcarpediem.net/2020-05-29-120648.png">
     
 
     
@@ -241,23 +242,23 @@ var _hmt = _hmt || [];
 <p>被 hystrix 包装的远程调用逻辑都会封装为一个 hystrix 命令，其内包含制远程调用逻辑和失败回滚逻辑，根据 hystrix 命名唯一确认一个 hystrix 命令；</p>
 <p>上述代码执行时会先根据 hystrix 命令的命名获取到对应的断路器，判断断路器是否打开。如果断路器打开，说明此时服务调用已经被熔断了，将直接执行失败回滚逻辑，不执行真正的远程调用逻辑；如果断路器关闭或者处于半开状态，则执行远程调用逻辑。</p>
 <p>接下来我们将通过一个简单例子的了解 hytrix 的使用方式。详细代码见课程提供的代码库的 xxx 文件夹。</p>
-<h3 id="Hystric-基础使用案例"><a href="#Hystric-基础使用案例" class="headerlink" title="Hystric 基础使用案例"></a>Hystric 基础使用案例</h3>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-go">func getCalculateResult(a, b int) (string, error) {
+<h3 id="Hystric-基础使用案例"><a href="#Hystric-基础使用案例" class="headerlink" title="Hystric 基础使用案例"></a>Hystric 基础使用案例</h3><p>我们以常见的货运系统为例，包裹页面需要展示下游快递系统的具体派送信息，但是实时准确的派送信息相对来说并不是不可或缺，紧急情况下可以不进行显示。下图展示了相关的服务交互图。</p>
+<p><img src="http://cdn.remcarpediem.net/2020-05-29-120648.png" alt="cargo_and_delivery"></p>
+<p>包裹货运系统相对于下游的快递派送系统来说，级别更高，不应该受到快递派送系统的错误影响，导致上文所说的服务雪崩问题，所以二者之间的交互需要使用断路器进行熔断保护。</p>
 
-	serviceName := &quot;Calculate&quot;
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-go">func getDeliveryInfoResult(a, b int) (string, error) {
+
+	serviceName := &quot;Delivery&quot;
 
 	var result string
 
 	err := hystrix.Do(serviceName+ &quot;.&quot; + &quot;calculate&quot;, func() error{
-		&#x2F;&#x2F; 从 consul 中获取 Calculate 服务服务实例列表
+		&#x2F;&#x2F; 从 consul 中获取 Delivery 服务服务实例列表
 		instances := consulClient.DiscoverServices(serviceName)
-
 		if instances == nil || len(instances) == 0 {
-			logger.Println(&quot;No &quot; + serviceName + &quot; instances are working!&quot;)
 			return errors.New(&quot;No &quot; + serviceName + &quot; instances are working&quot;)
 		}
-
 		&#x2F;&#x2F; 随机选取一个服务实例进行计算
 		rand.Seed(time.Now().UnixNano())
 		selectInstance := instances[rand.Intn(len(instances))].(*api.AgentService)
@@ -265,7 +266,7 @@ var _hmt = _hmt || [];
 		requestUrl := url.URL{
 			Scheme:&quot;http&quot;,
 			Host:selectInstance.Address + &quot;:&quot; + strconv.Itoa(selectInstance.Port),
-			Path:&quot;&#x2F;calculate&quot;,
+			Path:&quot;&#x2F;query&quot;,
 			RawQuery:&quot;a=&quot; + strconv.Itoa(a) + &quot;&amp;b=&quot; + strconv.Itoa(b),
 		}
 
@@ -279,33 +280,35 @@ var _hmt = _hmt || [];
 		return nil
 
 	}, func(e error) error {
-		&#x2F;&#x2F; 失败回滚函数
+		&#x2F;&#x2F; 断路器打开时的处理函数函数
 		return errors.New(&quot;Http errors！&quot;)
 	})
 
 	if err == nil {
 		return result, nil
-	}else {
+	} else {
 		return &quot;&quot;, err
 	}
 }
 </code></pre>
-<p>我们能够发现 Calculate 和 UseCalculate 服务都已经注册上去了，接着我们访问 UseCalculate 的 /use/calculate 接口，发起对 Calculate 的远程调用。访问地址如下：</p>
+<p>我们启动 Cargo 服务和 Delivery 服务，能够在 Consul 页面上发现二者都已经注册上去了，接着我们访问 Cargo 的 /pacakge/query 接口，发起对 Delivery 的远程调用。访问地址如下：</p>
 
 <!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">http:&#x2F;&#x2F;localhost:10086&#x2F;use&#x2F;calculate?a=2&amp;b=3
+<pre class="line-numbers" style=""><code class="language-clike">http:&#x2F;&#x2F;localhost:10086&#x2F;cargo&#x2F;pacakge&#x2F;query?a=2&amp;b=3
 </code></pre>
 <p>可以获取到正确的响应如下：</p>
 
 <!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">Get result from Calculate is 5
+<pre class="line-numbers" style=""><code class="language-clike">Get result from Delivery is 5
 </code></pre>
-<p>接着我们关闭 Calcaulte 服务，继续访问 <a href="http://localhost:10086/use/calculate?a=2&amp;b=3" target="_blank" rel="noopener">http://localhost:10086/use/calculate?a=2&amp;b=3</a> 将会得到以下结果：</p>
+<p>接着我们关闭 Delivery 服务模仿下游服务出现错误的场景，继续访问上述地址，将会得到以下结果：</p>
 
 <!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">Get result from Calculate is fallback failed with &#39;Http errors！&#39;. run error was &#39;No Calculate instances are working&#39;
+<pre class="line-numbers" style=""><code class="language-clike">Get result from Delivery is fallback failed with &#39;Http errors！&#39;. run error was &#39;No Delivery instances are working&#39;
 </code></pre>
-<p>返回结果中直接把异常输出了，同时日志中也会输出 <code>No Calculate instances are working!</code>，说明 hystrix.Do 中包装代码被执行。我们多次访问 <a href="http://localhost:10086/use/calculate?a=2&amp;b=3，会发现被包装的代码会被一直执行，并没有触发断路器打开逻辑。原来" target="_blank" rel="noopener">http://localhost:10086/use/calculate?a=2&amp;b=3，会发现被包装的代码会被一直执行，并没有触发断路器打开逻辑。原来</a> hystrix 的默认配置是访问请求数在 20 次以上才会触发断路器计算的逻辑，我们可以在程序启动时修改断路器最低启动阀值为 4 次，来验证断路器打开后效果，在 use_calculate_service.go 的 main 函数中添加 hystrix 的配置信息，如下所示：</p>
+<p>返回结果中直接把异常输出了，同时日志中也会输出 <code>No Delivery instances are working!</code>，说明 hystrix.Do 中包装代码被执行，但是找不到下游服务实例，无法发起调用，返回了错误码。</p>
+<p>接着，我们多次访问上述地址，会发现被包装的代码会被一直执行，并没有触发断路器打开逻辑。这是为什么呢？</p>
+<p>原来 hystrix 的默认配置是访问请求数在 20 次以上才会触发断路器计算的逻辑，我们可以在程序启动时修改断路器最低启动阀值为 4 次，来验证断路器打开后效果，在 cargo.go 的 main 函数中添加 hystrix 的配置信息，如下所示：</p>
 
 <!-- Has Prism -->
 <pre class="line-numbers" style=""><code class="language-clike">func main()  {
@@ -318,15 +321,20 @@ var _hmt = _hmt || [];
 
 }
 </code></pre>
-<p>重新启动 UseCalculate 服务，连续访问 <a href="http://localhost:10086/use/calculate?a=2&amp;b=3" target="_blank" rel="noopener">http://localhost:10086/use/calculate?a=2&amp;b=3</a> 接口失败 4 次之后继续访问将不会持续出现<code>No Calculate instances are working!</code>的错误日志，说明此时断路器已经打开，直接执行了失败回滚函数返回异常结果。如果 5 秒之后我们重新访问 <a href="http://localhost:10086/use/calculate?a=2&amp;b=3" target="_blank" rel="noopener">http://localhost:10086/use/calculate?a=2&amp;b=3</a> 接口，将会发现请求重新执行了 hystrix.Do 中的远程调用代码，这是因为断路器打开之后的超时时间已经结束(默认为 5 秒钟)，断路器进入了半开状态，允许程序重新执行远程调用，试探下游服务是否恢复可用状态，因为 Calculate 服务处于一直不可用的状态，请求失败后，断路器又回到的打开状态。</p>
-<h3 id="Hystric-简介和原理"><a href="#Hystric-简介和原理" class="headerlink" title="Hystric 简介和原理"></a>Hystric 简介和原理</h3><p><img src="http://cdn.remcarpediem.net/2020-05-24-hystric.png" alt=""></p>
-<p>从这个流程图中，可以看到：</p>
+<p>重新启动 Cargo 服务，连续访问接口失败 4 次之后，继续访问将不会持续出现<code>No Delivery instances are working!</code>的错误日志，说明此时断路器已经打开，直接执行了失败回滚函数返回异常结果。</p>
+<p>如果 5 秒之后我们重新访问接口，将会发现请求重新执行了 hystrix.Do 中的远程调用代码，这是因为断路器打开之后的超时时间已经结束(默认为 5 秒钟)，断路器进入了半开状态，允许程序重新执行远程调用，试探下游服务是否恢复可用状态，因为 Delivery 服务处于一直不可用的状态，请求失败后，断路器又回到的打开状态。</p>
+<h3 id="Hystric-简介和原理"><a href="#Hystric-简介和原理" class="headerlink" title="Hystric 简介和原理"></a>Hystric 简介和原理</h3><p>看完 Hystric 使用的简单案例后，我们来了解一下 Hystric 断路器的相关原理，分析一下 Hystric.Do 的关键实现。</p>
+<p><img src="http://cdn.remcarpediem.net/2020-05-24-hystric.png" alt=""></p>
+<p>从上述的流程图中，可以看到：</p>
 <ul>
-<li>有请求来了，首先调用 allowRequest 函数判断是否在熔断状态中，如果不是则放行；如果是的话，还要看是否到达预定熔断时长，如果熔断时长到了，也是放行，否则直接返回出错。</li>
-<li>每次调用结束前都会调用 markSuccess(duration) 或 markFailure(duration) 函数统计一下在一定的 duration 内有多少调用是成功还是失败的。</li>
-<li>isOpen 函数判断是否熔断的条件，是计算一下 failure/(success+failure) 当前的错误率，如果高于一个阈值，那么打开熔断，否则关闭。</li>
-<li>Hystrix 会在内存中维护一个数组，其中记录着每一个周期的请求结果的统计。超过时间窗口的元素会被删除掉。</li>
+<li>当Hystric.Do 函数被执行时，它会交由对应的 HystricCommand 处理。</li>
+<li>HystricCommand 会首先调用 allowRequest 函数判断当前是否在熔断状态中，如果不是则直接放行，执行包装定义的代码逻辑；如果是的话，还要看是否到达预定熔断时长，如果熔断时长到了，也是放行，否则直接返执行错误逻辑。</li>
+<li>HystricCommand 执行结束前都会调用 markSuccess(duration) 或 markFailure(duration) 函数统计一下在一定的 duration (时间间隔) 内有多少调用是成功还是失败的。</li>
+<li>isOpen 函数判断是否熔断的规则，是计算一下周期中 failure/(success+failure) 的错误率，如果高于一个阈值，那么打开熔断，否则关闭。</li>
+<li>Hystrix 会在内存中为每个 HystricCommand 维护一个数组，其中记录着每一个周期的请求结果的统计。超过时间窗口的元素会被删除掉。</li>
 </ul>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>在本篇文章中，我为你讲述了 Hystric 的使用和原理，Hystric 作为开源的熔断组件，为我们提供了开箱既用的服务自我保护能力。 </p>
+<p>那么除了熔断外，还有哪些方式来保护服务，提供高可用的服务呢？请继续关注本课程，下一讲我们继续介绍。</p>
 
         
         </div>
@@ -337,7 +345,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/6.2如何实现熔断机制.html" data-id="ckao1kjms0000f0se48my4m50" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/6.2如何实现熔断机制.html" data-id="ckas8jw960000v8660eswi97r" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -418,7 +426,7 @@ var _hmt = _hmt || [];
     
     
         <section id="comments">
-	<div id="commentContainer"></div>
+    <div id="valine-thread"></div>
 </section>
     
 
@@ -591,20 +599,19 @@ var _hmt = _hmt || [];
 </footer>
         
     
-	<link rel="stylesheet" href="https://imsun.github.io/gitment/style/default.css">
-	<script src="https://imsun.github.io/gitment/dist/gitment.browser.js"></script>
-	<script>
-		var gitment = new Gitment({
-			owner: 'ztelur',
-			repo: 'blog-comments',
-			oauth: {
-				client_id: 'e11eded7e31cb8e81cf9',
-				client_secret: '693e956d72348c934f998ef0494354e4d5781072',
-			},
-		})
-		gitment.render('commentContainer')
-	</script>
-	
+    <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+    <script src="//cdn.jsdelivr.net/gh/xcss/valine@v1.1.6/dist/Valine.min.js"></script>
+    <script>
+        new Valine({
+            el: '#valine-thread' ,
+            notify:remcarpediem@163.com,
+            verify:null,
+            app_id: 'Py2W9ndz8WJGDduj0id77Yq7-gzGzoHsz',
+            app_key: 'cTJCvL6VOQL5ozXfABqDbAyP',
+            placeholder: '欢迎大家积极留言交流'
+        });
+    </script>
+
 
 
 
