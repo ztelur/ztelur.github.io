@@ -13,19 +13,19 @@
 <meta property="og:site_name" content="程序员历小冰">
 <meta property="og:description" content="近日 Redis 6.0.0 GA 版本发布，这是 Redis 历史上最大的一次版本更新，包括了客户端缓存 (Client side caching)、ACL、Threaded I/O 和 Redis Cluster Proxy 等诸多更新。 我们今天就依次聊一下客户端缓存的必要性、具体使用、原理分析和实现。 为什么需要客户端缓存？我们都知道，使用 Redis 进行数据的缓存的主要目的是减少对 M">
 <meta property="og:locale" content="Chinese">
-<meta property="og:image" content="http://remcarpediem.net/article/e3e7a535/images/20_511_1/1.png">
-<meta property="og:image" content="http://remcarpediem.net/article/e3e7a535/images/20_511_1/2.png">
-<meta property="og:image" content="http://remcarpediem.net/article/e3e7a535/images/20_511_1/3.png">
-<meta property="og:image" content="http://remcarpediem.net/article/e3e7a535/images/20_511_1/4.png">
-<meta property="og:image" content="http://remcarpediem.net/article/e3e7a535/images/20_511_1/5.png">
-<meta property="og:image" content="http://remcarpediem.net/article/e3e7a535/images/20_511_1/6.png">
-<meta property="og:image" content="http://remcarpediem.net/article/e3e7a535/images/20_511_1/7.png">
-<meta property="og:image" content="http://remcarpediem.net/article/e3e7a535/images/20_511_1/8.png">
-<meta property="og:updated_time" content="2020-05-11T13:02:41.000Z">
+<meta property="og:image" content="http://remcarpediem.net/images/20_511_1/1.png">
+<meta property="og:image" content="http://remcarpediem.net/images/20_511_1/2.png">
+<meta property="og:image" content="http://remcarpediem.net/images/20_511_1/3.png">
+<meta property="og:image" content="http://remcarpediem.net/images/20_511_1/4.png">
+<meta property="og:image" content="http://remcarpediem.net/images/20_511_1/5.png">
+<meta property="og:image" content="http://remcarpediem.net/images/20_511_1/6.png">
+<meta property="og:image" content="http://remcarpediem.net/images/20_511_1/7.png">
+<meta property="og:image" content="http://remcarpediem.net/images/20_511_1/8.png">
+<meta property="og:updated_time" content="2020-05-31T07:15:15.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="带你100% 地了解 Redis 6.0 的客户端缓存">
 <meta name="twitter:description" content="近日 Redis 6.0.0 GA 版本发布，这是 Redis 历史上最大的一次版本更新，包括了客户端缓存 (Client side caching)、ACL、Threaded I/O 和 Redis Cluster Proxy 等诸多更新。 我们今天就依次聊一下客户端缓存的必要性、具体使用、原理分析和实现。 为什么需要客户端缓存？我们都知道，使用 Redis 进行数据的缓存的主要目的是减少对 M">
-<meta name="twitter:image" content="http://remcarpediem.net/article/e3e7a535/images/20_511_1/1.png">
+<meta name="twitter:image" content="http://remcarpediem.net/images/20_511_1/1.png">
     
 
     
@@ -271,9 +271,9 @@ var _hmt = _hmt || [];
 <p>我们今天就依次聊一下客户端缓存的必要性、具体使用、原理分析和实现。</p>
 <h3 id="为什么需要客户端缓存？"><a href="#为什么需要客户端缓存？" class="headerlink" title="为什么需要客户端缓存？"></a>为什么需要客户端缓存？</h3><p>我们都知道，使用 Redis 进行数据的缓存的主要目的是减少对 MySQL 等数据库的访问，提供更快的访问速度，毕竟 《Redis in Action》中提到的， Redis 的性能大致是普通关系型数据库的 10 ~ 100 倍。</p>
 <p>所以，如下图所示，Redis 用来存储热点数据，Redis 未命中，再去访问数据库，这样可以应付大多数情况下的性能要求。</p>
-<p><img src="images/20_511_1/1.png" alt=""></p>
+<p><img src="/images/20_511_1/1.png" alt=""></p>
 <p>但是，Redis 也有其性能上限，并且访问 Redis 必然有一定的网络 I/O 以及序列化反序列化损耗。所以，往往会引入进程缓存，将最热的数据存储在本地，进一步加快访问速度。</p>
-<p><img src="images/20_511_1/2.png" alt=""></p>
+<p><img src="/images/20_511_1/2.png" alt=""></p>
 <p>如上图所示，Guava Cache 等进程缓存作为一级缓存，Redis 作为二级缓存：</p>
 <ol>
 <li>先去 Guava Cache 中查询数据，如果命中则直接返回。</li>
@@ -284,11 +284,11 @@ var _hmt = _hmt || [];
 <p>而进程内缓存的数据一致性比分布式的缓存面临更大的挑战。数据更新的时候，如何通知其他进程也更新自己的缓存呢?</p>
 <p>如果按照分布式缓存的思路，我们可以设置极短的缓存失效时间，这样不必实现复杂的通知机制。</p>
 <p>但是不同进程内的数据依然会面临不一致的问题，并且不同进程缓存失效时间不统一，同一个请求到了不同的进程，可能出现反复幻读的情况。</p>
-<p><img src="images/20_511_1/3.png" alt=""></p>
+<p><img src="/images/20_511_1/3.png" alt=""></p>
 <p>Ben 在 RedisConf18 给出了一个方案(视频和 PPT 链接在文末)，通过 Redis 的 Pub/Sub，可以通知其他进程缓存对此缓存进行删除。如果 Redis 挂了或者订阅机制不靠谱，依靠超时设定，依然可以做兜底处理。</p>
 <p>Antirez(Redis 的作者) 也正是听取 Ben 这个方案后，才决定在 Redis  Server 支持客户端缓存的，因为在有服务端参与的情况下可以更好的处理上述这些问题。 </p>
 <h3 id="功能介绍和演示"><a href="#功能介绍和演示" class="headerlink" title="功能介绍和演示"></a>功能介绍和演示</h3><p>下面使用 Docker 安装 Redis 6.0.1，然后使用 telnet 来简单演示一下 Redis 6.0 的客户端缓存功能。所有相关的功能如下图所示，分别是使用RESP3 协议版本的普通模式和广播模式，以及使用 RESP2 协议版本的转发模式。我们先来看普通模式。</p>
-<p><img src="images/20_511_1/4.png" alt=""></p>
+<p><img src="/images/20_511_1/4.png" alt=""></p>
 <h4 id="普通模式"><a href="#普通模式" class="headerlink" title="普通模式"></a>普通模式</h4><p>先使用 redis-cli 设置缓存值 test=111，使用 telnet 连接上 Redis，然后发送 hello 3 开启 RESP3 协议。</p>
 
 <!-- Has Prism -->
@@ -356,7 +356,7 @@ a
 <p>与普通模式必须获取一次键的规则不同，<strong>广播模式下，只要键被修改或删除，符合规则的客户端都会收到失效消息，而且是可以多次获取的</strong></p>
 <p>与普通模式相比，虽然少存储了一些数据，但是由于需要对前缀规则进行匹配，会消耗一定的 CPU 资源，所以<strong>注意别使用过长的前缀</strong>。</p>
 <h4 id="转发模式"><a href="#转发模式" class="headerlink" title="转发模式"></a>转发模式</h4><p>上述操作时客户端都需要先开启 RESP3，Redis 为了兼容 RESP2 协议提供了转发(Redirect)模式，不再使用 RESP3 原生支持 PUSH 消息，而是将消息通过 Pub/Sub 通知给另外一个客户端，具体流程如下图所示。</p>
-<p><img src="images/20_511_1/5.png" alt=""></p>
+<p><img src="/images/20_511_1/5.png" alt=""></p>
 <p>这里需要两个 telnet，其中一个 telnet 需要订阅 <code>_redis_:invalidate</code> 信道。然后另一个 telnet 开启 Redirect 模式，并制定将失效消息通过订阅信道发送给第一个 telnet。</p>
 
 <!-- Has Prism -->
@@ -400,7 +400,7 @@ a
 <p>当有一个新的键被 tracking 时，如果当前 tracking 的 key 的数量大于 tracking_table_max_keys，则会随机删除之前 tracking 的 key，并且向对应的客户端发送失效消息。</p>
 <h3 id="原理和源码实现"><a href="#原理和源码实现" class="headerlink" title="原理和源码实现"></a>原理和源码实现</h3><h4 id="普通模式原理"><a href="#普通模式原理" class="headerlink" title="普通模式原理"></a>普通模式原理</h4><p>我们也先讲解普通模式的原理，Redis 服务端使用 TrackingTable 存储普通模式的客户端数据，它的数据类型是基数树(radix tree)。</p>
 <p>基数树是针对稀疏的长整型数据查找的多叉搜索树，能快速且节省空间的完映射，一般用于解决 Hash冲突和 Hash表大小的设计问题，Linux 的内存管理就使用了它。</p>
-<p><img src="images/20_511_1/6.png" alt=""></p>
+<p><img src="/images/20_511_1/6.png" alt=""></p>
 <p>Redis 用它存储<strong>键的指针</strong>和<strong>客户端 ID</strong> 的映射关系。因为键对象的指针就是内存地址，也就是长整型数据。客户端缓存的相关操作就是对该数据的增删改查：</p>
 <ul>
 <li>当开启 track 功能的客户端获取某一个键值时，Redis 会调用 <code>enableTracking</code> 方法使用基数树记录下该 key 和 clientId 的映射关系。</li>
@@ -408,7 +408,7 @@ a
 <li>发送完失效消息后，根据<strong>键的指针值</strong>将映射关系从 TrackingTable中删除。</li>
 <li>客户端关闭 track 功能后，因为删除需要进行大量操作，所以 Redis 使用懒删除方式，只是将该客户端的 CLIENT_TRACKING 相关标志位删除掉。</li>
 </ul>
-<h4 id="广播模式原理"><a href="#广播模式原理" class="headerlink" title="广播模式原理"></a>广播模式原理</h4><p><img src="images/20_511_1/7.png" alt=""></p>
+<h4 id="广播模式原理"><a href="#广播模式原理" class="headerlink" title="广播模式原理"></a>广播模式原理</h4><p><img src="/images/20_511_1/7.png" alt=""></p>
 <p>广播模式与普通模式类似，Redis 同样使用 <code>PrefixTable</code> 存储广播模式下的客户端数据，它存储<strong>前缀字符串指针和(需要通知的key和客户端ID)</strong>的映射关系。它和广播模式最大的区别就是真正发送失效消息的时机不同：</p>
 <ul>
 <li>当客户端开启广播模式时，会在 <code>PrefixTable</code>的前缀对应的客户端列表中加入该客户端ID。</li>
@@ -506,7 +506,7 @@ a
 <h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>相信看到这里的小伙伴们都已经有点疲惫了吧，但是还请大家多多点赞多多评论。后续还会学习其他 Redis 6.0.0 的其他亮点功能，请大家继续关注。</p>
 <p><a href="http://remcarpediem.net/article/1dd72ef8/">个人博客地址，欢迎查看</a></p>
 <p>给笔者的新书打个广告，已经上架各大平台，可以通过下方的二维码购买。</p>
-<p><img src="images/20_511_1/8.png" alt=""></p>
+<p><img src="/images/20_511_1/8.png" alt=""></p>
 <h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
 <li><a href="https://redis.io/topics/client-side-caching" target="_blank" rel="noopener">https://redis.io/topics/client-side-caching</a></li>
 <li><a href="https://tech.meituan.com/2017/03/17/cache-about.html" target="_blank" rel="noopener">https://tech.meituan.com/2017/03/17/cache-about.html</a></li>
@@ -533,7 +533,7 @@ a
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/e3e7a535/" data-id="ckaug3liq0073n566wwmb337l" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/e3e7a535/" data-id="ckauqc08b0073ao66yok4v1dc" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
