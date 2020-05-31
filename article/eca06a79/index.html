@@ -259,10 +259,14 @@ var _hmt = _hmt || [];
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p> 这一周对现有的Android项目进行了框架重构，使用MVP模式来重新构建整个项目和包结构。今天就来总结一下我在这个过程中理解和实践吧。</p>
+            
+                
+            
+            
+                <p> 这一周对现有的Android项目进行了框架重构，使用MVP模式来重新构建整个项目和包结构。今天就来总结一下我在这个过程中理解和实践吧。</p>
 <h3 id="MVP概述"><a href="#MVP概述" class="headerlink" title="MVP概述"></a>MVP概述</h3><p> MVP是指Model，View和Presenter的缩写，是MVC模式的一种改进版。MVP是一种非常适合Android应用的开发模式，它<strong>将把逻辑相关代码从presentation Layer中分离出去</strong>，所以，所有界面应该显示什么和界面如何显示这些是相互分离的，  在理想状态下，MVP模式可以随意切换视图显示的形式。<br> 但是，需要首先声明的是，MVP并不是<strong>一个框架模式</strong>，它只负责presentation Layer。在Android项目中，还可能存在Domain Layer和Data Layer，它们分别负责业务逻辑和数据存储。关于三个layer的讨论，可以查看<a href="https://github.com/android10/Android-CleanArchitecture" target="_blank" rel="noopener">clear Architecture</a>。</p>
 <p><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017312-mvp-mvp.png" alt="mvp.png"></p>
 <h4 id="The-presenter"><a href="#The-presenter" class="headerlink" title="The presenter"></a>The presenter</h4><p> The presenter充当的是view和model模块中间人的角色。它从model模块获得数据并发送给view模块。<strong>但是不同于MVC，presenter模块也决定用户和界面交互时界面如何响应</strong>。</p>
@@ -373,8 +377,8 @@ public class DataListPresenter implements DataContract.DataListPresenter {
 <p>&emsp;上述代码中有很多可以好好思考的地方。首先是<code>showLoading</code>和<code>stopLoading</code>这两个函数。这两个函数接口定义在<code>BaseView</code>,实现在<code>BaseFragment</code>，所以当<code>DataListFragment</code>继承了<code>BaseFragment</code>并且实现了<code>BaseView</code>时，它并不需要再次定义上述两个接口，毕竟在一个app中，网络加载时的laoding动画一般都是一致的。然后是view和presenter之间函数调用的问题。首先，view在需要初始化或者需要处理点击事件时，需要调用presenter的函数，而不是自己来进行处理。而且二者之间的数据传递必须是presenter调用view的接口传递给view数据，而不是view调用presenter接口获得数据然后自己展示。</p>
 <h3 id="MVP实践中的问题和思考"><a href="#MVP实践中的问题和思考" class="headerlink" title="MVP实践中的问题和思考"></a>MVP实践中的问题和思考</h3><p>&emsp;在实现MVP的过程中，我发现有些模块的代码很容易重构为MVP模式，而有些模块的代码却需要花费大量的时间。那些难重构的模块的所有代码都写在了Activity类中，而那些容易重构的模块已经做了逻辑代码和视图代码的分离。可以说，MVP模式不就是将视图和逻辑分离嘛，你不使用MVP模式，也可以按照自己的理解进行良好的设计。但是，当一个团队开发项目时，问题就变得不同了。不同程序员的水平有一定差异，你无法通过他们的水平来确保他们代码都是良好设计的。<strong>你必须通过MVP模式来强制他们去思考如何分离界面和逻辑,否则，他们估计会把所有代码都写在Activity类中</strong>。我认为这是所谓模式和框架的第一层好处，也就是<strong>强迫程序员使用一个种良好的思维方式去思考如何进行代码组织</strong>。<br>&emsp;第二点的思考是，模式其实就是良好的代码思考的结晶，如何写出内聚的函数？如何写入内聚的类？如何让模块之间耦合小？如何命名？很多模式都是对这些问题思考结果的总和。<br>&emsp;如果大家对MVP或者移动开发框架有什么思考，欢迎在文章底下进行评论。</p>
 
-        
-        </div>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/eca06a79/" class="leancloud_visitors" data-flag-title="关于Android MVP模式的思考">
@@ -387,7 +391,7 @@ public class DataListPresenter implements DataContract.DataListPresenter {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/eca06a79/" data-id="ckauf70zi0069wi669ux7lsi3" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/eca06a79/" data-id="ckaufl9220066jv66ohkn36jo" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding

@@ -261,10 +261,14 @@ var _hmt = _hmt || [];
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>&emsp;对<code>LongAdder</code>的最初了解是从Coolshell上的一篇文章中获得的，但是一直都没有深入的了解过其实现，只知道它相较于<code>AtomicLong</code>来说，更加适合写多读少的并发情景。今天，我们就研究一下<code>LongAdder</code>的原理，探究一下它如此高效的原因。</p>
+            
+                
+            
+            
+                <p>&emsp;对<code>LongAdder</code>的最初了解是从Coolshell上的一篇文章中获得的，但是一直都没有深入的了解过其实现，只知道它相较于<code>AtomicLong</code>来说，更加适合写多读少的并发情景。今天，我们就研究一下<code>LongAdder</code>的原理，探究一下它如此高效的原因。</p>
 <h3 id="基本原理和思想"><a href="#基本原理和思想" class="headerlink" title="基本原理和思想"></a>基本原理和思想</h3><p>&emsp;Java有很多并发控制机制，比如说以AQS为基础的锁或者以CAS为原理的自旋锁。不了解AQS的朋友可以阅读我之前的<a href="https://mp.weixin.qq.com/s?__biz=MzU2MDYwMDMzNQ==&amp;mid=2247483716&amp;idx=1&amp;sn=22e5160b1fb1068b262d1b0f4fcfc0a0&amp;chksm=fc04c524cb734c327b823acd2cc3ea3ef8620ab2c6c0c1dc1ac6545904f1c3259afd4f2e7450&amp;token=757268630&amp;lang=zh_CN#rd" target="_blank" rel="noopener">AQS源码解析文章</a>。一般来说，CAS适合轻量级的并发操作，也就是并发量并不多，而且等待时间不长的情况，否则就应该使用普通锁，进入阻塞状态，避免CPU空转。</p>
 <p>&emsp;所以，如果你有一个Long类型的值会被多线程修改，那么使用CAS进行并发控制比较好，但是如果你是需要锁住一些资源，然后进行数据库操作，那么还是使用阻塞锁比较好。</p>
 <p>&emsp;第一种情况下，我们一般都使用<code>AtomicLong</code>。<code>AtomicLong</code>是通过无限循环不停的采取CAS的方法去设置内部的value，直到成功为止。那么当并发数比较多或出现更新热点时，就会导致CAS的失败机率变高，重试次数更多，越多的线程重试，CAS失败的机率越高，形成恶性循环，从而降低了效率。</p>
@@ -441,8 +445,8 @@ h = advanceProbe(h);&#x2F;&#x2F;由于使用当前探针变量无法操作成功
 <p><img src="https://upload-images.jianshu.io/upload_images/623378-7bd9e13169f41c0f.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="第四个CAS操作"></p>
 <h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;本篇文章写的不是很好，我写完之后又看了一遍coolshell上的关于<code>LongAdder</code>的文章，感觉自己没有人家写的那么简洁明了。我对代码细节的注释和投入太多了。其实很多代码大家都可以看懂，并不需要大量的代码片段加注释。以后要注意一下。之后会接着研究一下JUC包中的其他类，希望大家多多关注。</p>
 
-        
-        </div>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/d4b1972e/" class="leancloud_visitors" data-flag-title="LongAdder原理完全解析">
@@ -455,7 +459,7 @@ h = advanceProbe(h);&#x2F;&#x2F;由于使用当前探针变量无法操作成功
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/d4b1972e/" data-id="ckauf70xx0025wi66kuucebeu" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/d4b1972e/" data-id="ckaufl90f0028jv6647d5c8ph" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding

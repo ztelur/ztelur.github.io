@@ -258,10 +258,14 @@ var _hmt = _hmt || [];
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p> 本文主要讲述Netty框架中Channel相关的知识，Netty通过Channel和Pipeline等一些组件提供了所谓的<code>Universal Communication API</code>．与<code>Channel</code>相关的知识点比较多，本篇文章就主要讲解一下<code>Channel</code>和<code>Pipeline</code>的事件处理流原理．<code>Channel</code>,<code>EventLoop</code>和<code>ChannelFuture</code>的相关知识下篇文章中再进行讲述．</p>
+            
+                
+            
+            
+                <p> 本文主要讲述Netty框架中Channel相关的知识，Netty通过Channel和Pipeline等一些组件提供了所谓的<code>Universal Communication API</code>．与<code>Channel</code>相关的知识点比较多，本篇文章就主要讲解一下<code>Channel</code>和<code>Pipeline</code>的事件处理流原理．<code>Channel</code>,<code>EventLoop</code>和<code>ChannelFuture</code>的相关知识下篇文章中再进行讲述．</p>
 <h3 id="官方文档上的Channel"><a href="#官方文档上的Channel" class="headerlink" title="官方文档上的Channel"></a>官方文档上的Channel</h3><p> 官方文档上给出的解释是Channel是与网络Socket相关的或具有一定I/O能力的组件．一个<code>Channel</code>可以给用户提供:</p>
 <ul>
 <li>当前<code>Channel</code>的状态(比如，是否保存Open状态，是否处于连接状态)</li>
@@ -287,8 +291,8 @@ ServerBootstrap b = new ServerBootstrap();
 <h3 id="ChannelHandler和ChannelPipeline"><a href="#ChannelHandler和ChannelPipeline" class="headerlink" title="ChannelHandler和ChannelPipeline"></a>ChannelHandler和ChannelPipeline</h3><p> 只有<code>Channel</code>的支持，还不足以实现<code>Universal Communication API</code>,还需要上述两个类来提供<code>ChannelHandler</code>的编程模式，基于<code>ChannelHandler</code>来开发业务逻辑，而不需要考虑网络通讯方面的事情．<br> Netty源码中一张图形象的描述了这个机制<br><img src="http://7xrxif.com1.z0.glb.clouddn.com/2017327-netty-stream.png" alt="示意图"></p>
 <p>&emsp;Netty中的<code>ChannelPipeline</code>包含两条线路：Upstream和<code>Downstream</code>．Upstream对应上行，接受信息，被动的状态改变，都属于Upstream．Downstream则对应下行，发送消息，主动状态的改变．Upstream对应InBound Handler,Downstream对应Outbound Handler.从Netty内部IO线程接读到IO数据，依次经过N个Handler到达最内部的逻辑处理单元，这种称之为Inbound Handler；从Channel发出IO请求，依次经过M个Handler到达Netty内部IO线程，这种称之为Outbound Handler<br>&emsp;需要注意的是，这个Handler链中消息或在事件不会自动的向下或在向上流动或转发，而是需要由上一个Handler显示的调用<code>ChannelPipeline.sendUp(down)stream</code>来交给下一个Handler来处理．也就是说，每个Handler接受到一个<code>ChannelEvent</code>,处理结束后，如果需要继续处理，那么它需要向下一个或在上一个Handler发起一个事件．</p>
 
-        
-        </div>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/815dc153/" class="leancloud_visitors" data-flag-title="Netty源码(二):Netty的Channel和Pipeline">
@@ -301,7 +305,7 @@ ServerBootstrap b = new ServerBootstrap();
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/815dc153/" data-id="ckauf70y7002wwi66dscpcrf4" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/815dc153/" data-id="ckaufl90q0033jv66zn6vu7yr" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding

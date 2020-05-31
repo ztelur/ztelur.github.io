@@ -256,10 +256,14 @@ var _hmt = _hmt || [];
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <h4 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h4><p>&emsp;最近使用react native 来写一个公司内部使用的app，使用<code>fetch</code>去登陆，发现在android平台上无法获取cookie，iOS平台上却可以。即使是<code>response.headers.get()</code>也获得不了相关信息。于是上网google并且阅读源码，终于找到了问题出现的原因和解决方案。</p>
+            
+                
+            
+            
+                <h4 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h4><p>&emsp;最近使用react native 来写一个公司内部使用的app，使用<code>fetch</code>去登陆，发现在android平台上无法获取cookie，iOS平台上却可以。即使是<code>response.headers.get()</code>也获得不了相关信息。于是上网google并且阅读源码，终于找到了问题出现的原因和解决方案。</p>
 <h4 id="问题原因"><a href="#问题原因" class="headerlink" title="问题原因"></a>问题原因</h4><p>&emsp;我们查看<code>native react</code>的<code>fetch.js</code>的代码，发现它的底层是使用<code>XmlHttpRequest</code>来实现的，然后再次找到’XmlHttpRequest’的相关源码，发现了三个文件<code>XMLHttpRequest.android.js</code>,<code>XMLHttpRequest.ios.js</code>和<code>XMLHttpRequestBase.js</code>。我们主要研究了android相关的文件。<br>&emsp;先看’XMLHttpRequest.android.js’。它继承了<code>XMLHttpRequestBase</code><br>
 <!-- Has Prism -->
 <pre class="line-numbers" style=""><code class="language-javascript">class XMLHttpRequest extends XMLHttpRequestBase {
@@ -357,8 +361,8 @@ public void sendRequest(
 </code></pre></p>
 <p>####解决方案<br>&emsp;在<code>fetch</code>或者<code>XMLHttpRequest</code>拿不到头部信息的问题找到了，那么如何让react native android实现cookie呢？<br>&emsp;方案有两套，一是：<code>callback.invoke</code>时把头部信息传递上去，让js层去做cookie的相关逻辑；二是:给<code>Okhttp</code>添加<code>CookieHandler</code>让<code>Okhttp</code>自己管理<code>Cookie</code>。<br>&emsp;第二套方案是我在github上看到的<a href="https://github.com/facebook/react-native/pull/3723/files" target="_blank" rel="noopener">github相关讨论和code</a>，相关代码在github上已经被merge到master上去啦，相信不久之后，新版本的<code>React Native Android</code>就可以把这个坑填上啦。</p>
 
-        
-        </div>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/65079f86/" class="leancloud_visitors" data-flag-title="React Native Android Cookie Problem">
@@ -371,7 +375,7 @@ public void sendRequest(
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/65079f86/" data-id="ckauf70yg003nwi66d43ka8d3" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/65079f86/" data-id="ckaufl90x003mjv66ni53wpl1" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding

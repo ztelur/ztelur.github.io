@@ -252,135 +252,45 @@ var _hmt = _hmt || [];
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>HyperLogLog 是一种概率数据结构，用来估算数据的基数。数据集可以是网站访客的 IP 地址，E-mail 邮箱或者用户 ID。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>HyperLogLog 是一种概率数据结构，用来估算数据的基数。数据集可以是网站访客的 IP 地址，E-mail 邮箱或者用户 ID。</p>
 <p>基数就是指一个集合中不同值的数目，比如 a, b, c, d 的基数就是 4，a, b, c, d, a 的基数还是 4。虽然 a 出现两次，只会被计算一次。</p>
 <p>精确的计算数据集的基数需要消耗大量的内存来存储数据集。在遍历数据集时，判断当前遍历值是否已经存在唯一方法就是将这个值与已经遍历过的值进行一一对比。当数据集的数量越来越大，内存消耗就无法忽视，甚至成了问题的关键。</p>
 <p>使用 Redis 统计集合的基数一般有三种方法，分别是使用 Redis 的 HashMap，BitMap 和 HyperLogLog。前两个数据结构在集合的数量级增长时，所消耗的内存会大大增加，但是 HyperLogLog 则不会。</p>
 <p>Redis 的 HyperLogLog 通过牺牲准确率来减少内存空间的消耗，只需要12K内存，在标准误差0.81%的前提下，能够统计2^64个数据。所以 HyperLogLog 是否适合在比如统计日活月活此类的对精度要不不高的场景。</p>
-<p>这是一个很惊人的结果，以如此小的内存来记录如此大数量级的数据基数。下面我们就带大家来深入了解一下 HyperLogLog 的使用，基础原理，源码实现和具体的试验数据分析。</p>
-<h3 id="HyperLogLog-在-Redis-中的使用"><a href="#HyperLogLog-在-Redis-中的使用" class="headerlink" title="HyperLogLog 在 Redis 中的使用"></a>HyperLogLog 在 Redis 中的使用</h3><p>Redis 提供了 <code>PFADD</code> 、<code>PFCOUNT</code> 和 <code>PFMERGE</code> 三个命令来供用户使用 HyperLogLog。</p>
-<p><code>PFADD</code> 用于向 HyperLogLog 添加元素。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&gt; PFADD visitors alice bob carol
-(integer) 1
-&gt; PFCOUNT visitors
-(integer) 3
-</code></pre>
-<p>如果 HyperLogLog 估计的近似基数在 <code>PFADD</code> 命令执行之后出现了变化， 那么命令返回 1 ， 否则返回 0 。 如果命令执行时给定的键不存在， 那么程序将先创建一个空的 HyperLogLog 结构， 然后再执行命令。</p>
-<p><code>PFCOUNT</code> 命令会给出 HyperLogLog 包含的近似基数。在计算出基数后，<code>PFCOUNT</code> 会将值存储在 HyperLogLog 中进行缓存，知道下次 <code>PFADD</code> 执行成功前，就都不需要再次进行基数的计算。</p>
-<p><code>PFMERGE</code> 将多个 HyperLogLog 合并为一个 HyperLogLog ， 合并后的 HyperLogLog 的基数接近于所有输入 HyperLogLog 的并集基数。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&gt; PFADD customers alice dan
-(integer) 1
-&gt; PFMERGE everyone visitors customers
-OK
-&gt; PFCOUNT everyone
-(integer) 4
-</code></pre>
-<h3 id="内存消耗对比实验"><a href="#内存消耗对比实验" class="headerlink" title="内存消耗对比实验"></a>内存消耗对比实验</h3><p>我们下面就来通过实验真实对比一下下面三种数据结构的内存消耗，HashMap、BitMap 和 HyperLogLog。</p>
-<p>我们首先使用 Lua 脚本向 Redis 对应的数据结构中插入一定数量的数，然后执行<br> bgsave 命令，最后使用 redis-rdb-tools 的 rdb 的命令查看各个键所占的内存大小。</p>
-<p>下面是 Lua 的脚本，不了解 Redis 执行 Lua 脚本的同学可以看一下我之前写的文章<a href="https://mp.weixin.qq.com/s/9zqEeCySDKIRX4gB5ICrGQ" target="_blank" rel="noopener">《基于Redis和Lua的分布式限流》</a>。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">local key = KEYS[1]
-local size = tonumber(ARGV[1])
-local method = tonumber(ARGV[2])
-
-for i=1,size,1 do
-  if (method == 0)
-  then
-    redis.call(&#39;hset&#39;,key,i,1)
-  elseif (method == 1)
-  then
-    redis.call(&#39;pfadd&#39;,key, i)
-  else
-    redis.call(&#39;setbit&#39;, key, i, 1)
-  end
-end
-</code></pre>
-<p>我们在通过 redis-cli 的 <code>script load</code> 命令将 Lua 脚本加载到 Redis 中，然后使用 <code>evalsha</code> 命令分别向 HashMap、HyperLogLog 和 BitMap 三种数据结构中插入了一千万个数，然后使用 <code>rdb</code> 命令查看各个结构内存消耗。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">[root@VM_0_11_centos ~]# redis-cli -a 082203 script load &quot;$(cat HyperLogLog.lua)&quot;
-&quot;6255c6d0a1f32349f59fd2c8711e93f2fbc7ecf8&quot;
-[root@VM_0_11_centos ~]# redis-cli -a 082203 evalsha 6255c6d0a1f32349f59fd2c8711e93f2fbc7ecf8 1 hashmap 10000000 0
-(nil)
-[root@VM_0_11_centos ~]# redis-cli -a 082203 evalsha 6255c6d0a1f32349f59fd2c8711e93f2fbc7ecf8 1 hyperloglog 10000000 1
-(nil)
-[root@VM_0_11_centos ~]# redis-cli -a 082203 evalsha 6255c6d0a1f32349f59fd2c8711e93f2fbc7ecf8 1 bitmap 10000000 2
-(nil)
-
-
-[root@VM_0_11_centos ~]# rdb -c memory dump.rdb 
-database,type,key,size_in_bytes,encoding,num_elements,len_largest_element,expiry
-
-0,string,bitmap,1310768,string,1250001,1250001,
-0,string,hyperloglog,14392,string,12304,12304,
-0,hash,hashmap,441326740,hashtable,10000000,8,
-</code></pre>
-<p>我们进行了两轮实验，分别插入一万数字和一千万数字，三种数据结构消耗的内存统计如下所示。</p>
-<p><img src="/images/19_926/image1.webp" alt="统计图表"></p>
-<p>从表中可以明显看出，一万数量级时 BitMap 消耗内存最小， 一千万数量级时 HyperLogLog 消耗内存最小，但是总体来看，HyperLogLog 消耗的内存都是 14392 字节，可见 HyperLogLog 在内存消耗方面有自己的独到之处。</p>
-<h3 id="基本原理"><a href="#基本原理" class="headerlink" title="基本原理"></a>基本原理</h3><p>HyperLogLog 是一种概率数据结构，它使用概率算法来统计集合的近似基数。而它算法的最本源则是伯努利过程。</p>
-<p>伯努利过程就是一个抛硬币实验的过程。抛一枚正常硬币，落地可能是正面，也可能是反面，二者的概率都是 1/2 。伯努利过程就是一直抛硬币，直到落地时出现正面位置，并记录下抛掷次数k。比如说，抛一次硬币就出现正面了，此时 k 为 1; 第一次抛硬币是反面，则继续抛，直到第三次才出现正面，此时 k 为 3。</p>
-<p>对于 n 次伯努利过程，我们会得到 n 个出现正面的投掷次数值 $ k_1, k_2 … k_n $, 其中这里的最大值是k_max。</p>
-<p>根据一顿数学推导，我们可以得出一个结论： $2^{k_ max}$ 来作为n的估计值。也就是说你可以根据最大投掷次数近似的推算出进行了几次伯努利过程。</p>
-<p><img src="/images/19_926/image2.webp" alt="示意图"></p>
-<p>下面，我们就来讲解一下 HyperLogLog 是如何模拟伯努利过程，并最终统计集合基数的。</p>
-<p>HyperLogLog 在添加元素时，会通过Hash函数，将元素转为64位比特串，例如输入5，便转为101(省略前面的0，下同)。这些比特串就类似于一次抛硬币的伯努利过程。比特串中，0 代表了抛硬币落地是反面，1 代表抛硬币落地是正面，如果一个数据最终被转化了 10010000，那么从低位往高位看，我们可以认为，这串比特串可以代表一次伯努利过程，首次出现 1 的位数为5，就是抛了5次才出现正面。</p>
-<p>所以 HyperLogLog 的基本思想是利用集合中数字的比特串第一个 1 出现位置的最大值来预估整体基数，但是这种预估方法存在较大误差，为了改善误差情况，HyperLogLog中引入分桶平均的概念，计算 m 个桶的调和平均值。</p>
-<p><img src="/images/19_926/image3.webp" alt="示意图"></p>
-<p>Redis 中 HyperLogLog 一共分了 2^14 个桶，也就是 16384 个桶。每个桶中是一个 6 bit 的数组，如下图所示。</p>
-<p><img src="/images/19_926/image4.webp" alt="桶"></p>
-<p>HyperLogLog 将上文所说的 64 位比特串的低 14 位单独拿出，它的值就对应桶的序号，然后将剩下 50 位中第一次出现 1 的位置值设置到桶中。50位中出现1的位置值最大为50，所以每个桶中的 6 位数组正好可以表示该值。</p>
-<p>在设置前，要设置进桶的值是否大于桶中的旧值，如果大于才进行设置，否则不进行设置。示例如下图所示。<br><img src="/images/19_926/image5.webp" alt="示例"></p>
-<p>此时为了性能考虑，是不会去统计当前的基数的，而是将 HyperLogLog 头的 card 属性中的标志位置为 1，表示下次进行 pfcount 操作的时候，当前的缓存值已经失效了，需要重新统计缓存值。在后面 pfcount 流程的时候，发现这个标记为失效，就会去重新统计新的基数，放入基数缓存。</p>
-<p>在计算近似基数时，就分别计算每个桶中的值，带入到上文将的 DV 公式中，进行调和平均和结果修正，就能得到估算的基数值。</p>
-<h3 id="Redis-源码分析"><a href="#Redis-源码分析" class="headerlink" title="Redis 源码分析"></a>Redis 源码分析</h3><p>我们首先来看一下 HyperLogLog 对象的定义<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">struct hllhdr {
-    char magic[4];      &#x2F;* 魔法值 &quot;HYLL&quot; *&#x2F;
-    uint8_t encoding;   &#x2F;* 密集结构或者稀疏结构 HLL_DENSE or HLL_SPARSE. *&#x2F;
-    uint8_t notused[3]; &#x2F;* 保留位, 全为0. *&#x2F;
-    uint8_t card[8];    &#x2F;* 基数大小的缓存 *&#x2F;
-    uint8_t registers[]; &#x2F;* 数据字节数组 *&#x2F;
-};
-</code></pre></p>
-<p>HyperLogLog 对象中的 <code>registers</code> 数组就是桶，它有两种存储结构，分别为密集存储结构和稀疏存储结构，两种结构只涉及存储和桶的表现形式，从中我们可以看到 Redis 对节省内存极致地追求。</p>
-<p><img src="/images/19_926/image6.webp" alt="密集存储结构"></p>
-<p>我们先看相对简单的密集存储结构，它也是十分的简单明了，既然要有 2^14 个 6 bit的桶，那么我就真使用足够多的 <code>uint8_t</code> 字节去表示，只是此时会涉及到字节位置和桶的转换，因为字节有 8 位，而桶只需要 6 位。</p>
-<p>所以我们需要将桶的序号转换成对应的字节偏移量 offset_bytes 和其内部的位数偏移量 offset_bits。需要注意的是小端字节序，高位在右侧，需要进行倒转。</p>
-<p>当 offset_bits 小于等于2时，说明一个桶就在该字节内，只需要进行倒转就能得到桶的值。</p>
-<p><img src="/images/19_926/image7.webp" alt="示意图"></p>
-<p>如果 offset_bits 大于 2 ，则说明一个桶分布在两个字节内，此时需要将两个字节的内容都进行倒置，然后再进行拼接得到桶的值，如下图所示。</p>
-<p><img src="/images/19_926/image8.webp" alt="示意图"></p>
-<p>HyperLogLog 的稀疏存储结构是为了节约内存消耗，它不像密集存储模式一样，真正找了那么多个字节数组来表示2^14 个桶，而是使用特殊的字节结构来表达。</p>
-<p><img src="/images/19_926/image9.webp" alt="示意图"></p>
-<p>Redis 为了方便表达稀疏存储，它将上面三种字节表示形式分别赋予了一条指令。</p>
-<ul>
-<li>ZERO : 一字节，表示连续多少个桶计数为0，前两位为标志00，后6位表示有多少个桶，最大为64。</li>
-<li>XZERO : 两个字节，表示连续多少个桶计数为0，前两位为标志01，后14位表示有多少个桶，最大为16384。</li>
-<li>VAL : 一字节，表示连续多少个桶的计数为多少，前一位为标志1，四位表示连桶内计数，所以最大表示桶的计数为32。后两位表示连续多少个桶。</li>
-</ul>
-<p><img src="/images/19_926/image10.webp" alt="示意图"></p>
-<p>所以，一个初始状态的 HyperLogLog 对象只需要2 字节，也就是一个 XZERO 来存储其数据，而不需要消耗12K 内存。当 HyperLogLog 插入了少数元素时，可以只使用少量的 XZERO、VAL 和 ZERO 进行表示，如下图所示。</p>
-<p><img src="/images/19_926/image11.webp" alt="示意图"></p>
-<p>Redis从稀疏存储转换到密集存储的条件是：</p>
-<ul>
-<li>任意一个计数值从 32 变成 33，因为 VAL 指令已经无法容纳，它能表示的计数值最大为 32</li>
-<li>稀疏存储占用的总字节数超过 3000 字节，这个阈值可以通过 hll_sparse_max_bytes 参数进行调整。</li>
-</ul>
-<p>具体 Redis 中的 HyperLogLog 源码由于涉及较多的位运算，这里就不多带大家学习了。大家对 HyperLogLog 有什么更好的理解或者问题都欢迎积极留言。</p>
-<p><img src="/images/logo.png" alt=""></p>
-<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><p><a href="https://thoughtbot.com/blog/hyperloglogs-in-redis" target="_blank" rel="noopener">https://thoughtbot.com/blog/hyperloglogs-in-redis</a><br><a href="https://juejin.im/post/5c7fe7525188251ba53b0623" target="_blank" rel="noopener">https://juejin.im/post/5c7fe7525188251ba53b0623</a><br><a href="https://juejin.im/post/5bef9c706fb9a049c23204a3" target="_blank" rel="noopener">https://juejin.im/post/5bef9c706fb9a049c23204a3</a></p>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></div>   
+                <div class="article-more-link">
+                    <a href="/article/ec0c40ae/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/ec0c40ae/" class="leancloud_visitors" data-flag-title="用户日活月活怎么统计 - Redis HyperLogLog 详解">
@@ -393,7 +303,7 @@ database,type,key,size_in_bytes,encoding,num_elements,len_largest_element,expiry
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/ec0c40ae/" data-id="ckauf70zx007ewi66m0af408v" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/ec0c40ae/" data-id="ckaufl92o007gjv66pjzl7u3s" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -510,138 +420,45 @@ database,type,key,size_in_bytes,encoding,num_elements,len_largest_element,expiry
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>Redis是一个开源的 key-value 存储系统，它使用六种底层数据结构构建了包含字符串对象、列表对象、哈希对象、集合对象和有序集合对象的对象系统。今天我们就通过12张图来全面了解一下它的数据结构和对象系统的实现原理。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>Redis是一个开源的 key-value 存储系统，它使用六种底层数据结构构建了包含字符串对象、列表对象、哈希对象、集合对象和有序集合对象的对象系统。今天我们就通过12张图来全面了解一下它的数据结构和对象系统的实现原理。</p>
 <p>本文的内容如下：</p>
 <ul>
 <li>首先介绍六种基础数据结构：动态字符串，链表，字典，跳跃表，整数集合和压缩列表。</li>
 <li>其次介绍 Redis 的对象系统中的字符串对象（String）、列表对象（List）、哈希对象（Hash）、集合对象（Set）和有序集合对象（ZSet）</li>
-<li>最后介绍 Redis 的键空间和过期键( expire )实现。</li>
-</ul>
-<h3 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h3><h4 id="简单动态字符串"><a href="#简单动态字符串" class="headerlink" title="简单动态字符串"></a>简单动态字符串</h4><p>Redis 使用动态字符串 SDS 来表示字符串值。下图展示了一个值为 Redis 的 SDS结构 :</p>
-<ul>
-<li>len: 表示字符串的真正长度（不包含NULL结束符在内）。</li>
-<li>alloc: 表示字符串的最大容量（不包含最后多余的那个字节）。</li>
-<li>flags: 总是占用一个字节。其中的最低3个bit用来表示header的类型。</li>
-<li>buf: 字符数组。<br><img src="/images/19_917/image1.webp" alt="动态字符串示意图"></li>
-</ul>
-<p>SDS 的结构可以减少修改字符串时带来的内存重分配的次数，这依赖于内存预分配和惰性空间释放两大机制。</p>
-<p>当 SDS 需要被修改，并且要对 SDS 进行空间扩展时，Redis 不仅会为 SDS 分配修改所必须要的空间，还会为 SDS 分配<strong><em>额外的未使用的空间</em></strong>。</p>
-<ul>
-<li>如果修改后， SDS 的长度(也就是len属性的值)将小于 1MB ，那么 Redis 预分配和 len 属性相同大小的未使用空间。</li>
-<li>如果修改后， SDS 的长度将大于 1MB ，那么 Redis 会分配 1MB 的未使用空间。</li>
-</ul>
-<p>比如说，进行修改后 SDS 的 len 长度为20字节，小于 1MB，那么 Redis 会预先再分配 20 字节的空间， SDS 的 buf数组的实际长度(除去最后一字节)变为 20 + 20 = 40 字节。当 SDS的 len 长度大于 1MB时，则只会再多分配 1MB的空间。</p>
-<p>类似的，当 SDS 缩短其保存的字符串长度时，并不会立即释放多出来的字节，而是等待之后使用。</p>
-<h4 id="链表"><a href="#链表" class="headerlink" title="链表"></a>链表</h4><p>链表在 Redis 中的应用非常广泛，比如列表对象的底层实现之一就是链表。除了链表对象外，发布和订阅、慢查询、监视器等功能也用到了链表。</p>
-<p><img src="/images/19_917/image2.webp" alt="链表示意图"></p>
-<p>Redis 的链表是双向链表，示意图如上图所示。链表是最为常见的数据结构，这里就不在细说。</p>
-<p>Redis 的链表结构的dup 、 free 和 match 成员属性是用于实现多态链表所需的类型特定函数：</p>
-<ul>
-<li>dup 函数用于复制链表节点所保存的值，用于深度拷贝。</li>
-<li>free 函数用于释放链表节点所保存的值。</li>
-<li>match 函数则用于对比链表节点所保存的值和另一个输入值是否相等。</li>
-</ul>
-<h4 id="字典"><a href="#字典" class="headerlink" title="字典"></a>字典</h4><p>字典被广泛用于实现 Redis 的各种功能，包括键空间和哈希对象。其示意图如下所示。</p>
-<p><img src="/images/19_917/image2.webp" alt="字典示意图"></p>
-<p>Redis 使用 MurmurHash2 算法来计算键的哈希值，并且使用链地址法来解决键冲突，被分配到同一个索引的多个键值对会连接成一个单向链表。</p>
-<h4 id="跳跃表"><a href="#跳跃表" class="headerlink" title="跳跃表"></a>跳跃表</h4><p>Redis 使用跳跃表作为有序集合对象的底层实现之一。它以有序的方式在层次化的链表中保存元素， 效率和平衡树媲美 —— 查找、删除、添加等操作都可以在对数期望时间下完成， 并且比起平衡树来说， 跳跃表的实现要简单直观得多。</p>
-<p><img src="/images/19_917/image4.webp" alt="跳表示意图"></p>
-<p>跳表的示意图如上图所示，这里只简单说一下它的核心思想，并不进行详细的解释。</p>
-<p>如示意图所示，zskiplistNode 是跳跃表的节点，其 ele 是保持的元素值，score 是分值，节点按照其 score 值进行有序排列，而 level 数组就是其所谓的层次化链表的体现。</p>
-<p>每个 node 的 level 数组大小都不同， level 数组中的值是指向下一个 node 的指针和 跨度值 (span)，跨度值是两个节点的score的差值。越高层的 level 数组值的跨度值就越大，底层的 level 数组值的跨度值越小。</p>
-<p>level 数组就像是不同刻度的尺子。度量长度时，先用大刻度估计范围，再不断地用缩小刻度，进行精确逼近。</p>
-<p>当在跳跃表中查询一个元素值时，都先从第一个节点的最顶层的 level 开始。比如说，在上图的跳表中查询 o2 元素时，先从o1 的节点开始，因为 zskiplist 的 header 指针指向它。</p>
-<p>先从其 level[3] 开始查询，发现其跨度是 2，o1 节点的score是1.0，所以加起来为 3.0，大于 o2 的score值2.0。所以，我们可以知道 o2 节点在 o1 和 o3 节点之间。这时，就改用小刻度的尺子了。就用level[1]的指针，顺利找到 o2 节点。</p>
-<h4 id="整数集合"><a href="#整数集合" class="headerlink" title="整数集合"></a>整数集合</h4><p>整数集合 intset 是集合对象的底层实现之一，当一个集合只包含整数值元素，并且这个集合的元素数量不多时， Redis 就会使用整数集合作为集合对象的底层实现。</p>
-<p><img src="/images/19_917/image5.webp" alt="整数集合的示意图"></p>
-<p>如上图所示，整数集合的 encoding 表示它的类型，有int16_t，int32_t 或者int64_t。其每个元素都是 contents 数组的一个数组项，各个项在数组中按值的大小从小到大有序的排列，并且数组中不包含任何重复项。length 属性就是整数集合包含的元素数量。</p>
-<h4 id="压缩列表"><a href="#压缩列表" class="headerlink" title="压缩列表"></a>压缩列表</h4><p>压缩队列 ziplist 是列表对象和哈希对象的底层实现之一。当满足一定条件时，列表对象和哈希对象都会以压缩队列为底层实现。</p>
-<p><img src="/images/19_917/image6.webp" alt="压缩队列的示意图"></p>
-<p>压缩队列是 Redis 为了节约内存而开发的，是由一系列特殊编码的连续内存块组成的顺序型数据结构。它的属性值有：</p>
-<ul>
-<li>zlbytes : 长度为 4 字节，记录整个压缩数组的内存字节数。</li>
-<li>zltail : 长度为 4 字节，记录压缩队列表尾节点距离压缩队列的起始地址有多少字节，通过该属性可以直接确定尾节点的地址。</li>
-<li>zllen : 长度为 2 字节，包含的节点数。当属性值小于 INT16_MAX时，该值就是节点总数，否则需要遍历整个队列才能确定总数。</li>
-<li>zlend : 长度为 1 字节，特殊值，用于标记压缩队列的末端。</li>
-</ul>
-<p>中间每个节点 entry 由三部分组成：</p>
-<ul>
-<li>previous_entry_length : 压缩列表中前一个节点的长度，和当前的地址进行指针运算，计算出前一个节点的起始地址。 </li>
-<li>encoding： 节点保存数据的类型和长度</li>
-<li>content ：节点值，可以为一个字节数组或者整数。</li>
-</ul>
-<h3 id="对象"><a href="#对象" class="headerlink" title="对象"></a>对象</h3><p>上面介绍了 6 种底层数据结构，Redis 并没有直接使用这些数据结构来实现键值数据库，而是基于这些数据结构创建了一个对象系统，这个系统包含字符串对象、列表对象、哈希对象、集合对象和有序集合这五种类型的对象，每个对象都使用到了至少一种前边讲的底层数据结构。</p>
-<p>Redis 根据不同的使用场景和内容大小来判断对象使用哪种数据结构，从而优化对象在不同场景下的使用效率和内存占用。</p>
-<p>Redis 的 redisObject 结构的定义如下所示。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">typedef struct redisObject {
-    unsigned type:4;
-    unsigned encoding:4;
-    unsigned lru:LRU_BITS; 
-    int refcount;
-    void *ptr;
-} robj;
-</code></pre></p>
-<p>其中 type 是对象类型，包括REDIS_STRING, REDIS_LIST, REDIS_HASH, REDIS_SET 和 REDIS_ZSET。</p>
-<p>encoding是指对象使用的数据结构，全集如下。<br><img src="/images/19_917/image7.webp" alt="对象的编码"></p>
-<h4 id="字符串对象"><a href="#字符串对象" class="headerlink" title="字符串对象"></a>字符串对象</h4><p>我们首先来看字符串对象的实现，如下图所示。</p>
-<p><img src="/images/19_917/image8.webp" alt="字符串对象示意图"></p>
-<p>如果一个字符串对象保存的是一个字符串值，并且长度大于32字节，那么该字符串对象将使用 SDS 进行保存，并将对象的编码设置为 raw，如图的上半部分所示。如果字符串的长度小于32字节，那么字符串对象将使用embstr 编码方式来保存。</p>
-<p>embstr 编码是专门用于保存短字符串的一种优化编码方式，这个编码的组成和 raw 编码一致，都使用 redisObject 结构和 sdshdr 结构来保存字符串，如上图的下半部所示。</p>
-<p>但是 raw 编码会调用两次内存分配来分别创建上述两个结构，而embstr则通过一次内存分配来分配一块连续的空间，空间中一次包含两个结构。</p>
-<p>embstr 只需一次内存分配，而且在同一块连续的内存中，更好的利用缓存带来的优势，但是 embstr 是只读的，不能进行修改，当一个 embstr 编码的字符串对象进行 append 操作时， redis 会现将其转变为 raw 编码再进行操作。</p>
-<h4 id="列表对象"><a href="#列表对象" class="headerlink" title="列表对象"></a>列表对象</h4><p>列表对象的编码可以是 ziplist 或 linkedlist。其示意图如下所示。</p>
-<p><img src="/images/19_917/image9.webp" alt="列表对象示意图"></p>
-<p>当列表对象可以同时满足以下两个条件时，列表对象使用 ziplist 编码：</p>
-<ul>
-<li>列表对象保存的所有字符串元素的长度都小于 64 字节。</li>
-<li>列表对象保存的元素数量数量小于 512 个。</li>
-</ul>
-<p>不能满足这两个条件的列表对象需要使用 linkedlist 编码或者转换为 linkedlist 编码。</p>
-<h4 id="哈希对象"><a href="#哈希对象" class="headerlink" title="哈希对象"></a>哈希对象</h4><p>哈希对象的编码可以使用 ziplist 或 dict。其示意图如下所示。</p>
-<p>当哈希对象使用压缩队列作为底层实现时，程序将键值对紧挨着插入到压缩队列中，保存键的节点在前，保存值的节点在后。如下图的上半部分所示，该哈希有两个键值对，分别是 name:Tom 和 age:25。</p>
-<p><img src="/images/19_917/image10.webp" alt="哈希对象示意图"></p>
-<p>当哈希对象可以同时满足以下两个条件时，哈希对象使用 ziplist 编码:</p>
-<ul>
-<li>哈希对象保存的所有键值对的键和值的字符串长度都小于64字节。</li>
-<li>哈希对象保存的键值对数量小于512个。</li>
-</ul>
-<p>不能满足这两个条件的哈希对象需要使用 dict 编码或者转换为 dict 编码。</p>
-<h4 id="集合对象"><a href="#集合对象" class="headerlink" title="集合对象"></a>集合对象</h4><p>集合对象的编码可以使用 intset 或者 dict。</p>
-<p>intset 编码的集合对象使用整数集合最为底层实现，所有元素都被保存在整数集合里边。</p>
-<p>而使用 dict 进行编码时，字典的每一个键都是一个字符串对象，每个字符串对象就是一个集合元素，而字典的值全部都被设置为NULL。如下图所示。</p>
-<p><img src="/images/19_917/image11.webp" alt="集合对象示意图"></p>
-<p>当集合对象可以同时满足以下两个条件时，对象使用 intset 编码:</p>
-<ul>
-<li>集合对象保存的所有元素都是整数值。</li>
-<li>集合对象保存的元素数量不超过512个。</li>
-</ul>
-<p>否则使用 dict 进行编码。</p>
-<h4 id="有序集合对象"><a href="#有序集合对象" class="headerlink" title="有序集合对象"></a>有序集合对象</h4><p>有序集合的编码可以为 ziplist 或者 skiplist。</p>
-<p>有序集合使用 ziplist 编码时，每个集合元素使用两个紧挨在一起的压缩列表节点表示，前一个节点是元素的值，第二个节点是元素的分值，也就是排序比较的数值。</p>
-<p>压缩列表内的集合元素按照分值从小到大进行排序，如下图上半部分所示。</p>
-<p>有序集合使用 skiplist 编码时使用 zset 结构作为底层实现，一个 zet 结构同时包含一个字典和一个跳跃表。</p>
-<p>其中，跳跃表按照分值从小到大保存所有元素，每个跳跃表节点保存一个元素，其score值是元素的分值。而字典则创建一个一个从成员到分值的映射，字典的键是集合成员的值，字典的值是集合成员的分值。通过字典可以在O(1)复杂度查找给定成员的分值。如下图所示。</p>
-<p>跳跃表和字典中的集合元素值对象都是共享的，所以不会额外消耗内存。</p>
-<p><img src="/images/19_917/image12.webp" alt="有序集合示意图"></p>
-<p>当有序集合对象可以同时满足以下两个条件时，对象使用 ziplist 编码：</p>
-<ul>
-<li>有序集合保存的元素数量少于128个；</li>
-<li>有序集合保存的所有元素的长度都小于64字节。</li>
-</ul>
-<p>否则使用 skiplist 编码。</p>
-<h3 id="数据库键空间"><a href="#数据库键空间" class="headerlink" title="数据库键空间"></a>数据库键空间</h3><p>Redis 服务器都有多个 Redis 数据库，每个Redis 数据都有自己独立的键值空间。每个 Redis 数据库使用 dict 保存数据库中所有的键值对。</p>
-<p><img src="/images/19_917/image13.webp" alt="redis server.jpg"></p>
-<p>键空间的键也就是数据库的键，每个键都是一个字符串对象，而值对象可能为字符串对象、列表对象、哈希表对象、集合对象和有序集合对象中的一种对象。</p>
-<p>除了键空间，Redis 也使用 dict 结构来保存键的过期时间，其键是键空间中的键值，而值是过期时间，如上图所示。</p>
-<p>通过过期字典，Redis 可以直接判断一个键是否过期，首先查看该键是否存在于过期字典，如果存在，则比较该键的过期时间和当前服务器时间戳，如果大于，则该键过期，否则未过期。</p>
-<p><img src="images/logo.png" alt=""></p>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></ul></div>   
+                <div class="article-more-link">
+                    <a href="/article/fa5c04fa/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/fa5c04fa/" class="leancloud_visitors" data-flag-title="十二张图带你了解 Redis 的数据结构和对象系统">
@@ -654,7 +471,7 @@ database,type,key,size_in_bytes,encoding,num_elements,len_largest_element,expiry
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/fa5c04fa/" data-id="ckauf70zp006twi66uje5kp63" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/fa5c04fa/" data-id="ckaufl92f006ojv66e321dpfy" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -771,231 +588,45 @@ database,type,key,size_in_bytes,encoding,num_elements,len_largest_element,expiry
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>一致性哈希算法在分布式缓存领域的 MemCache，负载均衡领域的 Nginx 以及各类 RPC 框架中都有广泛的应用，它主要是为了解决传统哈希函数添加哈希表槽位数后要将关键字重新映射的问题。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>一致性哈希算法在分布式缓存领域的 MemCache，负载均衡领域的 Nginx 以及各类 RPC 框架中都有广泛的应用，它主要是为了解决传统哈希函数添加哈希表槽位数后要将关键字重新映射的问题。</p>
 <p>本文会介绍一致性哈希算法的原理及其实现，并给出其不同哈希函数实现的性能数据对比，探讨Redis 集群的数据分片实现等，文末会给出实现的具体 github 地址。</p>
 <h3 id="Memcached-与客户端分布式缓存"><a href="#Memcached-与客户端分布式缓存" class="headerlink" title="Memcached 与客户端分布式缓存"></a>Memcached 与客户端分布式缓存</h3><p>Memcached 是一个高性能的分布式缓存系统，然而服务端没有分布式功能，各个服务器不会相互通信。它的分布式实现依赖于客户端的程序库，这也是 Memcached 的一大特点。比如第三方的 spymemcached 客户端就基于一致性哈希算法实现了其分布式缓存的功能。</p>
 <p><a href="/images/19_1221/5_image1.webp"></a></p>
 <p>其具体步骤如下:</p>
-<ul>
-<li>向 Memcached 添加数据，首先客户端的算法根据 key 值计算出该 key 对应的服务器。</li>
-<li>服务器选定后，保存缓存数据。</li>
-<li>获取数据时，对于相同的 key ，客户端的算法可以定位到相同的服务器，从而获取数据。</li>
-</ul>
-<p>在这个过程中，客户端的算法首先要保证缓存的数据尽量均匀地分布在各个服务器上，其次是当个别服务器下线或者上线时，会出现数据迁移，应该尽量减少需要迁移的数据量。</p>
-<p>客户端算法是客户端分布式缓存性能优劣的关键。</p>
-<p>普通的哈希表算法一般都是计算出哈希值后，通过取余操作将 key 值映射到不同的服务器上，但是当服务器数量发生变化时，取余操作的除数发生变化，所有 key 所映射的服务器几乎都会改变，这对分布式缓存系统来说是不可以接收的。</p>
-<p>一致性哈希算法能尽可能减少了服务器数量变化所导致的缓存迁移。</p>
-<h3 id="哈希算法"><a href="#哈希算法" class="headerlink" title="哈希算法"></a>哈希算法</h3><p>首先，一致性哈希算法依赖于普通的哈希算法。大多数同学对哈希算法的理解可能都停留在 JDK 的 <code>hashCode</code> 函数上。其实哈希算法有很多种实现，它们在不同方面都各有优劣，针对不同的场景可以使用不同的哈希算法实现。</p>
-<p><a href="/images/19_1221/5_image2.webp"></a></p>
-<p>下面，我们会介绍一下几款比较常见的哈希算法，并且了解一下它们在分布均匀程度，哈希碰撞概率和性能等方面的优劣。</p>
-<p>MD5 算法：全称为 Message-Digest Algorithm 5，用于确保信息传输完整一致。是计算机广泛使用的杂凑算法之一，主流编程语言普遍已有 MD5 实现。MD5 的作用是把大容量信息压缩成一种保密的格式（就是把一个任意长度的字节串变换成定长的16进制数字串）。常见的文件完整性校验就是使用 MD5。</p>
-<p>CRC 算法：全称为 CyclicRedundancyCheck，中文名称为循环冗余校验。它是一类重要的，编码和解码方法简单，检错和纠错能力强的哈希算法，在通信领域广泛地用于实现差错控制。</p>
-<p>MurmurHash 算法：高运算性能，低碰撞率，由 Austin Appleby 创建于 2008 年，现已应用到 Hadoop、libstdc++、nginx、libmemcached 等开源系统。Java 界中 Redis，Memcached，Cassandra，HBase，Lucene和Guava 都在使用它。 </p>
-<p>FNV 算法：全称为 Fowler-Noll-Vo 算法，是以三位发明人 Glenn Fowler，Landon Curt Noll，Phong Vo 的名字来命名的，最早在 1991 年提出。 FNV 能快速 hash 大量数据并保持较小的冲突率，它的高度分散使它适用于 hash 一些非常相近的字符串，比如 URL，hostname，文件名，text 和 IP 地址等。</p>
-<p>Ketama 算法：一致性哈希算法的实现之一，其他的哈希算法有通用的一致性哈希算法实现，只不过是替换了哈希映射函数而已，但 Ketama 是一整套的流程，我们将在后面介绍。</p>
-<h3 id="一致性哈希算法"><a href="#一致性哈希算法" class="headerlink" title="一致性哈希算法"></a>一致性哈希算法</h3><p>下面，我们以分布式缓存场景为例，分析一下一致性哈希算法环的原理。</p>
-<p>首先将缓存服务器（ ip + 端口号）进行哈希，映射成环上的一个节点，计算出缓存数据 key 值的 hash key，同样映射到环上，并顺时针选取最近的一个服务器节点作为该缓存应该存储的服务器。具体实现见后续的章节。</p>
-<p>比如说，当存在 A，B，C，D 四个缓存服务器时，它们及其 key 值为1的缓存数据在一致性哈希环上的位置如下图所示，根据顺时针取最近一个服务器节点的规则，该缓存数据应该存储在服务器 B 上。</p>
-<p><a href="/images/19_1221/5_image3.webp"></a></p>
-<p>当要存储一个 key 值为4的缓存数据时，它在一致性哈希环上的位置如下所示，所以它应该存储在服务器 C 上。</p>
-<p><a href="/images/19_1221/5_image4.webp"></a></p>
-<p>类似的，key 值为5，6的数据应该存在服务 D 上，key 值为7，8的数据应该存储在服务 A 上。</p>
-<p><a href="/images/19_1221/5_image5.webp"></a></p>
-<p>此时，服务器 B 宕机下线，服务器 B 中存储的缓存数据要进行迁移，但由于一致性哈希环的存在，只需要迁移key 值为1的数据，其他的数据的存储服务器不会发生变化。这也是一致性哈希算法比取余映射算法出色的地方。</p>
-<p><a href="/images/19_1221/5_image6.webp"></a></p>
-<p>由于服务器 B 下线，key 值为1的数据顺时针最近的服务器是 C ，所以数据存迁移到服务器 C 上。</p>
-<p><a href="/images/19_1221/5_image7.webp"></a></p>
-<p>现实情况下，服务器在一致性哈希环上的位置不可能分布的这么均匀，导致了每个节点实际占据环上的区间大小不一。</p>
-<p>这种情况下，可以增加虚节点来解决。通过增加虚节点，使得每个节点在环上所“管辖”的区域更加均匀。这样就既保证了在节点变化时，尽可能小的影响数据分布的变化，而同时又保证了数据分布的均匀。</p>
-<h3 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h3><p>下面我们实现 Memcached 分布式缓存场景下的一致性哈希算法，并给出具体的测试性能数据。该实现借鉴了 kiritomoe 博文中的实现和 spymemcached 客户端代码。具体实现请看我的github，地址为 <a href="https://github.com/ztelur/consistent-hash-algorithm。" target="_blank" rel="noopener">https://github.com/ztelur/consistent-hash-algorithm。</a></p>
-<p><code>NodeLocator</code> 是分布式缓存场景下一致性哈希算法的抽象，它有一个 <code>getPrimary</code> 函数，接收一个缓存数据的 key 值，输出存储该缓存数据的服务器实例。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public interface NodeLocator {
-    MemcachedNode getPrimary(String k);
-}
-</code></pre></p>
-<p>下面是通用的一致性哈希算法的实现，它使用 <code>TreeMap</code> 作为一致性哈希环的数据结构，其 <code>ceilingEntry</code> 函数可以获取环上最近的一个节点。<code>buildConsistentHashRing</code> 函数中包含了构建一致性哈希环的过程，默认加入了 12 个虚拟节点。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public class ConsistentHashNodeLocator implements NodeLocator {
-    private final static int VIRTUAL_NODE_SIZE = 12;
-    private final static String VIRTUAL_NODE_SUFFIX = &quot;-&quot;;
-
-    private volatile TreeMap&lt;Long, MemcachedNode&gt; hashRing;
-    private final HashAlgorithm hashAlg;
-
-    public ConsistentHashNodeLocator(List&lt;MemcachedNode&gt; nodes, HashAlgorithm hashAlg) {
-        this.hashAlg = hashAlg;
-        this.hashRing = buildConsistentHashRing(hashAlg, nodes);
-    }
-
-
-    @Override
-    public MemcachedNode getPrimary(String k) {
-        long hash = hashAlg.hash(k);
-        return getNodeForKey(hashRing, hash);
-    }
-
-    private MemcachedNode getNodeForKey(TreeMap&lt;Long, MemcachedNode&gt; hashRing, long hash) {
-        &#x2F;* 向右找到第一个key *&#x2F;
-        Map.Entry&lt;Long, MemcachedNode&gt; locatedNode = hashRing.ceilingEntry(hash);
-        &#x2F;* 想象成为一个环，超出尾部取出第一个 *&#x2F;
-        if (locatedNode == null) {
-            locatedNode = hashRing.firstEntry();
-        }
-        return locatedNode.getValue();
-    }
-
-    private TreeMap&lt;Long, MemcachedNode&gt; buildConsistentHashRing(HashAlgorithm hashAlgorithm, List&lt;MemcachedNode&gt; nodes) {
-        TreeMap&lt;Long, MemcachedNode&gt; virtualNodeRing = new TreeMap&lt;&gt;();
-        for (MemcachedNode node : nodes) {
-            for (int i = 0; i &lt; VIRTUAL_NODE_SIZE; i++) {
-                &#x2F;&#x2F; 新增虚拟节点的方式如果有影响，也可以抽象出一个由物理节点扩展虚拟节点的类
-                virtualNodeRing.put(hashAlgorithm.hash(node.getSocketAddress().toString() + VIRTUAL_NODE_SUFFIX + i), node);
-            }
-        }
-        return virtualNodeRing;
-    }
-}
-</code></pre>
-<p>在 <code>getPrimary</code> 函数中，首先使用 <code>HashAlgorithm</code> 计算出 key 值对应的哈希值，然后调用 <code>getNodeForKey</code> 函数从 <code>TreeMap</code> 中获取对应的最近的服务器节点实例。</p>
-<p><code>HashAlgorithm</code> 是对哈希算法的抽象，一致性哈希算法可以使用各种普通的哈希算法，比如说 CRC ，MurmurHash 和 FNV 等。下面，我们将会对比各种哈希算法给该实现带来的性能差异性。</p>
-<h3 id="性能测试"><a href="#性能测试" class="headerlink" title="性能测试"></a>性能测试</h3><p>测试数据是评价一个算法好坏的最为真实有效的方法，量化的思维模式一定要有，这也是程序员进阶的法宝之一。我们以下面四个量化的指标对基于不同哈希函数的一致性哈希算法进行评测。</p>
-<ul>
-<li>统计每个服务器节点存储的缓存数量，计算方差和标准差。测量缓存分布均匀情况，我们可以模拟 50000个缓存数据，分配到100 个服务器，测试最后个节点存储缓存数据量的方差和标准差。</li>
-<li><strong>随机</strong>下线10%的服务器，重新分配缓存，统计缓存迁移比率。测量节点上下线的情况，我们可以模拟 50000 个缓存数据，分配到100 个指定服务器，之后<strong>随机</strong>下线 10 个服务器并重新分配这50000个数据，统计缓存分配到不同服务器的比例，也就是迁移比率。</li>
-<li>使用JMH对不同哈希算法的执行效率进行对比。</li>
-</ul>
-<p>具体评测算法如下。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public class NodeLocatorTest {
-
-    &#x2F;**
-     * 测试分布的离散情况
-     *&#x2F;
-    @Test
-    public void testDistribution() {
-        List&lt;MemcachedNode&gt; servers = new ArrayList&lt;&gt;();
-        for (String ip : ips) {
-            servers.add(new MemcachedNode(new InetSocketAddress(ip, 8080)));
-        }
-        &#x2F;&#x2F; 使用不同的DefaultHashAlgorithm进行测试，得出不同的数据
-        NodeLocator nodeLocator = new ConsistentHashNodeLocator(servers, DefaultHashAlgorithm.NATIVE_HASH);
-        &#x2F;&#x2F; 构造 50000 随机请求
-        List&lt;String&gt; keys = new ArrayList&lt;&gt;();
-        for (int i = 0; i &lt; 50000; i++) {
-            keys.add(UUID.randomUUID().toString());
-        }
-        &#x2F;&#x2F; 统计分布
-        AtomicLongMap&lt;MemcachedNode&gt; atomicLongMap = AtomicLongMap.create();
-        for (MemcachedNode server : servers) {
-            atomicLongMap.put(server, 0);
-        }
-        for (String key : keys) {
-            MemcachedNode node = nodeLocator.getPrimary(key);
-            atomicLongMap.getAndIncrement(node);
-        }
-        System.out.println(StatisticsUtil.variance(atomicLongMap.asMap().values().toArray(new Long[]{})));
-        System.out.println(StatisticsUtil.standardDeviation(atomicLongMap.asMap().values().toArray(new Long[]{})));
-
-    }
-
-    &#x2F;**
-     * 测试节点新增删除后的变化程度
-     *&#x2F;
-    @Test
-    public void testNodeAddAndRemove() {
-        List&lt;MemcachedNode&gt; servers = new ArrayList&lt;&gt;();
-        for (String ip : ips) {
-            servers.add(new MemcachedNode(new InetSocketAddress(ip, 8080)));
-        }
-        &#x2F;&#x2F;随机下线10个服务器, 先shuffle，然后选择0到90，简单模仿随机计算。
-        Collections.shuffle(servers);
-        List&lt;MemcachedNode&gt; serverChanged = servers.subList(0, 90);
-        NodeLocator loadBalance = new ConsistentHashNodeLocator(servers, DefaultHashAlgorithm.NATIVE_HASH);
-        NodeLocator changedLoadBalance = new ConsistentHashNodeLocator(serverChanged, DefaultHashAlgorithm.NATIVE_HASH);
-
-        &#x2F;&#x2F; 构造 50000 随机请求
-        List&lt;String&gt; keys = new ArrayList&lt;&gt;();
-        for (int i = 0; i &lt; 50000; i++) {
-            keys.add(UUID.randomUUID().toString());
-        }
-        int count = 0;
-        for (String invocation : keys) {
-            MemcachedNode origin = loadBalance.getPrimary(invocation);
-            MemcachedNode changed = changedLoadBalance.getPrimary(invocation);
-           &#x2F;&#x2F; 统计发生变化的数值
-            if (!origin.getSocketAddress().equals(changed.getSocketAddress())) count++;
-        }
-        System.out.println(count &#x2F; 50000D);
-    }
-    static String[] ips = {...};
-}
-</code></pre></p>
-<p>JMH的测试脚本如下所示。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">@BenchmarkMode(Mode.AverageTime)
-@OutputTimeUnit(TimeUnit.MICROSECONDS)
-@State(Scope.Thread)
-public class JMHBenchmark {
-
-    private NodeLocator nodeLocator;
-    private List&lt;String&gt; keys;
-
-    @Benchmark
-    public void test() {
-        for (String key : keys) {
-            MemcachedNode node = nodeLocator.getPrimary(key);
-        }
-    }
-
-    public static void main(String[] args) throws RunnerException {
-        Options opt = new OptionsBuilder()
-                .include(JMHBenchmark.class.getSimpleName())
-                .forks(1)
-                .warmupIterations(5)
-                .measurementIterations(5)
-                .build();
-        new Runner(opt).run();
-    }
-
-    @Setup
-    public void prepare() {
-        List&lt;MemcachedNode&gt; servers = new ArrayList&lt;&gt;();
-        for (String ip : ips) {
-            servers.add(new MemcachedNode(new InetSocketAddress(ip, 8080)));
-        }
-        nodeLocator = new ConsistentHashNodeLocator(servers, DefaultHashAlgorithm.MURMUR_HASH);
-        &#x2F;&#x2F; 构造 50000 随机请求
-        keys = new ArrayList&lt;&gt;();
-        for (int i = 0; i &lt; 50000; i++) {
-            keys.add(UUID.randomUUID().toString());
-        }
-    }
-
-    @TearDown
-    public void shutdown() {
-    }
-    static String[] ips = {...};
-}
-</code></pre>
-<p>分别测试了 JDK 哈希算法，FNV132 算法，CRC 算法，MurmurHash 算法和Ketama 算法，分别对应 <code>DefaultHashAlgorithm</code> 的 <code>NATIVE_HASH</code>，<code>FNV1_32_HASH</code>，<code>CRC_HASH</code>，<code>MURMUR_HASH</code> 和 <code>KETAMA_HASH</code> 。具体数据如下所示。</p>
-<p><a href="/images/19_1221/5_image8.webp"></a></p>
-<h3 id="虚拟槽分区"><a href="#虚拟槽分区" class="headerlink" title="虚拟槽分区"></a>虚拟槽分区</h3><p>有些文章说，Redis 集群并没有使用一致性哈希算法，而是使用虚拟槽分区算法。但是外网（地址见文末）上都说 Redis 使用的虚拟槽分区只是一致性哈希算法的变种，虚拟槽可以允许 Redis 动态扩容。</p>
-<p>或许只有去了解一下Redis的源码才能对这个问题作出准确的回答。请了解的同学积极留言解答，谢谢。</p>
-<p><a href="/images/logo.png"></a></p>
-<p>github 地址： <a href="https://github.com/ztelur/consistent-hash-algorithm" target="_blank" rel="noopener">https://github.com/ztelur/consistent-hash-algorithm</a><br>redis分布式讨论的地址： <a href="https://www.reddit.com/r/redis/comments/4yztxi/which_one_is_better_hash_slot_or_consistent/" target="_blank" rel="noopener">https://www.reddit.com/r/redis/comments/4yztxi/which_one_is_better_hash_slot_or_consistent/</a></p>
-<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
-<li><a href="https://jistol.github.io/software%20engineering/2018/07/07/consistent-hashing-sample/" target="_blank" rel="noopener">https://jistol.github.io/software%20engineering/2018/07/07/consistent-hashing-sample/</a></li>
-<li><a href="https://mp.weixin.qq.com/s/oe3EPu5DxB0bWheBImMsHg" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/oe3EPu5DxB0bWheBImMsHg</a></li>
-</ul>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></div>   
+                <div class="article-more-link">
+                    <a href="/article/bedc2c36/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/bedc2c36/" class="leancloud_visitors" data-flag-title="分布式数据缓存中的一致性哈希算法">
@@ -1008,7 +639,7 @@ public class JMHBenchmark {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/bedc2c36/" data-id="ckauf70zk006ewi66gtf02fw3" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/bedc2c36/" data-id="ckaufl92b006djv66bn6okthi" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1120,189 +751,45 @@ public class JMHBenchmark {
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>&emsp;程序世界的算法都要在时间，资源占用甚至正确率等多种因素间进行平衡。同样的问题，所属的量级或场景不同，所用算法也会不同，其中也会涉及很多的trade-off。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>&emsp;程序世界的算法都要在时间，资源占用甚至正确率等多种因素间进行平衡。同样的问题，所属的量级或场景不同，所用算法也会不同，其中也会涉及很多的trade-off。</p>
 <blockquote>
 <p>If there’s one rule in programming, it’s this: there will always be trade-offs.</p>
 </blockquote>
 <h3 id="你是否真的存在"><a href="#你是否真的存在" class="headerlink" title="你是否真的存在"></a>你是否真的存在</h3><p>&emsp;今天我们就来探讨如何判断一个值是否存在于已有的集合问题。这类问题在很多场景下都会遇到，比如说防止缓存击穿，爬虫重复URL检测，字典纠缠和CDN代理缓存等。</p>
-<p><img src="/images/19_9141/image1.webp" alt=""></p>
-<p>&emsp;我们以网络爬虫为例。网络间的链接错综复杂，爬虫程序在网络间“爬行”很可能会形成“环”。为了避免形成“环”，程序需要知道已经访问过网站的URL。当程序又遇到一个网站，根据它的URL，怎么判断是否已经访问过呢？</p>
-<p>&emsp;第一个想法就是将已有URL放置在<code>HashSet</code>中，然后利用<code>HashSet</code>的特性进行判断。它只花费O(1)的时间。但是，该方法消耗的内存空间很大，就算只有1亿个URL，每个URL只算50个字符，就需要大约5GB内存。</p>
-<p>&emsp;如何减少内存占用呢？URL可能太长，我们使用MD5等单向哈希处理后再存到HashSet中吧，处理后的字段只有128Bit，这样可以节省大量的空间。我们的网络爬虫程序又可以继续执行了。</p>
-<p>&emsp;但是好景不长，网络世界浩瀚如海，URL的数量急速增加，以128bit的大小进行存储也要占据大量的内存。</p>
-<p>&emsp;这种情况下，我们还可以使用<code>BitSet</code>，使用哈希函数将URL处理为1bit，存储在BitSet中。但是，哈希函数发生冲突的概率比较高，若要降低冲突概率到1%，就要将<code>BitSet</code>的长度设置为URL个数的100倍。</p>
-<p>&emsp;但是冲突无法避免，这就带来了误判。理想中的算法总是又准确又快捷，但是现实中往往是“一地鸡毛”。我们真的需要100%的正确率吗？如果需要，时间和空间的开销无法避免；如果能够忍受低概率的错误，就有极大地降低时间和空间的开销的方法。<br><img src="/images/19_9141/image2.webp" alt=""></p>
-<p>&emsp;所以，一切都要trade-off。布隆过滤器(Bloom Filter)就是一种具有较低错误率，但是极大节约空间消耗的算法。</p>
-<h3 id="布隆过滤器"><a href="#布隆过滤器" class="headerlink" title="布隆过滤器"></a>布隆过滤器</h3><p>&emsp;Bloom Filter是一种空间效率很高的随机数据结构，它利用位数组很简洁地表示一个集合，并能判断一个元素是否属于这个集合。Bloom Filter的这种高效是有一定代价的：在判断一个元素是否属于某个集合时，有可能会把不属于这个集合的元素误认为属于这个集合(false positive)。因此，Bloom Filter不适合那些“零错误”的应用场合。而在能容忍低错误率的应用场合下，Bloom Filter通过极少的错误换取了存储空间的极大节省。</p>
-<blockquote>
-<p>A Bloom filter is a space-efficient probabilistic data structure, conceived by Burton Howard Bloom in 1970, that is used to test whether an element is a member of a set. False positive matches are possible, but false negatives are not, thus a Bloom filter has a 100% recall rate. In other words, a query returns either “possibly in set” or “definitely not in set”.</p>
-</blockquote>
-<p>&emsp;上述描述引自维基百科，特点总结为如下：</p>
-<ul>
-<li>空间效率高的概率型数据结构，用来检查一个元素是否在一个集合中。</li>
-<li>对于一个元素检测是否存在的调用，BloomFilter会告诉调用者两个结果之一：可能存在或者一定不存在。</li>
-</ul>
-<p>&emsp;布隆过滤器的使用场景很多，除了上文说的网络爬虫，还有处理缓存击穿和避免磁盘读取等。Goole Bigtable，Apache HBase和Postgresql等都使用了布隆过滤器。</p>
-<p>&emsp;我们就以下面这个例子具体描述使用BloomFilter的场景，以及在此场景下，BloomFilter的优势和劣势。</p>
-<p>&emsp;一组元素存在于磁盘中，数据量特别大，应用程序希望在元素不存在的时候尽量不读磁盘，此时，可以在内存中构建这些磁盘数据的BloomFilter，对于一次读数据的情况，分为以下几种情况：<br><img src="/images/19_9141/image3.webp" alt=""></p>
-<p>&emsp;我们知道HashMap或者Set等数据结构也可以支持上述场景，这里我们就具体比较一下二者的优劣，并给出具体的数据。</p>
-<p>&emsp;<strong>精确度量十分重要</strong>，对于算法的性能，我们不能只是简单的感官上比较，要进行具体的计算和性能测试。找到不同算法之间的平衡点，根据平衡点和现实情况来决定使用哪种算法。就像Redis一样，它对象在不同情况下使用不同的数据结构，比如说列表对象的内置结构可以为<code>ziplist</code>或者<code>linkedlist</code>，在不同的场景下使用不同的数据结构。</p>
-<p>&emsp;请求的元素不在磁盘中，如果BloomFilter返回不存在，那么应用不需要走读盘逻辑，假设此概率为P1。如果BloomFilter返回可能存在，那么属于误判情况，假设此概率为P2。请求的元素在磁盘中，BloomFilter返回存在，假设此概率为P3。</p>
-<p>&emsp;如果使用<code>HashMap</code>等数据结构，情况如下：</p>
-<ul>
-<li>请求的数据不在磁盘中，应用不走读盘逻辑，此概率为P1+P2</li>
-<li>请求的元素在磁盘中，应用走读盘逻辑，此概率为P3</li>
-</ul>
-<p>&emsp;假设应用不读盘逻辑的开销为C1，走读盘逻辑的开销为C2，那么，BloomFilter和hashmap的开销分别为</p>
-<ul>
-<li>Cost(BloomFilter) = P1 <em> C1 + (P2 + P3) </em> C2</li>
-<li>Cost(HashMap) = (P1 + P2) <em> C1 + P3 </em> C2;</li>
-<li>Delta = Cost(BloomFilter) - Cost(HashMap)<pre><code>= P2 * (C2 - C1)
-</code></pre></li>
-</ul>
-<p>&emsp;因此，BloomFilter相当于以增加P2 * (C2 - C1)的时间开销，来获得相对于<code>HashMap</code>而言更少的空间开销。</p>
-<p>&emsp;既然P2是影响BloomFilter性能开销的主要因素，那么BloomFilter设计时如何降低概率P2(即误判率false positive probability)呢？，接下来的BloomFilter的原理将回答这个问题。</p>
-<h3 id="原理解析"><a href="#原理解析" class="headerlink" title="原理解析"></a>原理解析</h3><p>&emsp;初始状态下，布隆过滤器是一个包含m位的位数组，每一位都置为0。</p>
-<p>&emsp;为了表达S={x1, x2,…,xn}这样一个n个元素的集合，Bloom Filter使用k个相互独立的哈希函数，它们分别将集合中的每个元素映射到{1,…,m}的范围中。对任意一个元素x，第i个哈希函数映射的位置hi(x)就会被置为1(1≤i≤k)。注意，如果一个位置多次被置为1，那么只有第一次会起作用，后面几次将没有任何效果。在下图中，k=3，且有两个哈希函数选中同一个位置(从左边数第五位)。<br><img src="/images/19_9141/image4.webp" alt=""></p>
-<p>&emsp;在判断y是否属于这个集合时，我们对y应用k次哈希函数，如果所有hi(y)的位置都是1(1≤i≤k)，那么我们就认为y是集合中的元素，否则就认为y不是集合中的元素。下图中y1就不是集合中的元素。y2则可能属于这个集合，或者刚好是一个误判。<br><img src="/images/19_9141/image5.webp" alt=""></p>
-<p>&emsp;下面我们来看一下具体的例子，哈希函数的数量为3，首先加入1，10两个元素。通过下面两个图，我们可以清晰看到1，10两个元素被三个不同的韩系函数映射到不同的bit上，然后判断3是否在集合中，3映射的3个bit都没有值，所以判断绝对不在集合中。<br><img src="/images/19_9141/image6.webp" alt=""></p>
-<p><img src="/images/19_9141/image7.webp" alt=""></p>
-<p>&emsp;关于误判率，实际的使用中，期望能给定一个误判率期望和将要插入的元素数量，能计算出分配多少的存储空间较合适。这涉及很多最优数值计算问题，比如说错误率估计，最优的哈希函数个数和位数组的大小等，相关公式计算感兴趣的同学可以自行百度，重温一下大学的计算微积分时光。</p>
-<h3 id="Guava的布隆过滤器"><a href="#Guava的布隆过滤器" class="headerlink" title="Guava的布隆过滤器"></a>Guava的布隆过滤器</h3><p>&emsp;这就又要提起我们的Guava了，它是Google开源的Java包，提供了很多常用的功能，比如说我们之前总结的<a href="https://mp.weixin.qq.com/s?__biz=MzU2MDYwMDMzNQ==&amp;mid=2247483781&amp;idx=1&amp;sn=05a2de89cf9b2185292708bcb4431d09&amp;chksm=fc04c5e5cb734cf32b0ea6bc85f58e2b9ddfa78586dd06246089aec01335ab0e205b7d5df08d&amp;token=948342140&amp;lang=zh_CN#rd" target="_blank" rel="noopener">超详细的Guava RateLimiter限流原理解析
-</a>。</p>
-<p>&emsp;Guava中，布隆过滤器的实现主要涉及到2个类，<code>BloomFilter</code>和<code>BloomFilterStrategies</code>，首先来看一下<code>BloomFilter</code>的成员变量。需要注意的是不同Guava版本的<code>BloomFilter</code>实现不同。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike"> &#x2F;** guava实现的以CAS方式设置每个bit位的bit数组 *&#x2F;
-  private final LockFreeBitArray bits;
-  &#x2F;** hash函数的个数 *&#x2F;
-  private final int numHashFunctions;
-  &#x2F;** guava中将对象转换为byte的通道 *&#x2F;
-  private final Funnel&lt;? super T&gt; funnel;
-  &#x2F;**
-   * 将byte转换为n个bit的策略，也是bloomfilter hash映射的具体实现
-   *&#x2F;
-  private final Strategy strategy;
-</code></pre>
-<p>&emsp;这是它的4个成员变量:</p>
-<ul>
-<li><code>LockFreeBitArray</code>是定义在<code>BloomFilterStrategies</code>中的内部类，封装了布隆过滤器底层bit数组的操作。</li>
-<li><code>numHashFunctions</code>表示哈希函数的个数。</li>
-<li><code>Funnel</code>，它和<code>PrimitiveSink</code>配套使用，能将任意类型的对象转化成Java基本数据类型，默认用<code>java.nio.ByteBuffer</code>实现，最终均转化为byte数组。</li>
-<li><code>Strategy</code>是定义在<code>BloomFilter</code>类内部的接口，代码如下，主要有2个方法，<code>put</code>和<code>mightContain</code>。</li>
-</ul>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">interface Strategy extends java.io.Serializable {
-    &#x2F;** 设置元素 *&#x2F;
-    &lt;T&gt; boolean put(T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits);
-    &#x2F;** 判断元素是否存在*&#x2F;
-    &lt;T&gt; boolean mightContain(
-    T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits);
-    .....
-}
-</code></pre>
-<p>&emsp;创建布隆过滤器，<code>BloomFilter</code>并没有公有的构造函数，只有一个私有构造函数，而对外它提供了5个重载的<code>create</code>方法，在缺省情况下误判率设定为3%，采用<code>BloomFilterStrategies.MURMUR128_MITZ_64</code>的实现。</p>
-<p>&emsp;<code>BloomFilterStrategies.MURMUR128_MITZ_64</code>是<code>Strategy</code>的两个实现之一，Guava以枚举的方式提供这两个实现，这也是《Effective Java》书中推荐的提供对象的方法之一。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">enum BloomFilterStrategies implements BloomFilter.Strategy {
-    MURMUR128_MITZ_32() {&#x2F;&#x2F;....}
-    MURMUR128_MITZ_64() {&#x2F;&#x2F;....}
-}
-</code></pre>
-<p>&emsp;二者对应了32位哈希映射函数，和64位哈希映射函数，后者使用了murmur3 hash生成的所有128位，具有更大的空间，不过原理是相通的，我们选择相对简单的<code>MURMUR128_MITZ_32</code>来分析。</p>
-<p>&emsp;先来看一下它的<code>put</code>方法，它用两个hash函数来模拟多个hash函数的情况，这是布隆过滤器的一种优化。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public &lt;T&gt; boolean put(
-    T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits) {
-    long bitSize = bits.bitSize();
-    &#x2F;&#x2F; 先利用murmur3 hash对输入的funnel计算得到128位的哈希值，funnel现将object转换为byte数组，
-    &#x2F;&#x2F; 然后在使用哈希函数转换为long
-    long hash64 = Hashing.murmur3_128().hashObject(object, funnel).asLong();
-    &#x2F;&#x2F; 根据hash值的高低位算出hash1和hash2
-    int hash1 = (int) hash64;
-    int hash2 = (int) (hash64 &gt;&gt;&gt; 32);
-
-    boolean bitsChanged = false;
-    &#x2F;&#x2F; 循环体内采用了2个函数模拟其他函数的思想,相当于每次累加hash2
-    for (int i = 1; i &lt;= numHashFunctions; i++) {
-    int combinedHash = hash1 + (i * hash2);
-    &#x2F;&#x2F; 如果是负数就变为正数
-    if (combinedHash &lt; 0) {
-        combinedHash = ~combinedHash;
-    }
-    &#x2F;&#x2F; 通过基于bitSize取模的方式获取bit数组中的索引，然后调用set函数设置。
-    bitsChanged |= bits.set(combinedHash % bitSize);
-    }
-    return bitsChanged;
-}
-</code></pre></p>
-<p>&emsp;在<code>put</code>方法中，先是将索引位置上的二进制置为1，然后用<code>bitsChanged</code>记录插入结果，如果返回true表明没有重复插入成功，而<code>mightContain</code>方法则是将索引位置上的数值取出，并判断是否为0，只要其中出现一个0，那么立即判断为不存在。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public &lt;T&gt; boolean mightContain(
-    T object, Funnel&lt;? super T&gt; funnel, int numHashFunctions, BitArray bits) {
-    long bitSize = bits.bitSize();
-    long hash64 = Hashing.murmur3_128().hashObject(object, funnel).asLong();
-    int hash1 = (int) hash64;
-    int hash2 = (int) (hash64 &gt;&gt;&gt; 32);
-
-    for (int i = 1; i &lt;= numHashFunctions; i++) {
-    int combinedHash = hash1 + (i * hash2);
-    &#x2F;&#x2F; Flip all the bits if it&#39;s negative (guaranteed positive number)
-    if (combinedHash &lt; 0) {
-        combinedHash = ~combinedHash;
-    }
-    &#x2F;&#x2F; 和put的区别就在这里，从set转换为get，来判断是否存在
-    if (!bits.get(combinedHash % bitSize)) {
-        return false;
-    }
-    }
-    return true;
-}
-</code></pre></p>
-<p>&emsp;<code>Guava</code>为了提供效率，自己实现了<code>LockFreeBitArray</code>来提供bit数组的无锁设置和读取。我们只来看一下它的<code>put</code>函数。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">boolean set(long bitIndex) {
-    if (get(bitIndex)) {
-    return false;
-    }
-
-    int longIndex = (int) (bitIndex &gt;&gt;&gt; LONG_ADDRESSABLE_BITS);
-    long mask = 1L &lt;&lt; bitIndex; &#x2F;&#x2F; only cares about low 6 bits of bitIndex
-
-    long oldValue;
-    long newValue;
-    &#x2F;&#x2F; 经典的CAS自旋重试机制
-    do {
-    oldValue = data.get(longIndex);
-    newValue = oldValue | mask;
-    if (oldValue == newValue) {
-        return false;
-    }
-    } while (!data.compareAndSet(longIndex, oldValue, newValue));
-
-    bitCount.increment();
-    return true;
-}
-</code></pre>
-<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;欢迎大家留言和持续关注我。</p>
-<p><img src="/images/logo.png" alt=""></p>
-<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
-<li><a href="http://pages.cs.wisc.edu/~cao/papers/summary-cache/node8.html" target="_blank" rel="noopener">http://pages.cs.wisc.edu/~cao/papers/summary-cache/node8.html</a></li>
-<li><a href="http://oserror.com/backend/bloomfilter/" target="_blank" rel="noopener">http://oserror.com/backend/bloomfilter/</a></li>
-<li><a href="https://en.wikipedia.org/wiki/Bloom_filter" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Bloom_filter</a></li>
-<li><a href="https://blog.medium.com/what-are-bloom-filters-1ec2a50c68ff" target="_blank" rel="noopener">https://blog.medium.com/what-are-bloom-filters-1ec2a50c68ff</a></li>
-<li><a href="https://juejin.im/post/5c9442ae5188252d77392241" target="_blank" rel="noopener">https://juejin.im/post/5c9442ae5188252d77392241</a></li>
-<li>演示网站 <a href="https://www.jasondavies.com/bloomfilter/?spm=a2c4e.11153940.blogcont683602.11.21181fe6hVAGjH" target="_blank" rel="noopener">https://www.jasondavies.com/bloomfilter/?spm=a2c4e.11153940.blogcont683602.11.21181fe6hVAGjH</a></li>
-</ul>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></div>   
+                <div class="article-more-link">
+                    <a href="/article/5863fc60/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/5863fc60/" class="leancloud_visitors" data-flag-title="Guava的布隆过滤器">
@@ -1315,7 +802,7 @@ public class JMHBenchmark {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/5863fc60/" data-id="ckauf70xt001swi66kt3zuq6q" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/5863fc60/" data-id="ckaufl908001rjv66l3s4xuyh" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1432,73 +919,45 @@ public class JMHBenchmark {
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>&emsp;今天我们来总结学习一下TCP发送报文的相关知识，主要包括发送报文的步骤，MSS，滑动窗口和Nagle算法。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>&emsp;今天我们来总结学习一下TCP发送报文的相关知识，主要包括发送报文的步骤，MSS，滑动窗口和Nagle算法。</p>
 <h3 id="发送报文"><a href="#发送报文" class="headerlink" title="发送报文"></a>发送报文</h3><p>&emsp;该节是根据陶辉大神的系列文章总结。如下图所示，我们一起来看一下TCP发送报文时操作系统内核都做了那些事情。其中有些概念在接下来的小节中会介绍。<br><img src="/images/19_914/图1.webp" alt=""></p>
 <p>&emsp;首先，用户程序在用户态调用<code>send</code>方法来发送一段较长的数据。然后<code>send</code>函数调用内核态的<code>tcp_sendmsg</code>方法进行处理。</p>
 <p>&emsp;<code>send</code>方法返回成功，内核也不一定真正将IP报文都发送到网络中了，也就是说内核发送报文和<code>send</code>方法是不同步的。所以，内核将用户态内存中的发送数据，拷贝到内核态内存中，不依赖于用户态内存，这样可以使得进程可以快速释放发送数据占用的用户态内存。</p>
 <p>&emsp;在拷贝过程中，内核将待发送数据，按照MSS来划分成多个尽量接近MSS大小的分片，放到这个TCP连接对应的<code>tcp_write_queue</code>发送队列中</p>
-<p>&emsp;内核中为这个TCP连接分配的内核缓存，也就是<code>tcp_write_queue</code>是有限的。当没有多余的空间来复制用户态的待发送数据时，就需要调用一个方法<code>sk_stream_wait_memory</code>来等待滑动窗口移动，释放出一些缓存出来（收到ACK后，不需要再缓存原来已经发送出的报文，因为既然已经确认对方收到，就不需要定时重发，自然就释放缓存了）</p>
-<p>&emsp;当这个套接字是阻塞套接字时，等待的超时时间就是<code>SO_SNDTIMEO</code>选项指定的发送超时时间。如果这个套接字是非阻塞套接字，则超时时间就是0。也就是说，<code>sk_stream_wait_memory</code>对于非阻塞套接字会直接返回，并将 errno错误码置为EAGAIN</p>
-<p>&emsp;我们假定使用了阻塞套接字，且等待了足够久的时间，收到了对方的ACK，滑动窗口释放出了缓存。所以，可以将剩下的用户态数据都组成MSS报文拷贝到内核态的缓存队列中。</p>
-<p>&emsp;最后，调用tcp_push等方法，它最终会调用IP层的方法来发送tcp_write_queue队列中的报文。注意的是，IP层方法返回时，也不意味着报文发送了出去。</p>
-<p>&emsp;在发送函数处理过程中，Nagle算法、滑动窗口、拥塞窗口都会影响发送操作。</p>
-<h3 id="MTU和MSS"><a href="#MTU和MSS" class="headerlink" title="MTU和MSS"></a>MTU和MSS</h3><p>&emsp;我们都知道TCP/IP架构有五层协议，低层协议的规则会影响到上层协议，比如说数据链路层的最大传输单元MTU和传输层TCP协议的最大报文段长度MSS。</p>
-<p>&emsp;数据链路层协议会对网络分组的长度进行限制，也就是不能超过其规定的MTU，例如以太网限制为1500字节，802.3限制为1492字节。<strong>但是，需要注意的时，现在有些网卡具备自动分包功能，所以也可以传输远大于MTU的帧</strong>。</p>
-<p><img src="/images/19_914/图2.webp" alt=""></p>
-<p>&emsp;网络层的IP协议试图发送报文时，若一个报文的长度大于MTU限制，就会被分成若干个小于MTU的报文，每个报文都会有独立的IP头部。IP协议能自动获取所在局域网的MTU值，然后按照这个MTU来分片。IP协议的分片机制对于传输层是透明的，接收方的IP协议会根据收到的多个IP包头部，将发送方IP层分片出的IP包重组为一个消息。</p>
-<p>&emsp;这种IP层的分片效率是很差的，因为首先做了额外的分片操作，然后所有分片都到达后，接收方才能重组成一个包，其中任何一个分片丢失了，都必须重发所有分片。</p>
-<p>&emsp;所以，TCP层为了避免IP层执行数据报分片定义了最大报文段长度MSS。在TCP建立连接时会通知各自期望接收到的MSS的大小。</p>
-<p>&emsp;需要注意的是MSS的值是预估值。两台主机只是根据其所在局域网的计算MSS，但是TCP连接上可能会穿过许多中间网络，这些网络分别具有不同的数据链路层，导致问题。比如说，若中间途径的MTU小于两台主机所在的网络MTU时，选定的MSS仍然太大了，会导致中间路由器出现IP层的分片或者直接返回错误(设置IP头部的DF标志位)。</p>
-<p>&emsp;比如阿里中间件的<a href="http://jm.taobao.org/2017/07/27/20170727/" target="_blank" rel="noopener">这篇文章</a>(链接不见的话，请看文末)所说，当上述情况发生时，可能会导致卡死状态，比如scp的时候不动了，或者其他更复杂操作的时候不动了，卡死的状态。</p>
-<h3 id="滑动窗口"><a href="#滑动窗口" class="headerlink" title="滑动窗口"></a>滑动窗口</h3><p>&emsp;IP层协议属于不可靠的协议，IP层并不关心数据是否发送到了接收方，TCP通过确认机制来保证数据传输的可靠性。</p>
-<p>&emsp;除了保证数据必定发送到对端，TCP还要解决包乱序（reordering）和流控的问题。包乱序和流控会涉及滑动窗口和接收报文的out_of_order队列，另外拥塞控制算法也会处理流控，详情请看<a href="https://mp.weixin.qq.com/s?__biz=MzU2MDYwMDMzNQ==&amp;mid=2247483756&amp;idx=1&amp;sn=99c27d03f77989ac6dc9de05d2d1c4df&amp;chksm=fc04c50ccb734c1a77a3cc8839f297914a9f65d33529c801867575208c57035544aa5f06a4de&amp;token=1868391263&amp;lang=zh_CN#rd" target="_blank" rel="noopener">TCP拥塞控制算法简介
-</a>。</p>
-<p>&emsp;TCP头里有一个字段叫Window，又叫Advertised-Window，这个字段是接收端告诉发送端自己还有多少缓冲区可以接收数据。于是发送端就可以根据这个接收端的处理能力来发送数据，否则会导致接收端处理不过来。</p>
-<p>&emsp;我们可以将TCP缓冲区中的数据分为以下四类，并把它们看作一个时间轴<br><img src="/images/19_914/图3.webp" alt=""></p>
-<ul>
-<li><p>Sent and Acknowledged: 表示已经发送成功并已经被确认的数据，比如图中的前31个字节的数据</p>
-</li>
-<li><p>Send But Not Yet Acknowledged：表示发送但没有被确认的数据，数据被发送出去，没有收到接收端的ACK，认为并没有完成发送，这个属于窗口内的数据。</p>
-</li>
-<li><p>Not Sent，Recipient Ready to Receive：表示需要尽快发送的数据，这部分数据已经被加载到缓存等待发送，也就是窗口中。接收方ACK表示能够接受这些包，所以发送方需要尽快发送这些包。</p>
-</li>
-<li><p>Not Sent，Recipient Not Ready to Receive： 表示属于未发送，同时接收端也不允许发送的，因为这些数据已经超出了发送端所接收的范围</p>
-</li>
-</ul>
-<p>&emsp;除了四种不同范畴的数据外，我们可以看到上边的示意图中还有三种窗口。</p>
-<ul>
-<li>Window Already：已经发送了，但是没有收到ACK，和Send But Not Yet Acknowledged部分重合。</li>
-<li>Usable Window :  可用窗口，和Not Sent，Recipient Ready to Receive部分重合</li>
-<li>Send Window:  真正的窗口大小。建立连接时接收方会告知发送方自己能够处理的发送窗口大小，同时在接收过程中也不断的通告可以发送窗口大小，来实时调节。</li>
-</ul>
-<p>&emsp;下面，我们来看一下滑动窗口的滑动。下图是窗口滑动窗口的示意图。<br><img src="/images/19_914/图4.webp" alt=""></p>
-<p>&emsp;当发送方收到发送数据的确认消息时，会移动发送窗口。比如上图中，接收到36字节的确认，将其之前的5个字节都移除窗口，发出了46-51的字节，将52到56的字节加入到可用窗口。</p>
-<p>&emsp;下面我们来看一下整体的示意图。<br><img src="/images/19_914/图5.webp" alt=""></p>
-<p>&emsp;图片来源为tcpipguide.</p>
-<p>&emsp;Client端窗口的不同颜色的矩形块代表的含义和上边滑动窗口示意图的含义相同。我们只简单看一下第二三四步。接收端发送的TCP报文window为260，表示发送窗口减少100，可以发现黑色矩形缩短了。并且ack为141，所以发送端将140个字节的数据从滑动窗口中移除，从Send But Not Yet Acknowledged变为Sent and Acknowledged，也就是从蓝色变成紫色。然后发送端发送180字节的数据，就有180字节的数据从Not Sent，Recipient Ready to Receive变为Send But Not Yet Acknowledged，也就是从绿色变为蓝色。</p>
-<h3 id="Nagle算法"><a href="#Nagle算法" class="headerlink" title="Nagle算法"></a>Nagle算法</h3><p>&emsp;上述滑动窗口会出现一种Silly Window Syndrome的问题，当接收方来不及取走Receive Windows里的数据，会导致发送方的窗口越来越小。到最后，如果接收方腾出几个字节并告诉发送方现在有几个字节的window，而我们的发送方会义无反顾地发送这几个字节。</p>
-<p>&emsp;只为了发送几个字节，要加上TCP和IP头的40多个字节。这样，效率太低，就像你搬运物品，明明一次可以全部搬完，但是却偏偏一次只搬一个物品，来回搬多次。</p>
-<p>&emsp;为此，TCP引入了Nagle算法。应用进程调用发送方法时，可能每次只发送小块数据，造成这台机器发送了许多小的TCP报文。对于整个网络的执行效率来说，小的TCP报文会增加网络拥塞的可能。因此，如果有可能，应该将相临的TCP报文合并成一个较大的TCP报文（当然还是小于MSS的）发送。</p>
-<p>&emsp;Nagle算法的规则（可参考tcp_output.c文件里tcp_nagle_check函数注释）：</p>
-<ul>
-<li>如果包长度达到MSS，则允许发送；</li>
-<li>如果该包含有FIN，则允许发送；</li>
-<li>设置了TCP_NODELAY选项，则允许发送；</li>
-<li>未设置TCP_CORK选项时，若所有发出去的小数据包（包长度小于MSS）均被确认，则允许发送；</li>
-<li>上述条件都未满足，但发生了超时（一般为200ms），则立即发送。</li>
-</ul>
-<p>&emsp;<strong>当对请求的时延非常在意且网络环境非常好的时候（例如同一个机房内），Nagle算法可以关闭</strong>。使用TCP_NODELAY套接字选项就可以关闭Nagle算法</p>
-<p><img src="/images/logo.png" alt=""></p>
-<p>个人博客: <a href="http://remcarpediem.net/2019/03/09/TCP-IP%E7%9A%84%E5%BA%95%E5%B1%82%E9%98%9F%E5%88%97/">Remcarpediem</a></p>
-<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
-<li>阿里中间件 <a href="http://jm.taobao.org/2017/07/27/20170727/" target="_blank" rel="noopener">http://jm.taobao.org/2017/07/27/20170727/</a></li>
-</ul>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></div>   
+                <div class="article-more-link">
+                    <a href="/article/4a70661a/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/4a70661a/" class="leancloud_visitors" data-flag-title="TCP报文发送的那些事">
@@ -1511,7 +970,7 @@ public class JMHBenchmark {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/4a70661a/" data-id="ckauf70z40057wi660kfyh80s" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/4a70661a/" data-id="ckaufl91i0050jv66hk5bjmar" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1628,173 +1087,45 @@ public class JMHBenchmark {
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>&emsp;Java单机限流可以使用AtomicInteger，RateLimiter或Semaphore来实现，但是上述方案都不支持集群限流。集群限流的应用场景有两个，一个是网关，常用的方案有Nginx限流和Spring Cloud Gateway，另一个场景是与外部或者下游服务接口的交互，因为接口限制必须进行限流。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>&emsp;Java单机限流可以使用AtomicInteger，RateLimiter或Semaphore来实现，但是上述方案都不支持集群限流。集群限流的应用场景有两个，一个是网关，常用的方案有Nginx限流和Spring Cloud Gateway，另一个场景是与外部或者下游服务接口的交互，因为接口限制必须进行限流。</p>
 <p>&emsp;本文的主要内容为：</p>
 <ul>
 <li>Redis和Lua的使用场景和注意事项，特别是KEY映射的问题</li>
 <li>Spring Cloud Gateway中限流的实现</li>
-</ul>
-<h3 id="集群限流的难点"><a href="#集群限流的难点" class="headerlink" title="集群限流的难点"></a>集群限流的难点</h3><p>&emsp;在上篇Guava RateLimiter的分析<a href="https://mp.weixin.qq.com/s?__biz=MzU2MDYwMDMzNQ==&amp;mid=2247483781&amp;idx=1&amp;sn=05a2de89cf9b2185292708bcb4431d09&amp;chksm=fc04c5e5cb734cf32b0ea6bc85f58e2b9ddfa78586dd06246089aec01335ab0e205b7d5df08d&amp;token=1485948874&amp;lang=zh_CN#rd" target="_blank" rel="noopener">文章</a><br>中，我们学习了令牌桶限流算法的原理，下面我们就探讨一下，如果将<code>RateLimiter</code>扩展，让它支持集群限流，会遇到哪些问题。</p>
-<p>&emsp;<code>RateLimiter</code>会维护两个关键的参数<code>nextFreeTicketMicros</code>和<code>storedPermits</code>，它们分别是下一次填充时间和当前存储的令牌数。当<code>RateLimiter</code>的<code>acquire</code>函数被调用时，也就是有线程希望获取令牌时，<code>RateLimiter</code>会对比当前时间和<code>nextFreeTicketMicros</code>，根据二者差距，刷新<code>storedPermits</code>，然后再判断更新后的<code>storedPermits</code>是否足够，足够则直接返回，否则需要等待直到令牌足够(Guava RateLimiter的实现比较特殊，并不是当前获取令牌的线程等待，而是下一个获取令牌的线程等待)。</p>
-<p>&emsp;由于要支持集群限流，所以<code>nextFreeTicketMicros</code>和<code>storedPermits</code>这两个参数不能只存在JVM的内存中，必须有一个集中式存储的地方。而且，由于算法要先获取两个参数的值，计算后在更新两个数值，这里涉及到竞态限制，必须要处理并发问题。</p>
-<p>&emsp;集群限流由于会面对相比单机更大的流量冲击，所以一般不会进行线程等待，而是直接进行丢弃，因为如果让拿不到令牌的线程进行睡眠，会导致大量的线程堆积，线程持有的资源也不会释放，反而容易拖垮服务器。</p>
-<h3 id="Redis和Lua"><a href="#Redis和Lua" class="headerlink" title="Redis和Lua"></a>Redis和Lua</h3><p><img src="/images/19_1221/6_image1.webp" alt=""></p>
-<p>&emsp;分布式限流本质上是一个集群并发问题，Redis单进程单线程的特性，天然可以解决分布式集群的并发问题。所以很多分布式限流都基于Redis，比如说Spring Cloud的网关组件Gateway。</p>
-<p>&emsp;Redis执行Lua脚本会以原子性方式进行，单线程的方式执行脚本，在执行脚本时不会再执行其他脚本或命令。并且，Redis只要开始执行Lua脚本，就会一直执行完该脚本再进行其他操作，所以<strong>Lua脚本中不能进行耗时操作</strong>。使用Lua脚本，还可以减少与Redis的交互，减少网络请求的次数。</p>
-<p>&emsp;Redis中使用Lua脚本的场景有很多，比如说分布式锁，限流，秒杀等，总结起来，下面两种情况下可以使用Lua脚本:</p>
-<ul>
-<li>使用 Lua 脚本实现原子性操作的CAS，避免不同客户端先读Redis数据，经过计算后再写数据造成的并发问题。</li>
-<li>前后多次请求的结果有依赖时，使用 Lua 脚本将多个请求整合为一个请求。</li>
-</ul>
-<p>&emsp;但是使用Lua脚本也有一些注意事项：</p>
-<ul>
-<li>要保证安全性，在 Lua 脚本中不要定义自己的全局变量，以免污染 Redis内嵌的Lua环境。因为Lua脚本中你会使用一些预制的全局变量，比如说<code>redis.call()</code></li>
-<li>要注意 Lua 脚本的时间复杂度，Redis 的单线程同样会阻塞在 Lua 脚本的执行中。</li>
-<li>使用 Lua 脚本实现原子操作时，要注意如果 Lua 脚本报错，之前的命令无法回滚，这和Redis所谓的事务机制是相同的。</li>
-<li>一次发出多个 Redis 请求，但请求前后无依赖时，使用 pipeline，比 Lua 脚本方便。</li>
-<li>Redis要求单个Lua脚本操作的key必须在同一个Redis节点上。解决方案可以看下文对Gateway原理的解析。</li>
-</ul>
-<h3 id="性能测试"><a href="#性能测试" class="headerlink" title="性能测试"></a>性能测试</h3><p>&emsp;Redis虽然以单进程单线程模型进行操作，但是它的性能却十分优秀。总结来说，主要是因为:</p>
-<ul>
-<li>绝大部分请求是纯粹的内存操作</li>
-<li>采用单线程,避免了不必要的上下文切换和竞争条件</li>
-<li>内部实现采用非阻塞IO和epoll，基于epoll自己实现的简单的事件框架。epoll中的读、写、关闭、连接都转化成了事件，然后利用epoll的多路复用特性，绝不在io上浪费一点时间。</li>
-</ul>
-<p>&emsp;所以，在集群限流时使用Redis和Lua的组合并不会引入过多的性能损耗。我们下面就简单的测试一下，顺便熟悉一下涉及的Redis命令。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike"># test.lua脚本的内容
-local test = redis.call(&quot;get&quot;, &quot;test&quot;)
-local time = redis.call(&quot;get&quot;, &quot;time&quot;)
-redis.call(&quot;setex&quot;, &quot;test&quot;, 10, &quot;xx&quot;)
-redis.call(&quot;setex&quot;, &quot;time&quot;, 10, &quot;xx&quot;)
-return {test, time}
-
-# 将脚本导入redis，之后调用不需再传递脚本内容
-redis-cli -a 082203 script load &quot;$(cat test.lua)&quot;
-&quot;b978c97518ae7c1e30f246d920f8e3c321c76907&quot;
-# 使用redis-benchmark和evalsha来执行lua脚本
-redis-benchmark -a 082203 -n 1000000 evalsha b978c97518ae7c1e30f246d920f8e3c321c76907 0 
-======
-1000000 requests completed in 20.00 seconds
-50 parallel clients
-3 bytes payload
-keep alive: 1
-
-93.54% &lt;= 1 milliseconds
-99.90% &lt;= 2 milliseconds
-99.97% &lt;= 3 milliseconds
-99.98% &lt;= 4 milliseconds
-99.99% &lt;= 5 milliseconds
-100.00% &lt;= 6 milliseconds
-100.00% &lt;= 7 milliseconds
-100.00% &lt;= 7 milliseconds
-49997.50 requests per second
-</code></pre>
-<p>&emsp;通过上述简单的测试，我们可以发现本机情况下，使用Redis执行Lua脚本的性能极其优秀，一百万次执行，99.99%在5毫秒以下。</p>
-<p>&emsp;本来想找一下官方的性能数据，但是针对Redis + Lua的性能数据较少，只找到了几篇个人博客，感兴趣的同学可以去探索。<a href="https://www.fuwuqizhijia.com/redis/201704/60935.html" target="_blank" rel="noopener">这篇文章</a>有Lua和zadd的性能比较(具体数据请看原文，链接缺失的话，请看文末)。</p>
-<blockquote>
-<p>以上lua脚本的性能大概是zadd的70%-80%，但是在可接受的范围内，在生产环境可以使用。负载大概是zadd的1.5-2倍，网络流量相差不大，IO是zadd的3倍，可能是开启了AOF，执行了三次操作。</p>
-</blockquote>
-<h3 id="Spring-Cloud-Gateway的限流实现"><a href="#Spring-Cloud-Gateway的限流实现" class="headerlink" title="Spring Cloud Gateway的限流实现"></a>Spring Cloud Gateway的限流实现</h3><p><img src="/images/19_1221/6_image2.webp" alt=""></p>
-<p>&emsp;<code>Gateway</code>是微服务架构<code>Spring Cloud</code>的网关组件，它基于Redis和Lua实现了令牌桶算法的限流功能，下面我们就来看一下它的原理和细节吧。</p>
-<p>&emsp;<code>Gateway</code>基于Filter模式，提供了限流过滤器<code>RequestRateLimiterGatewayFilterFactory</code>。只需在其配置文件中进行配置，就可以使用。具体的配置感兴趣的同学自行学习，我们直接来看它的实现。</p>
-<p>&emsp;<code>RequestRateLimiterGatewayFilterFactory</code>依赖<code>RedisRateLimiter</code>的<code>isAllowed</code>函数来判断一个请求是否要被限流抛弃。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public Mono&lt;Response&gt; isAllowed(String routeId, String id) {
-        &#x2F;&#x2F;routeId是ip地址，id是使用KeyResolver获取的限流维度id，比如说基于uri,IP或者用户等等。
-	Config routeConfig = loadConfiguration(routeId);
-	&#x2F;&#x2F; 每秒能够通过的请求数
-	int replenishRate = routeConfig.getReplenishRate();
-	&#x2F;&#x2F; 最大流量
-	int burstCapacity = routeConfig.getBurstCapacity();
-	try {
-	    &#x2F;&#x2F; 组装Lua脚本的KEY
-		List&lt;String&gt; keys = getKeys(id);
-		&#x2F;&#x2F; 组装Lua脚本需要的参数，1是指一次获取一个令牌
-		List&lt;String&gt; scriptArgs = Arrays.asList(replenishRate + &quot;&quot;,
-				burstCapacity + &quot;&quot;, Instant.now().getEpochSecond() + &quot;&quot;, &quot;1&quot;);
-		&#x2F;&#x2F; 调用Redis，tokens_left = redis.eval(SCRIPT, keys, args)
-		Flux&lt;List&lt;Long&gt;&gt; flux = this.redisTemplate.execute(this.script, keys,
-				scriptArgs);
-	..... &#x2F;&#x2F; 省略			
-}
-static List&lt;String&gt; getKeys(String id) {
-	String prefix = &quot;request_rate_limiter.{&quot; + id;
-	String tokenKey = prefix + &quot;}.tokens&quot;;
-	String timestampKey = prefix + &quot;}.timestamp&quot;;
-	return Arrays.asList(tokenKey, timestampKey);
-}				
-</code></pre>
-<p>&emsp;需要注意的是<code>getKeys</code>函数的prefix包含了”{id}”，这是为了解决Redis集群键值映射问题。Redis的KeySlot算法中，如果key包含{}，就会使用第一个{}内部的字符串作为hash key，这样就可以保证拥有同样{}内部字符串的key就会拥有相同slot。Redis要求单个Lua脚本操作的key必须在同一个节点上，但是Cluster会将数据自动分布到不同的节点，使用这种方法就解决了上述的问题。</p>
-<p>&emsp;然后我们来看一下Lua脚本的实现，该脚本就在Gateway项目的resource文件夹下。它就是如同<code>Guava</code>的<code>RateLimiter</code>一样，实现了令牌桶算法，只不过不在需要进行线程休眠，而是直接返回是否能够获取。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">local tokens_key = KEYS[1]   -- request_rate_limiter.${id}.tokens 令牌桶剩余令牌数的KEY值
-local timestamp_key = KEYS[2] -- 令牌桶最后填充令牌时间的KEY值
-
-local rate = tonumber(ARGV[1])  -- replenishRate 令令牌桶填充平均速率
-local capacity = tonumber(ARGV[2]) -- burstCapacity 令牌桶上限
-local now = tonumber(ARGV[3]) -- 得到从 1970-01-01 00:00:00 开始的秒数
-local requested = tonumber(ARGV[4]) -- 消耗令牌数量，默认 1 
-
-local fill_time = capacity&#x2F;rate   -- 计算令牌桶填充满令牌需要多久时间
-local ttl = math.floor(fill_time*2)  -- *2 保证时间充足
-
-
-local last_tokens = tonumber(redis.call(&quot;get&quot;, tokens_key)) 
--- 获得令牌桶剩余令牌数
-if last_tokens == nil then  -- 第一次时，没有数值，所以桶时满的
-  last_tokens = capacity
-end
-
-local last_refreshed = tonumber(redis.call(&quot;get&quot;, timestamp_key)) 
--- 令牌桶最后填充令牌时间
-if last_refreshed == nil then
-  last_refreshed = 0
-end
-
-local delta = math.max(0, now-last_refreshed)  
--- 获取距离上一次刷新的时间间隔
-local filled_tokens = math.min(capacity, last_tokens+(delta*rate)) 
--- 填充令牌，计算新的令牌桶剩余令牌数 填充不超过令牌桶令牌上限。
-
-local allowed = filled_tokens &gt;= requested      
-local new_tokens = filled_tokens
-local allowed_num = 0
-if allowed then
--- 若成功，令牌桶剩余令牌数(new_tokens) 减消耗令牌数( requested )，并设置获取成功( allowed_num = 1 ) 。
-  new_tokens = filled_tokens - requested
-  allowed_num = 1
-end       
-
--- 设置令牌桶剩余令牌数( new_tokens ) ，令牌桶最后填充令牌时间(now) ttl是超时时间？
-redis.call(&quot;setex&quot;, tokens_key, ttl, new_tokens)
-redis.call(&quot;setex&quot;, timestamp_key, ttl, now)
-
--- 返回数组结果
-return { allowed_num, new_tokens }
-</code></pre>
-<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;Redis的主从异步复制机制可能丢失数据，出现限流流量计算不准确的情况，当然限流毕竟不同于分布式锁这种场景，对于结果的精确性要求不是很高，即使多流入一些流量，也不会影响太大。<br>&emsp;正如Martin在他质疑Redis分布式锁RedLock文章中说的，Redis的数据丢弃了也无所谓时再使用Redis存储数据。</p>
-<blockquote>
-<p>I think it’s a good fit in situations where you want to share some transient, approximate, fast-changing data between servers, and where it’s not a big deal if you occasionally lose that data for whatever reason</p>
-</blockquote>
-<p>&emsp;接下来我们回来学习阿里开源的分布式限流组件<code>sentinel</code>，希望大家持续关注。</p>
-<p><img src="/images/logo.png" alt=""></p>
-<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
-<li><a href="https://www.cnblogs.com/itrena/p/5926878.html" target="_blank" rel="noopener">https://www.cnblogs.com/itrena/p/5926878.html</a></li>
-<li>压测的文章：<a href="https://www.fuwuqizhijia.com/redis/201704/60935.html" target="_blank" rel="noopener">https://www.fuwuqizhijia.com/redis/201704/60935.html</a></li>
-<li><a href="https://blog.csdn.net/forezp/article/details/85081162" target="_blank" rel="noopener">https://blog.csdn.net/forezp/article/details/85081162</a></li>
-<li><a href="https://blog.csdn.net/xixingzhe2/article/details/86167859" target="_blank" rel="noopener">https://blog.csdn.net/xixingzhe2/article/details/86167859</a></li>
-<li>Matin RedLock <a href="http://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html" target="_blank" rel="noopener">http://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html</a></li>
-</ul>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></ul></div>   
+                <div class="article-more-link">
+                    <a href="/article/ad1b673b/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/ad1b673b/" class="leancloud_visitors" data-flag-title="基于Redis和Lua的分布式限流">
@@ -1807,7 +1138,7 @@ return { allowed_num, new_tokens }
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/ad1b673b/" data-id="ckauf70zq006xwi66ithp1jom" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/ad1b673b/" data-id="ckaufl92j006yjv66pclyjhzm" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1924,308 +1255,45 @@ return { allowed_num, new_tokens }
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>&emsp;限流是保护高并发系统的三把利器之一，另外两个是缓存和降级。限流在很多场景中用来限制并发和请求量，比如说秒杀抢购，保护自身系统和下游系统不被巨型流量冲垮等。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>&emsp;限流是保护高并发系统的三把利器之一，另外两个是缓存和降级。限流在很多场景中用来限制并发和请求量，比如说秒杀抢购，保护自身系统和下游系统不被巨型流量冲垮等。</p>
 <p>&emsp;限流的目的是通过对并发访问/请求进行限速或者一个时间窗口内的的请求进行限速来保护系统，一旦达到限制速率则可以拒绝服务或进行流量整形。</p>
 <p>&emsp;常用的限流方式和场景有：限制总并发数（比如数据库连接池、线程池）、限制瞬时并发数（如nginx的limit_conn模块，用来限制瞬时并发连接数，Java的Semaphore也可以实现）、限制时间窗口内的平均速率（如Guava的RateLimiter、nginx的limit_req模块，限制每秒的平均速率）；其他还有如限制远程接口调用速率、限制MQ的消费速率。另外还可以根据网络连接数、网络流量、CPU或内存负载等来限流。</p>
 <p>&emsp;比如说，我们需要限制方法被调用的并发数不能超过100（同一时间并发数），则我们可以用信号量<code>Semaphore</code>实现。可如果我们要限制方法在一段时间内平均被调用次数不超过100，则需要使用<code>RateLimiter</code>。</p>
 <h3 id="限流的基础算法"><a href="#限流的基础算法" class="headerlink" title="限流的基础算法"></a>限流的基础算法</h3><p>&emsp;我们先来讲解一下两个限流相关的基本算法：漏桶算法和令牌桶算法。</p>
-<p><img src="/images/19_923/image1.webp" alt="漏桶算法"></p>
-<p>&emsp;从上图中，我们可以看到，就像一个漏斗一样，进来的水量就好像访问流量一样，而出去的水量就像是我们的系统处理请求一样。当访问流量过大时，这个漏斗中就会积水，如果水太多了就会溢出。</p>
-<p>&emsp;漏桶算法的实现往往依赖于队列，请求到达如果队列未满则直接放入队列，然后有一个处理器按照固定频率从队列头取出请求进行处理。如果请求量大，则会导致队列满，那么新来的请求就会被抛弃。</p>
-<p><img src="/images/19_923/image2.webp" alt="漏桶算法示意图"></p>
-<p>令牌桶算法则是一个存放固定容量令牌的桶，按照固定速率往桶里添加令牌。桶中存放的令牌数有最大上限，超出之后就被丢弃或者拒绝。当流量或者网络请求到达时，每个请求都要获取一个令牌，如果能够获取到，则直接处理，并且令牌桶删除一个令牌。如果获取不同，该请求就要被限流，要么直接丢弃，要么在缓冲区等待。</p>
-<p><img src="/images/19_923/image3.webp" alt="令牌桶算法示意图"></p>
-<p>令牌桶和漏桶对比：</p>
-<ul>
-<li><p>令牌桶是按照固定速率往桶中添加令牌，请求是否被处理需要看桶中令牌是否足够，当令牌数减为零时则拒绝新的请求；漏桶则是按照常量固定速率流出请求，流入请求速率任意，当流入的请求数累积到漏桶容量时，则新流入的请求被拒绝；</p>
-</li>
-<li><p>令牌桶限制的是平均流入速率，允许突发请求，只要有令牌就可以处理，支持一次拿3个令牌，4个令牌；漏桶限制的是常量流出速率，即流出速率是一个固定常量值，比如都是1的速率流出，而不能一次是1，下次又是2，从而平滑突发流入速率；</p>
-</li>
-<li><p>令牌桶允许一定程度的突发，而漏桶主要目的是平滑流出速率；</p>
-</li>
-</ul>
-<h3 id="Guava-RateLimiter"><a href="#Guava-RateLimiter" class="headerlink" title="Guava RateLimiter"></a>Guava RateLimiter</h3><p>&emsp;<code>Guava</code>是Java领域优秀的开源项目，它包含了Google在Java项目中使用一些核心库，包含集合(Collections)，缓存(Caching)，并发编程库(Concurrency)，常用注解(Common annotations)，String操作，I/O操作方面的众多非常实用的函数。<br>&emsp;Guava的<code>RateLimiter</code>提供了令牌桶算法实现：平滑突发限流(SmoothBursty)和平滑预热限流(SmoothWarmingUp)实现。</p>
-<p><img src="/images/19_923/image4.webp" alt="类图"></p>
-<p>&emsp;<code>RateLimiter</code>的类图如上所示，其中<code>RateLimiter</code>是入口类，它提供了两套工厂方法来创建出两个子类。这很符合《Effective Java》中的用静态工厂方法代替构造函数的建议，毕竟该书的作者也正是Guava库的主要维护者，二者配合”食用”更佳。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; RateLimiter提供了两个工厂方法，最终会调用下面两个函数，生成RateLimiter的两个子类。
-static RateLimiter create(SleepingStopwatch stopwatch, double permitsPerSecond) {
-    RateLimiter rateLimiter = new SmoothBursty(stopwatch, 1.0 &#x2F;* maxBurstSeconds *&#x2F;);
-    rateLimiter.setRate(permitsPerSecond);
-    return rateLimiter;
-}
-static RateLimiter create(
-    SleepingStopwatch stopwatch, double permitsPerSecond, long warmupPeriod, TimeUnit unit,
-    double coldFactor) {
-    RateLimiter rateLimiter = new SmoothWarmingUp(stopwatch, warmupPeriod, unit, coldFactor);
-    rateLimiter.setRate(permitsPerSecond);
-    return rateLimiter;
-}
-</code></pre>
-<h4 id="平滑突发限流"><a href="#平滑突发限流" class="headerlink" title="平滑突发限流"></a>平滑突发限流</h4><p>&emsp;使用<code>RateLimiter</code>的静态方法创建一个限流器，设置每秒放置的令牌数为5个。返回的RateLimiter对象可以保证1秒内不会给超过5个令牌，并且以固定速率进行放置，达到平滑输出的效果。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public void testSmoothBursty() {
-    RateLimiter r = RateLimiter.create(5);
-    while (true) {
-      System.out.println(&quot;get 1 tokens: &quot; + r.acquire() + &quot;s&quot;);
-    }
-    &#x2F;**
-     * output: 基本上都是0.2s执行一次，符合一秒发放5个令牌的设定。
-     * get 1 tokens: 0.0s 
-     * get 1 tokens: 0.182014s
-     * get 1 tokens: 0.188464s
-     * get 1 tokens: 0.198072s
-     * get 1 tokens: 0.196048s
-     * get 1 tokens: 0.197538s
-     * get 1 tokens: 0.196049s
-     *&#x2F;
-}
-</code></pre></p>
-<p>&emsp;<code>RateLimiter</code>使用令牌桶算法，会进行令牌的累积，如果获取令牌的频率比较低，则不会导致等待，直接获取令牌。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public void testSmoothBursty2() {
-    RateLimiter r = RateLimiter.create(2);
-    while (true)
-    {
-      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
-      try {
-        Thread.sleep(2000);
-      } catch (Exception e) {}
-      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
-      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
-      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
-      System.out.println(&quot;end&quot;);
-      &#x2F;**
-       * output:
-       * get 1 tokens: 0.0s
-       * get 1 tokens: 0.0s
-       * get 1 tokens: 0.0s
-       * get 1 tokens: 0.0s
-       * end
-       * get 1 tokens: 0.499796s
-       * get 1 tokens: 0.0s
-       * get 1 tokens: 0.0s
-       * get 1 tokens: 0.0s
-       *&#x2F;
-    }
-}
-</code></pre>
-<p>&emsp;<code>RateLimiter</code>由于会累积令牌，所以可以应对突发流量。在下面代码中，有一个请求会直接请求5个令牌，但是由于此时令牌桶中有累积的令牌，足以快速响应。<br>&emsp;<code>RateLimiter</code>在没有足够令牌发放时，采用滞后处理的方式，也就是前一个请求获取令牌所需等待的时间由下一次请求来承受，也就是代替前一个请求进行等待。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public void testSmoothBursty3() {
-    RateLimiter r = RateLimiter.create(5);
-    while (true)
-    {
-      System.out.println(&quot;get 5 tokens: &quot; + r.acquire(5) + &quot;s&quot;);
-      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
-      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
-      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
-      System.out.println(&quot;end&quot;);
-      &#x2F;**
-       * output:
-       * get 5 tokens: 0.0s
-       * get 1 tokens: 0.996766s 滞后效应，需要替前一个请求进行等待
-       * get 1 tokens: 0.194007s
-       * get 1 tokens: 0.196267s
-       * end
-       * get 5 tokens: 0.195756s
-       * get 1 tokens: 0.995625s 滞后效应，需要替前一个请求进行等待
-       * get 1 tokens: 0.194603s
-       * get 1 tokens: 0.196866s
-       *&#x2F;
-    }
-}
-</code></pre></p>
-<h4 id="平滑预热限流"><a href="#平滑预热限流" class="headerlink" title="平滑预热限流"></a>平滑预热限流</h4><p>&emsp;<code>RateLimiter</code>的<code>SmoothWarmingUp</code>是带有预热期的平滑限流，它启动后会有一段预热期，逐步将分发频率提升到配置的速率。<br>&emsp;比如下面代码中的例子，创建一个平均分发令牌速率为2，预热期为3分钟。由于设置了预热时间是3秒，令牌桶一开始并不会0.5秒发一个令牌，而是形成一个平滑线性下降的坡度，频率越来越高，在3秒钟之内达到原本设置的频率，以后就以固定的频率输出。这种功能适合系统刚启动需要一点时间来“热身”的场景。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public void testSmoothwarmingUp() {
-    RateLimiter r = RateLimiter.create(2, 3, TimeUnit.SECONDS);
-    while (true)
-    {
-      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
-      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
-      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
-      System.out.println(&quot;get 1 tokens: &quot; + r.acquire(1) + &quot;s&quot;);
-      System.out.println(&quot;end&quot;);
-      &#x2F;**
-       * output:
-       * get 1 tokens: 0.0s
-       * get 1 tokens: 1.329289s
-       * get 1 tokens: 0.994375s
-       * get 1 tokens: 0.662888s  上边三次获取的时间相加正好为3秒
-       * end
-       * get 1 tokens: 0.49764s  正常速率0.5秒一个令牌
-       * get 1 tokens: 0.497828s
-       * get 1 tokens: 0.49449s
-       * get 1 tokens: 0.497522s
-       *&#x2F;
-    }
-}
-</code></pre>
-<h3 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h3><p>&emsp;看完了<code>RateLimiter</code>的基本使用示例后，我们来学习一下它的实现原理。先了解一下几个比较重要的成员变量的含义。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F;SmoothRateLimiter.java
-&#x2F;&#x2F;当前存储令牌数
-double storedPermits;
-&#x2F;&#x2F;最大存储令牌数
-double maxPermits;
-&#x2F;&#x2F;添加令牌时间间隔
-double stableIntervalMicros;
-&#x2F;**
- * 下一次请求可以获取令牌的起始时间
- * 由于RateLimiter允许预消费，上次请求预消费令牌后
- * 下次请求需要等待相应的时间到nextFreeTicketMicros时刻才可以获取令牌
- *&#x2F;
-private long nextFreeTicketMicros = 0L;
-</code></pre></p>
-<h4 id="平滑突发限流-1"><a href="#平滑突发限流-1" class="headerlink" title="平滑突发限流"></a>平滑突发限流</h4><p>&emsp;<code>RateLimiter</code>的原理就是每次调用<code>acquire</code>时用当前时间和<code>nextFreeTicketMicros</code>进行比较，根据二者的间隔和添加单位令牌的时间间隔<code>stableIntervalMicros</code>来刷新存储令牌数<code>storedPermits</code>。然后acquire会进行休眠，直到<code>nextFreeTicketMicros</code>。</p>
-<p>&emsp;<code>acquire</code>函数如下所示，它会调用<code>reserve</code>函数计算获取目标令牌数所需等待的时间，然后使用<code>SleepStopwatch</code>进行休眠，最后返回等待时间。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public double acquire(int permits) {
-    &#x2F;&#x2F; 计算获取令牌所需等待的时间
-    long microsToWait = reserve(permits);
-    &#x2F;&#x2F; 进行线程sleep
-    stopwatch.sleepMicrosUninterruptibly(microsToWait);
-    return 1.0 * microsToWait &#x2F; SECONDS.toMicros(1L);
-}
-final long reserve(int permits) {
-    checkPermits(permits);
-    &#x2F;&#x2F; 由于涉及并发操作，所以使用synchronized进行并发操作
-    synchronized (mutex()) {
-      return reserveAndGetWaitLength(permits, stopwatch.readMicros());
-    }
-}
-final long reserveAndGetWaitLength(int permits, long nowMicros) {
-    &#x2F;&#x2F; 计算从当前时间开始，能够获取到目标数量令牌时的时间
-    long momentAvailable = reserveEarliestAvailable(permits, nowMicros);
-    &#x2F;&#x2F; 两个时间相减，获得需要等待的时间
-    return max(momentAvailable - nowMicros, 0);
-}
-</code></pre></p>
-<p>&emsp;<code>reserveEarliestAvailable</code>是刷新令牌数和下次获取令牌时间<code>nextFreeTicketMicros</code>的关键函数。它有三个步骤，一是调用<code>resync</code>函数增加令牌数，二是计算预支付令牌所需额外等待的时间，三是更新下次获取令牌时间<code>nextFreeTicketMicros</code>和存储令牌数<code>storedPermits</code>。</p>
-<p>&emsp;这里涉及<code>RateLimiter</code>的一个特性，也就是可以预先支付令牌，并且所需等待的时间在下次获取令牌时再实际执行。详细的代码逻辑的解释请看注释。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">final long reserveEarliestAvailable(int requiredPermits, long nowMicros) {
-    &#x2F;&#x2F; 刷新令牌数，相当于每次acquire时在根据时间进行令牌的刷新
-    resync(nowMicros);
-    long returnValue = nextFreeTicketMicros;
-    &#x2F;&#x2F; 获取当前已有的令牌数和需要获取的目标令牌数进行比较，计算出可以目前即可得到的令牌数。
-    double storedPermitsToSpend = min(requiredPermits, this.storedPermits);
-    &#x2F;&#x2F; freshPermits是需要预先支付的令牌，也就是目标令牌数减去目前即可得到的令牌数
-    double freshPermits = requiredPermits - storedPermitsToSpend;
-    &#x2F;&#x2F; 因为会突然涌入大量请求，而现有令牌数又不够用，因此会预先支付一定的令牌数
-    &#x2F;&#x2F; waitMicros即是产生预先支付令牌的数量时间，则将下次要添加令牌的时间应该计算时间加上watiMicros
-    long waitMicros = storedPermitsToWaitTime(this.storedPermits, storedPermitsToSpend)
-        + (long) (freshPermits * stableIntervalMicros);
-    &#x2F;&#x2F; storedPermitsToWaitTime在SmoothWarmingUp和SmoothBuresty的实现不同，用于实现预热缓冲期
-    &#x2F;&#x2F; SmoothBuresty的storedPermitsToWaitTime直接返回0，所以watiMicros就是预先支付的令牌所需等待的时间
-    try {
-      &#x2F;&#x2F; 更新nextFreeTicketMicros,本次预先支付的令牌所需等待的时间让下一次请求来实际等待。
-      this.nextFreeTicketMicros = LongMath.checkedAdd(nextFreeTicketMicros, waitMicros);
-    } catch (ArithmeticException e) {
-      this.nextFreeTicketMicros = Long.MAX_VALUE;
-    }
-    &#x2F;&#x2F; 更新令牌数，最低数量为0
-    this.storedPermits -= storedPermitsToSpend;
-    &#x2F;&#x2F; 返回旧的nextFreeTicketMicros数值，无需为预支付的令牌多加等待时间。
-    return returnValue;
-}
-&#x2F;&#x2F; SmoothBurest
-long storedPermitsToWaitTime(double storedPermits, double permitsToTake) {
-    return 0L;
-}
-</code></pre></p>
-<p>&emsp;<code>resync</code>函数用于增加存储令牌，核心逻辑就是<code>(nowMicros - nextFreeTicketMicros) / stableIntervalMicros</code>。当前时间大于<code>nextFreeTicketMicros</code>时进行刷新，否则直接返回。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">void resync(long nowMicros) {
-    &#x2F;&#x2F; 当前时间晚于nextFreeTicketMicros，所以刷新令牌和nextFreeTicketMicros
-    if (nowMicros &gt; nextFreeTicketMicros) {
-      &#x2F;&#x2F; coolDownIntervalMicros函数获取每机秒生成一个令牌，SmoothWarmingUp和SmoothBuresty的实现不同
-      &#x2F;&#x2F; SmoothBuresty的coolDownIntervalMicros直接返回stableIntervalMicros
-      &#x2F;&#x2F; 当前时间减去要更新令牌的时间获取时间间隔，再除以添加令牌时间间隔获取这段时间内要添加的令牌数
-      storedPermits = min(maxPermits,
-          storedPermits
-            + (nowMicros - nextFreeTicketMicros) &#x2F; coolDownIntervalMicros());
-      nextFreeTicketMicros = nowMicros;
-    }
-    &#x2F;&#x2F; 如果当前时间早于nextFreeTicketMicros，则获取令牌的线程要一直等待到nextFreeTicketMicros,该线程获取令牌所需
-    &#x2F;&#x2F; 额外等待的时间由下一次获取的线程来代替等待。
-}
-double coolDownIntervalMicros() {
-    return stableIntervalMicros;
-}
-</code></pre>
-<p>&emsp;下面我们举个例子，让大家更好的理解<code>resync</code>和<code>reserveEarliestAvailable</code>函数的逻辑。</p>
-<p>&emsp;比如<code>RateLimiter</code>的<code>stableIntervalMicros</code>为500，也就是1秒发两个令牌，storedPermits为0，nextFreeTicketMicros为155391849<code>57</code>48。线程一acquire(2)，当前时间为155391849<code>62</code>48，首先<code>resync</code>函数计算，(1553918496248 - 1553918495748)/500 = 1，所以当前可获取令牌数为1，但是由于可以预支付，所以nextFreeTicketMicros= nextFreeTicketMicro + 1 * 500 = 155391849<code>67</code>48。线程一无需等待。</p>
-<p>&emsp;紧接着，线程二也来acquire(2)，首先<code>resync</code>函数发现当前时间早于<code>nextFreeTicketMicros</code>，所以无法增加令牌数，所以需要预支付2个令牌，nextFreeTicketMicros= nextFreeTicketMicro + 2 * 500 = 155391849<code>77</code>48。线程二需要等待155391849<code>67</code>48时刻，也就是线程一获取时计算的nextFreeTicketMicros时刻。同样的，线程三获取令牌时也需要等待到线程二计算的nextFreeTicketMicros时刻。</p>
-<h4 id="平滑预热限流-1"><a href="#平滑预热限流-1" class="headerlink" title="平滑预热限流"></a>平滑预热限流</h4><p>&emsp;上述就是平滑突发限流RateLimiter的实现，下面我们来看一下加上预热缓冲期的实现原理。<br>&emsp;<code>SmoothWarmingUp</code>实现预热缓冲的关键在于其分发令牌的速率会随时间和令牌数而改变，速率会先慢后快。表现形式如下图所示，令牌刷新的时间间隔由长逐渐变短。等存储令牌数从maxPermits到达thresholdPermits时，发放令牌的时间价格也由coldInterval降低到了正常的stableInterval。</p>
-<p><img src="/images/19_923/image5.webp" alt="image.png"></p>
-<p>&emsp;<code>SmoothWarmingUp</code>的相关代码如下所示，相关的逻辑都写在注释中。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; SmoothWarmingUp，等待时间就是计算上图中梯形或者正方形的面积。
-long storedPermitsToWaitTime(double storedPermits, double permitsToTake) {
-    &#x2F;**
-    * 当前permits超出阈值的部分
-    *&#x2F;
-    double availablePermitsAboveThreshold = storedPermits - thresholdPermits;
-    long micros = 0;
-    &#x2F;**
-    * 如果当前存储的令牌数超出thresholdPermits
-    *&#x2F;
-    if (availablePermitsAboveThreshold &gt; 0.0) {
-    &#x2F;**
-     * 在阈值右侧并且需要被消耗的令牌数量
-     *&#x2F;
-    double permitsAboveThresholdToTake = min(availablePermitsAboveThreshold, permitsToTake);
-
-    &#x2F;**
-        * 梯形的面积
-        *
-        * 高 * (顶 * 底) &#x2F; 2
-        *
-        * 高是 permitsAboveThresholdToTake 也就是右侧需要消费的令牌数
-        * 底 较长 permitsToTime(availablePermitsAboveThreshold)
-        * 顶 较短 permitsToTime(availablePermitsAboveThreshold - permitsAboveThresholdToTake)
-        *&#x2F;
-    micros = (long) (permitsAboveThresholdToTake
-        * (permitsToTime(availablePermitsAboveThreshold)
-        + permitsToTime(availablePermitsAboveThreshold - permitsAboveThresholdToTake)) &#x2F; 2.0);
-    &#x2F;**
-        * 减去已经获取的在阈值右侧的令牌数
-        *&#x2F;
-    permitsToTake -= permitsAboveThresholdToTake;
-    }
-    &#x2F;**
-    * 平稳时期的面积，正好是长乘宽
-    *&#x2F;
-    micros += (stableIntervalMicros * permitsToTake);
-    return micros;
-}
-
-double coolDownIntervalMicros() {
-    &#x2F;**
-    * 每秒增加的令牌数为 warmup时间&#x2F;maxPermits. 这样的话，在warmuptime时间内，就就增张的令牌数量
-    * 为 maxPermits
-    *&#x2F;
-    return warmupPeriodMicros &#x2F; maxPermits;
-}
-</code></pre></p>
-<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp; <code>RateLimiter</code>只能用于单机的限流，如果想要集群限流，则需要引入<code>redis</code>或者阿里开源的<code>sentinel</code>中间件，请大家继续关注。</p>
-<p><img src="/images/logo.png" alt=""></p>
-<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
-<li><a href="https://jinnianshilongnian.iteye.com/blog/2305117" target="_blank" rel="noopener">https://jinnianshilongnian.iteye.com/blog/2305117</a></li>
-<li><a href="https://segmentfault.com/a/1190000012875897" target="_blank" rel="noopener">https://segmentfault.com/a/1190000012875897</a></li>
-</ul>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></div>   
+                <div class="article-more-link">
+                    <a href="/article/7d8dbf1c/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/7d8dbf1c/" class="leancloud_visitors" data-flag-title="超详细的Guava RateLimiter限流原理解析">
@@ -2238,7 +1306,7 @@ double coolDownIntervalMicros() {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/7d8dbf1c/" data-id="ckauf710d0085wi66ibup3uod" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/7d8dbf1c/" data-id="ckaufl92y0083jv66u5ydh73v" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2355,58 +1423,45 @@ double coolDownIntervalMicros() {
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>&emsp;自从上次学习了TCP/IP的拥塞控制算法后，我越发想要更加深入的了解TCP/IP的一些底层原理，搜索了很多网络上的资料，看到了陶辉大神关于高性能网络编程的专栏，收益颇多。今天就总结一下，并且加上自己的一些思考。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>&emsp;自从上次学习了TCP/IP的拥塞控制算法后，我越发想要更加深入的了解TCP/IP的一些底层原理，搜索了很多网络上的资料，看到了陶辉大神关于高性能网络编程的专栏，收益颇多。今天就总结一下，并且加上自己的一些思考。</p>
 <p>&emsp;我自己比较了解Java语言，对Java网络编程的理解就止于Netty框架的使用。<code>Netty</code>的源码贡献者Norman Maurer对于Netty网络开发有过一句建议，”Never block the event loop, reduce context-swtiching”。也就是尽量不要阻塞IO线程，也尽量减少线程切换。我们今天只关注前半句，对这句话感兴趣的同学可以看一下<a href="https://mp.weixin.qq.com/s/JRsbK1Un2av9GKmJ8DK7IQ?" target="_blank" rel="noopener">蚂蚁通信框架实践
 </a>。</p>
 <p>&emsp;为什么不能阻塞读取网络信息的IO线程呢？这里就要从经典的网络C10K开始理解，服务器如何支持并发1万请求。C10K的根源在于网络的IO模型。Linux 中网络处理都用同步阻塞的方式，也就是每个请求都分配一个进程或者线程，那么要支持1万并发，难道就要使用1万个线程处理请求嘛？这1万个线程的调度、上下文切换乃至它们占用的内存，都会成为瓶颈。解决C10K的通用办法就是使用I/O 多路复用，Netty就是这样。</p>
 <p><img src="https://upload-images.jianshu.io/upload_images/623378-778c5e86e4fc9e5a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="Netty的reactor模型"></p>
-<p>&emsp;Netty有负责服务端监听建立连接的线程组(mainReactor)和负责连接读写操作的IO线程组(subReactor)，还可以有专门处理业务逻辑的Worker线程组(ThreadPool)。三者相互独立，这样有很多好处。一是有专门的线程组负责监听和处理网络连接的建立，可以防止TCP/IP的半连接队列(sync)和全连接队列(acceptable)被占满。二是IO线程组和Worker线程分开，双方并行处理网络I/O和业务逻辑，可以避免IO线程被阻塞，防止TCP/IP的接收报文的队列被占满。当然，如果业务逻辑较少，也就是IO 密集型的轻计算业务，可以将业务逻辑放在IO线程中处理，避免线程切换，这也就是Norman Maurer话的后半部分。</p>
-<p>&emsp;TCP/IP怎么就这么多队列啊？今天我们就来细看一下TCP/IP的几个队列,包括建立连接时的半连接队列(sync)，全连接队列(accept)和接收报文时的receive、out_of_order、prequeue以及backlog队列。</p>
-<h3 id="建立连接时的队列"><a href="#建立连接时的队列" class="headerlink" title="建立连接时的队列"></a>建立连接时的队列</h3><p><img src="https://upload-images.jianshu.io/upload_images/623378-370a716b31ece06c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="TCP三次握手和队列示意图"></p>
-<p>&emsp;如上图所示，这里有两个队列：syns queue(半连接队列)和accept queue(全连接队列)。三次握手中，服务端接收到客户端的SYN报文后，把相关信息放到半连接队列中，同时回复SYN+ACK给客户端。<br>&emsp;第三步的时候服务端收到客户端的ACK，如果这时全连接队列没满，那么从半连接队列拿出相关信息放入到全连接队列中，否则按<code>tcp_abort_on_overflow</code>的值来执行相关操作，直接抛弃或者过一段时间在重试。</p>
-<h3 id="接收报文时的队列"><a href="#接收报文时的队列" class="headerlink" title="接收报文时的队列"></a>接收报文时的队列</h3><p>&emsp;相比于建立连接，TCP在接收报文时的处理逻辑更为复杂，相关的队列和涉及的配置参数更多。</p>
-<p>&emsp;应用程序接收TCP报文和程序所在服务器系统接收网络里发来的TCP报文是两个独立流程。二者都会操控socket实例，但是会通过锁竞争来决定某一时刻由谁来操控，由此产生很多不同的场景。例如，应用程序正在接收报文时，操作系统通过网卡又接收到报文，这时该如何处理？若应用程序没有调用read或者recv读取报文时，操作系统收到报文又会如何处理？</p>
-<p>&emsp;我们接下来就以三张图为主，介绍TCP接收报文时的三种场景，并在其中介绍四个接收相关的队列。</p>
-<h4 id="接收报文场景一"><a href="#接收报文场景一" class="headerlink" title="接收报文场景一"></a>接收报文场景一</h4><p><img src="https://upload-images.jianshu.io/upload_images/623378-f25d47544e00ea0b.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="场景一"></p>
-<p>上图是TCP接收报文场景一的示意图。操作系统首先接收报文，存储到socket的receive队列，然后用户进程再调用recv进行读取。</p>
-<p>1) 当网卡接收报文并且判断为TCP协议时，经过层层调用，最终会调用到内核的<code>tcp_v4_rcv</code>方法。由于当前TCP要接收的下一个报文正是S1，所以<code>tcp_v4_rcv</code>函数将其直接加入到<code>receive</code>队列中。<code>receive</code>队列是将已经接收到的TCP报文，去除了TCP头部、排好序放入的、用户进程可以直接按序读取的队列。由于socket不在用户进程上下文中（也就是没有用户进程在读socket），并且我们需要S1序号的报文，而恰好收到了S1报文，因此，它进入了<code>receive</code>队列。</p>
-<p>2) 接收到S3报文，由于TCP要接收的下一个报文序号是S2，所以加入到<code>out_of_order</code>队列，所有乱序的报文会放在这里。</p>
-<p>3) 接着，收到了TCP期望的S2报文，直接进入<code>recevie</code>队列。由于此时<code>out_of_order</code>队列不为空，需要检查一下。</p>
-<p>4) 每次向<code>receive</code>队列插入报文时都会检查<code>out_of_order</code>队列，由于接收到S2报文后，期望的的序号为S3，所以<code>out_of_order</code>队列中的S3报文会被移到<code>receive</code>队列。</p>
-<p>5) 用户进程开始读取socket，先在进程中分配一块内存，然后调用<code>read</code>或者<code>recv</code>方法。socket有一系列的具有默认值的配置属性，比如socket默认是阻塞式的，它的<code>SO_RCVLOWAT</code>属性值默认为1。当然，recv这样的方法还会接收一个flag参数，它可以设置为<code>MSG_WAITALL</code>、<code>MSG_PEEK</code>、<code>MSG_TRUNK</code>等等，这里我们假定为最常用的0。进程调用了<code>recv</code>方法。</p>
-<p>6) 调用<code>tcp_recvmsg</code>方法</p>
-<p>7) <code>tcp_recvmsg</code>方法会首先锁住socket。socket是可以被多线程使用的，而且操作系统也会使用，所以必须处理并发问题。要操控socket，就先获取锁。</p>
-<p>8) 此时，<code>receive</code>队列已经有3个报文了，将第一个报文拷贝到用户态内存中，由于第五步中socket的参数并没有带<code>MSG_PEEK</code>，所以将第一个报文从队列中移除，从内核态释放掉。反之，<code>MSG_PEEK</code>标志位会导致<code>receive</code>队列不会删除报文。所以，<code>MSG_PEEK</code>主要用于多进程读取同一套接字的情形。</p>
-<p>9) 拷贝第二个报文，当然，执行拷贝前都会检查用户态内存的剩余空间是否足以放下当前这个报文，不够时会直接返回已经拷贝的字节数。<br>10) 拷贝第三个报文。<br>11) <code>receive</code>队列已经为空，此时会检查<code>SO_RCVLOWAT</code>这个最小阈值。如果已经拷贝字节数小于它，进程会休眠，等待更多报文。默认的<code>SO_RCVLOWAT</code>值为1，也就是读取到报文就可以返回。</p>
-<p>12) 检查<code>backlog</code>队列，<code>backlog</code>队列是用户进程正在拷贝数据时，网卡收到的报文会进这个队列。如果此时<code>backlog</code>队列有数据，就顺带处理下。<code>backlog</code>队列是没有数据的，因此释放锁，准备返回用户态。</p>
-<p>13) 用户进程代码开始执行，此时recv等方法返回的就是从内核拷贝的字节数。</p>
-<h4 id="接收报文场景二"><a href="#接收报文场景二" class="headerlink" title="接收报文场景二"></a>接收报文场景二</h4><p>&emsp;第二张图给出了第二个场景，这里涉及了<code>prequeue</code>队列。用户进程调用recv方法时，socket队列中没有任何报文，而socket是阻塞的，所以进程睡眠了。然后操作系统收到了报文，此时<code>prequeue</code>队列开始产生作用。该场景中，<code>tcp_low_latency</code>为默认的0，套接字socket的<code>SO_RCVLOWAT</code>是默认的1，仍然是阻塞socket，如下图。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-524a7634fa58fa48.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="场景二"></p>
-<p>&emsp;其中1，2，3步骤的处理和之前一样。我们直接从第四步开始。</p>
-<p>4) 由于此时<code>receive</code>,<code>prequeue</code>和<code>backlog</code>队列都为空，所以没有拷贝一个字节到用户内存中。而socket的配置要求至少拷贝<code>SO_RCVLOWAT</code>也就是1字节的报文，因此进入阻塞式套接字的等待流程。最长等待时间为<code>SO_RCVTIMEO</code>指定的时间。socket在进入等待前会释放socket锁，会使第五步中，新来的报文不再只能进入<code>backlog</code>队列。<br>5) 接到S1报文，将其加入<code>prequeue</code>队列中。<br>6) 插入到<code>prequeue</code>队列后，会唤醒在socket上休眠的进程。<br>7) 用户进程被唤醒后，重新获取socket锁，此后再接收到的报文只能进入<code>backlog</code>队列。<br>8) 进程先检查<code>receive</code>队列，当然仍然是空的；再去检查<code>prequeue</code>队列，发现有报文S1，正好是正在等待序号的报文，于是直接从<code>prequeue</code>队列中拷贝到用户内存，再释放内核中的这个报文。<br>9) 目前已经拷贝了一个字节的报文到用户内存，检查这个长度是否超过了最低阈值，也就是len和<code>SO_RCVLOWAT</code>的最小值。<br>10) 由于<code>SO_RCVLOWAT</code>使用了默认值1，拷贝字节数大于最低阈值，准备返回用户态，顺便会查看一下backlog队列中是否有数据，此时没有，所以准备放回，释放socket锁。<br>11) 返回用户已经拷贝的字节数。</p>
-<h4 id="接收报文场景三"><a href="#接收报文场景三" class="headerlink" title="接收报文场景三"></a>接收报文场景三</h4><p>&emsp;在第三个场景中，系统参数<code>tcp_low_latency</code>为1，socket上设置了<code>SO_RCVLOWAT</code>属性值。服务器先收到报文S1，但是其长度小于<code>SO_RCVLOWAT</code>。用户进程调用<code>recv</code>方法读取，虽然读取到了一部分，但是没有到达最小阈值，所以进程睡眠了。与此同时，在睡眠前接收的乱序的报文S3直接进入<code>backlog</code>队列。然后，报文S2到达，由于没有使用<code>prequeue</code>队列（因为设置了tcp_low_latency），而它起始序号正是下一个待拷贝的值，所以直接拷贝到用户内存中，总共拷贝字节数已满足<code>SO_RCVLOWAT</code>的要求！最后在返回用户前把<code>backlog</code>队列中S3报文也拷贝给用户。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-2e37fda0937a4a95.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="场景三"></p>
-<p>1) 接收到报文S1，正是准备接收的报文序号，因此，将它直接加入到有序的<code>receive</code>队列中。<br>2) 将系统属性<code>tcp_low_latency</code>设置为1，表明服务器希望程序能够及时的接收到TCP报文。用户调用的<code>recv</code>接收阻塞socket上的报文，该socket的<code>SO_RCVLOWAT</code>值大于第一个报文的大小，并且用户分配了足够大的长度为len的内存。<br>3) 调用<code>tcp_recvmsg</code>方法来完成接收工作，先锁住socket。<br>4) 准备处理内核各个接收队列中的报文。<br>5) <code>receive</code>队列中有报文可以直接拷贝，其大小小于len，直接拷贝到用户内存。<br>6) 在进行第五步的同时，内核又接收到S3报文，此时socket被锁，报文直接进入<code>backlog</code>队列。这个报文并不是有序的。<br>7) 在第五步时，拷贝报文S1到用户内存，它的大小小于<code>SO_RCVLOWAT</code>的值。由于socket是阻塞型，所以用户进程进入睡眠状态。进入睡眠前，会先处理<code>backlog</code>队列的报文。因为S3报文是失序的，所以进入<code>out_of_order</code>队列。用户进程进入休眠状态前都会先处理一下<code>backlog</code>队列。<br>8) 进程休眠，直到超时或者<code>receive</code>队列不为空。<br>9) 内核接收到报文S2。注意，此时由于打开了<code>tcp_low_latency</code>标志位，所以报文是不会进入<code>prequeue</code>队列等待进程处理。<br>10) 由于报文S2正是要接收的报文，同时，一个用户进程在休眠等待该报文，所以直接将报文S2拷贝到用户内存。<br>11) 每处理完一个有序报文后，无论是拷贝到<code>receive</code>队列还是直接复制到用户内存，都会检查<code>out_of_order</code>队列，看看是否有报文可以处理。报文S3拷贝到用户内存，然后唤醒用户进程。<br>12) 唤醒用户进程。<br>13) 此时会检查已拷贝的字节数是否大于<code>SO_RCVLOWAT</code>，以及<code>backlog</code>队列是否为空。两者皆满足，准备返回。</p>
-<p>&emsp;总结一下四个队列的作用。</p>
-<ul>
-<li>receive队列是真正的接收队列，操作系统收到的TCP数据包经过检查和处理后，就会保存到这个队列中。</li>
-<li><code>backlog</code>是“备用队列”。当socket处于用户进程的上下文时（即用户正在对socket进行系统调用，如recv），操作系统收到数据包时会将数据包保存到<code>backlog</code>队列中，然后直接返回。</li>
-<li><code>prequeue</code>是“预存队列”。当socket没有正在被用户进程使用时，也就是用户进程调用了read或者recv系统调用，但是进入了睡眠状态时，操作系统直接将收到的报文保存在<code>prequeue</code>中，然后返回。</li>
-<li><code>out_of_order</code>是“乱序队列”。队列存储的是乱序的报文，操作系统收到的报文并不是TCP准备接收的下一个序号的报文，则放入<code>out_of_order</code>队列，等待后续处理。</li>
-</ul>
-<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;如果你觉得本篇文章对你有帮助，请点个赞。同时欢迎订阅本人的微信公众号。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-7d960275042f309d.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
-<li><a href="http://www.voidcn.com/article/p-gzmjmmna-dn.html" target="_blank" rel="noopener">http://www.voidcn.com/article/p-gzmjmmna-dn.html</a></li>
-<li><a href="https://blog.csdn.net/russell_tao/article/details/9950615" target="_blank" rel="noopener">https://blog.csdn.net/russell_tao/article/details/9950615</a></li>
-<li><a href="https://ylgrgyq.github.io/2017/08/01/linux-receive-packet-3/" target="_blank" rel="noopener">https://ylgrgyq.github.io/2017/08/01/linux-receive-packet-3/</a></li>
-</ul>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></div>   
+                <div class="article-more-link">
+                    <a href="/article/8f0c4482/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/8f0c4482/" class="leancloud_visitors" data-flag-title="TCP/IP的底层队列">
@@ -2419,7 +1474,7 @@ double coolDownIntervalMicros() {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/8f0c4482/" data-id="ckauf70z0004xwi660l6i82p4" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/8f0c4482/" data-id="ckaufl91g004ujv66epuwdrma" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2536,67 +1591,45 @@ double coolDownIntervalMicros() {
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>&emsp;最近花了些时间在学习TCP/IP协议上，首要原因是由于本人长期以来对TCP/IP的认识就只限于三次握手四次分手上，所以希望深入了解一下。再者，TCP/IP和Linux系统层级的很多设计都可以用于中间件系统架构上，比如说TCP 拥塞控制算法也可以用于以响应时间来限流的中件间。更深一层，像TCP/IP协议这种基础知识和原理性的技术，都是经过长时间的考验的，都是前人智慧的结晶，可以给大家很多启示和帮助。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>&emsp;最近花了些时间在学习TCP/IP协议上，首要原因是由于本人长期以来对TCP/IP的认识就只限于三次握手四次分手上，所以希望深入了解一下。再者，TCP/IP和Linux系统层级的很多设计都可以用于中间件系统架构上，比如说TCP 拥塞控制算法也可以用于以响应时间来限流的中件间。更深一层，像TCP/IP协议这种基础知识和原理性的技术，都是经过长时间的考验的，都是前人智慧的结晶，可以给大家很多启示和帮助。</p>
 <p>&emsp;本文中会出现一些缩写，因为篇幅问题，无法每个都进行解释，如果你不明白它的含义，请自己去搜索了解，做一个主动寻求知识的人。</p>
 <p>&emsp;TCP协议有两个比较重要的控制算法，一个是流量控制，另一个就是阻塞控制。</p>
 <p>&emsp;TCP协议通过滑动窗口来进行流量控制，它是控制发送方的发送速度从而使接受者来得及接收并处理。而拥塞控制是作用于网络，它是防止过多的包被发送到网络中，避免出现网络负载过大，网络拥塞的情况。</p>
 <p>&emsp;拥塞算法需要掌握其状态机和四种算法。拥塞控制状态机的状态有五种，分别是Open，Disorder，CWR，Recovery和Loss状态。四个算法为慢启动，拥塞避免，拥塞发生时算法和快速恢复。</p>
-<h3 id="Congestion-Control-State-Machine"><a href="#Congestion-Control-State-Machine" class="headerlink" title="Congestion Control State Machine"></a>Congestion Control State Machine</h3><p>&emsp;和TCP一样，拥塞控制算法也有其状态机。当发送方收到一个Ack时，Linux TCP通过状态机(state)来决定其接下来的行为，是应该降低拥塞窗口cwnd大小，或者保持cwnd不变，还是继续增加cwnd。如果处理不当，可能会导致丢包或者超时。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-706f6fec39f66d2d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="状态机示意图"></p>
-<h4 id="1-Open状态"><a href="#1-Open状态" class="headerlink" title="1 Open状态"></a>1 Open状态</h4><p>&emsp;Open状态是拥塞控制状态机的默认状态。这种状态下，当ACK到达时，发送方根据拥塞窗口cwnd(Congestion Window)是小于还是大于慢启动阈值ssthresh(slow start threshold)，来按照慢启动或者拥塞避免算法来调整拥塞窗口。</p>
-<h4 id="2-Disorder状态"><a href="#2-Disorder状态" class="headerlink" title="2 Disorder状态"></a>2 Disorder状态</h4><p>&emsp;当发送方检测到DACK(重复确认)或者SACK(选择性确认)时，状态机将转变为Disorder状态。在此状态下，发送方遵循飞行(in-flight)包守恒原则，即一个新包只有在一个老包离开网络后才发送，也就是发送方收到老包的ACK后，才会再发送一个新包。</p>
-<h4 id="3-CWR状态"><a href="#3-CWR状态" class="headerlink" title="3 CWR状态"></a>3 CWR状态</h4><p>&emsp;发送方接收到一个拥塞通知时，并不会立刻减少拥塞窗口cwnd，而是每收到两个ACK就减少一个段，直到窗口的大小减半为止。当cwnd正在减小并且网络中有没有重传包时，这个状态就叫CWR(Congestion Window Reduced，拥塞窗口减少)状态。CWR状态可以转变成Recovery或者Loss状态。</p>
-<h4 id="4-Recovery状态"><a href="#4-Recovery状态" class="headerlink" title="4 Recovery状态"></a>4 Recovery状态</h4><p>&emsp;当发送方接收到足够(推荐为三个)的DACK(重复确认)后，进入该状态。在该状态下，拥塞窗口cnwd每收到两个ACK就减少一个段(segment)，直到cwnd等于慢启动阈值ssthresh，也就是刚进入Recover状态时cwnd的一半大小。<br>&emsp;发送方保持 Recovery 状态直到所有进入 Recovery状态时正在发送的数据段都成功地被确认，然后发送方恢复成Open状态，重传超时有可能中断 Recovery 状态，进入Loss状态。</p>
-<h4 id="5-Loss状态"><a href="#5-Loss状态" class="headerlink" title="5 Loss状态"></a>5 Loss状态</h4><p>&emsp;当一个RTO(重传超时时间)到期后，发送方进入Loss状态。所有正在发送的数据标记为丢失，拥塞窗口cwnd设置为一个段(segment)，发送方再次以慢启动算法增大拥塞窗口cwnd。</p>
-<p>&emsp;Loss 和 Recovery 状态的区别是:Loss状态下，拥塞窗口在发送方设置为一个段后增大，而 Recovery 状态下，拥塞窗口只能被减小。Loss 状态不能被其他的状态中断，因此，发送方只有在所有 Loss 开始时正在传输的数据都得到成功确认后，才能退到 Open 状态。</p>
-<h3 id="四大算法"><a href="#四大算法" class="headerlink" title="四大算法"></a>四大算法</h3><p>&emsp;拥塞控制主要是四个算法：1）慢启动，2）拥塞避免，3）拥塞发生，4）快速恢复。这四个算法不是一天都搞出来的，这个四算法的发展经历了很多时间，到今天都还在优化中。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-b2182a47abfea2fb.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="示意图"></p>
-<h4 id="慢热启动算法-–-Slow-Start"><a href="#慢热启动算法-–-Slow-Start" class="headerlink" title="慢热启动算法 – Slow Start"></a>慢热启动算法 – Slow Start</h4><p>&emsp;所谓慢启动，也就是TCP连接刚建立，一点一点地提速，试探一下网络的承受能力，以免直接扰乱了网络通道的秩序。</p>
-<p>&emsp;慢启动算法：</p>
-<p>1) 连接建好的开始先初始化拥塞窗口cwnd大小为1，表明可以传一个MSS大小的数据。<br>2) 每当收到一个ACK，cwnd大小加一，呈线性上升。<br>3) 每当过了一个往返延迟时间RTT(Round-Trip Time)，cwnd大小直接翻倍，乘以2，呈指数让升。<br>4) 还有一个ssthresh（slow start threshold），是一个上限，当cwnd &gt;= ssthresh时，就会进入“拥塞避免算法”（后面会说这个算法）</p>
-<h4 id="拥塞避免算法-–-Congestion-Avoidance"><a href="#拥塞避免算法-–-Congestion-Avoidance" class="headerlink" title="拥塞避免算法 – Congestion Avoidance"></a>拥塞避免算法 – Congestion Avoidance</h4><p>&emsp;如同前边说的，当拥塞窗口大小cwnd大于等于慢启动阈值ssthresh后，就进入拥塞避免算法。算法如下：</p>
-<p>1) 收到一个ACK，则cwnd = cwnd + 1 / cwnd<br>2) 每当过了一个往返延迟时间RTT，cwnd大小加一。</p>
-<p>&emsp;过了慢启动阈值后，拥塞避免算法可以避免窗口增长过快导致窗口拥塞，而是缓慢的增加调整到网络的最佳值。</p>
-<h4 id="拥塞状态时的算法"><a href="#拥塞状态时的算法" class="headerlink" title="拥塞状态时的算法"></a>拥塞状态时的算法</h4><p>&emsp;一般来说，TCP拥塞控制默认认为网络丢包是由于网络拥塞导致的，所以一般的TCP拥塞控制算法以丢包为网络进入拥塞状态的信号。当丢包时，会有以下两种情况。对于丢包有两种判定方式，一种是超时重传RTO[Retransmission Timeout]超时，另一个是收到三个重复确认ACK。</p>
-<p>&emsp;超时重传是TCP协议保证数据可靠性的一个重要机制，其原理是在发送一个数据以后就开启一个计时器，在一定时间内如果没有得到发送数据报的ACK报文，那么就重新发送数据，直到发送成功为止。</p>
-<p>&emsp;但是如果发送端接收到3个以上的重复ACK，TCP就意识到数据发生丢失，需要重传。这个机制不需要等到重传定时器超时，所以叫<br>做快速重传，而快速重传后没有使用慢启动算法，而是拥塞避免算法，所以这又叫做快速恢复算法。</p>
-<p>&emsp;超时重传RTO[Retransmission Timeout]超时，TCP会重传数据包。TCP认为这种情况比较糟糕，反应也比较强烈：</p>
-<ul>
-<li>由于发生丢包，将慢启动阈值ssthresh设置为当前cwnd的一半，即ssthresh = cwnd / 2.</li>
-<li>cwnd重置为1</li>
-<li>进入慢启动过程</li>
-</ul>
-<p>&emsp;最为早期的TCP Tahoe算法就只使用上述处理办法，但是由于一丢包就一切重来，导致cwnd又重置为1，十分不利于网络数据的稳定传递。</p>
-<p>&emsp;所以，TCP Reno算法进行了优化。当收到三个重复确认ACK时，TCP开启快速重传Fast Retransmit算法，而不用等到RTO超时再进行重传：</p>
-<ul>
-<li>cwnd大小缩小为当前的一半</li>
-<li>ssthresh设置为缩小后的cwnd大小</li>
-<li>然后进入快速恢复算法Fast Recovery。</li>
-</ul>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-ad5b5b8805eda528.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="cwnd曲线示意图"></p>
-<h4 id="快速恢复算法-–-Fast-Recovery"><a href="#快速恢复算法-–-Fast-Recovery" class="headerlink" title="快速恢复算法 – Fast Recovery"></a>快速恢复算法 – Fast Recovery</h4><p>&emsp;TCP Tahoe是早期的算法，所以没有快速恢复算法，而Reno算法有。在进入快速恢复之前，cwnd和ssthresh已经被更改为原有cwnd的一般。快速恢复算法的逻辑如下：</p>
-<ul>
-<li>cwnd = cwnd + 3 <em> MSS，加3 </em> MSS的原因是因为收到3个重复的ACK。</li>
-<li>重传DACKs指定的数据包。</li>
-<li>如果再收到DACKs，那么cwnd大小增加一。</li>
-<li>如果收到新的ACK，表明重传的包成功了，那么退出快速恢复算法。将cwnd设置为ssthresh，然后进入拥塞避免算法。</li>
-</ul>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-5e37364c3cab4943.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="快速重传示意图"></p>
-<p>&emsp;如图所示，第五个包发生了丢失，所以导致接收方接收到三次重复ACK，也就是ACK5。所以将ssthresh设置当当时cwnd的一半，也就是6/2 = 3，cwnd设置为3 + 3 = 6。然后重传第五个包。当收到新的ACK时，也就是ACK11，则退出快速恢复阶段，将cwnd重新设置为当前的ssthresh，也就是3，然后进入拥塞避免算法阶段。</p>
-<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;本文为大家大致描述了TCP拥塞控制的一些机制，但是这些拥塞控制还是有很多缺陷和待优化的地方，业界也在不断推出新的拥塞控制算法，比如说谷歌的BBR。这些我们后续也会继续探讨，请大家继续关注。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-7d960275042f309d.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<h3 id="引用"><a href="#引用" class="headerlink" title="引用"></a>引用</h3><ul>
-<li><p><a href="https://pdfs.semanticscholar.org/0e9c/968d09ab2e53e24c4dca5b2d67c7f7140f8e.pdf" target="_blank" rel="noopener">Congestion Control in Linux TCP</a></p>
-</li>
-<li><p><a href="https://my.oschina.net/piorcn/blog/806997" target="_blank" rel="noopener">TCP BBR算法与Reno/CUBIC的对比</a></p>
-</li>
-</ul>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></div>   
+                <div class="article-more-link">
+                    <a href="/article/3bdd3fd8/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/3bdd3fd8/" class="leancloud_visitors" data-flag-title="TCP拥塞控制算法简介">
@@ -2609,7 +1642,7 @@ double coolDownIntervalMicros() {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/3bdd3fd8/" data-id="ckauf70z30052wi66yx0v00rz" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/3bdd3fd8/" data-id="ckaufl91j0054jv66vxqbck4j" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2726,309 +1759,45 @@ double coolDownIntervalMicros() {
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>&emsp;在上边一篇<a href="https://mp.weixin.qq.com/s?__biz=MzU2MDYwMDMzNQ==&amp;mid=2247483735&amp;idx=1&amp;sn=2b526949cc4e69c75d1a96268920da68&amp;chksm=fc04c537cb734c21e84076865259243b4165fa00911920a30fe09d3a75b0cfc002fe66e43d05&amp;token=2009122217&amp;lang=zh_CN#rd" target="_blank" rel="noopener">文章</a>中我们介绍了Spring AOP的基本概念，今天我们就来学习一下与AOP实现相关的修饰者模式和Java Proxy相关的原理，为之后源码分析打下基础。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>&emsp;在上边一篇<a href="https://mp.weixin.qq.com/s?__biz=MzU2MDYwMDMzNQ==&amp;mid=2247483735&amp;idx=1&amp;sn=2b526949cc4e69c75d1a96268920da68&amp;chksm=fc04c537cb734c21e84076865259243b4165fa00911920a30fe09d3a75b0cfc002fe66e43d05&amp;token=2009122217&amp;lang=zh_CN#rd" target="_blank" rel="noopener">文章</a>中我们介绍了Spring AOP的基本概念，今天我们就来学习一下与AOP实现相关的修饰者模式和Java Proxy相关的原理，为之后源码分析打下基础。</p>
 <h3 id="修饰者模式"><a href="#修饰者模式" class="headerlink" title="修饰者模式"></a>修饰者模式</h3><p>&emsp;Java设计模式中的修饰者模式能动态地给目标对象增加额外的职责(Responsibility)。它使用组合(object composition)，即将目标对象作为修饰者对象(代理)的成员变量，由修饰者对象决定调用目标对象的时机和调用前后所要增强的行为。</p>
 <p>&emsp;装饰模式包含如下组成部分：</p>
 <ul>
 <li>Component: 抽象构件，也就是目标对象所实现的接口，有operation函数</li>
-<li>ConcreteComponent: 具体构件，也就是目标对象的类</li>
-<li>Decorator: 抽象装饰类，也实现了抽象构件接口，也就是目标类和装饰类都实现了相同的接口</li>
-<li>ConcreteDecorator: 具体装饰类，其中addBeavior函数就是增强的行为，装饰类可以自己决定addBeavior函数和目标对象函数operation函数的调用时机。</li>
-</ul>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-8e64b6435042b3b2.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="修饰者模式的类图"></p>
-<p>&emsp;修饰者模式调用的时序图如下图所示。程序首先创建目标对象，然后创建修饰者对象，并将目标对象传入作为其成员变量。当程序调用修饰者对象的operation函数时，修饰者对象会先调用目标对象的operation函数，然后再调用自己的addBehavior函数。这就是类似于AOP的后置增强器，在目标对象的行为之后添加新的行为。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-e250659fe563087c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="修饰者模式的时序图"></p>
-<p>&emsp;Spring AOP的实现原理和修饰者模式类似。在上一篇文章中说到AOP的动态代理有两种实现方式，分别是JDK Proxy和cglib。</p>
-<p>&emsp;如下图所示，JDK Proxy的类结构和上文中修饰者的类图结构类似，都是代理对象和目标对象都实现相同的接口，代理对象持有目标对象和切面对象，并且决定目标函数和切面增强函数的调用时机。<br>&emsp;而cglib的实现略有不同，它没有实现实现相同接口，而是代理对象继承目标对象类。<br><img src="https://upload-images.jianshu.io/upload_images/623378-e7fb928a23ea31a0.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="两种动态代理的对标"></p>
-<p>&emsp;本文后续就讲解一下JDK Proxy的相关源码分析。</p>
-<h3 id="JDK-Proxy"><a href="#JDK-Proxy" class="headerlink" title="JDK Proxy"></a>JDK Proxy</h3><p>&emsp;JDK提供了Proxy类来实现动态代理的，可通过它的newProxyInstance函数来获得代理对象。JDK还提供了InvocationHandler类，代理对象的函数被调用时，会调用它的invoke函数，程序员可以在其中实现所需的逻辑。</p>
-<p>&emsp;JDK Proxy的基本语法如下所示。先构造一个<code>InvocationHandler</code>的实现类，然后调用<code>Proxy</code>的<code>newProxyInstance</code>函数生成代理对象，传入类加载器，目标对象的接口和自定义的<code>InvocationHandler</code>实例。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public class CustomInvocationHandler implements InvocationHandler {
-    private Object target;
-
-    public CustomInvocationHandler(Object target) {
-        this.target = target;
-    }
-
-    @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        System.out.println(&quot;Before invocation&quot;);
-        Object retVal = method.invoke(target, args);
-        System.out.println(&quot;After invocation&quot;);
-        return retVal;
-    }
-}
-
-CustomInvocationHandler customInvocationHandler = new CustomInvocationHandler(
-        helloWord);
-&#x2F;&#x2F;通过Proxy.newProxyInstance生成代理对象
-ProxyTest proxy = (ProxyTest) Proxy.newProxyInstance(
-        ProxyTest.class.getClassLoader(),
-       proxyObj.getClass().getInterfaces(), customInvocationHandler);
-</code></pre>
-<h3 id="生成代理对象"><a href="#生成代理对象" class="headerlink" title="生成代理对象"></a>生成代理对象</h3><p>&emsp;我们首先来看一下<code>Proxy</code>的<code>newProxyInstance</code>函数。<code>newProxyInstance</code>函数的逻辑大致如下：</p>
-<ul>
-<li>首先根据传入的目标对象接口动态生成代理类</li>
-<li>然后获取代理类的构造函数实例</li>
-<li>最后将<code>InvocationHandler</code>作为参数通过反射调用构造函数实例，生成代理类对象。<br>&emsp;具体源码如下所示。
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public static Object newProxyInstance(ClassLoader loader,
-                                        Class&lt;?&gt;[] interfaces,
-                                        InvocationHandler h)
-    throws IllegalArgumentException
-{
-
-    final Class&lt;?&gt;[] intfs = interfaces.clone();
-    final SecurityManager sm = System.getSecurityManager();
-    if (sm != null) {
-        checkProxyAccess(Reflection.getCallerClass(), loader, intfs);
-    }
-    &#x2F;&#x2F; 1 动态生成代理对象的类
-    Class&lt;?&gt; cl = getProxyClass0(loader, intfs);
-
-    &#x2F;&#x2F; ... 代码省略，下边代码其实是在try catch中的
-    if (sm != null) {
-        checkNewProxyPermission(Reflection.getCallerClass(), cl);
-    }
-    &#x2F;&#x2F; 2 获取代理类的构造函数
-    final Constructor&lt;?&gt; cons = cl.getConstructor(constructorParams);
-    final InvocationHandler ih = h;
-    if (!Modifier.isPublic(cl.getModifiers())) {
-        AccessController.doPrivileged(new PrivilegedAction&lt;Void&gt;() {
-            public Void run() {
-                cons.setAccessible(true);
-                return null;
-            }
-        });
-    }
-    &#x2F;&#x2F; 3调用构造函数，传入InvocationHandler对象
-    return cons.newInstance(new Object[]{h});
-}
-</code></pre>
-</li>
-</ul>
-<p>&emsp;<code>getProxyClass0</code>函数的源码如下所示，通过代理类缓存获取代理类信息，如果不存在则会生成代理类。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 生成代理类
-private static Class&lt;?&gt; getProxyClass0(ClassLoader loader,
-                                        Class&lt;?&gt;... interfaces) {
-    if (interfaces.length &gt; 65535) {
-        throw new IllegalArgumentException(&quot;interface limit exceeded&quot;);
-    }
-
-    &#x2F;&#x2F; 如果已经有Proxy类的缓存则直接返回，否则要进行创建
-    return proxyClassCache.get(loader, interfaces);
-}
-</code></pre>
-<h3 id="生成代理类"><a href="#生成代理类" class="headerlink" title="生成代理类"></a>生成代理类</h3><p>&emsp;JDK Proxy通过<code>ProxyClassFactory</code>生成代理类。其<code>apply</code>函数大致逻辑如下：</p>
-<ul>
-<li>校验接口是否符合规范</li>
-<li>生成代理类的名称和包名</li>
-<li>生成代理类字节码</li>
-<li>根据字节码生成代理类Class</li>
-</ul>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 生成代理类的工厂类
-private static final class ProxyClassFactory
-    implements BiFunction&lt;ClassLoader, Class&lt;?&gt;[], Class&lt;?&gt;&gt;
-{
-    &#x2F;&#x2F; 所有代理类名的前缀
-    private static final String proxyClassNamePrefix = &quot;$Proxy&quot;;
-
-    &#x2F;&#x2F; 生成唯一类名的原子Long对象
-    private static final AtomicLong nextUniqueNumber = new AtomicLong();
-
-    @Override
-    public Class&lt;?&gt; apply(ClassLoader loader, Class&lt;?&gt;[] interfaces) {
-
-        Map&lt;Class&lt;?&gt;, Boolean&gt; interfaceSet = new IdentityHashMap&lt;&gt;(interfaces.length);
-        for (Class&lt;?&gt; intf : interfaces) {
-            &#x2F;&#x2F; 通过loader找到接口对应的类信息。
-            Class&lt;?&gt; interfaceClass = null;
-            try {
-                interfaceClass = Class.forName(intf.getName(), false, loader);
-            } catch (ClassNotFoundException e) {
-            }
-            if (interfaceClass != intf) {
-                throw new IllegalArgumentException(
-                    intf + &quot; is not visible from class loader&quot;);
-            }
-            &#x2F;&#x2F; 判断找出来的类确实是一个接口
-            if (!interfaceClass.isInterface()) {
-                throw new IllegalArgumentException(
-                    interfaceClass.getName() + &quot; is not an interface&quot;);
-            }
-            &#x2F;&#x2F; 判断接口是否重复
-            if (interfaceSet.put(interfaceClass, Boolean.TRUE) != null) {
-                throw new IllegalArgumentException(
-                    &quot;repeated interface: &quot; + interfaceClass.getName());
-            }
-        }
-        &#x2F;&#x2F; 代理类的包路径
-        String proxyPkg = null;
-        int accessFlags = Modifier.PUBLIC | Modifier.FINAL;
-
-        &#x2F;&#x2F; 记录非公开的代理接口，以便于生成的代理类和原来的类在同一个路径下。 
-        for (Class&lt;?&gt; intf : interfaces) {
-            int flags = intf.getModifiers();
-            if (!Modifier.isPublic(flags)) {
-                accessFlags = Modifier.FINAL;
-                String name = intf.getName();
-                int n = name.lastIndexOf(&#39;.&#39;);
-                String pkg = ((n == -1) ? &quot;&quot; : name.substring(0, n + 1));
-                if (proxyPkg == null) {
-                    proxyPkg = pkg;
-                } else if (!pkg.equals(proxyPkg)) {
-                    throw new IllegalArgumentException(
-                        &quot;non-public interfaces from different packages&quot;);
-                }
-            }
-        }
-        &#x2F;&#x2F; 如果没有非公开的Proxy接口，使用com.sun.proxy报名
-        if (proxyPkg == null) {
-            proxyPkg = ReflectUtil.PROXY_PACKAGE + &quot;.&quot;;
-        }
-
-        long num = nextUniqueNumber.getAndIncrement();
-        &#x2F;&#x2F; 默认情况下，代理类的完全限定名为：com.sun.proxy.$Proxy0，$Proxy1……依次递增  
-        String proxyName = proxyPkg + proxyClassNamePrefix + num;
-
-        &#x2F;&#x2F; 生成代理类字节码
-        byte[] proxyClassFile = ProxyGenerator.generateProxyClass(
-            proxyName, interfaces, accessFlags);
-        try {
-            &#x2F;&#x2F; 根据字节码返回相应的Class实例
-            return defineClass0(loader, proxyName,
-                                proxyClassFile, 0, proxyClassFile.length);
-        } catch (ClassFormatError e) {
-            throw new IllegalArgumentException(e.toString());
-        }
-    }
-}
-</code></pre>
-<p>&emsp;其中关于字节码生成的部分逻辑我们就暂时不深入介绍了，感兴趣的同学可以自行研究。</p>
-<h3 id="Proxy反编译"><a href="#Proxy反编译" class="headerlink" title="$Proxy反编译"></a>$Proxy反编译</h3><p>&emsp;我们来看一下生成的代理类的反编译代码。代理类实现了<code>Object</code>的基础函数，比如<code>toString</code>、<code>hasCode</code>和<code>equals</code>，也实现了目标接口中定义的函数，比如说<code>ProxyTest</code>接口的<code>test</code>函数。</p>
-<p>&emsp; <code>$Proxy</code>中函数的实现都是直接调用了<code>InvocationHandler</code>的<code>invoke</code>函数。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public final class $Proxy0 extends Proxy
-  implements ProxyTest 
-&#x2F;&#x2F; 会实现目标接口，但是由于集成了Proxy，所以无法再集成其他类
-{
-  private static Method m1;
-  private static Method m0;
-  private static Method m3;
-  private static Method m2;
-  &#x2F;&#x2F; 构造函数要传入一个InvocationHandler对象
-  public $Proxy0(InvocationHandler paramInvocationHandler)
-    throws 
-  {
-    super(paramInvocationHandler);
-  }
-  &#x2F;&#x2F; equal函数
-  public final boolean equals(Object paramObject)
-    throws 
-  {
-      try
-    {
-      return ((Boolean)this.h.invoke(this, m1, new Object[] { paramObject })).booleanValue();
-    }
-    catch (RuntimeException localRuntimeException)
-    {
-      throw localRuntimeException;
-    }
-    catch (Throwable localThrowable)
-    {
-    }
-    throw new UndeclaredThrowableException(localThrowable);
-  }
-
-  public final int hashCode()
-    throws 
-  {
-    try
-    {
-      return ((Integer)this.h.invoke(this, m0, null)).intValue();
-    }
-    catch (RuntimeException localRuntimeException)
-    {
-      throw localRuntimeException;
-    }
-    catch (Throwable localThrowable)
-    {
-    }
-    throw new UndeclaredThrowableException(localThrowable);
-  }
-  &#x2F;&#x2F; test函数，也就是ProxyTest接口中定义的函数
-  public final void test(String paramString)
-    throws 
-  {
-    try
-    {
-      &#x2F;&#x2F; 调用InvocationHandler的invoke函数
-      this.h.invoke(this, m3, new Object[] { paramString });
-      return;
-    }
-    catch (RuntimeException localRuntimeException)
-    {
-      throw localRuntimeException;
-    }
-    catch (Throwable localThrowable)
-    {
-    }
-    throw new UndeclaredThrowableException(localThrowable);
-  }
-
-  public final String toString()
-    throws 
-  {
-    try
-    {
-      return (String)this.h.invoke(this, m2, null);
-    }
-    catch (RuntimeException localRuntimeException)
-    {
-      throw localRuntimeException;
-    }
-    catch (Throwable localThrowable)
-    {
-    }
-    throw new UndeclaredThrowableException(localThrowable);
-  }
-  &#x2F;&#x2F; 获取各个函数的Method对象
-  static
-  {
-    try
-    {
-      m1 = Class.forName(&quot;java.lang.Object&quot;).getMethod(&quot;equals&quot;, new Class[] { Class.forName(&quot;java.lang.Object&quot;) });
-      m0 = Class.forName(&quot;java.lang.Object&quot;).getMethod(&quot;hashCode&quot;, new Class[0]);
-      m3 = Class.forName(&quot;com.proxy.test2.HelloTest&quot;).getMethod(&quot;say&quot;, new Class[] { Class.forName(&quot;java.lang.String&quot;) });
-      m2 = Class.forName(&quot;java.lang.Object&quot;).getMethod(&quot;toString&quot;, new Class[0]);
-      return;
-    }
-    catch (NoSuchMethodException localNoSuchMethodException)
-    {
-      throw new NoSuchMethodError(localNoSuchMethodException.getMessage());
-    }
-    catch (ClassNotFoundException localClassNotFoundException)
-    {
-    }
-    throw new NoClassDefFoundError(localClassNotFoundException.getMessage());
-  }
-}
-</code></pre>
-<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>&emsp;下一篇文章就是AOP的源码分析了，希望大家继续关注。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-7d960275042f309d.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></ul></div>   
+                <div class="article-more-link">
+                    <a href="/article/90b14a95/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/90b14a95/" class="leancloud_visitors" data-flag-title="Spring AOP(二) 修饰者模式和JDK Proxy">
@@ -3041,7 +1810,7 @@ private static final class ProxyClassFactory
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/90b14a95/" data-id="ckauf70ys004ewi66u22i4y5d" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/90b14a95/" data-id="ckaufl91a004hjv66w2g8vm02" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding

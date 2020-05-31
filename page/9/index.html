@@ -252,69 +252,45 @@ var _hmt = _hmt || [];
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>&emsp;最近一段时间,工作和学习方面都比较忙,所以,博客方面有一段时间没有投入时间啦,今天学习了一下android文件存储方面的知识,主要是<code>Internal Storage</code>和<code>External Storage</code>的相关特性.主要知识来自android的官方文档和其他人的博客.</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>&emsp;最近一段时间,工作和学习方面都比较忙,所以,博客方面有一段时间没有投入时间啦,今天学习了一下android文件存储方面的知识,主要是<code>Internal Storage</code>和<code>External Storage</code>的相关特性.主要知识来自android的官方文档和其他人的博客.</p>
 <h4 id="Internal-Storage"><a href="#Internal-Storage" class="headerlink" title="Internal Storage"></a>Internal Storage</h4><p>&emsp;一般来说,你可以直接存储文件在机器的internal storage中,存储在这个位置的文件是私有的,其他应用无法获得.但是当用户卸载你的应用时,文件就被删除啦.</p>
 <blockquote>
 <p>通过<code>openFileOutput()</code>传入文件的名字和操作模式,就可以获得<code>FileOutputStream</code>,然后就可以<code>write()</code>,然后<code>close</code>啦.<br>
 <!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">String FILENAME = &quot;hello_file&quot;;
-String string = &quot;hello world!&quot;;
-
-FileOutputStream fos = openFileOutput(FILENAME, Context.MODE_PRIVATE);
-fos.write(string.getBytes());
-fos.close();
-</code></pre></p>
-<p><code>MODE_PRIVATE</code>模式会创建或者替换同名文件,并让文件变为私有的,其他的一些模式还有<code>MODE_APPEND</code>(追加模式),<code>MODE_WORLD_READABLE</code>(全局可读)和<code>MODE_WORLD_WRITEABLE</code>(全局可写).<br>通过<code>OpenFileInput()</code>函数可以进行文件的读取.</p>
-</blockquote>
-<p>&emsp;Android的内部存储路径为/data/data/packagename/,加入你的应用名为com.example.test,那么这个路径就为/data/data/com.example.test,这个路径下一般会有files,cache和你自己生成的文件夹.那么如下的操作返回的路径如下</p>
-<ul>
-<li>Context.getFileDir(),获得/data/data/com.example.test/files这个文件夹的File对象</li>
-<li>Context.openFileInput()和Context.openFileOutput,读取的是files文件夹下的文件</li>
-<li>Context.fileList(),返回的是files下的所有文件名</li>
-<li>Context.deleteFile(),删除files下指定名称的文件</li>
-<li>Context.getCacheDir(),该方法返回的是/data/data/com.example.test/cache的File对象.当Android的内部存储容量过低时,android会自动清除缓存文件.</li>
-<li>getDir(String name,int mode),返回的是/data/data/com.example.test/下指定名称的文件夹的File对象</li>
-</ul>
-<h4 id="External-Storage"><a href="#External-Storage" class="headerlink" title="External Storage"></a>External Storage</h4><p>&emsp;所有android设备都会提供外部存储,你可以用来保存文件,但是存储在外部存储的文件是完全公开的,并且可以被用户修改,外部存储可能无法获得,并且存储的文件的安全性很低,会被修改或者删除.<br>&emsp;获得    外部存储的访问权必须需要申请<code>READ_EXTERNAL_STORAGE</code>或者<code>WRITE_EXTERNAL_STORAGE</code>权限,如果申请了写权限,那么相应的读权限也获得啦.如果是Android 6.0,那么权限的申请可能就更加麻烦 :<a href="http://jijiaxin89.com/2015/08/30/Android-s-Runtime-Permission/" target="_blank" rel="noopener">6.0新的权限管理系统</a><br>&emsp;在使用外部存储设备之前,必须先检查外部存储设备的挂载情况,然后再进行文件操作<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">&#x2F;* Checks if external storage is available for read and write *&#x2F;
-public boolean isExternalStorageWritable() {
-    String state = Environment.getExternalStorageState();
-    if (Environment.MEDIA_MOUNTED.equals(state)) {
-        return true;
-    }
-    return false;
-}
-
-&#x2F;* Checks if external storage is available to at least read *&#x2F;
-public boolean isExternalStorageReadable() {
-    String state = Environment.getExternalStorageState();
-    if (Environment.MEDIA_MOUNTED.equals(state) ||
-        Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
-        return true;
-    }
-    return false;
-}
-</code></pre></p>
-<p>&emsp;如果你想存储一些可以和其他应用共享的文件时,一般存储在共享的文件夹中,比如<code>Music/</code>,’Pictures/‘,’Ringtones/‘通过<code>Environment.getExternalStoragePublicDirectory</code>,传递给其文件夹的类型,比如<code>DIRECTORY_MUSIC</code>,<code>DIRECTORY_PICTURES</code>,就可以获得响应文件夹的File对象.<br>&emsp;当你不想其他应用读取你的文件时,你可能需要使用私有文件夹.通过<code>getExternalFilesDir()</code>,并传递给其子文件夹的type,就可以打开响应的文件夹,在4.4之后,读取私有文件夹下的文件,是不需要外部存储设备权限的.<br>&emsp;外部存储设备的路径一般都以/mnt/sdcard开始,如下的一些函数获得路径如下:</p>
-<ul>
-<li>getExternalCacheDir() 获得/mnt/sdcard/Android/data/com.example.test/cache 文件夹的File对象</li>
-<li>getExternalFilesDir(type)获得/mnt/sdcard/Android/data/com.example.test/files文件夹下响应子文件夹的File对象</li>
-<li>Environment.getExternalStorageDiretory() 获得的是/mnt/sdcard文件夹的File对象</li>
-<li>Environment.getDataDirectory() 获得是的/data文件夹的File对象,需要注意的是,/data/data/Android/就是内部存储文件夹啦.</li>
-<li>Environment.getDownloadCacheDirectory() 获得的是/cache文件夹的File对象.</li>
-</ul>
-<p>参考文章:</p>
-<ul>
-<li><a href="http://blog.csdn.net/ljh347917444/article/details/16984199" target="_blank" rel="noopener">android 系统文件路径.sdcard路径.外部路径</a> </li>
-<li><a href="http://developer.android.com/intl/zh-cn/guide/topics/data/data-storage.html#filesInternal" target="_blank" rel="noopener">Android Doc</a></li>
-</ul>
-
-        
-        </div>
+</p><p>
+                    
+                
+            
+            
+                </p></blockquote></div>   
+                <div class="article-more-link">
+                    <a href="/article/b17c24a6/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/b17c24a6/" class="leancloud_visitors" data-flag-title="Android文件存储位置简述">
@@ -327,7 +303,7 @@ public boolean isExternalStorageReadable() {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/b17c24a6/" data-id="ckauf70xj0013wi66qrk7tdt4" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/b17c24a6/" data-id="ckaufl8zy0016jv66srdq1pgo" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -444,182 +420,45 @@ public boolean isExternalStorageReadable() {
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>&emps;这是OkHttp系列博文的第一篇，之前写过一篇草稿，介绍OkHttp的整体框架，但是感觉涉及的知识太多，无法在一篇中讲述清楚，所以，之后的博文都只关注某一方面的知识，争取文章短小精悍。<br>&emsp;今天主要研究一下OkHttp发送<code>Http</code>请求过程中的重定向和出错重试，主要涉及的源码文件有<code>Call.java``HttpEngine.java</code>。<br>&emsp;我们今天研究<code>Call</code>的<code>Response getResponse(Request request, boolean forWebSocket) throws IOException</code>函数，它是你调用<code>Call.execute()</code>返回<code>Response</code>所调用的核心函数，主要功能是新建一个<code>HttpEngine</code>发送<code>Request</code>然后处理出错重试和重定向问题。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>&emps;这是OkHttp系列博文的第一篇，之前写过一篇草稿，介绍OkHttp的整体框架，但是感觉涉及的知识太多，无法在一篇中讲述清楚，所以，之后的博文都只关注某一方面的知识，争取文章短小精悍。<br>&emsp;今天主要研究一下OkHttp发送<code>Http</code>请求过程中的重定向和出错重试，主要涉及的源码文件有<code>Call.java``HttpEngine.java</code>。<br>&emsp;我们今天研究<code>Call</code>的<code>Response getResponse(Request request, boolean forWebSocket) throws IOException</code>函数，它是你调用<code>Call.execute()</code>返回<code>Response</code>所调用的核心函数，主要功能是新建一个<code>HttpEngine</code>发送<code>Request</code>然后处理出错重试和重定向问题。</p>
 <h4 id="设置Headers"><a href="#设置Headers" class="headerlink" title="设置Headers"></a>设置Headers</h4>
 <!-- Has Prism -->
 <pre class="line-numbers" style=""><code class="language-java">  &#x2F;&#x2F; Copy body metadata to the appropriate request headers.
     RequestBody body = request.body();
-    if (body != null) {
-      Request.Builder requestBuilder = request.newBuilder();&#x2F;&#x2F;拷贝了内部数据
-
-      MediaType contentType = body.contentType();
-      if (contentType != null) {
-        requestBuilder.header(&quot;Content-Type&quot;, contentType.toString());
-      }
-
-      long contentLength = body.contentLength();
-      if (contentLength != -1) {
-        requestBuilder.header(&quot;Content-Length&quot;, Long.toString(contentLength));
-        requestBuilder.removeHeader(&quot;Transfer-Encoding&quot;);
-      } else {
-        requestBuilder.header(&quot;Transfer-Encoding&quot;, &quot;chunked&quot;);
-        requestBuilder.removeHeader(&quot;Content-Length&quot;);
-      }
-
-      request = requestBuilder.build();
-    }
-</code></pre>
-<p>&emsp;这是函数的第一部分，主要是将<code>RequestBody</code>的一些元数据拷贝到<code>Header</code>的首部中,主要是<code>Content-Type</code>和<code>Transfer-Encoding</code>。<code>Content-Type</code>相信大家都了解，标示<code>RequestBody</code>的<code>Mime-Type</code>，格式为<code>主类型/子类型</code>，比如<code>text/xml</code>。而<code>Transfer-Encoding</code>是表示一种网络传输的方式，想具体了解的同学可以看一下这个链接<a href="https://imququ.com/post/transfer-encoding-header-in-http.html" target="_blank" rel="noopener">点我</a>.</p>
-<h4 id="出错重试"><a href="#出错重试" class="headerlink" title="出错重试"></a>出错重试</h4>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">&#x2F;&#x2F; Create the initial HTTP engine. Retries and redirects need new engine for each attempt.
-    &#x2F;&#x2F; 建立一个初始的http 引擎，每次重试和重定向都需要新的引擎
-    engine = new HttpEngine(client, request, false, false, forWebSocket, null, null, null, null);
-
-    int followUpCount = 0; &#x2F;&#x2F;连续发送请求
-    while (true) {
-      if (canceled) { &#x2F;&#x2F;如果被取消啦
-        engine.releaseConnection();
-        throw new IOException(&quot;Canceled&quot;);
-      }
-
-      try {
-        engine.sendRequest();
-        engine.readResponse();
-      } catch (RequestException e) {
-        &#x2F;&#x2F; The attempt to interpret the request failed. Give up.
-        throw e.getCause();
-      } catch (RouteException e) {
-        &#x2F;&#x2F; The attempt to connect via a route failed. The request will not have been sent.
-        HttpEngine retryEngine = engine.recover(e); &#x2F;&#x2F;重试引擎
-        if (retryEngine != null) {
-          engine = retryEngine;
-          continue;
-        }
-        &#x2F;&#x2F; Give up; recovery is not possible.
-        throw e.getLastConnectException();
-      } catch (IOException e) {
-        &#x2F;&#x2F; An attempt to communicate with a server failed. The request may have been sent.
-        HttpEngine retryEngine = engine.recover(e, null);
-        if (retryEngine != null) {
-          engine = retryEngine;
-          continue;
-        }
-
-        &#x2F;&#x2F; Give up; recovery is not possible.
-        throw e;
-      }
-      .......
-</code></pre>
-<p>&emsp;在这段代码中，<code>OkHttp</code>建立一个<code>HttpEngine</code>对象来负责<code>Http</code>层级的请求的发送和回复的接收，<code>HttpEngine</code>会在之后的博文中详细讲解。然后进入了一个<code>while</code>循环,这个循环其实主要是处理重定向问题的。我们在这一节中主要关注<code>catch</code>中的逻辑，这是用于处理出错重试的逻辑。由于外层有一个<code>while</code>循环，所以在<code>catch</code>中尝试获得<code>retryEngine</code>，如果有就<code>continue</code>,没有就抛出异常。</p>
-<h4 id="重定向处理"><a href="#重定向处理" class="headerlink" title="重定向处理"></a>重定向处理</h4>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">Response response = engine.getResponse();
-      &#x2F;&#x2F; followUp这个是优化http connection的使用率的吗？
-      Request followUp = engine.followUpRequest();
-
-      if (followUp == null) {
-        if (!forWebSocket) { &#x2F;&#x2F;如果没有followup并且不是为了websocket
-          engine.releaseConnection();&#x2F;&#x2F;关闭连接
-        }
-        return response;
-      }
-
-      if (++followUpCount &gt; MAX_FOLLOW_UPS) {
-        throw new ProtocolException(&quot;Too many follow-up requests: &quot; + followUpCount);
-      }
-
-      if (!engine.sameConnection(followUp.httpUrl())) { &#x2F;&#x2F;如果followup的httpUrl不是同一个连接,也就是
-        &#x2F;&#x2F;schema，host or port 有一个不同
-        engine.releaseConnection();
-      }
-      &#x2F;&#x2F;复用了上一次的connection啊！！！！
-      Connection connection = engine.close();
-      request = followUp;
-      &#x2F;&#x2F;继续处理，有可能是重定向啦
-      engine = new HttpEngine(client, request, false, false, forWebSocket, connection, null, null,
-          response);
-</code></pre>
-<p>&emsp;这里我们可以看到<code>Http</code>重定向的机制。<code>Request request = engine.followUpRequest()</code>来获得重定向需要发送的<code>Request</code>，如果没有或者重定向次数大于<code>MAX_FOLLOW_UPS</code>就不会重新发送重定向请求。然后判断重定向请求和原请求的HttpUrl是否相同，否则也不会发送重定向请求。然后<code>Connection connection = engine.close()</code>会释放资源并且复用上次的连接，然后新建一个<code>HttpEngine</code>然后继续<code>While</code>循环发送请求。</p>
-<h4 id="重定向状态码解析"><a href="#重定向状态码解析" class="headerlink" title="重定向状态码解析"></a>重定向状态码解析</h4>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">  public Request followUpRequest() throws IOException {
-    if (userResponse == null) throw new IllegalStateException();
-    Proxy selectedProxy = getRoute() != null
-        ? getRoute().getProxy()
-        : client.getProxy();
-    int responseCode = userResponse.code();
-
-    switch (responseCode) {
-      case HTTP_PROXY_AUTH: &#x2F;&#x2F;407 Proxy authentication required 要先经过代理服务器认证
-        if (selectedProxy.type() != Proxy.Type.HTTP) {
-          throw new ProtocolException(&quot;Received HTTP_PROXY_AUTH (407) code while not using proxy&quot;);
-        }
-        &#x2F;&#x2F; fall-through
-      case HTTP_UNAUTHORIZED: &#x2F;&#x2F;401 没有身份认证
-        return OkHeaders.processAuthHeader(client.getAuthenticator(), userResponse, selectedProxy);
-
-      case HTTP_PERM_REDIRECT:&#x2F;&#x2F; 308
-      case HTTP_TEMP_REDIRECT: &#x2F;&#x2F;307
-        &#x2F;&#x2F; &quot;If the 307 or 308 status code is received in response to a request other than GET
-        &#x2F;&#x2F; or HEAD, the user agent MUST NOT automatically redirect the request&quot;
-        if (!userRequest.method().equals(&quot;GET&quot;) &amp;&amp; !userRequest.method().equals(&quot;HEAD&quot;)) {
-            return null;
-        } &#x2F;&#x2F;如果不是get和head 那么就不能自动转发
-        &#x2F;&#x2F; fall-through
-      case HTTP_MULT_CHOICE: &#x2F;&#x2F;300
-      case HTTP_MOVED_PERM:&#x2F;&#x2F; 301
-      case HTTP_MOVED_TEMP:&#x2F;&#x2F;302
-      case HTTP_SEE_OTHER: &#x2F;&#x2F;303
-        &#x2F;&#x2F; Does the client allow redirects?
-        if (!client.getFollowRedirects()) return null;&#x2F;&#x2F;如果不允许重定向
-
-        String location = userResponse.header(&quot;Location&quot;);&#x2F;&#x2F;从response的头部获得的location
-        if (location == null) return null;
-        HttpUrl url = userRequest.httpUrl().resolve(location);&#x2F;&#x2F;使用request的解析location
-
-        &#x2F;&#x2F; Don&#39;t follow redirects to unsupported protocols.
-        if (url == null) return null;
-
-        &#x2F;&#x2F; If configured, don&#39;t follow redirects between SSL and non-SSL.
-        boolean sameScheme = url.scheme().equals(userRequest.httpUrl().scheme());
-        if (!sameScheme &amp;&amp; !client.getFollowSslRedirects()) return null;
-
-        &#x2F;&#x2F; Redirects don&#39;t include a request body.
-        Request.Builder requestBuilder = userRequest.newBuilder();
-        if (HttpMethod.permitsRequestBody(userRequest.method())) {
-          requestBuilder.method(&quot;GET&quot;, null);
-          requestBuilder.removeHeader(&quot;Transfer-Encoding&quot;);
-          requestBuilder.removeHeader(&quot;Content-Length&quot;);
-          requestBuilder.removeHeader(&quot;Content-Type&quot;);
-        }
-
-        &#x2F;&#x2F; When redirecting across hosts, drop all authentication headers. This
-        &#x2F;&#x2F; is potentially annoying to the application layer since they have no
-        &#x2F;&#x2F; way to retain them.
-        if (!sameConnection(url)) {
-          requestBuilder.removeHeader(&quot;Authorization&quot;);
-        }
-
-        return requestBuilder.url(url).build();
-
-      default:
-        return null;
-    }
-</code></pre>
-<p>&emsp;这一段就是根据回复的状态码生成重定向请求的代码逻辑。</p>
-<ul>
-<li>HTTP_PROXY_AUTH 407  表示需要经过代理服务器认证 ，这时抛出异常，不进行重定向</li>
-<li>HTTP_UNAUTHORIZED 401 身份未认证</li>
-<li>HTTP_PERM_REDIRECT 308 HTTP_TEMP_REDIRECT 307 这两种状态码时，只有当请求的<code>method</code>不为<code>GET</code>和<code>HEAD</code>时不进行重定向，否则按照下边一列状态码的方式处理</li>
-<li>HTTP_MULT_CHOICE  300 HTTP_MOVED_PERM 301 HTTP_MOVED_TEMP 302 HTTP_SEE_OTHER 303 当是这些状态码时，先判断是否运行重定向，然后获得<code>Response</code>中的<code>Location</code>首部的值，然后用<code>HttpUrl</code>去解析，如果是<code>host</code>不同，那么去掉所有的认证首部，这是为了安全。<h4 id="结语"><a href="#结语" class="headerlink" title="结语"></a>结语</h4>&emsp;今天所总结的只是<code>Http</code>的重定向部分和<code>OkHttp</code>中的关于重定向的逻辑部分。之后会陆陆续续的继续总结关于<code>Http</code>的知识。</li>
-</ul>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></code></pre></div>   
+                <div class="article-more-link">
+                    <a href="/article/d647642b/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/d647642b/" class="leancloud_visitors" data-flag-title="OkHttp解析系列-重定向和出错重试">
@@ -632,7 +471,7 @@ public boolean isExternalStorageReadable() {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/d647642b/" data-id="ckauf70ya0038wi66flgvogba" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/d647642b/" data-id="ckaufl90r0037jv66ga97nbo0" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -749,16 +588,38 @@ public boolean isExternalStorageReadable() {
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <h4 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h4><p>&emsp;前几天使用<code>react-native</code>遇到了底层<code>okhttp</code>库<code>cookie</code>无法保存的问题，由于自己对http和<code>okhttp</code>也不是很了解.所以想开一个系列的博文，借助详细解析<code>okhttp</code>的详细解析来梳理一下http相关的知识。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                
+            
+            
+                <h4 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h4><p>&emsp;前几天使用<code>react-native</code>遇到了底层<code>okhttp</code>库<code>cookie</code>无法保存的问题，由于自己对http和<code>okhttp</code>也不是很了解.所以想开一个系列的博文，借助详细解析<code>okhttp</code>的详细解析来梳理一下http相关的知识。</p>
 <h4 id="Okhttp"><a href="#Okhttp" class="headerlink" title="Okhttp"></a>Okhttp</h4><p>&emsp;<code>Okhttp</code>是很火而且效率很好的一个android的网络库，被很多app或者开源库使用或者集成，比如<code>react-native</code>,官网地址如下<a href="http://square.github.io/okhttp/" target="_blank" rel="noopener">戳我</a>.</p>
 <h4 id="UML类图"><a href="#UML类图" class="headerlink" title="UML类图"></a>UML类图</h4><p>&emsp;事先声明，我画的这张UML类图不够标准，正方形的虚线边框是我自己添加上去的，只是逻辑上或者概念上的分类，标示这些类大致是属于哪个模块的，而且也没有添加各个类之间的依赖关系。之所以使用这张图，主要是希望表面<code>okhttp</code>代码的不同模块吧。也算为以后的博客进行内容区分。<br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/okhttpOkHttp%E5%8D%9A%E5%AE%A2.jpg" alt="enter image description here"></p>
 <h4 id="Okhttp模块"><a href="#Okhttp模块" class="headerlink" title="Okhttp模块"></a>Okhttp模块</h4><p>&emsp;之后的博客，就会按照上图的不同模块来进行，首先是<code>OkHttp</code>的主要框架模块，然后是请求和响应相关的模块，然后是关于http机制的模块，最后是关于http报文格式的模块。现在计划是如此，可能在博文之间会添加一些http知识。就这么愉快的决定啦。</p>
 
-        
-        </div>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/1f02db9c/" class="leancloud_visitors" data-flag-title="OkHttp解析系列-开篇">
@@ -771,7 +632,7 @@ public boolean isExternalStorageReadable() {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/1f02db9c/" data-id="ckauf70y90034wi66tw525izu" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/1f02db9c/" data-id="ckaufl90p0030jv66x0ueyiuw" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -888,109 +749,45 @@ public boolean isExternalStorageReadable() {
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <h4 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h4><p>&emsp;最近使用react native 来写一个公司内部使用的app，使用<code>fetch</code>去登陆，发现在android平台上无法获取cookie，iOS平台上却可以。即使是<code>response.headers.get()</code>也获得不了相关信息。于是上网google并且阅读源码，终于找到了问题出现的原因和解决方案。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><h4 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h4><p>&emsp;最近使用react native 来写一个公司内部使用的app，使用<code>fetch</code>去登陆，发现在android平台上无法获取cookie，iOS平台上却可以。即使是<code>response.headers.get()</code>也获得不了相关信息。于是上网google并且阅读源码，终于找到了问题出现的原因和解决方案。</p>
 <h4 id="问题原因"><a href="#问题原因" class="headerlink" title="问题原因"></a>问题原因</h4><p>&emsp;我们查看<code>native react</code>的<code>fetch.js</code>的代码，发现它的底层是使用<code>XmlHttpRequest</code>来实现的，然后再次找到’XmlHttpRequest’的相关源码，发现了三个文件<code>XMLHttpRequest.android.js</code>,<code>XMLHttpRequest.ios.js</code>和<code>XMLHttpRequestBase.js</code>。我们主要研究了android相关的文件。<br>&emsp;先看’XMLHttpRequest.android.js’。它继承了<code>XMLHttpRequestBase</code><br>
 <!-- Has Prism -->
 <pre class="line-numbers" style=""><code class="language-javascript">class XMLHttpRequest extends XMLHttpRequestBase {
 
-  _requestId: ?number;
-
-  constructor() {
-    super();
-    this._requestId = null;
-  }
-
-  sendImpl(method: ?string, url: ?string, headers: Object, data: any): void {
-    var body;
-    if (typeof data === &#39;string&#39;) {
-      body = {string: data};
-    } else if (data instanceof FormData) {
-      body = {
-        formData: data.getParts().map((part) =&gt; {
-          part.headers = convertHeadersMapToArray(part.headers);
-          return part;
-        }),
-      };
-    } else {
-      body = data;
-    }
-    &#x2F;&#x2F;RCTNetWorking是android的native module，使用okhttp实现，我们之后会看到相关的代码
-    this._requestId = RCTNetworking.sendRequest(
-      method,
-      url,
-      convertHeadersMapToArray(headers),
-      body,
-      this.callback.bind(this)&#x2F;&#x2F;这里是调用native module的回调，具体callback实现在XMLHttpRequestBase中。
-    );
-  }
-
-  abortImpl(): void {
-    this._requestId &amp;&amp; RCTNetworking.abortRequest(this._requestId);
-  }
-}
-</code></pre></p>
-<p>&emsp;通过源码，我们可以了解，<code>XMLHttpRequest</code>就是通过Android Native Module 来发送网络请求的，然后会回调到<code>callback</code>函数中。我们接下来看看一下<code>callback</code>函数.<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-javascript">  callback(status: number, responseHeaders: ?Object, responseText: string): void {
-    if (this._aborted) {
-      return;
-    }
-    this.status = status;
-    this.setResponseHeaders(responseHeaders || {});
-    this.responseText = responseText;
-    this.setReadyState(this.DONE);
-  }
-</code></pre></p>
-<p>&emsp;这里我们发现<code>callback</code>回调有三个参数,<code>status</code>,<code>responseHeaders</code>和<code>responseText</code>,那么为什么在外层的<code>fetch</code>会拿不到<code>header</code>中的<code>cookie</code>呢？这里就需要研究android native module的实现啦。<br>&emsp;<code>RCTNetworking</code>对应的java文件为<code>NetworkingModule.java</code>，找到这个文件，直接看<code>sendRequest</code>函数。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">@ReactMethod
-public void sendRequest(
-    String method,
-    String url,
-    int requestId,
-    ReadableArray headers,
-    ReadableMap data,
-    final Callback callback) {
-   
-  &#x2F;&#x2F;....... 无关代码省略
-  mClient.newCall(requestBuilder.build()).enqueue(
-      new com.squareup.okhttp.Callback() {
-        @Override
-        public void onFailure(Request request, IOException e) {
-          if (mShuttingDown) {
-            return;
-          }
-          callback.invoke(0, null, e.getMessage());
-        }
-
-        @Override
-        public void onResponse(Response response) throws IOException {
-          if (mShuttingDown) {
-            return;
-          }
-          &#x2F;&#x2F; TODO(5472580) handle headers properly
-          String responseBody;
-          try {
+<p>
+                    
+                
             
-            responseBody = response.body().string();
-          } catch (IOException e) {
-            &#x2F;&#x2F; The stream has been cancelled or closed, nothing we can do
-            &#x2F;&#x2F;这里是重点，我们发现第二个参数本该传递header,但是现在确实传的null，导致上层的js代码无法获得header!!!!
-            callback.invoke(0, null, e.getMessage());
-            return;
-          }
-          callback.invoke(response.code(), null, responseBody);
-        }
-      });
-}
-</code></pre></p>
-<p>####解决方案<br>&emsp;在<code>fetch</code>或者<code>XMLHttpRequest</code>拿不到头部信息的问题找到了，那么如何让react native android实现cookie呢？<br>&emsp;方案有两套，一是：<code>callback.invoke</code>时把头部信息传递上去，让js层去做cookie的相关逻辑；二是:给<code>Okhttp</code>添加<code>CookieHandler</code>让<code>Okhttp</code>自己管理<code>Cookie</code>。<br>&emsp;第二套方案是我在github上看到的<a href="https://github.com/facebook/react-native/pull/3723/files" target="_blank" rel="noopener">github相关讨论和code</a>，相关代码在github上已经被merge到master上去啦，相信不久之后，新版本的<code>React Native Android</code>就可以把这个坑填上啦。</p>
-
-        
-        </div>
+            
+                </p></code></pre></p></div>   
+                <div class="article-more-link">
+                    <a href="/article/65079f86/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/65079f86/" class="leancloud_visitors" data-flag-title="React Native Android Cookie Problem">
@@ -1003,7 +800,7 @@ public void sendRequest(
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/65079f86/" data-id="ckauf70yg003nwi66d43ka8d3" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/65079f86/" data-id="ckaufl90x003mjv66ni53wpl1" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1120,199 +917,45 @@ public void sendRequest(
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>&emsp;这几天阅读了《Android开发艺术探索》的关于Window和WindowManager的章节,特此写一片博文来整理和总结一下学到的知识.<br>&emsp;说到Window,大家都会想到所有的视图,包括Activity,Dialog,Toast,它们实际上都是附加在Window上的,Window是这些视图的管理者.今天我们就来具体将一下这些视图是如何附加在Window上的,Window有是如何管理这些视图的.</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>&emsp;这几天阅读了《Android开发艺术探索》的关于Window和WindowManager的章节,特此写一片博文来整理和总结一下学到的知识.<br>&emsp;说到Window,大家都会想到所有的视图,包括Activity,Dialog,Toast,它们实际上都是附加在Window上的,Window是这些视图的管理者.今天我们就来具体将一下这些视图是如何附加在Window上的,Window有是如何管理这些视图的.</p>
 <h4 id="Window的属性和类别"><a href="#Window的属性和类别" class="headerlink" title="Window的属性和类别"></a>Window的属性和类别</h4><p>&emsp;当我们通过WindowManager添加Window时,可以通过WindowManger.LayoutParams来确定Window的属性和类别.其中Flags参数标示Window的属性,我们列出几个比较常见的属性:</p>
 <ul>
 <li><p><code>FLAG_NOT_FOCUSABLE</code> 这个参数表示Window不需要获取焦点,也不需要接收任何输入事件</p>
 </li>
-<li><p><code>FLAG_NOT_TOUCH_MODAL</code> 这个参数表示当前Window区域之外的点击事件传递给底层Window,区域之内的点击事件自己处理,一般默认开启</p>
-</li>
-<li><p><code>FLAG_SHOW_WHEN_LOCKED</code> 这个属性可以让Window显示在锁屏界面上<br>&emsp;Window不仅有属性,还有类型.Type参数表示Window的类型,分别为应用Window(activity对应的),子window(dialog对应的),和系统Window(Toast和系统通知栏).Window是分层的,每个window都有z-ordered,层级大的window会覆盖层级小的window,其大小关系为系统window&gt;子window&gt;应用window.所以系统window总会显示在最上边,但是使用系统window是需要声明相应的权限的.这一点需要注意.</p>
-<h4 id="WindowManager"><a href="#WindowManager" class="headerlink" title="WindowManager"></a>WindowManager</h4><p>&emsp;我们先来看一下WindowManager的接口,对其接口函数的了解有助于我们更好的理解Window的类别和属性.<br>&emsp;WindowManger实现了ViewManager这个接口,所提供的主要函数只有三个:</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">    public void addView(View view, ViewGroup.LayoutParams params);
-    public void updateViewLayout(View view, ViewGroup.LayoutParams params);
-    public void removeView(View view);
-</code></pre>
-</li>
-</ul>
-<p>&emsp;而且通过阅读源码,我们会发现所有的操作都是交由WindowManagerGloalal来进行.之后的小节我会依次介绍.这一节先讲一下它的比较重要的成员变量.<br> 
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 存储所有window所对应的view
-    private final ArrayList&lt;View&gt; mViews = new ArrayList&lt;View&gt;();
-    &#x2F;&#x2F; 存在window所对应的viewRootImpl
-    private final ArrayList&lt;ViewRootImpl&gt; mRoots = new ArrayList&lt;ViewRootImpl&gt;();
-    &#x2F;&#x2F; 存储了所有window对应的布局参数
-    private final ArrayList&lt;WindowManager.LayoutParams&gt; mParams =
-            new ArrayList&lt;WindowManager.LayoutParams&gt;();
-    &#x2F;&#x2F; 存储了那些正在被删除的view对象,调用了removeVIew,但是没有完成的
-    private final ArraySet&lt;View&gt; mDyingViews = new ArraySet&lt;View&gt;();
-</code></pre></p>
-<h4 id="Window的添加过程"><a href="#Window的添加过程" class="headerlink" title="Window的添加过程"></a>Window的添加过程</h4><p>&emsp;这是WindowManagerGlobal的对应接口</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">	public void addView(View view, ViewGroup.LayoutParams params,
-            Display display, Window parentWindow) 
-</code></pre>
-<p>&emsp;创建ViewRootImpl,并将View添加到相应的列表中</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">	&#x2F;&#x2F; 创建ViewRootImpl,然后将下述对象添加到列表中
-	root = new ViewRootImpl(view.getContext(), display);
-        view.setLayoutParams(wparams);&#x2F;&#x2F;设置Params
-        mViews.add(view);&#x2F;&#x2F;window列表添加
-        mRoots.add(root);&#x2F;&#x2F;ViewRootImpl列表添加
-        mParams.add(wparams);&#x2F;&#x2F;布局参数列表添加
-</code></pre>
-<p>&emsp;通过ViewRootImpl来更新界面完成window的添加过程</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">	&#x2F;&#x2F; 添加啦!!!!!!!!这是通过ViewRootImpl的setView来完成
-	root.setView(view, wparams, panelParentView);
-</code></pre>
-<p>&emsp;在ViewRootImpl的setView函数中,会调用requestLayout来完成异步刷新,然后在requestLayout<br>中调用scheduleTraversals来进行view绘制.</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">	@Override
-    	public void requestLayout() {
-        if (!mHandlingLayoutInLayoutRequest) {
-            checkThread();
-            mLayoutRequested = true;
-            scheduleTraversals(); &#x2F;&#x2F; 实际View绘制的入口
-        }
-    }
-</code></pre>
-<p>&emsp;最后通过WindowSession来完成Window的添加过程,它是一个Binder对象,通过IPC调用来添加window.<br>&emsp;所以,Window的添加请求就交给WindowManagerService去处理,在其内部为每个应用保留一个单独的Session.</p>
-<h4 id="Window的删除过程"><a href="#Window的删除过程" class="headerlink" title="Window的删除过程"></a>Window的删除过程</h4>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">    public void removeView(View view, boolean immediate) {
-        if (view == null) {
-            throw new IllegalArgumentException(&quot;view must not be null&quot;);
-        }
-
-        synchronized (mLock) {
-            int index = findViewLocked(view, true); &#x2F;&#x2F;先找到view的index
-            View curView = mRoots.get(index).getView();
-            removeViewLocked(index, immediate);
-            if (curView == view) {
-                return;
-            }
-
-            throw new IllegalStateException(&quot;Calling with view &quot; + view
-                    + &quot; but the ViewAncestor is attached to &quot; + curView);
-        }
-    }
-</code></pre>
-<p>&emsp;removeView先通过findViewLocked来查找待删除的View的索引,然后用removeViewLocked来做进一步删除.<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">
-    private void removeViewLocked(int index, boolean immediate) {
-        ViewRootImpl root = mRoots.get(index); &#x2F;&#x2F;获得当前的view的viewRootImpl
-        View view = root.getView();
-
-        if (view != null) { &#x2F;&#x2F;先让imm下降
-            InputMethodManager imm = InputMethodManager.getInstance();
-            if (imm != null) {
-                imm.windowDismissed(mViews.get(index).getWindowToken());
-            }
-        }
-        boolean deferred = root.die(immediate); &#x2F;&#x2F;die方法只是发送一个请求删除的消息之后就就返回
-        if (view != null) {
-            view.assignParent(null);
-            if (deferred) {
-                mDyingViews.add(view);&#x2F;&#x2F;加入dyingView
-            }
-        }
-    }
-</code></pre></p>
-<p>&emsp;在WindowManager中提供了两种删除接口removeVIew()和removeViewImmediate(),它们分别表示异步和同步删除.而异步操作中会调用die函数,来发送一个MSG_DIE消息来异步删除,ViewRootImpl的Handler会调用doDie(),而如果是同步删除,那么就直接调用doDie(),然后在removeView函数中把View添加到mDyingViews中.</p>
-<h4 id="Window的更新"><a href="#Window的更新" class="headerlink" title="Window的更新"></a>Window的更新</h4>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">	public void updateViewLayout(View view, ViewGroup.LayoutParams params) {
-       	.....
-	final WindowManager.LayoutParams wparams = (WindowManager.LayoutParams)params;
-        view.setLayoutParams(wparams);
-        synchronized (mLock) {
-            int index = findViewLocked(view, true);
-            ViewRootImpl root = mRoots.get(index);
-            mParams.remove(index);
-            mParams.add(index, wparams);
-            root.setLayoutParams(wparams, false);&#x2F;&#x2F;这是主要的方法
-        }
-    }
-</code></pre>
-<p>&emsp;在setLayoutParams中会调用scheduleTraversals来重新绘制.</p>
-<h4 id="Window的创建过程"><a href="#Window的创建过程" class="headerlink" title="Window的创建过程"></a>Window的创建过程</h4><p>&emsp;不同类型的Window的创建过程不同,这里我只来讲一下Activity的Window的创建过程.在Window的启动过程中,会调用attach()函数来为其关联运行过程中所依赖的一系列上下文环境变量.</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">    mWindow = PolicyManager.makeNewWindow(this);
-    mWindow.setCallback(this);
-</code></pre>
-<p>&emsp;Window对象是通过PolicyManager的makeNewWindow方法实现的,由于Activity实现了Window的Callback接口,因此当Window接收到外界的状态改变时就会回调Activity的对应方法.而我们去追寻Window的具体实现类,会发现它就是PhoneWindow,而Activity中最常用的setContentView方法的具体操作都是在PhoneWindow的相应方法中实现的.</p>
-<p>&emsp;如果没有DecorView,那么就创建它.DecorView是一个FrameLayout,是Activity中的顶级View,一般包括标题栏和内容栏,而且内容栏的id为android.R.id.content,而DecorView的创建过程由installDecor完成,内部会通过generateDecor方法来直接创建DecorView</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">	if (mContentParent == null) { &#x2F;&#x2F;如何没有DecorView,那么就新建一个
-            installDecor();
-        } else if (!hasFeature(FEATURE_CONTENT_TRANSITIONS)) {
-            mContentParent.removeAllViews();
-        }
-  	if (mDecor == null) {
-            mDecor = generateDecor(); &#x2F;&#x2F;直接new出一个DecorView返回
-            ......
-        }
-        if (mContentParent == null) {
-            &#x2F;&#x2F;[window] 这一步也是很重要的.
-            mContentParent = generateLayout(mDecor); 
-            .......
-            }
-        .......
-</code></pre>
-<p>&emsp;而在generateLayout中<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">	&#x2F;&#x2F;根据不同的style生成不同的decorview啊
-        View in = mLayoutInflater.inflate(layoutResource, null);
-        &#x2F;&#x2F; 加入到deco中,所以应该是其第一个child
-        decor.addView(in, new ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT));
-        mContentRoot = (ViewGroup) in; 
-        &#x2F;&#x2F;给DecorView的第一个child是mContentView
-        &#x2F;&#x2F; 这是获得所谓的content
-        ViewGroup contentParent = (ViewGroup)findViewById(ID_ANDROID_CONTENT);
-</code></pre></p>
-<p>  &emsp;将View添加到DecorView的mContentParent中,这步只需要一条语句就可,具体内部细节就不说啦.<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">	&#x2F;&#x2F;第二步,将layout添加到mContentParent
-        mLayoutInflater.inflate(layoutResID, mContentParent);
-</code></pre></p>
-<p>&emsp;然后就是回调Acitivity的onContentChanged方法通知Activity视图已经改变了.<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">
-	final Callback cb = getCallback();
-        if (cb != null &amp;&amp; !isDestroyed()) {
-            cb.onContentChanged();
-        }
-</code></pre></p>
-<p>&emsp;经历了上述三个步骤,DecorView已经创建并初始化完毕,并且Activity的布局文件已经成功添加到DecorView的mContentParent中,但是DecorView并没有添加到WindowManager中去,也无法接收外界的输入,只有到Acitivity的makeVisible()被调用时,DecorView才真正完成了添加和显示过程.<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">
-    &#x2F;&#x2F;DecorView正式添加并显示
-    void makeVisible() {
-       if (!mWindowAdded) {
-            ViewManager wm = getWindowManager();
-            wm.addView(mDecor, getWindow().getAttributes());
-            mWindowAdded = true;
-        }
-        mDecor.setVisibility(View.VISIBLE);
-    }
-</code></pre></p>
-<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>&emsp;这篇博文主要是读书笔记式的总结,本来想写一些自己的东西,但是研究的太浅,并且语言组织上还是有不足,以后还需要注意和继续努力啦.</p>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></ul></div>   
+                <div class="article-more-link">
+                    <a href="/article/8f1b6328/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/8f1b6328/" class="leancloud_visitors" data-flag-title="Window和WindowManager解析">
@@ -1325,7 +968,7 @@ public void sendRequest(
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/8f1b6328/" data-id="ckauf70z6005cwi66doomkxq1" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/8f1b6328/" data-id="ckaufl91o005ajv660wwpzykc" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1442,25 +1085,45 @@ public void sendRequest(
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>&emsp;很久之前就希望自己可以把生活中的点滴都化为文字,记录下来了,今天就写下第一篇博文吧.希望有个好的开始,然后坚持下去.<br>&emsp;前一段时间,在腾讯员工的微信群中看到了有关RxJava和eventBus的对比文章的分享,于是趁着周末,研究一下最近很火的RxJava的使用.<br>&emsp;在学习RxJava的过程中主要参考了下列的几篇文章:</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>&emsp;很久之前就希望自己可以把生活中的点滴都化为文字,记录下来了,今天就写下第一篇博文吧.希望有个好的开始,然后坚持下去.<br>&emsp;前一段时间,在腾讯员工的微信群中看到了有关RxJava和eventBus的对比文章的分享,于是趁着周末,研究一下最近很火的RxJava的使用.<br>&emsp;在学习RxJava的过程中主要参考了下列的几篇文章:</p>
 <ul>
 <li><p><a href="http://gank.io/post/560e15be2dca930e00da1083" target="_blank" rel="noopener">给android开发者的RxJava详解</a> ,这是我主要学习的一篇,大多数有关RxJava的知识都是从这里获得的.</p>
 </li>
 <li><p><a href="http://nicholas.ren/2015/07/19/rx-revisit.html" target="_blank" rel="noopener">Rx revisit</a>   ,作者主要讲述了Netflix开发Rx系列的原由,Observable和Iterator的区别</p>
-</li>
-<li><p><a href="http://nerds.weddingpartyapp.com/tech/2014/12/24/implementing-an-event-bus-with-rxjava-rxbus/" target="_blank" rel="noopener">Implementing an Event Bus With RxJava - RxBus</a> ,主要讲述了Observer pattern和Pub-sub pattern的区别,和如何使用RxJava去模仿EventBus.</p>
-</li>
-<li><p><a href="http://www.zhihu.com/topic/20027327" target="_blank" rel="noopener">知乎-RxJava和EventBus的区别</a> ,看看知友的回答</p>
-</li>
-<li><p><a href="https://github.com/lzyzsd/Awesome-RxJava" target="_blank" rel="noopener">Awesome-RxJava</a>, github的有关Rx的文章集合<br>&emsp;阅读了那么多的文章,并且写了一些例子,但是还是感觉没有领会到RxJava的精髓.还需要在正式的项目中使用,才可以算是正在的入了门.<br>&emsp;最近的实习也不是很顺利,出现了很多的问题.不过这也很好,在扇贝的实习所学习到的和在腾讯实习正好是相互补充的.在腾讯实习时,可能是大家都比较忙,代码的质量由开发者自己保证,mentor也不会太认真的帮你进行reivew.而在扇贝则是不太一样,要求比较高的代码的质量,涉及的一些规则和原则其实我也都知道,但是在实际的开发过程中,开始时,代码质量还可以保持在较高的水平,但是随之开发的进行,需求的修改,debug,代码就开始有了”腐烂”的气味.知道原则而不是在实际过程中使用就等于不知道.所以,在单纯的编码方面你还是需要更加的谨慎.<br>&emsp;而在腾讯,大家都比较关注新技术,喜欢紧跟技术潮流,在软件工程的各个流程都做的很好,但是代码方面都是依靠个人保证.<br>&emsp;而且在实习阶段中,我也越发的感觉与公司其他员工的交流和沟通特别重要,不管是日常事务还是工作事务.你需要融入公司的这个大家庭里去啊.</p>
-</li>
-</ul>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></li></ul></div>   
+                <div class="article-more-link">
+                    <a href="/article/30f5a57f/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/30f5a57f/" class="leancloud_visitors" data-flag-title="生活学习记录一:RxJava+实习感悟">
@@ -1473,7 +1136,7 @@ public void sendRequest(
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/30f5a57f/" data-id="ckauf70zw007bwi661p6phaso" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/30f5a57f/" data-id="ckaufl92m0079jv66yix5737g" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1590,254 +1253,45 @@ public void sendRequest(
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>&emsp;承接上一篇博文<a href="http://blog.csdn.net/u012422440/article/details/48860893" target="_blank" rel="noopener">Gson源码分析</a>，这篇博文主要总结一下Gson中涉及Java反射逻辑的部分。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>&emsp;承接上一篇博文<a href="http://blog.csdn.net/u012422440/article/details/48860893" target="_blank" rel="noopener">Gson源码分析</a>，这篇博文主要总结一下Gson中涉及Java反射逻辑的部分。</p>
 <h4 id="一个Gson例子"><a href="#一个Gson例子" class="headerlink" title="一个Gson例子"></a>一个Gson例子</h4><p>&emsp;Gson可以解析用户自定义的对象，当然你也可以使用<code>public GsonBuilder registerTypeAdapter(Type type, Object typeAdapter)</code>来完全按照自己的方式来解析，但是Gson其实已经为解析自定义类型对象做了适配，除非特殊需求，我们一般不需要定义自己的TypeAdapter。比如下边这个例子<br>
 <!-- Has Prism -->
 <pre class="line-numbers" style=""><code class="language-clike">class MyType{
     private int i = 1;
-    private String name = &quot;test&quot;;
-
-    public MyType() {
-        super();
-    }
-    public MyType(int id,String name) {
-        this();
-    }
-}
-.....
- MyType type = new MyType();
- System.out.println(gson.toJson(type));
-</code></pre></p>
-<p>&emsp;这样就可以将MyType对象与JSON格式字符串进行相互转换了，不得不说这是十分方便的。而且通过<code>Excluder</code>和<code>FieldNamingStragety</code>我们还可以对Gson的转换过程进行一定的控制。<br>&emsp;更为厉害的是，Gson对相对泛型和复杂的对象支持的很好，比如<code>ArrayList&lt;MyType&gt;</code>对象，也可以直接通过Gson进行转换。</p>
-<h3 id="Gson反射基础"><a href="#Gson反射基础" class="headerlink" title="Gson反射基础"></a>Gson反射基础</h3><p>&emsp;这一部分主要讲解一下Java相关的反射基础和Gson对其进行的扩展。<br>&emsp;我们都知道Java泛型是类型擦除的，也就是说在运行期间，我们无法通过反射获得泛型对象的类型，那Gson是如何解析类似于<code>ArrayList&lt;MyType&gt;</code>这样的对象的类型的呢？<br>&emsp;上篇博文中讲到了Gson中使用TypeToken来代表对象的类型，其创建时会使用到<code>$Gson$Types</code>这个对象，我们现在就来好好研究一下这个对象。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public static Type canonicalize(Type type) {
-    if (type instanceof Class) {  &#x2F;&#x2F;如果就是Class
-      Class&lt;?&gt; c = (Class&lt;?&gt;) type;
-        &#x2F;&#x2F; c.getComponetType()就是返回数组对象的类型比如
-      return c.isArray() ? new GenericArrayTypeImpl(canonicalize(c.getComponentType())) : c;
-      &#x2F;&#x2F; ????!!!! loop for ever ????
-    } else if (type instanceof ParameterizedType) {  &#x2F;&#x2F;多级泛型 HashMap&lt;K,T&gt;
-      ParameterizedType p = (ParameterizedType) type;
-      return new ParameterizedTypeImpl(p.getOwnerType(),
-          p.getRawType(), p.getActualTypeArguments());
-    } else if (type instanceof GenericArrayType) {   &#x2F;&#x2F;数组泛型
-      GenericArrayType g = (GenericArrayType) type;
-      return new GenericArrayTypeImpl(g.getGenericComponentType());
-    } else if (type instanceof WildcardType) {   &#x2F;&#x2F; includes ?  , ? extends Number , ? super T
-      WildcardType w = (WildcardType) type;
-      return new WildcardTypeImpl(w.getUpperBounds(), w.getLowerBounds());
-    } else {
-      &#x2F;&#x2F; type is either serializable as-is or unsupported
-      return type;
-    }
-  }
-</code></pre></p>
-<p>&emsp;这里的<code>ParameterizedType</code>,<code>GenericArrayType</code>,<code>WildcardType</code>还有之后会出现的<code>TypeVariable</code>是一个重点啊，他们都是<code>Type</code>的子接口，代表所有类型的公共高阶接口。详细的解释在这里有<a href="http://blog.csdn.net/u012422440/article/details/48948921" target="_blank" rel="noopener">转载博文</a><br>&emsp;还需要进一步的实验啊，以后再来补充这一部分。还有关于如何处理泛型类型擦除的逻辑。</p>
-<p>###ReflectiveTypeAdapterFacotry<br>&emsp;在上边博文中我们说过，Gson会使用<code>TypeToken</code>来代表转换对象的类型，然后找到对应类型的<code>TypeAdapter</code>，但是对于用户自定义的类型，Gson是如何处理的呢？<br>&emsp;Gson的<code>TypeAdapters</code>中有一个可以处理自定义类型的<code>TypeAdapterFactory</code>，它就是<code>ReflectiveTypeAdapterFactory</code>,它也是这篇博文的重点内容。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike"> private final ConstructorConstructor constructorConstructor; &#x2F;&#x2F;构造函数
-  private final FieldNamingStrategy fieldNamingPolicy; &#x2F;&#x2F;命名规则
-  private final Excluder excluder; &#x2F;&#x2F;排除器
-</code></pre></p>
-<p>&emsp;上述是其成员变量，文章开头所说的用户控制Gson的转换过程就是通过这三个对象实现的，我接下来会一一讲解。<br>&emsp;我们知道在Gson中通过<code>TypeToken</code>获得相应的<code>TypeAdapter</code>的逻辑如下<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike"> for (TypeAdapterFactory factory : factories) {
-        TypeAdapter&lt;T&gt; candidate = factory.create(this, type);
-          System.out.print(&quot;1 &quot;);
-        if (candidate != null) {
-            System.out.println(candidate.toString()+type.toString());
-          call.setDelegate(candidate);
-          typeTokenCache.put(type, candidate);
-          return candidate;
-        }
-      }
-</code></pre></p>
-<p>&emsp;可以看出只要对应的facotry的create返回的对象不为null，就认为找到了对应的factory了，那我们在来看一下<code>ReflectiveTypeAdapterFactory</code>的create函数<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public &lt;T&gt; TypeAdapter&lt;T&gt; create(Gson gson, final TypeToken&lt;T&gt; type) {
-    Class&lt;? super T&gt; raw = type.getRawType();
-    if (!Object.class.isAssignableFrom(raw)) {  
-    &#x2F;&#x2F;如果Object都不是raw的最高类型,表示raw不是Object的子类啦 
-	 return null; &#x2F;&#x2F; it&#39;s a primitive!
-    }
-    ObjectConstructor&lt;T&gt; constructor = constructorConstructor.get(type);
-    return new Adapter&lt;T&gt;(constructor, getBoundFields(gson, type, raw));
-  }
-</code></pre></p>
-<p>&emsp;ObjectConstrutor<t>是为了构造器，为了创建一个相应的对象，主要是fromJson时使用的,而getBoundFields是为了获得对象的Filed类型。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">    final InstanceCreator&lt;T&gt; typeCreator = (InstanceCreator&lt;T&gt;) instanceCreators.get(type); &#x2F;&#x2F;no-args和type一一对应啊
-    if (typeCreator != null) {
-      return new ObjectConstructor&lt;T&gt;() {  &#x2F;&#x2F;这就是最基础的Constructor啊
-        public T construct() {
-          return typeCreator.createInstance(type);
-        }
-      };
-    }
-
-    &#x2F;&#x2F; Next try raw type match for instance creators
-    @SuppressWarnings(&quot;unchecked&quot;) &#x2F;&#x2F; types must agree
-    final InstanceCreator&lt;T&gt; rawTypeCreator =
-        (InstanceCreator&lt;T&gt;) instanceCreators.get(rawType);
-    if (rawTypeCreator != null) {
-      return new ObjectConstructor&lt;T&gt;() {
-        public T construct() {
-          return rawTypeCreator.createInstance(type);
-        }
-      };
-    }
-
-    ObjectConstructor&lt;T&gt; defaultConstructor = newDefaultConstructor(rawType); &#x2F;&#x2F;默认的构造函数
-    if (defaultConstructor != null) {
-      return defaultConstructor;
-    }
-
-
-    ObjectConstructor&lt;T&gt; defaultImplementation = newDefaultImplementationConstructor(type, rawType);
-    if (defaultImplementation != null) {
-      return defaultImplementation;
-    }
-
-    &#x2F;&#x2F; finally try unsafe
-    return newUnsafeAllocator(type, rawType);
-  }
-</code></pre></t></p>
-<p>&emsp;这段代码就是为了获得对应类型的构造器对象，在<code>newDefaultConstructor</code>会使用反射<code>getDeclaredConstructor</code>来获得默认的构造器。然后我在来看一下<code>getBoundFields</code><br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike"> &#x2F;&#x2F;获得成员变量吧
-  private Map&lt;String, BoundField&gt; getBoundFields(Gson context, TypeToken&lt;?&gt; type, Class&lt;?&gt; raw) {
-    Map&lt;String, BoundField&gt; result = new LinkedHashMap&lt;String, BoundField&gt;();
-    if (raw.isInterface()) { &#x2F;&#x2F;interface没有field啦
-      return result;
-    }
-
-    Type declaredType = type.getType();
-    while (raw != Object.class) { &#x2F;&#x2F;从当前类型一直遍历到最高类型，把所有的对象的成员遍历都收集到
-      Field[] fields = raw.getDeclaredFields();
-      for (Field field : fields) {  &#x2F;&#x2F;遍历所有的field
-        boolean serialize = excludeField(field, true);&#x2F;&#x2F;是否需要序列化，就是是否需要转换成Json
-        boolean deserialize = excludeField(field, false);&#x2F;&#x2F;是否需要从Json中转换过来
-        if (!serialize &amp;&amp; !deserialize) {
-          continue;
-        }
-        field.setAccessible(true);
-          &#x2F;&#x2F;获得Field的type
-        Type fieldType = $Gson$Types.resolve(type.getType(), raw, field.getGenericType());&#x2F;&#x2F;获得Field的Type
-        BoundField boundField = createBoundField(context, field, getFieldName(field),
-            TypeToken.get(fieldType), serialize, deserialize); &#x2F;&#x2F;之后详细解释
-        BoundField previous = result.put(boundField.name, boundField);
-        if (previous != null) {
-          throw new IllegalArgumentException(declaredType
-              + &quot; declares multiple JSON fields named &quot; + previous.name);
-        }
-      }
-      type = TypeToken.get($Gson$Types.resolve(type.getType(), raw, raw.getGenericSuperclass()));
-      raw = type.getRawType();
-    }
-    return result;
-  }
-   static abstract class BoundField {
-    final String name;
-    final boolean serialized;
-    final boolean deserialized;
-
-    protected BoundField(String name, boolean serialized, boolean deserialized) {
-      this.name = name;
-      this.serialized = serialized;
-      this.deserialized = deserialized;
-    }
-</code></pre></p>
-<p>&emsp;其实这一段代码逻辑很简单，主要就是遍历所有的成员遍历，大家可以看我的注释，其中涉及<code>Type</code>的操作我还没有搞懂….,但是<code>createBoundField</code>也是很重要的。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">private ReflectiveTypeAdapterFactory.BoundField createBoundField(
-      final Gson context, final Field field, final String name,
-      final TypeToken&lt;?&gt; fieldType, boolean serialize, boolean deserialize) {
-    final boolean isPrimitive = Primitives.isPrimitive(fieldType.getRawType());
-    &#x2F;&#x2F; special casing primitives here saves ~5% on Android...
-    &#x2F;&#x2F;其实就是创建一个BoundField的子类
-    return new ReflectiveTypeAdapterFactory.BoundField(name, serialize, deserialize) {
-      final TypeAdapter&lt;?&gt; typeAdapter = getFieldAdapter(context, field, fieldType);&#x2F;&#x2F;获得子类的TypeAdapter&lt;?&gt;这是解析自定义类型对象的关键一步
-      @SuppressWarnings({&quot;unchecked&quot;, &quot;rawtypes&quot;}) &#x2F;&#x2F; the type adapter and field type always agree
-      @Override void write(JsonWriter writer, Object value)
-          throws IOException, IllegalAccessException {
-        Object fieldValue = field.get(value);
-        TypeAdapter t =
-          new TypeAdapterRuntimeTypeWrapper(context, this.typeAdapter, fieldType.getType());
-        t.write(writer, fieldValue); &#x2F;&#x2F;使用TypeAdapter进行写入
-      }
-      @Override void read(JsonReader reader, Object value)
-          throws IOException, IllegalAccessException {
-        Object fieldValue = typeAdapter.read(reader);
-        if (fieldValue != null || !isPrimitive) {
-          field.set(value, fieldValue);
-        }
-      }
-      public boolean writeField(Object value) throws IOException, IllegalAccessException {
-        if (!serialized) return false;
-        Object fieldValue = field.get(value);
-        return fieldValue != value; &#x2F;&#x2F; avoid recursion for example for Throwable.cause
-      }
-    };
-  }
-</code></pre></p>
-<p>&emsp;接下来我们就来看一下对应的TypeAdapter <code>private Adapter(ObjectConstructor&lt;T&gt; constructor, Map&lt;String, BoundField&gt; boundFields)</code>，主要看其read和write方法。其中两个方法最后其实都是调用了BoundField的read和write方法，我们就只看read方法啦。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike"> @Override public T read(JsonReader in) throws IOException {
-      if (in.peek() == JsonToken.NULL) {
-        in.nextNull();
-        return null;
-      }
-
-      T instance = constructor.construct(); &#x2F;&#x2F;新建对象
-
-      try {
-        in.beginObject();&#x2F;&#x2F;读出一个{
-        while (in.hasNext()) {
-          String name = in.nextName();&#x2F;&#x2F;获得一个属性的name
-          BoundField field = boundFields.get(name);&#x2F;&#x2F;获得Field对象
-          if (field == null || !field.deserialized) {&#x2F;&#x2F;如果为null或者不需要解序列化
-            in.skipValue();
-          } else {
-            field.read(in, instance);&#x2F;&#x2F;使用BoundField进行write，可以参考createBoundField
-          }
-        }
-      } catch (IllegalStateException e) {
-        throw new JsonSyntaxException(e);
-      } catch (IllegalAccessException e) {
-        throw new AssertionError(e);
-      }
-      in.endObject();
-      return instance;
-    }
-</code></pre></p>
-<p>&emsp;这样对已自定义对象就可以自由的和JSON格式进行相互转换啦。但是有些同学可能会问了<code>ArrayList&lt;MyType&gt;</code>是如何转换的呢？那我们就要研究<code>CollectionTypeAdapterFactory</code>了，如果你去internal/bind文件夹下查看，你会发现很多类似的类。下边就贴出来其create函数<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike"> public &lt;T&gt; TypeAdapter&lt;T&gt; create(Gson gson, TypeToken&lt;T&gt; typeToken) {
-    Type type = typeToken.getType();
-
-    Class&lt;? super T&gt; rawType = typeToken.getRawType();
-    if (!Collection.class.isAssignableFrom(rawType))&#x2F;&#x2F;看是否是Collection的子类 {
-      return null;
-    }
-
-    Type elementType = $Gson$Types.getCollectionElementType(type, rawType);&#x2F;&#x2F;获得element的Type就是List&lt;T&gt;的T的类型，同学们可能会疑问泛型不是类型擦除了吗？你可以阅读一下$Gson$Types中的代码，自行了解一下，我暂时还没有完全搞懂
-    &#x2F;&#x2F;之后就和ReflectiveTypeAdapterFactory的逻辑类似啦
-    TypeAdapter&lt;?&gt; elementTypeAdapter = gson.getAdapter(TypeToken.get(elementType));
-    ObjectConstructor&lt;T&gt; constructor = constructorConstructor.get(typeToken);
-
-    @SuppressWarnings({&quot;unchecked&quot;, &quot;rawtypes&quot;}) &#x2F;&#x2F; create() doesn&#39;t define a type parameter
-    TypeAdapter&lt;T&gt; result = new Adapter(gson, elementType, elementTypeAdapter, constructor);
-    return result;
-  }
-</code></pre></p>
-<p>&emsp;感觉关于<code>TypeToken</code>和<code>$Gson$Type</code>还是没有完全明白，所以并没有过多涉及，大家如果发现神马问题，或者有好的建议，欢迎大家批判和指教。</p>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></code></pre></p></div>   
+                <div class="article-more-link">
+                    <a href="/article/a62ad67/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/a62ad67/" class="leancloud_visitors" data-flag-title="Gson源码分析二">
@@ -1850,7 +1304,7 @@ public void sendRequest(
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/a62ad67/" data-id="ckauf70xr001owi66hd0hpz4i" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/a62ad67/" data-id="ckaufl906001njv66xbuxhme1" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1967,183 +1421,45 @@ public void sendRequest(
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>&emsp;最近研究了google开源的Json库Gson，在这里进行总结一下，应该会分为3篇博客。第一篇主要讲一下Gson的整个框架吧；第二篇主要总结一下Gson关于反射的部分;最后一篇会总结一下JsonWriter和JsonReader，主要是Json对象的处理啦。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>&emsp;最近研究了google开源的Json库Gson，在这里进行总结一下，应该会分为3篇博客。第一篇主要讲一下Gson的整个框架吧；第二篇主要总结一下Gson关于反射的部分;最后一篇会总结一下JsonWriter和JsonReader，主要是Json对象的处理啦。</p>
 <h3 id="Gson"><a href="#Gson" class="headerlink" title="Gson"></a>Gson</h3><p>&emsp;Gson是可以转换Java对象为JSON表示的java库，也可以将JSON转换为Java对象，并且可以转换你没有源代码的预设的复杂对象<br>&emsp;现在有一些JSON转换库，但是大多数都需要你在class中设置annotation；如果没有class的源代码你就无法实现转换，而且大多数无法支持全部的Java范型。Gson把实现上述作为设计的主要目标。<br>&emsp;Gson的目标</p>
 <ul>
 <li>提供简单的toJson(),和fromJson来实现Java对象和JSON数据的相互转换</li>
 <li>运行预先存在的无法修改的对象与Json的转换</li>
-<li>支持Java范型</li>
-<li>运行用户自定义对象的结构</li>
-<li>支持复杂对象的处理</li>
-</ul>
-<h3 id="框架描述"><a href="#框架描述" class="headerlink" title="框架描述"></a>框架描述</h3><p><img src="http://7xjsjy.com1.z0.glb.clouddn.com/gson_GsonUML.jpg" alt="框架类图"><br> &emsp;这是Gson库的类图，没有将所有类都表现上去，只是画了几个比较主要的类和我研究过的类。这篇文章就主要梳理一下这个框架，研究一下几个比较主要的函数的流程和各个对象的协作。</p>
-<h4 id="1-GsonBuilder"><a href="#1-GsonBuilder" class="headerlink" title="1.GsonBuilder"></a>1.GsonBuilder</h4><p> &emsp;GsonBuilder是Gson对象的Builder类啦，我们可以先看一下Gson对象的构造函数的复杂度啦,所以如果希望配置Gson,就只有使用Builder模式啦，这也是Java设计模式中所推荐的<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">Gson(final Excluder excluder, final FieldNamingStrategy fieldNamingPolicy,
-      final Map&lt;Type, InstanceCreator&lt;?&gt;&gt; instanceCreators, boolean serializeNulls,
-      boolean complexMapKeySerialization, boolean generateNonExecutableGson, boolean htmlSafe,
-      boolean prettyPrinting, boolean serializeSpecialFloatingPointValues,
-      LongSerializationPolicy longSerializationPolicy,
-      List&lt;TypeAdapterFactory&gt; typeAdapterFactories)
-</code></pre></p>
-<p>&emsp; GsonBuilder文件中的注释也有说明：</p>
-<blockquote>
-<p>使用这个对象去配置你的Gson对象，当你希望修改默认配置时</p>
-</blockquote>
-<p>&emsp;我们现在可以依次介绍一下GsonBuilder的成员变量或者说是其所依赖的类型吧。</p>
-<ul>
-<li><p><code>Exculder</code> 是用来配置一些你不希望被转换成JSON格式的对象的成员变量的，比如你只希望自己的对象中所有public的成员变量被转换为JSON格式，那么就需要使用到这个对象，添加规则去除去所有非pulbic的成员变量。</p>
-</li>
-<li><p><code>LongSerializationPolicy</code>  </p>
-</li>
-<li><p><code>FieldNamingStragety</code></p>
-</li>
-<li><p><code>InstanceCreator</code> </p>
-</li>
-<li><p><code>TypeAdapterFactory</code></p>
-</li>
-</ul>
-<h4 id="2-Gson"><a href="#2-Gson" class="headerlink" title="2.Gson"></a>2.Gson</h4><p>&emsp;Gson对象就是我们最常使用的对象啦，它有一系列的fromJson,toJson的成员函数供我们调用，这篇文章的一个重点就是梳理同这两类函数的逻辑。<br>&emsp;我们先来看一下Gson的构造函数吧。构造函数名和参数列表在前边已经列出来啦，构造函数中就是将参数列表中的对象配置为成员变量，不过要注意的是对TypeAdapterFactory的操作啦。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">
-	....
-    List&lt;TypeAdapterFactory&gt; factories = new ArrayList&lt;TypeAdapterFactory&gt;();
-
-    &#x2F;&#x2F; built-in type adapters that cannot be overridden
-    factories.add(TypeAdapters.JSON_ELEMENT_FACTORY);
-    factories.add(ObjectTypeAdapter.FACTORY);
-    ..... &#x2F;&#x2F;还有很多基本的TypeAdapterFactory
-    &#x2F;&#x2F; the excluder must precede all adapters that handle user-defined types
-    factories.add(excluder);
-
-    &#x2F;&#x2F; user&#39;s type adapters
-    factories.addAll(typeAdapterFactories);
-
-    &#x2F;&#x2F; type adapters for basic platform types
-    factories.add(TypeAdapters.STRING_FACTORY); &#x2F;&#x2F;里边是一些基本类型的adapter啦
-       ......
-    this.factories = Collections.unmodifiableList(factories);
-</code></pre></p>
-<p>&emsp;Gson内置了很多基本类型和对象的转换组件，类型为<code>TypeAdapter</code>,可以通过相应的<code>TypeAdapterFactory</code>来获得，所以这里<code>factories</code>就预先加载了很多基本类型转换组件的Factory,然后<code>factories.addAll(typeAdapterFactories)</code>是添加构造函数中传入的用户自定义的<code>TypeAdapterFactory</code><br> &emsp;<code>fromJson</code>和<code>toJson</code>这两类函数我们在介绍完所有的类之后在解析吧。</p>
-<h4 id="3-TypeAdapter"><a href="#3-TypeAdapter" class="headerlink" title="3.TypeAdapter"></a>3.TypeAdapter</h4><p>&emsp;这是一个抽象类，提供了两个抽象函数作为hook函数来让用户重载，分别是<code>public abstract void write(JsonWriter out, T value) throws IOException;</code>和<code>public abstract T read(JsonReader in) throws IOException;</code>一读一写，用户如果要解析自己自定义的对象，就可以继承这个类，然后实现上述两个方法，并在<code>GsonBuilder中使用</code>GsonBuilder registerTypeAdapter(Type type, Object typeAdapter) <code>来注册这个转换类，然后Gson就可以对你的自定义对象进行转换啦。需要注意的是，这里的转换完全由你自己控制，所以可定制性比较强。在介绍</code>TypeAdapters`时，我们会介绍几个简单的TypeAdapter的实现。</p>
-<h4 id="4-TypeAdapterFactory"><a href="#4-TypeAdapterFactory" class="headerlink" title="4.TypeAdapterFactory"></a>4.TypeAdapterFactory</h4><p>&emsp;这是一个接口，自定义了一个函数:<code>&lt;T&gt; TypeAdapter&lt;T&gt; create(Gson gson, TypeToken&lt;T&gt; type);</code>,具体的实现方法，我们可以在后边的<code>TypeAdapters</code>类中看到.</p>
-<h4 id="5-TypeAdapters"><a href="#5-TypeAdapters" class="headerlink" title="5.TypeAdapters"></a>5.TypeAdapters</h4><p>&emsp;这个类中定义了几乎所有的基础类型的TypeAdapter和Factory,我们现在挑出一个来研究一下。这是一个URL对象的JSON转换器啦。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public static final TypeAdapter&lt;URL&gt; URL = new TypeAdapter&lt;URL&gt;() {
-    @Override
-    public URL read(JsonReader in) throws IOException {
-      if (in.peek() == JsonToken.NULL) {
-        in.nextNull();
-        return null;
-      }
-      String nextString = in.nextString(); &#x2F;&#x2F;读出in中的内容
-      return &quot;null&quot;.equals(nextString) ? null : new URL(nextString);&#x2F;&#x2F;根据读出的内容，创建URL对象
-    }
-    @Override
-    public void write(JsonWriter out, URL value) throws IOException {
-      out.value(value == null ? null : value.toExternalForm()); &#x2F;&#x2F;写入内容
-    }
-  };
-
-  public static final TypeAdapterFactory URL_FACTORY = newFactory(URL.class, URL);&#x2F;&#x2F;创建Facotry啦
-</code></pre></p>
-<p> &emsp; 我们可以看到，这是一个URL的转换器，<code>JsonReader</code>和<code>JsonWriter</code>后边会介绍到，现在你就可以把他们当做类似于StringBuilder一类的Json的生成器和解释器。</p>
-<h4 id="6-TypeToken"><a href="#6-TypeToken" class="headerlink" title="6.TypeToken"></a>6.TypeToken</h4><p>&emsp;TypeToken可以看做是对Java范型的扩展，大家都知道Java范型是有类型擦除效果的，无法获得其真实类型。而这个类就是为了处理这种情况的，我们从文件中的注释也可以了解到。具体的内容，我们希望在Gson相关的第二篇博文中再详细说明，主要就是涉及围绕TypeToken的一系列的Gson对范型的支持和处理。<br>&emsp;而在Gson对象中，TypeToken主要是用于根据Type来获得相应的TypeAdapter。</p>
-<h4 id="其他类"><a href="#其他类" class="headerlink" title="其他类"></a>其他类</h4><p>&emsp;还有很多其他的类没有介绍，其中有些不太重要，我也没有太多了解，另外一些我会在接下去的两篇博文中详细介绍。</p>
-<h3 id="转换流程"><a href="#转换流程" class="headerlink" title="转换流程"></a>转换流程</h3><p>&emsp;接下来，我们就主要理通Gson两个最重要的函数的逻辑，之后的两篇博文会详细介绍其中的重要的细节，这篇博文就只诉说每一步大致的作用啦。</p>
-<h4 id="1-fromJson"><a href="#1-fromJson" class="headerlink" title="1 fromJson()"></a>1 fromJson()</h4><p>&emsp;函数名为fromJson的函数比较多，我们只看下边这个<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike"> @SuppressWarnings(&quot;unchecked&quot;)
-  public &lt;T&gt; T fromJson(JsonReader reader, Type typeOfT) throws JsonIOException, JsonSyntaxException {
-    boolean isEmpty = true;
-    boolean oldLenient = reader.isLenient();
-    reader.setLenient(true);
-    try {
-      reader.peek();
-      isEmpty = false;
-      &#x2F;&#x2F; 反射部分的精髓,主要的就是TypeToken和TypeAdapter啦
-      TypeToken&lt;T&gt; typeToken = (TypeToken&lt;T&gt;) TypeToken.get(typeOfT);  &#x2F;&#x2F;1:工厂方法,其中调用typeToken的构造器
-      TypeAdapter&lt;T&gt; typeAdapter = getAdapter(typeToken); &#x2F;&#x2F;2:通过type来获得Adapter啊
-      T object = typeAdapter.read(reader);&#x2F;&#x2F;3:通过typeAdapter来转换对象
-      return object;
-    } catch (EOFException e) {
-      &#x2F;*
-       * For compatibility with JSON 1.5 and earlier, we return null for empty
-       * documents instead of throwing.
-       *&#x2F;
-      if (isEmpty) {
-        return null;
-      }
-      throw new JsonSyntaxException(e);
-    } catch (IllegalStateException e) {
-      throw new JsonSyntaxException(e);
-    } catch (IOException e) {
-      &#x2F;&#x2F; TODO(inder): Figure out whether it is indeed right to rethrow this as JsonSyntaxException
-      throw new JsonSyntaxException(e);
-    } finally {
-      reader.setLenient(oldLenient);
-    }
-  }
-</code></pre></p>
-<p>&emsp;如同代码中标注的一样，<code>fromJson</code>中大致分为3个比较重要的步奏.</p>
-<ul>
-<li><p>TypeToken<t> typeToken = (TypeToken<t>) TypeToken.get(typeOfT); 获得要转换类型对应的TypeToken对象，主要涉及的Gson中范型和反射的部分逻辑，我们第二篇博文再讲</t></t></p>
-</li>
-<li><p>TypeAdapter<t> typeAdapter = getAdapter(typeToken); //通过type来获得Adapter啊,这个我们先来看一下getAdapter函数,就是找出TypeToken所对应的TypeAdapter对象，用于下一步的解析。</t></p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">@SuppressWarnings(&quot;unchecked&quot;)
-  public &lt;T&gt; TypeAdapter&lt;T&gt; getAdapter(TypeToken&lt;T&gt; type) {
-    TypeAdapter&lt;?&gt; cached = typeTokenCache.get(type);  &#x2F;&#x2F; typeTokenCache?? 创造adapter是很麻烦的事情吗？有cache
-    if (cached != null) {
-      return (TypeAdapter&lt;T&gt;) cached;
-
-    }
-
-    Map&lt;TypeToken&lt;?&gt;, FutureTypeAdapter&lt;?&gt;&gt; threadCalls = calls.get();  &#x2F;&#x2F;threadLocal get
-    boolean requiresThreadLocalCleanup = false; &#x2F;&#x2F;是否需要清理threadLocal中的数据
-    if (threadCalls == null) {
-      threadCalls = new HashMap&lt;TypeToken&lt;?&gt;, FutureTypeAdapter&lt;?&gt;&gt;();
-      calls.set(threadCalls);
-      requiresThreadLocalCleanup = true;
-    }
-
-    &#x2F;&#x2F; the key and value type parameters always agree
-    FutureTypeAdapter&lt;T&gt; ongoingCall = (FutureTypeAdapter&lt;T&gt;) threadCalls.get(type);
-    if (ongoingCall != null) {
-      return ongoingCall;
-    }
-
-    try {
-      FutureTypeAdapter&lt;T&gt; call = new FutureTypeAdapter&lt;T&gt;();
-      threadCalls.put(type, call);
-
-      for (TypeAdapterFactory factory : factories) {
-        TypeAdapter&lt;T&gt; candidate = factory.create(this, type);  &#x2F;&#x2F; 通过factory 来创建TypeAdapter啊，由于需要遍历list比较麻烦
-        if (candidate != null) {
-          call.setDelegate(candidate);
-          typeTokenCache.put(type, candidate);
-          return candidate;
-        }
-      }
-     ....
-    } finally {
-      threadCalls.remove(type);
-	  ....
-    }
-  }
-</code></pre>
-<ul>
-<li>T object = typeAdapter.read(reader);//3:通过typeAdapter来转换对象,具体过程，和JsonReader，JsonWriter的原理，第三篇博文再进行讲述<h4 id="2-toJson"><a href="#2-toJson" class="headerlink" title="2 toJson"></a>2 toJson</h4>&emsp;其实toJson和fromJson很像，就是获得相应的TypeAdapter,只不过这次调用的是write方法。这里就不累赘多说啦。<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3>&emsp;博客还未写完，代码还没有看透…..</li>
-</ul>
-</li>
-</ul>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></ul></div>   
+                <div class="article-more-link">
+                    <a href="/article/ba92fa77/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/ba92fa77/" class="leancloud_visitors" data-flag-title="Gson源码分析">
@@ -2156,7 +1472,7 @@ public void sendRequest(
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/ba92fa77/" data-id="ckauf70xq001lwi66mez2xige" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/ba92fa77/" data-id="ckaufl905001kjv66kohwrz5e" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2268,453 +1584,45 @@ public void sendRequest(
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>&emsp;前几天去参加一个面试，被问到了一些android 网络方面的知识，发现自己在这个方面还有些不足，需要自我补充一下相关的知识，于是最近找了些开源的网络模块的第三方库来阅读，主要是想深入了解一下http协议和相关的代码框架组织问题。这篇博客就总结一下自己阅读android-async-http的一些体会和学习吧。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>&emsp;前几天去参加一个面试，被问到了一些android 网络方面的知识，发现自己在这个方面还有些不足，需要自我补充一下相关的知识，于是最近找了些开源的网络模块的第三方库来阅读，主要是想深入了解一下http协议和相关的代码框架组织问题。这篇博客就总结一下自己阅读android-async-http的一些体会和学习吧。</p>
 <h4 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h4><p>&emsp;介绍android async http 的相关事项，主要是翻译github上的话吧<br>&emsp;这段是官网翻译，大家请随意跳过,详细介绍请转到[<a href="http://loopj.com/android-async-http/" target="_blank" rel="noopener">http://loopj.com/android-async-http/</a>]<br>&emsp;android-async-http是建立在Apache HttpClient之上的基于回调的异步android http client，它使用Handler机制，请求在UI线程之外发生，但是回调逻辑在UI线程中进行执行</p>
 <blockquote>
 <p><strong>特点</strong>(部分)：</p>
 <ul>
-<li>执行异步request，在匿名回调中处理response</li>
-<li>Http 请求 发生在UI线程之外</li>
-<li>使用ThreadPool来负载多线程消耗</li>
-<li>GET/POST params 生成器</li>
-<li>支持文件断点续传</li>
-<li>支持自动重试</li>
-<li>支持流式Json数据上传</li>
-<li>可以处理重定向和请求循环</li>
-<li>自动的gzip压缩</li>
-<li>支持cookie</li>
-<li>可以通过BaseJsonResponseHandler和Jackson Json , Gson 和其他Json第三方库进行集成</li>
-</ul>
-</blockquote>
-<h4 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h4>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">
-  AsyncHttpClient client = new AsyncHttpClient();
-  
-  client.get(&quot;https:&#x2F;&#x2F;www.google.com&quot;, new       AsyncHttpResponseHandler() {   
-      
-      @Override
-      public void onStart() {
-          &#x2F;&#x2F; 请求开始发生的回调    
-      }
- 
-      @Override
-      public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-          &#x2F;&#x2F; 成功获得response的回调
-      }
- 
-      @Override
-      public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable
-  error)
-  {
-          &#x2F;&#x2F; 失败的回调 :(
-      }
- 
-      @Override
-      public void onRetry(int retryNo) {
-          &#x2F;&#x2F; 请求被重试时的回调
-      }
- 
-      @Override
-      public void onProgress(long bytesWritten, long totalSize) {
-          &#x2F;&#x2F; 请求发生过程中的回调
-      }
- 
-      @Override
-      public void onFinish() {
-          &#x2F;&#x2F; 完成请求时的对调，未知成功还是失败
-      }
-  }); 
-</code></pre>
-<h4 id="源码解析"><a href="#源码解析" class="headerlink" title="源码解析"></a>源码解析</h4><p><img src="http://7xjsjy.com1.z0.glb.clouddn.com/async_http_绘图1.jpg" alt="主要类类图"><br>&emsp;上图就是android-async-http的主要类的类图，我们下面就来一个一个类解析一下</p>
-<h6 id="AsyncHttpClient"><a href="#AsyncHttpClient" class="headerlink" title="AsyncHttpClient"></a>AsyncHttpClient</h6><p>&emsp;先看AsyncHttpClient,它是这个http库的核心类之一，封装了发生http请求的所有逻辑，可以说它是这个库的中心类。它的构造函数如下:<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">      public AsyncHttpClient(SchemeRegistry schemeRegistry) {
-        &#x2F;&#x2F; http param
-        BasicHttpParams httpParams = new BasicHttpParams();
-
-        &#x2F;&#x2F; connect params builder ?????
-        ConnManagerParams.setTimeout(httpParams, connectTimeout);
-        ConnManagerParams.setMaxConnectionsPerRoute(httpParams, new ConnPerRouteBean(maxConnections));
-        ConnManagerParams.setMaxTotalConnections(httpParams, DEFAULT_MAX_CONNECTIONS);
-
-        &#x2F;&#x2F; httpConnectionParams
-        HttpConnectionParams.setSoTimeout(httpParams, responseTimeout);
-        HttpConnectionParams.setConnectionTimeout(httpParams, connectTimeout);
-        HttpConnectionParams.setTcpNoDelay(httpParams, true);
-        HttpConnectionParams.setSocketBufferSize(httpParams, DEFAULT_SOCKET_BUFFER_SIZE);
-
-        HttpProtocolParams.setVersion(httpParams, HttpVersion.HTTP_1_1);
-
-        ClientConnectionManager cm = createConnectionManager(schemeRegistry, httpParams);
-        Utils.asserts(cm != null, &quot;Custom implementation of #createConnectionManager(SchemeRegistry, BasicHttpParams) returned null&quot;);
-
-
-        &#x2F;&#x2F;thread poll
-        threadPool = getDefaultThreadPool();
-
-        &#x2F;**
-         * weakHashMap context:这是不会出现内存泄露
-         * synchronizedMap 是建立一个线程安全的map加一个同步锁啊。
-         *&#x2F;
-        requestMap = Collections.synchronizedMap(new WeakHashMap&lt;Context, List&lt;RequestHandle&gt;&gt;());
-
-        clientHeaderMap = new HashMap&lt;String, String&gt;();
-
-
-        httpContext = new SyncBasicHttpContext(new BasicHttpContext());
-        &#x2F;&#x2F; 默认的apache的httpclient
-        httpClient = new DefaultHttpClient(cm, httpParams);
-
-        &#x2F;&#x2F; 请求拦截器啊
-        httpClient.addRequestInterceptor(new HttpRequestInterceptor() {
-            @Override
-            public void process(HttpRequest request, HttpContext context) {
-                &#x2F;&#x2F; 预处理,声明浏览器支持的编码类型啊
-                if (!request.containsHeader(HEADER_ACCEPT_ENCODING)) { &#x2F;&#x2F;加上GZIP的头部
-                    request.addHeader(HEADER_ACCEPT_ENCODING, ENCODING_GZIP);
-                }
-
-                &#x2F;&#x2F; 对于默认的clientHeader进行遍历，比较，添加
-                for (String header : clientHeaderMap.keySet()) {
-                    if (request.containsHeader(header)) {  &#x2F;&#x2F;如果包含
-                        Header overwritten = request.getFirstHeader(header);
-                        log.d(LOG_TAG,
-                                String.format(&quot;Headers were overwritten! (%s | %s) overwrites (%s | %s)&quot;,
-                                        header, clientHeaderMap.get(header),
-                                        overwritten.getName(), overwritten.getValue())
-                        );
-
-                        &#x2F;&#x2F;remove the overwritten header
-                        request.removeHeader(overwritten);
-                    }
-                    request.addHeader(header, clientHeaderMap.get(header)); &#x2F;&#x2F;写入clientHeaderMap中的值
-                }
-            }
-        });
-
-        &#x2F;&#x2F; response拦截器,对gzip进行解压缩啊
-        httpClient.addResponseInterceptor(new HttpResponseInterceptor() {
-
-            @Override
-            public void process(HttpResponse response, HttpContext context) {
-                final HttpEntity entity = response.getEntity(); &#x2F;&#x2F;
-                if (entity == null) {
-                    return;
-                }
-                final Header encoding = entity.getContentEncoding();
-                if (encoding != null) {
-                    for (HeaderElement element : encoding.getElements()) { &#x2F;&#x2F;遍历头部信息
-                        if (element.getName().equalsIgnoreCase(ENCODING_GZIP)) {
-                            response.setEntity(new InflatingEntity(entity)); &#x2F;&#x2F;InflatingEntity 这是解压gzip的
-                            break;
-                        }
-                    }
-                }
-            }
-        });
-
-        &#x2F;&#x2F; 另外一个模块的请求拦截器 ???? 身份认证的
-        httpClient.addRequestInterceptor(new HttpRequestInterceptor() {
-            @Override
-            public void process(final HttpRequest request, final HttpContext context) throws HttpException, IOException {
-                AuthState authState = (AuthState) context.getAttribute(ClientContext.TARGET_AUTH_STATE);
-                CredentialsProvider credsProvider = (CredentialsProvider) context.getAttribute(
-                        ClientContext.CREDS_PROVIDER);
-                HttpHost targetHost = (HttpHost) context.getAttribute(ExecutionContext.HTTP_TARGET_HOST);
-
-                if (authState.getAuthScheme() == null) {
-                    AuthScope authScope = new AuthScope(targetHost.getHostName(), targetHost.getPort());
-                    Credentials creds = credsProvider.getCredentials(authScope);
-                    if (creds != null) {
-                        authState.setAuthScheme(new BasicScheme());
-                        authState.setCredentials(creds);
-                    }
-                }
-            }
-        }, 0);
-
-        &#x2F;&#x2F; 重试Handler，用于重新发送请求
-        httpClient.setHttpRequestRetryHandler(new RetryHandler(DEFAULT_MAX_RETRIES, DEFAULT_RETRY_SLEEP_TIME_MILLIS));
-    }
-</code></pre></p>
-<p>&emsp;在构造函数中，AsyncHttpClient主要是初始化了threadPool作为发生请求的线程池，httpContext作为发生请求的网络context，还有最为重要的httpClient,它的类型是Apache的DefaultHttpClient，然后设置了设计gzip压缩和身份认证的请求拦截器和回应拦截器，具体逻辑代码中都有注释。<br>&emsp;AsyncHttp中还有一个我认为是整个库精髓所在的函数，如果你理解了这个函数，那么整个库的代码框架和思想其实你就已经知道了。它就是sendRequest(),AsyncHttp的关于网络请求的方法，比如get,post,head，最终都是调用了这个函数。在这个函数中，其他几个比较主要的类都有出现。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike"> &#x2F;**
-     *
-     * 这是这里的重点啊，创建一个request放在队列中，等待一个thread去执行
-     * Puts a new request in queue as a new thread in pool to be executed
-     *
-     * @param client          HttpClient to be used for request, can differ in single requests
-     * @param contentType     MIME body type, for POST and PUT requests, may be null
-     * @param context         Context of Android application, to hold the reference of request
-     * @param httpContext     HttpContext in which the request will be executed
-     * @param responseHandler ResponseHandler or its subclass to put the response into
-     * @param uriRequest      instance of HttpUriRequest, which means it must be of HttpDelete,
-     *                        HttpPost, HttpGet, HttpPut, etc.
-     * @return RequestHandle of future request process
-     *&#x2F;
-    protected RequestHandle sendRequest(DefaultHttpClient client, HttpContext httpContext, HttpUriRequest uriRequest, String contentType, ResponseHandlerInterface responseHandler, Context context) {
-        if (uriRequest == null) {
-            throw new IllegalArgumentException(&quot;HttpUriRequest must not be null&quot;);
-        }
-
-        if (responseHandler == null) {
-            throw new IllegalArgumentException(&quot;ResponseHandler must not be null&quot;);
-        }
-
-        if (responseHandler.getUseSynchronousMode() &amp;&amp; !responseHandler.getUsePoolThread()) {
-            throw new IllegalArgumentException(&quot;Synchronous ResponseHandler used in AsyncHttpClient. You should create your response handler in a looper thread or use SyncHttpClient instead.&quot;);
-        }
-
-        if (contentType != null) {
-            if (uriRequest instanceof HttpEntityEnclosingRequestBase &amp;&amp; ((HttpEntityEnclosingRequestBase) uriRequest).getEntity() != null &amp;&amp; uriRequest.containsHeader(HEADER_CONTENT_TYPE)) {
-                log.w(LOG_TAG, &quot;Passed contentType will be ignored because HttpEntity sets content type&quot;);
-            } else {
-                uriRequest.setHeader(HEADER_CONTENT_TYPE, contentType);
-            }
-        }
-
-        responseHandler.setRequestHeaders(uriRequest.getAllHeaders());
-        responseHandler.setRequestURI(uriRequest.getURI());
-
-        &#x2F;&#x2F; runnable
-        AsyncHttpRequest request = newAsyncHttpRequest(client, httpContext, uriRequest, contentType, responseHandler, context);
-
-        threadPool.submit(request);
-
-        &#x2F;&#x2F; Handler 持有Request的弱引用，可以对其执行操作
-        RequestHandle requestHandle = new RequestHandle(request);
-
-        if (context != null) {  &#x2F;&#x2F;如果此时context为不为空
-            List&lt;RequestHandle&gt; requestList;
-            &#x2F;&#x2F; Add request to request map
-            synchronized (requestMap) {  &#x2F;&#x2F; 需要添加到context作为键的List中去
-                requestList = requestMap.get(context);
-                if (requestList == null) {
-                    requestList = Collections.synchronizedList(new LinkedList&lt;RequestHandle&gt;());
-                    requestMap.put(context, requestList);
-                }
-            }
-
-            requestList.add(requestHandle);
-
-            &#x2F;&#x2F; 每次发送请求的时候进行一轮runnable删除
-            Iterator&lt;RequestHandle&gt; iterator = requestList.iterator();
-            while (iterator.hasNext()) {
-                if (iterator.next().shouldBeGarbageCollected()) {
-                    iterator.remove();
-                }
-            }
-        }
-
-        return requestHandle; &#x2F;&#x2F;返回句柄啊
-    }
-</code></pre></p>
-<p>&emsp;我们可以看到在函数中</p>
-<ul>
-<li>使用传入的参数和对象本身的成员变量来构造了一个AsynHttpRequest(本身继承Runnable,之后详细介绍),将其放入threadPool中</li>
-<li>然后生成RequestHandler对象来持有这个请求(用户可以通过RequestHandler对请求进行各类操作，比如取消),需要注意的是这个Handler并不是android的Handler，而是供用户操纵Request的句柄类</li>
-<li>然后更新requestMap,这是一个android Context作为主键的map，主要是记录各个Context的网络请求，需要注意的是这里使用的是<a href="http://mikewang.blog.51cto.com/3826268/880775/" target="_blank" rel="noopener">WeakHashMap</a>,防止内存泄露</li>
-<li>添加Handler到requestList中，然后遍历requestList删除需要垃圾回收的对象</li>
-<li>最后返回requestHandler。</li>
-</ul>
-<h6 id="AsyncHttpRequest"><a href="#AsyncHttpRequest" class="headerlink" title="AsyncHttpRequest"></a>AsyncHttpRequest</h6><p>&emsp;这个类是Runnable的子类,主要是用来进行发送请求和重试这套逻辑，而且ResponseHandlerInterface中的大多数回调函数都是在此对象中回调的。我们主要看一下它的<code>run()</code>,<code>makeRequest()</code>和 <code>makemakeRequestWithRetries()</code>方法<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">@Override
-    public void run() {
-        if (isCancelled()) {  &#x2F;&#x2F;如果run的时候是取消状态，那么就关闭了
-            return;
-        }
-
-        &#x2F;&#x2F; Carry out pre-processing for this request only once.
-        if (!isRequestPreProcessed) {  &#x2F;&#x2F;必须进行一次预处理
-            isRequestPreProcessed = true;
-            onPreProcessRequest(this);
-        }
-
-        if (isCancelled()) {
-            return;
-        }
-
-        responseHandler.sendStartMessage();  &#x2F;&#x2F; 回调handler，已经开始
-
-        if (isCancelled()) {
-            return;
-        }
-
-        &#x2F;&#x2F; 进行带重试的请求
-        try {
-            makeRequestWithRetries();
-        } catch (IOException e) {
-            if (!isCancelled()) {
-                responseHandler.sendFailureMessage(0, null, null, e);
-            } else {
-                AsyncHttpClient.log.e(&quot;AsyncHttpRequest&quot;, &quot;makeRequestWithRetries returned error&quot;, e);
-            }
-        }
-
-        if (isCancelled()) {
-            return;
-        }
-
-        responseHandler.sendFinishMessage();
-
-        if (isCancelled()) {
-            return;
-        }
-
-        &#x2F;&#x2F; Carry out post-processing for this request.
-        onPostProcessRequest(this);
-
-        isFinished = true;
-    }
-</code></pre></p>
-<p>&emsp;可以看出，在run中，根据发送网络请求的不同阶段调用了一系列的回调函数，其中比较重要的是<code>responseHandler.sendFinishMessage()</code>,在这里会回调函数进行解析response；在各个阶段开始前都有调用<code>isCancelled()</code>进行判断是否request被取消了。<br>&emsp;接下来是<code>makeRequest()</code>,在其中就调用了<code>HttpClient.execute(request,context)</code>进行正式的发送请求。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">private void makeRequest() throws IOException {
-        if (isCancelled()) {
-            return;
-        }
-
-        &#x2F;&#x2F; Fixes #115
-        if (request.getURI().getScheme() == null) {
-            &#x2F;&#x2F; subclass of IOException so processed in the caller
-            throw new MalformedURLException(&quot;No valid URI scheme was provided&quot;);
-        }
-
-        if (responseHandler instanceof RangeFileAsyncHttpResponseHandler) {
-            ((RangeFileAsyncHttpResponseHandler) responseHandler).updateRequestHeaders(request);
-        }
-
-        HttpResponse response = client.execute(request, context);
-
-        if (isCancelled()) {
-            return;
-        }
-
-        &#x2F;&#x2F; Carry out pre-processing for this response.
-        responseHandler.onPreProcessResponse(responseHandler, response);
-
-        if (isCancelled()) {
-            return;
-        }
-
-        &#x2F;&#x2F; The response is ready, handle it.
-        responseHandler.sendResponseMessage(response);
-
-        if (isCancelled()) {
-            return;
-        }
-
-        &#x2F;&#x2F; Carry out post-processing for this response.
-        responseHandler.onPostProcessResponse(responseHandler, response);
-    }
-</code></pre></p>
-<h6 id="RequestHandler"><a href="#RequestHandler" class="headerlink" title="RequestHandler"></a>RequestHandler</h6><p>&emsp;持有AsyncHttpRequest一个弱引用的句柄类，主要的功能是可以让客户端取消AsyncHttpRequest请求</p>
-<h6 id="AsyncHttpResponseHandler"><a href="#AsyncHttpResponseHandler" class="headerlink" title="AsyncHttpResponseHandler"></a>AsyncHttpResponseHandler</h6><p>&emsp;实现ResponseHandlerInterface的一个类，也是我们经常会用到的一个类，在android-async-http中有很多类都实现了ResponseHandlerInterface或者继承了这个类,比如BianryHttpResponseHandler,FileAsyncHttpResponseHandler,每个类都对应不同的网络请求的返回数据资源，有些可能是专门用于文件下载的，有些是解析json的，大家可以自己去了解各个类的作用。<br>&emsp;android-sync-http发送网络请求可以同步也可以异步，而且异步会在相应的thread中进行回调，其中涉及的逻辑就在这些类中。这个类也可以控制发送请求所使用的线程。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&#x2F;**
-     * Creates a new AsyncHttpResponseHandler with a user-supplied looper. If
-     * the passed looper is null, the looper attached to the current thread will
-     * be used.
-     *
-	 * 如果调用了这个，那么就不是异步，而且是在当前线程中调用了
-     * @param looper The looper to work with
-     *&#x2F;
-    public AsyncHttpResponseHandler(Looper looper) {
-        this.looper = looper == null ? Looper.myLooper() : looper;
-
-        &#x2F;&#x2F; Use asynchronous mode by default.
-        setUseSynchronousMode(false);
-
-        &#x2F;&#x2F; Do not use the pool&#39;s thread to fire callbacks by default.
-        setUsePoolThread(false);
-    }
-</code></pre></p>
-<p>&amp;emsp；大家可以发现构造函数传入了一个Looper,相信对android Handler机制比较了解的同学立即就知道这个库的异步调用是如何在当前线程中进行回调的了吧。这个类实现的回调函数中大多数都是进行<code>sendMessage(obtainMessage(FAILURE_MESSAGE, new Object[]{statusCode, headers, responseBody, throwable}));</code>这样的调用。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike"> protected void sendMessage(Message msg) {   &#x2F;&#x2F; 如果是同步就自己处理，否则交由handler处理
-        if (getUseSynchronousMode() || handler == null) {
-            handleMessage(msg);
-        } else if (!Thread.currentThread().isInterrupted()) { &#x2F;&#x2F; do not send messages if request has been cancelled
-            Utils.asserts(handler != null, &quot;handler should not be null!&quot;);
-            handler.sendMessage(msg);
-        }
-    }
-</code></pre></p>
-<p>&emsp;这就是发生message的函数，发现如果同步模式，那么就调用自己的handleMessage处理，否则交由构造函数中的Looper生成的handler进行处理,其实最终处理的还是这个对象的handlerMessage方法，但是是在另外一个Looper所在的线程中执行的。<br>&amp;emsp；其实这个类中还有两个涉及http response解析的方法也是很重要的，就是<code>sendResponseMesssage(HttpResponse response)</code>和<code>getResponseData(HttpEntity entity)</code>，可是我对http协议不太了解，也害怕说错了，这里就只附上源码吧，上边有我的注释<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 获得网络请求返回进行处理
-    @Override
-    public void sendResponseMessage(HttpResponse response) throws IOException {
-        &#x2F;&#x2F; do not process if request has been cancelled
-        if (!Thread.currentThread().isInterrupted()) {  &#x2F;&#x2F;thread isInterrupted means that request is cancelled
-            StatusLine status = response.getStatusLine(); &#x2F;&#x2F; 状态行
-            byte[] responseBody; &#x2F;&#x2F; 回复体
-            responseBody = getResponseData(response.getEntity());
-            &#x2F;&#x2F; additional cancellation check as getResponseData() can take non-zero time to process
-            if (!Thread.currentThread().isInterrupted()) {
-                if (status.getStatusCode() &gt;= 300) {
-                    sendFailureMessage(status.getStatusCode(), response.getAllHeaders(), responseBody, new HttpResponseException(status.getStatusCode(), status.getReasonPhrase()));
-                } else {
-                    sendSuccessMessage(status.getStatusCode(), response.getAllHeaders(), responseBody);
-                }
-            }
-        }
-    }
-
-    &#x2F;**
-     * Returns byte array of response HttpEntity contents
-	 * 解析http的response
-     *
-     * @param entity can be null
-     * @return response entity body or null
-     * @throws java.io.IOException if reading entity or creating byte array failed
-     *&#x2F;
-    byte[] getResponseData(HttpEntity entity) throws IOException {
-        byte[] responseBody = null;
-        if (entity != null) {
-            InputStream instream = entity.getContent(); &#x2F;&#x2F; 获得输入流
-            if (instream != null) {
-                long contentLength = entity.getContentLength(); &#x2F;&#x2F; 获得size
-                if (contentLength &gt; Integer.MAX_VALUE) {
-                    throw new IllegalArgumentException(&quot;HTTP entity too large to be buffered in memory&quot;);
-                }
-                int buffersize = (contentLength &lt;= 0) ? BUFFER_SIZE : (int) contentLength; &#x2F;&#x2F; contentLength有可能为负数吗
-                try {
-                    ByteArrayBuffer buffer = new ByteArrayBuffer(buffersize); &#x2F;&#x2F; byte array的buffer类
-                    try {
-                        byte[] tmp = new byte[BUFFER_SIZE];
-                        long count = 0;
-                        int l;
-                        &#x2F;&#x2F; do not send messages if request has been cancelled
-                        while ((l = instream.read(tmp)) != -1 &amp;&amp; !Thread.currentThread().isInterrupted()) {
-                            count += l;
-                            buffer.append(tmp, 0, l);
-                            sendProgressMessage(count, (contentLength &lt;= 0 ? 1 : contentLength));
-                        }
-                    } finally {
-                        AsyncHttpClient.silentCloseInputStream(instream);
-                        AsyncHttpClient.endEntityViaReflection(entity);
-                    }
-                    responseBody = buffer.toByteArray();
-                } catch (OutOfMemoryError e) {
-                    System.gc();
-                    throw new IOException(&quot;File too large to fit into available memory&quot;);
-                }
-            }
-        }
-        return responseBody;
-    }
-</code></pre></p>
-<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>&emsp;android-async-http 算是源代码量最小的一个网络库了，当然它还有些却缺点，比如没有缓存机制，我看github中已经有人给它加上了缓存，大家也可以自己尝试一下，并且更好的是，这个库可以与其他的第三方库进行集成，大家可以打造属于自己的网络请求+处理数据的框架。</p>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></ul></blockquote></div>   
+                <div class="article-more-link">
+                    <a href="/article/68b9bfcd/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/68b9bfcd/" class="leancloud_visitors" data-flag-title="Android-Async-Http 源码解析">
@@ -2727,7 +1635,7 @@ public void sendRequest(
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/68b9bfcd/" data-id="ckauf70x9000fwi661aw8fifs" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/68b9bfcd/" data-id="ckaufl8zk000fjv66hazfzgif" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2844,70 +1752,45 @@ public void sendRequest(
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <blockquote>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p><blockquote>
 <p>&emsp;要使用Dagger2，首先要了解的就是控制反转和依赖注入这两个概念。</p>
 </blockquote>
-<h4 id="一、控制反转"><a href="#一、控制反转" class="headerlink" title="一、控制反转"></a>一、控制反转</h4><blockquote>
+</p><h4 id="一、控制反转"><a href="#一、控制反转" class="headerlink" title="一、控制反转"></a>一、控制反转</h4><blockquote>
 <p>&emsp;在wiki词条中，控制反转如下定义：In <a href="https://en.wikipedia.org/wiki/Software_engineering" target="_blank" rel="noopener">software engineering</a>, <strong>inversion of control</strong> (<strong>IoC</strong>) describes a design in which custom-written portions of a <a href="https://en.wikipedia.org/wiki/Computer_program" target="_blank" rel="noopener">computer program</a> receive the <a href="https://en.wikipedia.org/wiki/Control_flow" target="_blank" rel="noopener">flow of control</a> from a generic, <a href="https://en.wikipedia.org/wiki/Reusable_library" target="_blank" rel="noopener">reusable library</a>. A <a href="https://en.wikipedia.org/wiki/Software_architecture" target="_blank" rel="noopener">software architecture</a> with this design inverts control as compared to traditional <a href="https://en.wikipedia.org/wiki/Procedural_programming" target="_blank" rel="noopener">procedural programming</a>: in traditional programming, the custom code that expresses the purpose of the program <a href="https://en.wikipedia.org/wiki/Function_call#Main_concepts" target="_blank" rel="noopener">calls into</a> reusable libraries to take care of generic tasks, but with inversion of control, it is the reusable code that calls into the custom, or task-specific, code.</p>
-<p>&emsp;其中主要的含义就是客户端代码(custom-writen)可以控制一般性的可复用库的控制流(flow of control),比如组件对象的创建的控制权。<br>&emsp;控制反转和传统编程的对比：</p>
-<ul>
-<li>IoC模式：调用类只依赖于接口，而不依赖于具体的实现类，减少了耦合。控制权交给了容器，在运行时才由容器决定将具体的实现动态的“注入”到调用类的对象中。</li>
-<li>传统编程：决定使用哪个具体的实现类的控制权在调用类本身，在编译阶段就确定了。</li>
-</ul>
-<p>&emsp;所以，所谓的“控制反转”概念就是对组件对象控制权的转移，从程序代码本身转移到了外部容器。而依赖注入则是控制反转实现的一种方式。</p>
-</blockquote>
-<h4 id="二、依赖注入"><a href="#二、依赖注入" class="headerlink" title="二、依赖注入"></a>二、依赖注入</h4><blockquote>
-<p>&emsp;先说依赖，依赖就是你两个代码模块的耦合(a dependency is a coupling between two modules of your code),一般来说，当对象A中还有类型为B的成员变量时，我们就可以说A依赖于B，二者就相互耦合，至于是何种耦合，那就要依情况而定。</p>
-<p>&emsp;如果要避免这种依赖，我们可以设计一个interface IB，让B实现IB,然A依赖于IB，这就是所谓的依赖倒置原则。</p>
-<p>&emsp;但是对于对象的创建，我们是无法规避所谓的依赖的，当你在一个对象中创建了另外一个类型的对象（new），就会产生依赖。所以在设计模式中，会有一系列的创建型模式来减少这类的依赖。</p>
-<p>&emsp;从我现在对工厂模式和依赖注入的理解，二者在减少依赖这个方面的贡献应该是相同的，但是依赖注入可以减少你自己手写的代码。而依赖于反射的依赖注入在效率上会有所下降。 </p>
-<p>&emsp; A dependency is an <a href="https://en.wikipedia.org/wiki/Object_(computer_science" target="_blank" rel="noopener">object</a>) that can be used (a <a href="https://en.wikipedia.org/wiki/Service_(systems_architecture" target="_blank" rel="noopener">service</a>)). An injection is the passing of a dependency to a dependent object (a <a href="https://en.wikipedia.org/wiki/Client_(computing" target="_blank" rel="noopener">client</a>)) that would use it. The service is made part of the client’s <a href="https://en.wikipedia.org/wiki/State_(computer_science" target="_blank" rel="noopener">state</a>).<a href="https://en.wikipedia.org/wiki/Dependency_injection#cite_note-JamesShore-1" target="_blank" rel="noopener">[1]</a><br> Passing the service to the client, rather than allowing a client to build or find the service, is the fundamental requirement of the pattern.<br>&emsp;依赖注入的基本原则是：应用组件不应该负责查找资源或者其他依赖的协作对象。配置对象的工作应该由IoC容器负责，“查找资源”的逻辑应该从应用组件的代码中抽取出来（比如new出来应用组件对象），交给IoC容器负责，这样可以让程序准从依赖导致原则。</p>
-</blockquote>
-<h4 id="三、Dagger2"><a href="#三、Dagger2" class="headerlink" title="三、Dagger2"></a>三、Dagger2</h4><blockquote>
-<p>&emsp;Dagger2 是google从Dagger1中fork的一个分支。从一开始，Dagger2所秉承的观念就是使用代码自动生成和手写代码（类似于javabean的写一些有固定前缀的函数或者类，接口）来实现依赖注入。所以，Dagger2就有以下几点比较特殊的地方</p>
-<ul>
-<li>完全未使用反射，图的验证，配置和预处理都是在编译阶段完成。</li>
-<li>由于是通过生成代码来实现依赖注入，所以更容易调试和回溯异常路径，可以提供完整的调用函数栈。</li>
-<li>更高的性能，根据google的数据，性能提高了13%。</li>
-<li>不太灵活和动态，因为没有使用反射。</li>
-</ul>
-</blockquote>
-<h4 id="四、Dagger2使用"><a href="#四、Dagger2使用" class="headerlink" title="四、Dagger2使用"></a>四、Dagger2使用</h4><blockquote>
-<p>&emsp;具体的说明文档请查阅<a href="Dagger2项目官网">http://google.github.io/dagger/</a>,这个demo在我的github上[<a href="https://github.com/ztelur/DaggerProject" target="_blank" rel="noopener">https://github.com/ztelur/DaggerProject</a>]</p>
-<p>&emsp;这里只展示android上一个demo，解释各个注释的含义和一些常见的问题</p>
-<p>&emsp; 1 @Inject<br>  按照标注的元素的不同，这个注释的作用不同</p>
-<ul>
-<li>标注元素为<strong>构造函数</strong>，当程序需要这个类型的对象时，就会<br>调用这个构造函数，从而生成相应的对象，如果构造函数有参数，Dagger2会在调用构造函数之前先去获得这些对象，所以你要保证它的参数也提供了可以被Dagger2调用的构造函数<br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/dagger1inject.png" alt="标注在构造函数上"></li>
-<li>标注元素为<strong>成员变量</strong>,这就标示，这个成员变量需要Dagger2来进行注入，也就是说Dagger2来初始化它，通常你需要调用Component.void injectSomeType(SomeType someType)这个方法来让Dagger进行自动化注入。<br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/dagger1inject2.png" alt="标注在成员变量上"><br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/dagger1inject3.png" alt="inject函数"></li>
-</ul>
-<p>&emsp;2.@Module<br> module是拥有可以提供依赖的函数的类，我们定义一个类，标注为module,然后Dagger2就知道哪里可以找到构建一个对象所需要的依赖啦。而且module被设计为可以被分割和组合的模式，有益于模块的划分。</p>
-<p>&emsp;3.@Provide:<br> 在标注为module的类中的函数可以标注为provide,标示可以提供相应的依赖，函数的前缀必须为provides.<br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/dagger1module.png" alt="module和provide"><br>&emsp;4.@Component<br>  这是Dagger2依赖注入的核心模块，类似于一个注入器的角色。它是@Inject和@Module的桥梁。我们必须创建一个interface,标注为Component,然后列出所有它需要的Module。component中还可以提供一些方法来获得一些对象。component可以有scope，比如Application的生命周期，activity的生命周期，这一块我还没有搞清楚…..</p>
-<p>&emsp;5.@Singleton<br>  这是标示一个单例的注释，可以和provide共同标注一个函数，标示这个函数返回的对象都是单例的，也可以和component一起标注一个component，标示这个component的scope是全局的。<br><img src="http://7xjsjy.com1.z0.glb.clouddn.com/dagger1component.png" alt="component"><br>&emsp;6.Lazy injections<br>这个不是一个标注，而是一个可以推迟初始化的容器，比如你依赖一个对象B(<code>@Inject B mB</code>)，但是你希望当你第一次使用它的时候在初始化，所以你就可以用Lazy<b>(<code>@Inject Lazy&lt;B&gt; mB</code>)</b></p>
-</blockquote>
-<h4 id="五、Dagger2常见问题"><a href="#五、Dagger2常见问题" class="headerlink" title="五、Dagger2常见问题"></a>五、Dagger2常见问题</h4><ol>
-<li><strong>如何在gradle上配置Dagger2</strong>:可以参考<a href="">http://stackoverflow.com/questions/22976251/how-to-configure-dagger-gradle</a></li>
-<li><p><strong>程序包javax.annotation包不存在,找不到Generated</strong>:需要在Gradle中添加<code>provided &#39;javax.annotation:jsr250-api:1.0&#39;</code>依赖</p>
-</li>
-<li><p><strong>对于private的成员变量的注入问题</strong>:Dagger2是不支持private的成员变量的直接注入的。解决方法有两个：一个是换成protected,或者使用构造函数inject.但是这两种方法都没有良好的解决android平台中Activity,Application等类的注入问题.<br><a href="">http://stackoverflow.com/questions/16598123/android-dagger-dependency-injection-fails-on-private-fields</a></p>
-</li>
-<li><strong>对于第三方对象的注入问题</strong><br><a href="">https://github.com/google/dagger/issues/128#issuecomment-86702574</a></li>
-<li><strong>自定义scope问题</strong>:这个问题我一直没有搞懂，希望了解的同学帮助一下.<br><a href="">http://stackoverflow.com/questions/29923376/dagger2-custom-scopes-how-do-custom-scopes-activityscope-actually-work</a><br><a href="">http://stackoverflow.com/questions/28411352/what-determines-the-lifecycle-of-a-component-object-graph-in-dagger-2</a><br><a href="">http://stackoverflow.com/questions/29923376/dagger2-custom-scopes-how-do-custom-scopes-activityscope-actually-work</a></li>
-</ol>
-<h4 id="六、后续"><a href="#六、后续" class="headerlink" title="六、后续"></a>六、后续</h4><blockquote>
-<p>&emsp;这篇只是介绍关于Dagger2的背景知识和基本使用，之后我想研究一下Dagger2的源代码，和使用Dagger2对apk大小的影响。希望可以把这个系列做好吧。</p>
-</blockquote>
-<p>#####Reference：</p>
-<ul>
-<li>IoC<br><a href="">https://en.wikipedia.org/wiki/Inversion_of_control</a><br><a href="">http://zhangjunhd.blog.51cto.com/113473/126530</a><br><a href="">http://www.importnew.com/13619.html</a></li>
-<li>DI<br><a href="">https://en.wikipedia.org/wiki/Dependency_injection</a><br><a href="">https://en.wikipedia.org/wiki/Dependency_inversion_principle</a><br><a href="">http://antonioleiva.com/dependency-injection-android-dagger-part-1/</a></li>
-<li>Dagger<br><a href="">http://a.codekk.com/detail/Android/%E6%89%94%E7%89%A9%E7%BA%BF/Dagger%20%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90</a><br><a href="">http://fernandocejas.com/2015/04/11/tasting-dagger-2-on-android/</a></li>
-</ul>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></blockquote></div>   
+                <div class="article-more-link">
+                    <a href="/article/273b893d/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/273b893d/" class="leancloud_visitors" data-flag-title="初识Dagger2">
@@ -2920,7 +1803,7 @@ public void sendRequest(
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/273b893d/" data-id="ckauf70zl006jwi668y0jn10k" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/273b893d/" data-id="ckaufl92c006hjv66dsg5kci1" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding

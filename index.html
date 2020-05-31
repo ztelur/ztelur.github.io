@@ -247,124 +247,45 @@ var _hmt = _hmt || [];
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>在上一篇文章<a href="https://mp.weixin.qq.com/s/QVEUIfD0RBbtvUDORaz2vQ" target="_blank" rel="noopener">《锁的类型以及加锁原理》</a>主要总结了 MySQL 锁的类型和模式以及基本的加锁原理，今天我们就从原理走向实战，分析常见 SQL 语句的加锁场景。了解了这几种场景，相信小伙伴们也能举一反三，灵活地分析真实开发过程中遇到的加锁问题。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>在上一篇文章<a href="https://mp.weixin.qq.com/s/QVEUIfD0RBbtvUDORaz2vQ" target="_blank" rel="noopener">《锁的类型以及加锁原理》</a>主要总结了 MySQL 锁的类型和模式以及基本的加锁原理，今天我们就从原理走向实战，分析常见 SQL 语句的加锁场景。了解了这几种场景，相信小伙伴们也能举一反三，灵活地分析真实开发过程中遇到的加锁问题。</p>
 <p>如下图所示，<strong>数据库的隔离等级，SQL 语句和当前数据库数据会共同影响该条 SQL 执行时数据库生成的锁模式，锁类型和锁数量</strong>。</p>
 <p><img src="http://cdn.remcarpediem.net/2020-05-26-121712.png" alt=""></p>
 <p>下面，我们会首先讲解一下隔离等级、不同 SQL 语句 和 当前数据库数据对生成锁影响的基本规则，然后再依次具体 SQL 的加锁场景。</p>
 <h3 id="隔离等级对加锁的影响"><a href="#隔离等级对加锁的影响" class="headerlink" title="隔离等级对加锁的影响"></a>隔离等级对加锁的影响</h3><p>MySQL 的隔离等级对加锁有影响，所以<strong>在分析具体加锁场景时，首先要确定当前的隔离等级</strong>。</p>
-<ul>
-<li>读未提交（Read Uncommitted 后续简称 RU）：可以读到未提交的读，基本上不会使用该隔离等级，所以暂时忽略。</li>
-<li>读已提交（Read Committed 后续简称 RC）：存在幻读问题，<strong>对当前读获取的数据加记录锁</strong>。</li>
-<li>可重复读（Repeatable Read 后续简称 RR）：不存在幻读问题，对当前读获取的数据加记录锁，同时对涉及的范围加间隙锁，防止新的数据插入，导致幻读。</li>
-<li>序列化（Serializable）：从 MVCC 并发控制退化到基于锁的并发控制，不存在快照读，都是当前读，并发效率急剧下降，不建议使用。</li>
-</ul>
-<p>这里说明一下，<strong>RC 总是读取记录的最新版本，而 RR 是读取该记录事务开始时的那个版本</strong>，虽然这两种读取的版本不同，但是都是快照数据，并不会被写操作阻塞，所以这种读操作称为 <strong>快照读（Snapshot Read）</strong></p>
-<p>MySQL 还提供了另一种读取方式叫<strong>当前读（Current Read）</strong>，它读的不再是数据的快照版本，而是数据的最新版本，并会对数据加锁，根据语句和加锁的不同，又分成三种情况：</p>
-<ul>
-<li>SELECT … LOCK IN SHARE MODE：加共享(S)锁</li>
-<li>SELECT … FOR UPDATE：加排他(X)锁</li>
-<li>INSERT / UPDATE / DELETE：加排他(X)锁</li>
-</ul>
-<p>当前读在 RR 和 RC 两种隔离级别下的实现也是不一样的：<strong>RC 只加记录锁，RR 除了加记录锁，还会加间隙锁，用于解决幻读问题</strong>。</p>
-<h3 id="不同-SQL-语句对加锁的影响"><a href="#不同-SQL-语句对加锁的影响" class="headerlink" title="不同 SQL 语句对加锁的影响"></a>不同 SQL 语句对加锁的影响</h3><p>不同的 SQL 语句当然会加不同的锁，总结起来主要分为五种情况：</p>
-<ul>
-<li>SELECT … 语句正常情况下为快照读，不加锁；</li>
-<li>SELECT … LOCK IN SHARE MODE 语句为当前读，加 S 锁；</li>
-<li>SELECT … FOR UPDATE 语句为当前读，加 X 锁；</li>
-<li>常见的 DML 语句（如 INSERT、DELETE、UPDATE）为当前读，加 X 锁；</li>
-<li>常见的 DDL 语句（如 ALTER、CREATE 等）加表级锁，且这些语句为隐式提交，不能回滚。</li>
-</ul>
-<p>其中，当前读的 SQL 语句的 where 从句的不同也会影响加锁，包括是否使用索引，索引是否是唯一索引等等。</p>
-<h3 id="当前数据对加锁的影响"><a href="#当前数据对加锁的影响" class="headerlink" title="当前数据对加锁的影响"></a>当前数据对加锁的影响</h3><p>SQL 语句执行时数据库中的数据也会对加锁产生影响。</p>
-<p>比如一条最简单的根据主键进行更新的 SQL 语句，如果主键存在，则只需要对其加记录锁，如果不存在，则需要在加间隙锁。</p>
-<p>至于其他非唯一性索引更新或者插入时的加锁也都不同程度的受到现存数据的影响，后续我们会一一说明。</p>
-<h3 id="具体场景分析"><a href="#具体场景分析" class="headerlink" title="具体场景分析"></a>具体场景分析</h3><p>具体 SQL 场景分析主要借鉴何登成前辈的《MySQL 加锁处理分析》文章和 aneasystone 的系列文章，在他们的基础上进行了总结和整理。</p>
-<p>我们使用下面这张 book 表作为实例，其中 id 为主键，ISBN（书号）为二级唯一索引，Author（作者）为二级非唯一索引，score（评分）无索引。</p>
-<p><img src="http://cdn.remcarpediem.net/2020-05-26-121732.png" alt=""></p>
-<h3 id="UPDATE-语句加锁分析"><a href="#UPDATE-语句加锁分析" class="headerlink" title="UPDATE 语句加锁分析"></a>UPDATE 语句加锁分析</h3><p>下面，我们先来分析 UPDATE 相关 SQL 在使用较为简单 where 从句情况下加锁情况。其中的分析原则也适用于 UPDATE,DELETE 和 SELECT … FOR UPDATE等当前读的语句。</p>
-<h4 id="聚簇索引，查询命中"><a href="#聚簇索引，查询命中" class="headerlink" title="聚簇索引，查询命中"></a>聚簇索引，查询命中</h4><p>聚簇索引就是 InnoDB 存储引擎下的主键索引，具体可参考<a href="https://mp.weixin.qq.com/s/FX0bPiBIWWjSI9yRy715FQ" target="_blank" rel="noopener">《MySQL索引》</a>。</p>
-<p>下图展示了使用 UPDATE book SET score = 9.2 WHERE ID = 10 语句命中的情况下在 RC 和 RR 隔离等级下的加锁，两种隔离等级下没有任何区别，都是对 ID = 10 这个索引加排他记录锁。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-9aa0c26774b0ed32.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<h4 id="聚簇索引，查询未命中"><a href="#聚簇索引，查询未命中" class="headerlink" title="聚簇索引，查询未命中"></a>聚簇索引，查询未命中</h4><p>下图展示了 UPDATE book SET score = 9.2 WHERE ID = 16 语句未命中时 RR 隔离级别下的加锁情况。</p>
-<p>在 RC 隔离等级下，不需要加锁；而在 RR 隔离级别会在 ID = 16 前后两个索引之间加上间隙锁。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-a71c4e540a4c9939.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<p>值得注意的是，间隙锁和间隙锁之间是互不冲突的，间隙锁唯一的作用就是为了防止其他事务的插入新行，导致幻读，所以加间隙 S 锁和加间隙 X 锁没有任何区别。</p>
-<h4 id="二级唯一索引，查询命中"><a href="#二级唯一索引，查询命中" class="headerlink" title="二级唯一索引，查询命中"></a>二级唯一索引，查询命中</h4><p>下图展示了 UPDATE book SET score = 9.2 WHERE ISBN = ‘N0003’ 在 RC 和 RR 隔离等级下命中时的加锁情况。</p>
-<p>在 InnoDB 存储引擎中，二级索引的叶子节点保存着主键索引的值，然后再拿主键索引去获取真正的数据行，所以在这种情况下，二级索引和主键索引都会加排他记录锁。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-f2df4b02fa76e924.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<h4 id="二级唯一索引，查询未命中"><a href="#二级唯一索引，查询未命中" class="headerlink" title="二级唯一索引，查询未命中"></a>二级唯一索引，查询未命中</h4><p>下图展示了 UPDATE book SET score = 9.2 WHERE ISBN = ‘N0008’ 语句在 RR 隔离等级下未命中时的加锁情况，RC 隔离等级下该语句未命中不会加锁。</p>
-<p>因为 N0008 大于 N0007，所以要锁住 (N0007,正无穷)这段区间，而 InnoDB 的索引一般都使用 Suprenum Record 和 Infimum Record 来分别表示记录的上下边界。Infimum 是比该页中任何记录都要小的值，而 Supremum 比该页中最大的记录值还要大，这两条记录在创建页的时候就有了，并且不会删除。</p>
-<p>所以，在 N0007 和 Suprenum Record 之间加了间隙锁。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-16d854a96f4275d4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<p>为什么不在主键上也加 GAP 锁呢？欢迎留言说出你的想法。</p>
-<h4 id="二级非唯一索引，查询命中"><a href="#二级非唯一索引，查询命中" class="headerlink" title="二级非唯一索引，查询命中"></a>二级非唯一索引，查询命中</h4><p>下图展示了 UPDATE book SET score = 9.2 WHERE Author = ‘Tom’ 语句在 RC 隔离等级下命中时的加锁情况。</p>
-<p>我们可以看到，在 RC 等级下，二级唯一索引和二级非唯一索引的加锁情况是一致的，都是在涉及的二级索引和对应的主键索引上加上排他记录锁。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-f897052c7564c31a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<p>但是在 RR 隔离等级下，加锁的情况产生了变化，它不仅对涉及的二级索引和主键索引加了排他记录锁，还在非唯一二级索引上加了三个间隙锁，锁住了两个 Tom 索引值相关的三个范围。</p>
-<p>那为什么唯一索引不需要加间隙锁呢？间隙锁的作用是为了解决幻读，防止其他事务插入相同索引值的记录，而唯一索引和主键约束都已经保证了该索引值肯定只有一条记录，所以无需加间隙锁。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-92ce2a5dc5a2f787.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<p>需要注意的是，上图虽然画着 4 个记录锁，三个间隙锁，但是实际上间隙锁和它右侧的记录锁会合并成 Next-Key 锁。</p>
-<p>所以实际情况有两个 Next-Key 锁，一个间隙锁(Tom60,正无穷)和两个记录锁。</p>
-<h4 id="二级非唯一索引，查询未命中"><a href="#二级非唯一索引，查询未命中" class="headerlink" title="二级非唯一索引，查询未命中"></a>二级非唯一索引，查询未命中</h4><p>下图展示了 UPDATE book SET score = 9.2 WHERE Author = ‘Sarah’ 在 RR 隔离等级下未命中的加锁情况，它会在二级索引 Rose 和 Tom 之间加间隙锁。而 RC 隔离等级下不需要加锁。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-c137f7789e60a986.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<h4 id="无索引"><a href="#无索引" class="headerlink" title="无索引"></a>无索引</h4><p>当 Where 从句的条件并不使用索引时，则会对全表进行扫描，在 RC 隔离等级下对所有的数据加排他记录锁。在RR 隔离等级下，除了给记录加锁，还会对记录和记录之间加间隙锁。和上边一样，间隙锁会和左侧的记录锁合并成 Next-Key 锁。</p>
-<p>下图就是 UPDATE book SET score = 9.2 WHERE score = 22 语句在两种隔离等级下的加锁情况。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-08c428ebfebf3bdc.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<h4 id="聚簇索引，范围查询"><a href="#聚簇索引，范围查询" class="headerlink" title="聚簇索引，范围查询"></a>聚簇索引，范围查询</h4><p>上面介绍的场景都是 where 从句的等值查询，而范围查询的加锁又是怎么样的呢？我们慢慢来看。</p>
-<p>下图是 UPDATE book SET score = 9.2 WHERE ID &lt;= 25 在 RC 和 RR 隔离等级下的加锁情况。</p>
-<p>RC 场景下与等值查询类似，只会在涉及的 ID = 10，ID = 18 和 ID = 25 索引上加排他记录锁。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-c68266e9ee9da19e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<p>而在 RR 隔离等级下则有所不同，它会加上间隙锁，和对应的记录锁合并称为 Next-Key 锁。除此之外，它还会在(25, 30] 上分别加 Next-Key 锁。这一点是十分特殊的，具体原因还需要再探究。</p>
-<h4 id="二级索引，范围查询"><a href="#二级索引，范围查询" class="headerlink" title="二级索引，范围查询"></a>二级索引，范围查询</h4><p>下图展示了 UPDATE book SET ISBN = N0001 WHERE score &lt;= 7.9 在 RR 级别下的加锁情况。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-71b90974da56dffe.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<h4 id="修改索引值"><a href="#修改索引值" class="headerlink" title="修改索引值"></a>修改索引值</h4><p>UPDATE 语句修改索引值的情况可以分开分析，首先 Where 从句的加锁分析如上文所述，多了一步 Set 部分的加锁。</p>
-<p>下图展示了 UPDATE book SET Author = ‘John’ WHERE ID = 10 在 RC 和 RR 隔离等级下的加锁情况。除了在主键 ID 上进行加锁，还会对二级索引上的 Bob(就值) 和 John(新值) 上进行加锁。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-4bcbe899fee57785.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<h3 id="DELETE-语句加锁分析"><a href="#DELETE-语句加锁分析" class="headerlink" title="DELETE 语句加锁分析"></a>DELETE 语句加锁分析</h3><p>一般来说，DELETE 的加锁和 SELECT FOR UPDATE 或 UPDATE 并没有太大的差异。</p>
-<p>因为，在 MySQL 数据库中，执行 DELETE 语句其实并没有直接删除记录，而是在记录上打上一个删除标记，然后通过后台的一个叫做 purge 的线程来清理。从这一点来看，DELETE 和 UPDATE 确实是非常相像。事实上，DELETE 和 UPDATE 的加锁也几乎是一样的。</p>
-<h3 id="INSERT-语句加锁分析"><a href="#INSERT-语句加锁分析" class="headerlink" title="INSERT 语句加锁分析"></a>INSERT 语句加锁分析</h3><p>接下来，我们来看一下 Insert 语句的加锁情况。 </p>
-<p>Insert 语句在两种情况下会加锁：</p>
-<ul>
-<li>为了防止幻读，如果记录之间加有间隙锁，此时不能 Insert；</li>
-<li>如果 Insert 的记录和已有记录造成唯一键冲突，此时不能 Insert；</li>
-</ul>
-<p>除了上述情况，Insert 语句的锁都是隐式锁。隐式锁是 InnoDB 实现的一种延迟加锁的机制来减少加锁的数量。</p>
-<p>隐式锁的特点是只有在可能发生冲突时才加锁，减少了锁的数量。另外，隐式锁是针对被修改的 B+Tree 记录，因此都是记录类型的锁，不可能是间隙锁或 Next-Key 类型。</p>
-<p>具体 Insert 语句的加锁流程如下：</p>
-<ul>
-<li><p>首先对插入的间隙加插入意向锁（Insert Intension Locks）</p>
-<ul>
-<li>如果该间隙已被加上了间隙锁或 Next-Key 锁，则加锁失败进入等待；</li>
-<li>如果没有，则加锁成功，表示可以插入；</li>
-</ul>
-</li>
-<li><p>然后判断插入记录是否有唯一键，如果有，则进行唯一性约束检查</p>
-<ul>
-<li>如果不存在相同键值，则完成插入</li>
-<li><p>如果存在相同键值，则判断该键值是否加锁</p>
-<ul>
-<li><p>如果没有锁， 判断该记录是否被标记为删除</p>
-<ul>
-<li>如果标记为删除，说明事务已经提交，还没来得及 purge，这时加 S 锁等待；</li>
-<li>如果没有标记删除，则报 duplicate key 错误；</li>
-</ul>
-</li>
-<li>如果有锁，说明该记录正在处理（新增、删除或更新），且事务还未提交，加 S 锁等待；</li>
-</ul>
-</li>
-</ul>
-</li>
-<li>插入记录并对记录加 X 记录锁；</li>
-</ul>
-<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>本文中讲解的 SQL 语句都是十分简单的，当 SQL 语句包含多个查询条件时，加锁的分析过程就往往更加复杂。我们需要使用 MySQL 相关的工具进行分析，并且有时甚至需要查询 MySQL 相关的日志信息来了解到底语句加了什么锁或者为什么产生死锁，下篇文章中我们就主要了解一下这些内容，请大家持续关注。</p>
-<p><a href="http://remcarpediem.net/">个人博客，欢迎来玩</a></p>
-<p><img src="http://cdn.remcarpediem.net/2020-05-26-144752.png" alt=""></p>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></div>   
+                <div class="article-more-link">
+                    <a href="/article/5a35e6d9/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/5a35e6d9/" class="leancloud_visitors" data-flag-title="MySQL死锁系列-加锁场景分析">
@@ -377,7 +298,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/5a35e6d9/" data-id="ckauf70y5002pwi665w04dk2s" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/5a35e6d9/" data-id="ckaufl90l002mjv66t0kf4zcv" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -489,261 +410,45 @@ var _hmt = _hmt || [];
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>近日 Redis 6.0.0 GA 版本发布，这是 Redis 历史上最大的一次版本更新，包括了客户端缓存 (Client side caching)、ACL、Threaded I/O 和 Redis Cluster Proxy 等诸多更新。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>近日 Redis 6.0.0 GA 版本发布，这是 Redis 历史上最大的一次版本更新，包括了客户端缓存 (Client side caching)、ACL、Threaded I/O 和 Redis Cluster Proxy 等诸多更新。</p>
 <p>我们今天就依次聊一下客户端缓存的必要性、具体使用、原理分析和实现。</p>
 <h3 id="为什么需要客户端缓存？"><a href="#为什么需要客户端缓存？" class="headerlink" title="为什么需要客户端缓存？"></a>为什么需要客户端缓存？</h3><p>我们都知道，使用 Redis 进行数据的缓存的主要目的是减少对 MySQL 等数据库的访问，提供更快的访问速度，毕竟 《Redis in Action》中提到的， Redis 的性能大致是普通关系型数据库的 10 ~ 100 倍。</p>
 <p>所以，如下图所示，Redis 用来存储热点数据，Redis 未命中，再去访问数据库，这样可以应付大多数情况下的性能要求。</p>
 <p><img src="images/20_511_1/1.png" alt=""></p>
-<p>但是，Redis 也有其性能上限，并且访问 Redis 必然有一定的网络 I/O 以及序列化反序列化损耗。所以，往往会引入进程缓存，将最热的数据存储在本地，进一步加快访问速度。</p>
-<p><img src="images/20_511_1/2.png" alt=""></p>
-<p>如上图所示，Guava Cache 等进程缓存作为一级缓存，Redis 作为二级缓存：</p>
-<ol>
-<li>先去 Guava Cache 中查询数据，如果命中则直接返回。</li>
-<li>Guava Cache 中未命中，则再去 Redis 中查询，如果命中则返回数据，并在 Guava Cache 中设置此数据。</li>
-<li>Redis 也未命中的话，只有去 MySQL 中查询，然后依次将数据设置到 Redis 和 Guava Cache 中。</li>
-</ol>
-<p>只使用 Redis 分布式缓存时，遇到数据更新时，应用程序更新完 MySQL 中的数据，可以直接将 Redis 中对应缓存失效掉，保持数据的一致性。</p>
-<p>而进程内缓存的数据一致性比分布式的缓存面临更大的挑战。数据更新的时候，如何通知其他进程也更新自己的缓存呢?</p>
-<p>如果按照分布式缓存的思路，我们可以设置极短的缓存失效时间，这样不必实现复杂的通知机制。</p>
-<p>但是不同进程内的数据依然会面临不一致的问题，并且不同进程缓存失效时间不统一，同一个请求到了不同的进程，可能出现反复幻读的情况。</p>
-<p><img src="images/20_511_1/3.png" alt=""></p>
-<p>Ben 在 RedisConf18 给出了一个方案(视频和 PPT 链接在文末)，通过 Redis 的 Pub/Sub，可以通知其他进程缓存对此缓存进行删除。如果 Redis 挂了或者订阅机制不靠谱，依靠超时设定，依然可以做兜底处理。</p>
-<p>Antirez(Redis 的作者) 也正是听取 Ben 这个方案后，才决定在 Redis  Server 支持客户端缓存的，因为在有服务端参与的情况下可以更好的处理上述这些问题。 </p>
-<h3 id="功能介绍和演示"><a href="#功能介绍和演示" class="headerlink" title="功能介绍和演示"></a>功能介绍和演示</h3><p>下面使用 Docker 安装 Redis 6.0.1，然后使用 telnet 来简单演示一下 Redis 6.0 的客户端缓存功能。所有相关的功能如下图所示，分别是使用RESP3 协议版本的普通模式和广播模式，以及使用 RESP2 协议版本的转发模式。我们先来看普通模式。</p>
-<p><img src="images/20_511_1/4.png" alt=""></p>
-<h4 id="普通模式"><a href="#普通模式" class="headerlink" title="普通模式"></a>普通模式</h4><p>先使用 redis-cli 设置缓存值 test=111，使用 telnet 连接上 Redis，然后发送 hello 3 开启 RESP3 协议。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-bash">[root@VM_0_3_centos ~]# telnet 127.0.0.1 6379
-Trying 127.0.0.1...
-Connected to 127.0.0.1.
-Escape character is &#39;^]&#39;.
-hello 3
-&#x2F;&#x2F; telnet 输出结果格式化标准化后如下，否则换行太多并且是 RESP3 格式，不需要了解格式。
-&gt; HELLO 3
-1# &quot;server&quot; =&gt; &quot;redis&quot;
-2# &quot;version&quot; =&gt; &quot;6.0.1&quot;
-3# &quot;proto&quot; =&gt; (integer) 3
-4# &quot;id&quot; =&gt; (integer) 10
-5# &quot;mode&quot; =&gt; &quot;standalone&quot;
-6# &quot;role&quot; =&gt; &quot;master&quot;
-7# &quot;modules&quot; =&gt; (empty array)
-</code></pre>
-<p>这里需要注意，<strong>Redis 服务端只会 track 客户端在一个连接生命周期内的获取的只读命令的 key值</strong>。<strong>Redis 客户端默认不开启 track 模式</strong>，需要使用命令开启，然后必须要先获取一次 test 的值，这样 Redis 服务器才会记录它。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">client tracking on
-+OK
-get test
-$3
-111
-</code></pre>
-<p><strong>当键被修改，或者因为失效时间(expire time)和内存上限 maxmemory 策略被驱除时，Redis 服务端会通知这些客户端</strong>。我们这里简单地更新 test 的值，telnet 则会收到如下通知</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&gt;2 &#x2F;&#x2F; RESP3 中的 PUSH 类型，标志为 &gt; 符号
-$10
-invalidate
-*1
-$4
-test
-</code></pre>
-<p>如果你再一次更新 test 值，这次 telnet 就不会再收到失效(invalidate)消息。除非 telnet 再进行一次 get 操作，重新 tracking 对应的键值。</p>
-<p><strong>也就是说 Redis 服务端记录的客户端 track 信息只生效一次，发送过失效消息后就会删除，只有下次客户端再次执行只读命令被 track，才会进行下一次消息通知</strong> 。</p>
-<p>取消 tracking 的命令如下所示。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">client tracking off
-+OK
-</code></pre>
-<h4 id="广播模式"><a href="#广播模式" class="headerlink" title="广播模式"></a>广播模式</h4><p>Redis 还提供了一种广播模式(BCAST)，它是另外一种客户端缓存的实现方式。这种方式下 <strong>Redis 服务端不再消耗过多内存存储信息，而是发送更多的失效消息给客户端</strong>。</p>
-<p>这是服务端存储过多数据，消耗内存和客户端收到过多消息，消耗网络带宽之间的权衡(tradeoff)。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-bash">&#x2F;&#x2F; 已经 hello 3 开启 RESP3 协议，不然无法收到失效消息，下同
-client tracking on bcast 
-+OK
-&#x2F;&#x2F; 此时设置 key 为 a 的键值，收到如下消息。
-&gt;2
-$10
-invalidate
-*1
-$1
-a
-</code></pre>
-<p>如果你不想所有的键值的失效消息都收到，则可以限制 key 的前缀，如下命令则表示只关注前缀为 test 的键值的消息。一般来说，业务的缓存 key 都是根据业务拥有统一的前缀，所以这一特性十分方便。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">client tracking on bcast prefix test
-</code></pre></p>
-<p>与普通模式必须获取一次键的规则不同，<strong>广播模式下，只要键被修改或删除，符合规则的客户端都会收到失效消息，而且是可以多次获取的</strong></p>
-<p>与普通模式相比，虽然少存储了一些数据，但是由于需要对前缀规则进行匹配，会消耗一定的 CPU 资源，所以<strong>注意别使用过长的前缀</strong>。</p>
-<h4 id="转发模式"><a href="#转发模式" class="headerlink" title="转发模式"></a>转发模式</h4><p>上述操作时客户端都需要先开启 RESP3，Redis 为了兼容 RESP2 协议提供了转发(Redirect)模式，不再使用 RESP3 原生支持 PUSH 消息，而是将消息通过 Pub/Sub 通知给另外一个客户端，具体流程如下图所示。</p>
-<p><img src="images/20_511_1/5.png" alt=""></p>
-<p>这里需要两个 telnet，其中一个 telnet 需要订阅 <code>_redis_:invalidate</code> 信道。然后另一个 telnet 开启 Redirect 模式，并制定将失效消息通过订阅信道发送给第一个 telnet。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-bash"># telent B
-client id
-:368
-subscribe _redis_:invalidate
-
-# telnet A，开启 track 并指定转发给 B
-client tracking on bcast redirect 368
-
-# telent B 此时有键值被修改，收到 __redis__:invalidate 信道的消息
-message
-$20
-__redis__:invalidate
-*1
-$1
-a
-</code></pre>
-<p>你会发现，转发模式和文章开始提到的多级缓存中的更新机制很类似了，只不过那个方案中是业务系统修改完 key 后发送消息通知，而这里是 Redis 服务端代替业务系统发送消息通知。</p>
-<h4 id="OPTIN-和-OPTOUT-选项"><a href="#OPTIN-和-OPTOUT-选项" class="headerlink" title="OPTIN 和 OPTOUT 选项"></a>OPTIN 和 OPTOUT 选项</h4><p>使用 OPTIN 可以选择性的开启 tracking。只有你发送 client caching yes (Redis 文档中是 CACHING 命令，但是实验时发现无效)之后的下一条的只读命令的 key 才会 tracking，否则其他的只读命令的 key 不会被 tracking。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">client tracking on optin
-client caching yes
-get a
-get b
-&#x2F;&#x2F; 此时修改 a 和 b 的值，发现只收到 a 的失效消息
-&gt;2
-$10
-invalidate
-*1
-$1
-a
-</code></pre>
-<p>而 OPTOUT 参数与之相反，你可以有选择的退出 tracking。发送 client caching off 之后的下一条只读命令的 key 不会被 tracking，其他只读命令都会被 tracking。</p>
-<p>OPTIN 和 OPTOUT 是针对非 BCAST 模式，也就是只有发送了某个 key 的只读命令后，才会追踪相应的 key。而 BCAST 模式是无论你是否发送某个 key 的只读命令，只有 Redis 修改了 key，都会发送相应的 key 的失效消息(前缀匹配的)。</p>
-<h4 id="NOLOOP-选项"><a href="#NOLOOP-选项" class="headerlink" title="NOLOOP 选项"></a>NOLOOP 选项</h4><p>默认情况下，失效消息会发送给所有需要的 Redis 客户端，但是有些情况下触发失效消息也就是更新 key 的客户端不需要收到该消息。</p>
-<p>设置 NOLOOP，可以避免这种情况，更新 Key 的客户端将不再收到消息，该选项在普通模式和广播模式下都适用。</p>
-<h4 id="最大-tracking-上限-tracking-table-max-keys"><a href="#最大-tracking-上限-tracking-table-max-keys" class="headerlink" title="最大 tracking 上限 tracking_table_max_keys"></a>最大 tracking 上限 tracking_table_max_keys</h4><p>由上文可以知道，普通模式下需要存储大量的被 tracking 的 key 和客户端信息(具体存储的数据下文中会讲解)，所以当 10k 客户端使用该模式处理百万个键时，会消耗大量的内存空间，所以 Redis 引入了 tracking_table_max_keys 配置，默认为无，不限制。</p>
-<p>当有一个新的键被 tracking 时，如果当前 tracking 的 key 的数量大于 tracking_table_max_keys，则会随机删除之前 tracking 的 key，并且向对应的客户端发送失效消息。</p>
-<h3 id="原理和源码实现"><a href="#原理和源码实现" class="headerlink" title="原理和源码实现"></a>原理和源码实现</h3><h4 id="普通模式原理"><a href="#普通模式原理" class="headerlink" title="普通模式原理"></a>普通模式原理</h4><p>我们也先讲解普通模式的原理，Redis 服务端使用 TrackingTable 存储普通模式的客户端数据，它的数据类型是基数树(radix tree)。</p>
-<p>基数树是针对稀疏的长整型数据查找的多叉搜索树，能快速且节省空间的完映射，一般用于解决 Hash冲突和 Hash表大小的设计问题，Linux 的内存管理就使用了它。</p>
-<p><img src="images/20_511_1/6.png" alt=""></p>
-<p>Redis 用它存储<strong>键的指针</strong>和<strong>客户端 ID</strong> 的映射关系。因为键对象的指针就是内存地址，也就是长整型数据。客户端缓存的相关操作就是对该数据的增删改查：</p>
-<ul>
-<li>当开启 track 功能的客户端获取某一个键值时，Redis 会调用 <code>enableTracking</code> 方法使用基数树记录下该 key 和 clientId 的映射关系。</li>
-<li>当某一个 key 被修改或删除时，Redis 会调用 <code>trackingInvalidateKey</code> 方法根据 key 从 TrackingTable 中查找所有对应的客户端ID，然后调用 <code>sendTrackingMessage</code> 方法发送失效消息给这些客户端(会检查 CLIENT_TRACKING 相关标志位是否开启和是否开启了 NOLOOP)。</li>
-<li>发送完失效消息后，根据<strong>键的指针值</strong>将映射关系从 TrackingTable中删除。</li>
-<li>客户端关闭 track 功能后，因为删除需要进行大量操作，所以 Redis 使用懒删除方式，只是将该客户端的 CLIENT_TRACKING 相关标志位删除掉。</li>
-</ul>
-<h4 id="广播模式原理"><a href="#广播模式原理" class="headerlink" title="广播模式原理"></a>广播模式原理</h4><p><img src="images/20_511_1/7.png" alt=""></p>
-<p>广播模式与普通模式类似，Redis 同样使用 <code>PrefixTable</code> 存储广播模式下的客户端数据，它存储<strong>前缀字符串指针和(需要通知的key和客户端ID)</strong>的映射关系。它和广播模式最大的区别就是真正发送失效消息的时机不同：</p>
-<ul>
-<li>当客户端开启广播模式时，会在 <code>PrefixTable</code>的前缀对应的客户端列表中加入该客户端ID。</li>
-<li>当某一个 key 被修改或删除时，Redis 会调用 <code>trackingInvalidateKey</code> 方法，<code>trackingInvalidateKey</code> 方法中如果发现 <code>PrefixTable</code> 不为空，则调用 <code>trackingRememberKeyToBroadcast</code> 依次遍历所有前缀，如果key 符合前缀规则，则记录到 <code>PrefixTable</code> 对应的位置。</li>
-<li>在 Redis 的事件处理周期函数 beforeSleep 函数里会调用 <code>trackingBroadcastInvalidationMessages</code> 函数来真正发送消息。</li>
-</ul>
-<h4 id="处理最大-tracking-上限"><a href="#处理最大-tracking-上限" class="headerlink" title="处理最大 tracking 上限"></a>处理最大 tracking 上限</h4><p>Redis 会在每次执行过命令后(processCommand方法)调用 <code>trackingLimitUsedSlots</code> 来判断是否需要进行清理：</p>
-<ul>
-<li>判断 TrackingTable 中键的数量是否大于 tracking_table_max_keys；</li>
-<li>在一定时间段内(不能太长，阻塞主流程)，随机从 TrackingTable 中选出一个键删除，直到数量小于或者时间用完为止。</li>
-</ul>
-<h4 id="具体源码"><a href="#具体源码" class="headerlink" title="具体源码"></a>具体源码</h4><p>关于源码，在 tracking.c 文件下，我们这里只看一下最为关键的 <code>trackingInvalidateKey</code> 函数和 <code>sendTrackingMessage</code> 函数，理解了这两个函数，广播模式和处理最大 tracking 上限等相关函数都与之类似。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">void trackingInvalidateKey(client *c, robj *keyobj) {
-    if (TrackingTable == NULL) return;
-    sds sdskey = keyobj-&gt;ptr;
-    &#x2F;&#x2F; 省略，如果广播模式的记录基数树不为空，则先处理广播模式
-    &#x2F;&#x2F; 1 根据键的指针去 TrackingTable 查找
-    rax *ids = raxFind(TrackingTable,(unsigned char*)sdskey,sdslen(sdskey));
-    if (ids == raxNotFound) return;
-    &#x2F;&#x2F; 2 使用迭代器遍历
-    raxIterator ri;raxStart(&amp;ri,ids);raxSeek(&amp;ri,&quot;^&quot;,NULL,0);
-    while(raxNext(&amp;ri)) {
-        &#x2F;&#x2F; 3 根据 clientId 查找 client 实例
-        client *target = lookupClientByID(id);
-        &#x2F;&#x2F; 4 如果未开启 track 或者是广播模式则跳过。
-        if (target == NULL ||
-            !(target-&gt;flags &amp; CLIENT_TRACKING)||
-            target-&gt;flags &amp; CLIENT_TRACKING_BCAST)
-        {   continue;  }
-        &#x2F;&#x2F; 5 如果开启了 NOLOOP 并且是导致key发生变化的client则跳过。
-        if (target-&gt;flags &amp; CLIENT_TRACKING_NOLOOP &amp;&amp;
-            target == c)
-        {   continue;  }
-        &#x2F;&#x2F; 6 发送失效消息
-        sendTrackingMessage(target,sdskey,sdslen(sdskey),0);
-    }
-    &#x2F;&#x2F; 7 减少数据统计，根据sdskey删除对应的记录
-    TrackingTableTotalItems -= raxSize(ids);
-    raxFree(ids);
-    raxRemove(TrackingTable,(unsigned char*)sdskey,sdslen(sdskey),NULL);
-}
-</code></pre>
-<p>源码如上所示，trackingInvalidateKey 方法主要做了 7 件事情：</p>
-<ul>
-<li>根据键的指针去 TrackingTable 查找客户端ID列表；</li>
-<li>使用迭代器遍历列表；</li>
-<li>根据 clientId 查找 client 实例；</li>
-<li>如果 client 实例未开启 track 或者是广播模式则跳过；</li>
-<li>如果 client 实例开启了 NOLOOP 并且是导致key发生变化的client则跳过；</li>
-<li>调用 sendTrackingMessage 方法发送失效消息；</li>
-<li>减少数据统计，根据sdskey删除对应的记录</li>
-</ul>
-<p>下面来看真正发送消息的 <code>sendTrackingMessage</code> 函数，它主要做了6件事：</p>
-<ul>
-<li>如果 client_tracking_redirection 不为空，则开启了转发模式；</li>
-<li>找到转发的客户端实例；</li>
-<li>如果转发客户端关闭了，则必须通知原客户端；</li>
-<li>如果是客户端使用 RESP3 则发 PUSH 消息；</li>
-<li>如果是转发模式，往 TrackingChannelName 也就是 <code>_redis_:invalidate</code> 信道中发送失效消息的头部信息；</li>
-<li>发送键等信息。</li>
-</ul>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">void sendTrackingMessage(client *c, char *keyname, size_t keylen, int proto) {
-    int using_redirection = 0;
-    &#x2F;&#x2F; 1 如果 client_tracking_redirection 不为空，则开启了转发模式
-    if (c-&gt;client_tracking_redirection) {
-        &#x2F;&#x2F; 2 找到转发的客户端实例
-        client *redir = lookupClientByID(c-&gt;client_tracking_redirection);
-        if (!redir) {
-            &#x2F;&#x2F; 3 如果转发客户端关闭了，则必须通知原客户端
-            ....
-            return;
-        }
-        c = redir;
-        using_redirection = 1;
-    }
-
-    if (c-&gt;resp &gt; 2) {
-        &#x2F;&#x2F; 4 如果是 RESP3 则发PUSH
-        addReplyPushLen(c,2);
-        addReplyBulkCBuffer(c,&quot;invalidate&quot;,10);
-    } else if (using_redirection &amp;&amp; c-&gt;flags &amp; CLIENT_PUBSUB) {
-        &#x2F;&#x2F; 5 转发模式，往 TrackingChannelName 信道中发送消息
-        addReplyPubsubMessage(c,TrackingChannelName,NULL);
-    } else {
-        return;
-    }
-    &#x2F;&#x2F; 6 发送键等信息，和上边4，5操作连在一起的。
-    addReplyProto(c,keyname,keylen);
-}
-</code></pre>
-<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>相信看到这里的小伙伴们都已经有点疲惫了吧，但是还请大家多多点赞多多评论。后续还会学习其他 Redis 6.0.0 的其他亮点功能，请大家继续关注。</p>
-<p><a href="http://remcarpediem.net/article/1dd72ef8/">个人博客地址，欢迎查看</a></p>
-<p>给笔者的新书打个广告，已经上架各大平台，可以通过下方的二维码购买。</p>
-<p><img src="images/20_511_1/8.png" alt=""></p>
-<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
-<li><a href="https://redis.io/topics/client-side-caching" target="_blank" rel="noopener">https://redis.io/topics/client-side-caching</a></li>
-<li><a href="https://tech.meituan.com/2017/03/17/cache-about.html" target="_blank" rel="noopener">https://tech.meituan.com/2017/03/17/cache-about.html</a></li>
-<li><a href="https://cloud.tencent.com/developer/article/1005399" target="_blank" rel="noopener">https://cloud.tencent.com/developer/article/1005399</a></li>
-<li><a href="https://juejin.im/post/5b849878e51d4538c77a974a" target="_blank" rel="noopener">https://juejin.im/post/5b849878e51d4538c77a974a</a></li>
-<li><a href="https://www.kawabangga.com/posts/3590" target="_blank" rel="noopener">https://www.kawabangga.com/posts/3590</a></li>
-<li>ppt <a href="https://www.slideshare.net/RedisLabs/redisconf18-techniques-for-synchronizing-inmemory-caches-with-redis" target="_blank" rel="noopener">https://www.slideshare.net/RedisLabs/redisconf18-techniques-for-synchronizing-inmemory-caches-with-redis</a></li>
-<li>视频 <a href="https://www.bilibili.com/video/BV1qe411p7v9/" target="_blank" rel="noopener">https://www.bilibili.com/video/BV1qe411p7v9/</a></li>
-</ul>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></div>   
+                <div class="article-more-link">
+                    <a href="/article/e3e7a535/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/e3e7a535/" class="leancloud_visitors" data-flag-title="带你100% 地了解 Redis 6.0 的客户端缓存">
@@ -756,7 +461,7 @@ a
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/e3e7a535/" data-id="ckauf70zu0074wi66hevrg4qq" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/e3e7a535/" data-id="ckaufl92l0075jv66ztai9o0v" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -868,113 +573,45 @@ a
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>疫情期间在家工作时，同事使用了 insert into on duplicate key update 语句进行插入去重，但是在测试过程中发现了死锁现象:<br>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>疫情期间在家工作时，同事使用了 insert into on duplicate key update 语句进行插入去重，但是在测试过程中发现了死锁现象:<br>
 <!-- Has Prism -->
 <pre class="line-numbers" style=""><code class="language-clike">ERROR 1213 (40001): Deadlock found when trying to get lock; try restarting transaction
 </code></pre></p>
 <p>由于开发任务紧急，只是暂时规避了一下，但是对触发死锁的原因和相关原理不甚了解，于是这几天一直在查阅相关资料，总结出一个系列文章供大家参考。本篇是上篇，主要介绍 MySQL 加锁原理和锁的不同模式或类型的基本知识。后续会讲解常见语句的加锁情况和通过 MySQL 死锁日志分析死锁原因。</p>
-<p>由于本篇文章涉及很多 MySQL 的基础知识，大家可以自行阅读我之前的 MySQL系列文章 <a href="http://remcarpediem.net/categories/MySQL/">《MySQL探秘》</a>中的对应章节。</p>
-<h3 id="表锁和行锁"><a href="#表锁和行锁" class="headerlink" title="表锁和行锁"></a>表锁和行锁</h3><p>我们首先来了解一下表锁和行锁：表锁是指对一整张表加锁，一般是 DDL 处理时使用；而行锁则是锁定某一行或者某几行，或者行与行之间的间隙。</p>
-<p>表锁由 MySQL Server 实现，行锁则是存储引擎实现，不同的引擎实现的不同。在 MySQL 的常用引擎中 InnoDB 支持行锁，而 MyISAM 则只能使用 MySQL Server 提供的表锁。<br><img src="/images/20_0401/1.png" alt=""></p>
-<h3 id="表锁"><a href="#表锁" class="headerlink" title="表锁"></a>表锁</h3><p>表锁由 MySQL Server 实现，一般在执行 DDL 语句时会对整个表进行加锁，比如说 ALTER TABLE 等操作。在执行 SQL 语句时，也可以明确指定对某个表进行加锁。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">mysql&gt; lock table user read(write); # 分为读锁和写锁
-Query OK, 0 rows affected (0.00 sec)
-
-mysql&gt; select * from user where id = 100; # 成功
-mysql&gt; select * from role where id = 100; # 失败，未提前获取该 role的读表锁
-mysql&gt; update user  set name = &#39;Tom&#39; where id = 100; # 失败，未提前获得user的写表锁
-
-mysql&gt; unlock tables; # 显示释放表锁
-Query OK, 0 rows affected (0.00 sec)
-</code></pre>
-<p>表锁使用的是一次性锁技术，也就是说，在会话开始的地方使用 lock 命令将后续需要用到的表都加上锁，在表释放前，只能访问这些加锁的表，不能访问其他表，直到最后通过 unlock tables 释放所有表锁。</p>
-<p>除了使用 unlock tables 显示释放锁之外，会话持有其他表锁时执行lock table 语句会释放会话之前持有的锁；会话持有其他表锁时执行 start transaction 或者 begin 开启事务时，也会释放之前持有的锁。</p>
-<h3 id="行锁"><a href="#行锁" class="headerlink" title="行锁"></a>行锁</h3><p>不同存储引擎的行锁实现不同，后续没有特别说明，则行锁特指 InnoDB 实现的行锁。</p>
-<p>在了解 InnoDB 的加锁原理前，需要对其存储结构有一定的了解。InnoDB 是聚簇索引，也就是 B+树的叶节点既存储了主键索引也存储了数据行。而 InnoDB 的二级索引的叶节点存储的则是主键值，所以通过二级索引查询数据时，还需要拿对应的主键去聚簇索引中再次进行查询。关于 InnoDB 和 MyISAM 的索引的详细知识可以阅读《Mysql探索(一):B+Tree索引》一文。</p>
-<p><img src="/images/20_0401/2.png" alt=""></p>
-<p>下面以两条 SQL 的执行为例，讲解一下 InnoDB 对于单行数据的加锁原理。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">update user set age = 10 where id = 49;
-update user set age = 10 where name = &#39;Tom&#39;;
-</code></pre></p>
-<p>第一条 SQL 使用主键索引来查询，则只需要在 id = 49 这个主键索引上加上写锁；第二条 SQL 则使用二级索引来查询，则首先在 name = Tom 这个索引上加写锁，然后由于使用 InnoDB 二级索引还需再次根据主键索引查询，所以还需要在 id = 49 这个主键索引上加写锁，如上图所示。</p>
-<p>也就是说使用主键索引需要加一把锁，使用二级索引需要在二级索引和主键索引上各加一把锁。</p>
-<p>根据索引对单行数据进行更新的加锁原理了解了，那如果更新操作涉及多个行呢，比如下面 SQL 的执行场景。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">update user set age = 10 where id &gt; 49;
-</code></pre>
-<p>上述 SQL 的执行过程如下图所示。MySQL Server 会根据 WHERE 条件读取第一条满足条件的记录，然后 InnoDB 引擎会将第一条记录返回并加锁，接着 MySQL Server 发起更新改行记录的 UPDATE 请求，更新这条记录。一条记录操作完成，再读取下一条记录，直至没有匹配的记录为止。</p>
-<p><img src="/images/20_0401/3.png" alt=""></p>
-<p>这种场景下的锁的释放较为复杂，有多种的优化方式，我对这块暂时还没有了解，还请知道的小伙伴在下方留言解释。</p>
-<p>下面主要依次介绍 InnoDB 中锁的模式和类型，锁的类型是指锁的粒度或者锁具体加在什么地方；而锁模式描述的是锁的兼容性，也就是加的是什么锁，比如写锁或者读锁。</p>
-<p>内容基本来自于 MySQL 的技术文档 innodb-lock 一章，感兴趣的同学可以直接去阅读原文，原文地址为见文章末尾。</p>
-<h3 id="行锁的模式"><a href="#行锁的模式" class="headerlink" title="行锁的模式"></a>行锁的模式</h3><p>锁的模式有：读意向锁，写意向锁，读锁，写锁和自增锁(auto_inc)，下面我们依次来看。</p>
-<h4 id="读写锁"><a href="#读写锁" class="headerlink" title="读写锁"></a>读写锁</h4><p>读锁，又称共享锁（Share locks，简称 S 锁），加了读锁的记录，所有的事务都可以读取，但是不能修改，并且可同时有多个事务对记录加读锁。</p>
-<p>写锁，又称排他锁（Exclusive locks，简称 X 锁），或独占锁，对记录加了排他锁之后，只有拥有该锁的事务可以读取和修改，其他事务都不可以读取和修改，并且同一时间只能有一个事务加写锁。</p>
-<h3 id="读写意向锁"><a href="#读写意向锁" class="headerlink" title="读写意向锁"></a>读写意向锁</h3><p>由于表锁和行锁虽然锁定范围不同，但是会相互冲突。所以当你要加表锁时，势必要先遍历该表的所有记录，判断是否加有排他锁。这种遍历检查的方式显然是一种低效的方式，MySQL 引入了意向锁，来检测表锁和行锁的冲突。</p>
-<p>意向锁也是表级锁，也可分为读意向锁（IS 锁）和写意向锁（IX 锁）。当事务要在记录上加上读锁或写锁时，要首先在表上加上意向锁。这样判断表中是否有记录加锁就很简单了，只要看下表上是否有意向锁就行了。</p>
-<p>意向锁之间是不会产生冲突的，也不和 AUTO_INC 表锁冲突，它只会阻塞表级读锁或表级写锁，另外，意向锁也不会和行锁冲突，行锁只会和行锁冲突。</p>
-<h3 id="自增锁"><a href="#自增锁" class="headerlink" title="自增锁"></a>自增锁</h3><p>AUTO_INC 锁又叫自增锁（一般简写成 AI 锁），是一种表锁，当表中有自增列（AUTO_INCREMENT）时出现。当插入表中有自增列时，数据库需要自动生成自增值，它会先为该表加 AUTO_INC 表锁，阻塞其他事务的插入操作，这样保证生成的自增值肯定是唯一的。AUTO_INC 锁具有如下特点：</p>
-<ul>
-<li>AUTO_INC 锁互不兼容，也就是说同一张表同时只允许有一个自增锁；</li>
-<li>自增值一旦分配了就会 +1，如果事务回滚，自增值也不会减回去，所以自增值可能会出现中断的情况。</li>
-</ul>
-<p>显然，AUTO_INC 表锁会导致并发插入的效率降低，为了提高插入的并发性，MySQL 从 5.1.22 版本开始，引入了一种可选的轻量级锁（mutex）机制来代替 AUTO_INC 锁，可以通过参数 innodb_autoinc_lock_mode 来灵活控制分配自增值时的并发策略。具体可以参考 MySQL 的 AUTO_INCREMENT Handling in InnoDB 一文，链接在文末。</p>
-<h4 id="不同模式锁的兼容矩阵"><a href="#不同模式锁的兼容矩阵" class="headerlink" title="不同模式锁的兼容矩阵"></a>不同模式锁的兼容矩阵</h4><p>下面是各个表锁之间的兼容矩阵。</p>
-<p><img src="/images/20_0401/4.png" alt=""></p>
-<p>总结起来有下面几点：</p>
-<ul>
-<li>意向锁之间互不冲突；</li>
-<li>S 锁只和 S/IS 锁兼容，和其他锁都冲突；</li>
-<li>X 锁和其他所有锁都冲突；</li>
-<li>AI 锁只和意向锁兼容；</li>
-</ul>
-<h3 id="行锁的类型"><a href="#行锁的类型" class="headerlink" title="行锁的类型"></a>行锁的类型</h3><p>根据锁的粒度可以把锁细分为表锁和行锁，行锁根据场景的不同又可以进一步细分，依次为 Next-Key Lock，Gap Lock 间隙锁，Record Lock 记录锁和插入意向 GAP 锁。</p>
-<p>不同的锁锁定的位置是不同的，比如说记录锁只锁住对应的记录，而间隙锁锁住记录和记录之间的间隔，Next-Key Lock 则所属记录和记录之前的间隙。不同类型锁的锁定范围大致如下图所示。</p>
-<p><img src="/images/20_0401/5.png" alt=""></p>
-<p>下面我们来依次了解一下不同的类型的锁。</p>
-<h3 id="记录锁"><a href="#记录锁" class="headerlink" title="记录锁"></a>记录锁</h3><p>记录锁是最简单的行锁，并没有什么好说的。上边描述 InnoDB 加锁原理中的锁就是记录锁，只锁住 id = 49 或者 name = ‘Tom’ 这一条记录。</p>
-<p>当 SQL 语句无法使用索引时，会进行全表扫描，这个时候 MySQL 会给整张表的所有数据行加记录锁，再由 MySQL Server 层进行过滤。但是，在 MySQL Server 层进行过滤的时候，如果发现不满足 WHERE 条件，会释放对应记录的锁。这样做，保证了最后只会持有满足条件记录上的锁，但是每条记录的加锁操作还是不能省略的。</p>
-<p>所以更新操作必须要根据索引进行操作，没有索引时，不仅会消耗大量的锁资源，增加数据库的开销，还会极大的降低了数据库的并发性能。</p>
-<h3 id="间隙锁"><a href="#间隙锁" class="headerlink" title="间隙锁"></a>间隙锁</h3><p>还是最开始更新用户年龄的例子，如果 id = 49 这条记录不存在，这个 SQL 语句还会加锁吗？答案是可能有，这取决于数据库的隔离级别。这种情况下，在 RC 隔离级别不会加任何锁，在 RR 隔离级别会在 id = 5 前后两个索引之间加上间隙锁。</p>
-<p>间隙锁是一种加在两个索引之间的锁，或者加在第一个索引之前，或最后一个索引之后的间隙。这个间隙可以跨一个索引记录，多个索引记录，甚至是空的。使用间隙锁可以防止其他事务在这个范围内插入或修改记录，保证两次读取这个范围内的记录不会变，从而不会出现幻读现象。</p>
-<p>值得注意的是，间隙锁和间隙锁之间是互不冲突的，间隙锁唯一的作用就是为了防止其他事务的插入，所以加间隙 S 锁和加间隙 X 锁没有任何区别。</p>
-<h3 id="Next-Key-锁"><a href="#Next-Key-锁" class="headerlink" title="Next-Key 锁"></a>Next-Key 锁</h3><p>Next-key锁是记录锁和间隙锁的组合，它指的是加在某条记录以及这条记录前面间隙上的锁。假设一个索引包含<br>15、18、20 ，30，49，50 这几个值，可能的 Next-key 锁如下：<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">(-∞, 15]，(15, 18]，(18, 20]，(20, 30]，(30, 49]，(49, 50]，(50, +∞)
-</code></pre></p>
-<p>通常我们都用这种左开右闭区间来表示 Next-key 锁，其中，圆括号表示不包含该记录，方括号表示包含该记录。前面四个都是 Next-key 锁，最后一个为间隙锁。<br>和间隙锁一样，在 RC 隔离级别下没有 Next-key 锁，只有 RR 隔离级别才有。还是之前的例子，如果 id 不是主键，而是二级索引，且不是唯一索引，那么这个 SQL 在 RR 隔离级别下就会加如下的 Next-key 锁 (30, 49](49, 50)</p>
-<p>此时如果插入一条 id = 31 的记录将会阻塞住。之所以要把 id = 49 前后的间隙都锁住，仍然是为了解决幻读问题，因为 id 是非唯一索引，所以 id = 49 可能会有多条记录，为了防止再插入一条 id = 49 的记录。</p>
-<h3 id="插入意向锁"><a href="#插入意向锁" class="headerlink" title="插入意向锁"></a>插入意向锁</h3><p>插入意向锁是一种特殊的间隙锁（简写成 II GAP）表示插入的意向，只有在 INSERT 的时候才会有这个锁。注意，这个锁虽然也叫意向锁，但是和上面介绍的表级意向锁是两个完全不同的概念，不要搞混了。</p>
-<p>插入意向锁和插入意向锁之间互不冲突，所以可以在同一个间隙中有多个事务同时插入不同索引的记录。譬如在上面的例子中，id = 30 和 id = 49 之间如果有两个事务要同时分别插入 id = 32 和 id = 33 是没问题的，虽然两个事务都会在 id = 30 和 id = 50 之间加上插入意向锁，但是不会冲突。</p>
-<p>插入意向锁只会和间隙锁或 Next-key 锁冲突，正如上面所说，间隙锁唯一的作用就是防止其他事务插入记录造成幻读，正是由于在执行 INSERT 语句时需要加插入意向锁，而插入意向锁和间隙锁冲突，从而阻止了插入操作的执行。</p>
-<h4 id="不同类型锁的兼容矩阵"><a href="#不同类型锁的兼容矩阵" class="headerlink" title="不同类型锁的兼容矩阵"></a>不同类型锁的兼容矩阵</h4><p>不同类型锁的兼容下如下图所示。</p>
-<p><img src="/images/20_0401/6.png" alt=""></p>
-<p>其中，第一行表示已有的锁，第一列表示要加的锁。插入意向锁较为特殊，所以我们先对插入意向锁做个总结，如下：</p>
-<ul>
-<li>插入意向锁不影响其他事务加其他任何锁。也就是说，一个事务已经获取了插入意向锁，对其他事务是没有任何影响的；</li>
-<li>插入意向锁与间隙锁和 Next-key 锁冲突。也就是说，一个事务想要获取插入意向锁，如果有其他事务已经加了间隙锁或 Next-key 锁，则会阻塞。</li>
-</ul>
-<p>其他类型的锁的规则较为简单：</p>
-<ul>
-<li>间隙锁不和其他锁（不包括插入意向锁）冲突；</li>
-<li>记录锁和记录锁冲突，Next-key 锁和 Next-key 锁冲突，记录锁和 Next-key 锁冲突；</li>
-</ul>
-<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>下一篇文章我们来看一下具体 SQL 的加锁分析和死锁日志分析，请小伙伴多多留意和关注，有问题的可以文章下方留言。</p>
-<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
-<li><a href="https://dev.mysql.com/doc/refman/5.7/en/innodb-locking.html#innodb-record-locks" target="_blank" rel="noopener">https://dev.mysql.com/doc/refman/5.7/en/innodb-locking.html#innodb-record-locks</a></li>
-<li><a href="https://dev.mysql.com/doc/refman/5.7/en/innodb-locking.html#innodb-record-locks" target="_blank" rel="noopener">https://dev.mysql.com/doc/refman/5.7/en/innodb-locking.html#innodb-record-locks</a></li>
-<li><a href="https://www.aneasystone.com/archives/2017/11/solving-dead-locks-two.html" target="_blank" rel="noopener">https://www.aneasystone.com/archives/2017/11/solving-dead-locks-two.html</a></li>
-</ul>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></div>   
+                <div class="article-more-link">
+                    <a href="/article/a94bd30a/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/a94bd30a/" class="leancloud_visitors" data-flag-title="MySQL的死锁系列- 锁的类型以及加锁原理">
@@ -987,7 +624,7 @@ update user set age = 10 where name = &#39;Tom&#39;;
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/a94bd30a/" data-id="ckauf70y3002jwi66e4gqe5vc" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/a94bd30a/" data-id="ckaufl90m002qjv66okzwyecy" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1104,458 +741,45 @@ update user set age = 10 where name = &#39;Tom&#39;;
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>在上一篇文章<a href="http://remcarpediem.net/article/8c16d4e4/">《Java 数据持久化系列之JDBC》</a>中，我们了解到使用 JDBC 创建 Connection 可以执行对应的SQL，但是创建 Connection 会消耗很多资源，所以 Java 持久化框架中往往不直接使用 JDBC，而是在其上建立数据库连接池层。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>在上一篇文章<a href="http://remcarpediem.net/article/8c16d4e4/">《Java 数据持久化系列之JDBC》</a>中，我们了解到使用 JDBC 创建 Connection 可以执行对应的SQL，但是创建 Connection 会消耗很多资源，所以 Java 持久化框架中往往不直接使用 JDBC，而是在其上建立数据库连接池层。</p>
 <p>今天我们就先来了解一下池化技术的必要性、原理；然后使用 Apache-common-Pool2实现一个简单的数据库连接池；接着通过实验，对比简单连接池、HikariCP、Druid 等数据库连接池的性能数据，分析实现高性能数据库连接池的关键；最后分析 Pool2 的具体源代码实现。</p>
 <p><img src="https://upload-images.jianshu.io/upload_images/623378-28c417a8451c7c31.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
 <h3 id="对象不是你想要，想要就能要"><a href="#对象不是你想要，想要就能要" class="headerlink" title="对象不是你想要，想要就能要"></a>对象不是你想要，想要就能要</h3><p>你我单身狗们经常调侃可以随便 New 出一个对象，用完就丢。但是有些对象创建的代价比较大，比如线程、tcp连接、数据库连接等对象。对于这些创建耗时较长，或者资源占用较大(占据操作系统资源，比如说线程，网络连接等)的对象，往往会引入池化来管理，减少频繁创建对象的次数，避免创建对象时的耗时，提高性能。</p>
 <p>我们就以数据库连接 Connection 对象为例，详细说明一下创建该对象花费的时间和资源。下面是MySQL Driver 创建 Connection 对象的方法，在调用 connect 方法创建 Connection 时，会与 MySQL 进行网络通讯，建立 TCP 连接，这是极其消耗时间的。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">connection = driver.connect(URL, props);
-</code></pre>
-<h3 id="使用-Apache-Common-Pool2实现简易数据库连接池"><a href="#使用-Apache-Common-Pool2实现简易数据库连接池" class="headerlink" title="使用 Apache-Common-Pool2实现简易数据库连接池"></a>使用 Apache-Common-Pool2实现简易数据库连接池</h3><p>下面，我们以 Apache-Common-Pool2为例来看一下池化技术相关的抽象结构。</p>
-<p>首先了解一下Pool2中三元一体的 ObjectPool，PooledObject 和 PooledObjectFactory，对他们的解释如下：</p>
-<ul>
-<li>ObjectPool 就是对象池，提供了 <code>borrowObject</code> 和 <code>returnObject</code> 等一系列函数。</li>
-<li>PooledObject 是池化对象的封装类，负责记录额外信息，比如说对象状态，对象创建时间，对象空闲时间，对象上次使用时间等。</li>
-<li>PooledObjectFactory 是负责管理池化对象生命周期的工厂类，提供 <code>makeObject</code>，<code>destroyObject</code>，<code>activateObject</code> 和 <code>validateObject</code> 等一系列函数。</li>
-</ul>
-<p>上述三者都有其基础的实现类，分别是 GenericObjectPool，DefaultPooledObject 和 BasePooledObjectFactory。上一节实验中的 SimpleDatasource 就是使用上述类实现的。</p>
-<p>首先，你要实现一个继承 BasePooledObjectFactory 的工厂类，提供管理池化对象生命周期的具体方法：</p>
-<ul>
-<li>makeObject：创建池化对象实例，并且使用 PooledObject 将其封装。</li>
-<li>validateObject：验证对象实例是否安全或者可用，比如说 Connection 是否还保存连接状态。</li>
-<li>activateObject：将池返回的对象实例进行重新初始化，比如说设置 Connection是否默认AutoCommit等。</li>
-<li>passivateObject：将返回给池的对象实例进行反初始化，比如说 Connection 中未提交的事务进行 Rollback等。</li>
-<li>destroyObject：销毁不再被池需要的对象实例，比如说 Connection不再被需要时，调用其 close 方法。</li>
-</ul>
-<p>具体的实现源码如下所示，每个方法都有详细的注释。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public class SimpleJdbcConnectionFactory extends BasePooledObjectFactory&lt;Connection&gt; {
-    ....
-    @Override
-    public Connection create() throws Exception {
-        &#x2F;&#x2F; 用于创建池化对象
-        Properties props = new Properties();
-        props.put(&quot;user&quot;, USER_NAME);
-        props.put(&quot;password&quot;, PASSWORD);
-        Connection connection = driver.connect(URL, props);
-        return connection;
-    }
-
-    @Override
-    public PooledObject&lt;Connection&gt; wrap(Connection connection) {
-        &#x2F;&#x2F; 将池化对象进行封装，返回DefaultPooledObject，这里也可以返回自己实现的PooledObject
-        return new DefaultPooledObject&lt;&gt;(connection);
-    }
-
-    @Override
-    public PooledObject&lt;Connection&gt; makeObject() throws Exception {
-        return super.makeObject();
-    }
-
-    @Override
-    public void destroyObject(PooledObject&lt;Connection&gt; p) throws Exception {
-        p.getObject().close();
-    }
-
-    @Override
-    public boolean validateObject(PooledObject&lt;Connection&gt; p) {
-        &#x2F;&#x2F; 使用 SELECT 1 或者其他sql语句验证Connection是否可用，ConnUtils代码详见Github中的项目
-        try {
-            ConnUtils.validateConnection(p.getObject(), this.validationQuery);
-        } catch (Exception e) {
-            return false;
-        }
-        return true;
-    }
-
-
-    @Override
-    public void activateObject(PooledObject&lt;Connection&gt; p) throws Exception {
-        Connection conn = p.getObject();
-        &#x2F;&#x2F; 对象被借出，需要进行初始化，将其 autoCommit进行设置
-        if (conn.getAutoCommit() != defaultAutoCommit) {
-            conn.setAutoCommit(defaultAutoCommit);
-        }
-    }
-
-    @Override
-    public void passivateObject(PooledObject&lt;Connection&gt; p) throws Exception {
-        &#x2F;&#x2F; 对象被归还，进行回收或者处理，比如将未提交的事务进行回滚
-        Connection conn = p.getObject();
-        if(!conn.getAutoCommit() &amp;&amp; !conn.isReadOnly()) {
-            conn.rollback();
-        }
-        conn.clearWarnings();
-        if(!conn.getAutoCommit()) {
-            conn.setAutoCommit(true);
-        }
-
-    }
-}
-</code></pre>
-<p>接着，你就可以使用 BasePool 来从池中获取对象，使用后归还给池。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-java">Connection connection = pool.borrowObject(); &#x2F;&#x2F; 从池中获取连接对象实例
-Statement statement = connection.createStatement();
-statement.executeQuery(&quot;SELECT * FROM activity&quot;);
-statement.close();
-pool.returnObject(connection); &#x2F;&#x2F; 使用后归还连接对象实例到池中
-</code></pre>
-<p>如上，我们就使用 Apache Common Pool2 实现了一个简易的数据库连接池。下面，我们先来使用 benchmark 验证一下这个简易数据库连接池的性能，再分析 Pool2 的具体源码实现，</p>
-<h3 id="性能试验"><a href="#性能试验" class="headerlink" title="性能试验"></a>性能试验</h3><p>至此，我们分析完了 Pool2的相关原理和实现，下面就修改 Hikari-benchmark 对我们编写的建议数据库连接池进行性能测试。修改后的 benchmark 的地址为 <a href="https://github.com/ztelur/HikariCP-benchmark。" target="_blank" rel="noopener">https://github.com/ztelur/HikariCP-benchmark。</a></p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-457c7848c1560aa1.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<p>可以看到 hikari 和 Druid 两个数据库连接池的性能是最优的，而我们的简易数据库连接池性能排在末尾。在后续系列文章中会对比我们的简易数据库分析 Hikari 和 Druid 高性能的原因。下面我们先来看一下简易数据库连接池的具体实现。</p>
-<h3 id="Apache-Common-Pool2-源码分析"><a href="#Apache-Common-Pool2-源码分析" class="headerlink" title="Apache Common Pool2 源码分析"></a>Apache Common Pool2 源码分析</h3><p>我们来简要分析 Pool2 的源码( 2.8.0版本 )实现，了解池化技术的基本原理，为后续了解和分析 HikariCP 和 Druid 打下基础，三者在设计思路具有互通之处。</p>
-<p>通过前边的实例，我们知道通过 <code>borrowObject</code> 和 <code>returnObject</code> 从对象池中接取或者归还对象，进行这些操作时，封装实例 PooledObject 的状态也会发生变化，下面就沿着 PooledObject 状态机的状态变化路线来讲解相关的代码实现。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-3dd8857f684819cb.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="PooledObject 状态机示意图"></p>
-<p>上图是 PooledObject 的状态机示意图，蓝色元素代表状态，红色代表 ObjectPool的相关方法。PooledObject 的状态有 IDLE、ALLOCATED、RETURNING、ABANDONED、INVALID、EVICTION 和 EVICTION_RETURN_TO_HEAD(所有状态定义在 PooledObjectState 类中，有些状态暂时未被使用，这里不进行说明)。</p>
-<p>主要涉及三部分的状态变化，分别是 1、2、3的借出归还状态变化，4，5的标记抛弃删除状态变化以及6,7,8的检测驱除状态变化。后续会分小节详细介绍这三部分的状态变化。</p>
-<p>在这些状态变化过程中，不仅涉及 ObjectPool 的方法，也会调用 PooledObjectFactory 的方法进行相关操作。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-dab3557ec3f9fee4.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="PooledOjbectFactory方法示意图"></p>
-<p>上图表明了在 PooledObject 状态变化过程中涉及的 PooledObjectFactory 的方法。按照前文对 PooledObjectFactory 方法的描述，可以很容易的对应起来。比如说，在编号 1 的对象被借出过程中，先调用 invalidateObject 判断对象可用性，然后调用 activeObject 将对象默认配置初始化。</p>
-<h4 id="借出归还状态变化"><a href="#借出归还状态变化" class="headerlink" title="借出归还状态变化"></a>借出归还状态变化</h4><p>我们从 GenericObjectPool 的 borrowObject 方法开始了解。该方法可以传入最大等待时间为参数，如果不传则使用配置的默认最大等待时间，borrowObject 的源码如下所示(为了可读性，对代码进行删减)。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public T borrowObject(final long borrowMaxWaitMillis) throws Exception {
-    &#x2F;&#x2F; 1 根据 abandonedConfig 和其他检测判断是否要调用 removeAbandoned 方法进行标记删除操作
-    ....
-    PooledObject&lt;T&gt; p = null;
-    &#x2F;&#x2F; 当暂时无法获取对象时是否阻塞
-    final boolean blockWhenExhausted = getBlockWhenExhausted();
-    while (p == null) {
-        create = false;
-        &#x2F;&#x2F; 2 先从 idleObjects 队列中获取, pollFisrt 是非阻塞的
-        p = idleObjects.pollFirst();
-        &#x2F;&#x2F; 3 没有则调用 create 方法创建一个新的对象
-        if (p == null) {
-            p = create();
-        }
-        &#x2F;&#x2F; 4 blockWhenExhausted 为true，则根据 borrowMaxWaitMillis 进行阻塞操作
-        if (blockWhenExhausted) {
-            if (p == null) {
-                if (borrowMaxWaitMillis &lt; 0) {
-                    p = idleObjects.takeFirst(); &#x2F;&#x2F; 阻塞到获取对象为止
-                } else {
-                    p = idleObjects.pollFirst(borrowMaxWaitMillis,
-                            TimeUnit.MILLISECONDS); &#x2F;&#x2F; 阻塞到最大等待时间或者获取到对象
-                }
-            }
-        }
-        &#x2F;&#x2F; 5 调用 allocate 进行状态变化
-        if (!p.allocate()) {
-            p = null;
-        }
-        if (p != null) {
-            &#x2F;&#x2F; 6 调用 activateObject 进行对象默认初始化，如果出现问题则调用 destroy 
-            factory.activateObject(p);
-            &#x2F;&#x2F; 7 如果配置了 TestOnBorrow，则调用 validateObject 进行可用性校验，如果不通过则调用 destroy
-            if (getTestOnBorrow()) {
-                validate = factory.validateObject(p);
-            }
-        }
-    }
-    return p.getObject();
-}
-</code></pre>
-<p>borrowObject 方法主要做了五步操作：</p>
-<ul>
-<li>第一步是根据配置判断是否要调用 removeAbandoned 方法进行标记删除操作，这个后续小节再细讲。</li>
-<li>第二步是尝试获取或创建对象，由源码中2，3，4 步骤组成。</li>
-<li>第三步是调用 allocate 进行状态变更，转换为 ALLOCATED 状态，如源码中的 5 步骤。</li>
-<li>第四步是调用 factory 的 activateObject 进行对象的初始化，如果出错则调用 destroy 方法销毁对象，如源码中的 6 步骤。</li>
-<li>第五步是根据 TestOnBorrow 配置调用 factory 的 validateObject 进行对象可用性分析，如果不可用，则调用 destroy 方法销毁对象，如源码中的 7 步骤。</li>
-</ul>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-6ae16a1996e4e3cd.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="示意图"></p>
-<p>我们对第二步进行一下细致的分析。idleObjects 是存储着所有 IDLE状态 (也有可能是 EVICTION 状态) PooledObject 的 LinkedBlockingDeque 对象。第二步中先调用其 pollFirst 方法从队列头获取 PooledObject，如果未获取到则调用 create 方法创建一个新的。</p>
-<p>create 也可能未创建成功，则当 blockWhenExhausted 为 true 时，未获取到对象需要一直阻塞，所以根据最大等待时间 borrowMaxWaitMillis 来调用 takeFirst 或者 pollFirst(time) 方法进行阻塞式获取；当 blockWhenExhausted 为 false 时，则直接抛出异常返回。</p>
-<p>create 方法会判断当前状况下是否应该创建新的对象，主要是要防止创建的对象数量超过最大池对象数量。如果可以创建新对象，则调用 PooledObjectFactory 的 makeObject 方法进行新对象创建，然后根据 testOnCreate 配置来判断是否调用 validateObject 方法进行校验，源码如下所示。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">private PooledObject&lt;T&gt; create() throws Exception {
-    int localMaxTotal = getMaxTotal(); &#x2F;&#x2F; 获取池对象最大数量
-    final long localStartTimeMillis = System.currentTimeMillis();
-    final long localMaxWaitTimeMillis = Math.max(getMaxWaitMillis(), 0); &#x2F;&#x2F; 获取最大等待时间
-    Boolean create = null;
-    &#x2F;&#x2F; 一直等待到 create 被赋值，true代表要创建新对象，false代表不能创建
-    while (create == null) {
-        synchronized (makeObjectCountLock) {
-            final long newCreateCount = createCount.incrementAndGet();
-            if (newCreateCount &gt; localMaxTotal) {
-                &#x2F;&#x2F; pool已经满或者正在创建的足够达到最大数量的对象。
-                createCount.decrementAndGet();
-                if (makeObjectCount == 0) {
-                    &#x2F;&#x2F; 目前没有其他的 makeObject 方法被调用，直接返回false
-                    create = Boolean.FALSE;
-                } else {
-                    &#x2F;&#x2F; 目前有其他的 makeObject 方法被调用，但是可能失败，所以等待一段时间再试试
-                    makeObjectCountLock.wait(localMaxWaitTimeMillis);
-                }
-            } else {
-                &#x2F;&#x2F; pool未满 可以创建对象。
-                makeObjectCount++;
-                create = Boolean.TRUE;
-            }
-        }
-
-        &#x2F;&#x2F; 执行超过 maxWaitTimeMillis 则返回false
-        if (create == null &amp;&amp;
-            (localMaxWaitTimeMillis &gt; 0 &amp;&amp;
-                System.currentTimeMillis() - localStartTimeMillis &gt;= localMaxWaitTimeMillis)) {
-            create = Boolean.FALSE;
-        }
-    }
-    &#x2F;&#x2F; 如果 create 为false，返回 NULL
-    if (!create.booleanValue()) {
-        return null;
-    }
-
-    final PooledObject&lt;T&gt; p;
-    try {
-        &#x2F;&#x2F; 调用 factory 的 makeObject 进行对象创建，并且按照 testOnCreate 配置调用 validateObject 方法
-        p = factory.makeObject();
-        if (getTestOnCreate() &amp;&amp; !factory.validateObject(p)) {
-            &#x2F;&#x2F; 这里代码有问题，校验不通过的对象没有进行销毁？
-            createCount.decrementAndGet();
-            return null;
-        }
-    } catch (final Throwable e) {
-        createCount.decrementAndGet();
-        throw e;
-    } finally {
-        synchronized (makeObjectCountLock) {
-            &#x2F;&#x2F; 减少 makeObjectCount
-            makeObjectCount--;
-            makeObjectCountLock.notifyAll();
-        }
-    }
-    allObjects.put(new IdentityWrapper&lt;&gt;(p.getObject()), p);
-    return p;
-}
-</code></pre>
-<p>需要注意的是 create 方法创建的对象并没有第一时间加入到 idleObjects 队列中，该对象将会在后续使用完毕调用 returnObject 方法时才会加入到队列中。</p>
-<p>接下来，我们看一下 returnObject 方法的实现。该方法主要做了六步操作：</p>
-<ul>
-<li>第一步是调用 markReturningState 方法将状态变更为 RETURNING。</li>
-<li>第二步是根据 testOnReturn 配置调用 PooledObjectFactory  的 validateObject 方法进行可用性校验。如果未通过校验，则调用 destroy 消耗该对象，然后调用 ensureIdle 确保池中有 IDLE 状态对象可用，如果没有会调用 create 方法创建新的对象。</li>
-<li>第三步是调用 PooledObjectFactory 的 passivateObject 方法进行反初始化操作。</li>
-<li>第四步是调用 deallocate 将状态变更为 IDLE。</li>
-<li>第五步是检测是否超过了最大 IDLE 对象数量，如果超过了则销毁当前对象。</li>
-<li>第六步是根据 LIFO (last in, first out) 配置将对象放置到队列的首部或者尾部。
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public void returnObject(final T obj) {
-    final PooledObject&lt;T&gt; p = allObjects.get(new IdentityWrapper&lt;&gt;(obj));
-    &#x2F;&#x2F; 1 将状态转换为 RETURNING
-    markReturningState(p);
-
-    final long activeTime = p.getActiveTimeMillis();
-    &#x2F;&#x2F; 2 根据配置，对实例进行可用性校验
-    if (getTestOnReturn() &amp;&amp; !factory.validateObject(p)) {
-        destroy(p);
-        &#x2F;&#x2F; 因为删除了一个对象，需要确保池内还有对象，如果没有改方法会创建新对象
-        ensureIdle(1, false); 
-        updateStatsReturn(activeTime);
-        return;
-    }
-    &#x2F;&#x2F; 3 调用 passivateObject 将对象反初始化。
-    try {
-        factory.passivateObject(p);
-    } catch (final Exception e1) {
-         .... &#x2F;&#x2F; 和上边 validateObject 校验失败相同操作。
-    }
-    &#x2F;&#x2F; 4 将状态变更为 IDLE
-    if (!p.deallocate()) {
-        throw new IllegalStateException(
-                &quot;Object has already been returned to this pool or is invalid&quot;);
-    }
-
-    final int maxIdleSave = getMaxIdle();
-    &#x2F;&#x2F; 5 如果超过最大 IDLE 数量，则进行销毁
-    if (isClosed() || maxIdleSave &gt; -1 &amp;&amp; maxIdleSave &lt;= idleObjects.size()) {
-        .... &#x2F;&#x2F; 同上边 validateObject 校验失败相同操作。
-    } else {
-        &#x2F;&#x2F; 6 根据 LIFO 配置，将归还的对象放置在队列首部或者尾部。 这边源码拼错了。
-        if (getLifo()) {
-            idleObjects.addFirst(p);
-        } else {
-            idleObjects.addLast(p);
-        }
-    }
-    updateStatsReturn(activeTime);
-}
-</code></pre>
-</li>
-</ul>
-<p>下图介绍了第六步两种入队列的场景，LIFO 为 true 时防止在队列头部；LIFO 为 false 时，防止在队列尾部。要根据不同的池化对象选择不同的场景。但是放置在尾部可以避免并发热点，因为借对象和还对象都需要操作队列头，需要进行并发控制。</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-f12e14496e70398a.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="LIFO示意图"></p>
-<h4 id="标记删除状态变化"><a href="#标记删除状态变化" class="headerlink" title="标记删除状态变化"></a>标记删除状态变化</h4><p>标记删除状态变化操作主要通过 removeAbandoned 实现，它主要是检查已经借出的对象是否需要删除，防止对象被借出长时间未使用或者归还所导致的池对象被耗尽的情况。</p>
-<p>removeAbandoned 根据 AbandonedConfig 可能会在 borrowObject 或者 检测驱除对象的 evict 方法执行时被调用。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public T borrowObject(final long borrowMaxWaitMillis) throws Exception {
-    
-    final AbandonedConfig ac = this.abandonedConfig;
-    &#x2F;&#x2F; 当配置了 removeAbandonedOnBorrow 并且 当前 idle 对象数量少于2，活跃对象数量只比最大对象数量少3.
-    if (ac != null &amp;&amp; ac.getRemoveAbandonedOnBorrow() &amp;&amp;
-            (getNumIdle() &lt; 2) &amp;&amp;
-            (getNumActive() &gt; getMaxTotal() - 3) ) {
-        removeAbandoned(ac);
-    }
-    ....
-}
-
-public void evict() throws Exception {
-    ....
-    final AbandonedConfig ac = this.abandonedConfig;
-        &#x2F;&#x2F; 设置了 removeAbandonedOnMaintenance
-        if (ac != null &amp;&amp; ac.getRemoveAbandonedOnMaintenance()) {
-            removeAbandoned(ac);
-        }
-}
-</code></pre>
-<p>removeAbandoned 使用典型的标记删除策略：标记阶段是先对所有的对象进行遍历，如果该对象是 ALLOCATED 并且上次使用时间已经超过超时时间，则将其状态变更为 ABANDONED 状态，并加入到删除队列中；删除阶段则遍历删除队列，依次调用 invalidateObject 方法删除并销毁对象。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">private void removeAbandoned(final AbandonedConfig ac) {
-    &#x2F;&#x2F; 收集需要 abandoned 的对象
-    final long now = System.currentTimeMillis();
-    &#x2F;&#x2F; 1 根据配置的时间计算超时时间
-    final long timeout =
-            now - (ac.getRemoveAbandonedTimeout() * 1000L);
-    final ArrayList&lt;PooledObject&lt;T&gt;&gt; remove = new ArrayList&lt;&gt;();
-    final Iterator&lt;PooledObject&lt;T&gt;&gt; it = allObjects.values().iterator();
-    while (it.hasNext()) {
-        final PooledObject&lt;T&gt; pooledObject = it.next();
-        &#x2F;&#x2F; 2 遍历所有的对象，如果它是已经分配状态，并且该对象的最近一次使用时间小于超时时间
-        synchronized (pooledObject) {
-            if (pooledObject.getState() == PooledObjectState.ALLOCATED &amp;&amp;
-                    pooledObject.getLastUsedTime() &lt;= timeout) {
-                &#x2F;&#x2F; 3 将对象状态更改为 ABANDONED,并加入到删除队列
-                pooledObject.markAbandoned();
-                remove.add(pooledObject);
-            }
-        }
-    }
-
-    &#x2F;&#x2F; 4 遍历删除队列
-    final Iterator&lt;PooledObject&lt;T&gt;&gt; itr = remove.iterator();
-    while (itr.hasNext()) {
-        final PooledObject&lt;T&gt; pooledObject = itr.next();
-        &#x2F;&#x2F; 5 调用 invalidateObject 方法删除对象
-        invalidateObject(pooledObject.getObject());
-    }
-}
-</code></pre>
-<p>invalidateObject 方法直接调用了 destroy 方法，destroy 方法在上边的源码分析中也反复出现，它主要进行了四步操作：</p>
-<ul>
-<li>1 将对象状态变更为 INVALID。</li>
-<li>2 将对象从队列和集合中删除。</li>
-<li>3 调用 PooledObjectFactory 的 destroyObject 方法销毁对象。</li>
-<li>4 更新统计数据</li>
-</ul>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">private void destroy(final PooledObject&lt;T&gt; toDestroy) throws Exception {
-    &#x2F;&#x2F; 1 将状态变更为 INVALID
-    toDestroy.invalidate();
-    &#x2F;&#x2F; 2 从队列和池中删除
-    idleObjects.remove(toDestroy);
-    allObjects.remove(new IdentityWrapper&lt;&gt;(toDestroy.getObject()));
-    &#x2F;&#x2F; 3 调用 destroyObject 回收对象
-    try {
-        factory.destroyObject(toDestroy);
-    } finally {
-        &#x2F;&#x2F; 4 更新统计数据
-        destroyedCount.incrementAndGet();
-        createCount.decrementAndGet();
-    }
-}
-</code></pre>
-<h4 id="检测驱除状态变化"><a href="#检测驱除状态变化" class="headerlink" title="检测驱除状态变化"></a>检测驱除状态变化</h4><p>检测驱除状态变化主要由 evict 方法操作，在后台线程中独立完成，主要检测池中的 IDLE 状态的空闲对象是否需要驱除，超时时间通过 EvictionConfig 进行配置。</p>
-<p>驱逐者 Evictor,在 BaseGenericObjectPool 中定义，本质是由 java.util.TimerTask 定义的定时任务。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">final void startEvictor(final long delay) {
-    synchronized (evictionLock) {
-        if (delay &gt; 0) {
-            &#x2F;&#x2F; 定时执行 evictor 线程
-            evictor = new Evictor();
-            EvictionTimer.schedule(evictor, delay, delay);
-        }
-    }
-}
-</code></pre>
-<p>在 Evictor 线程中会调用 evict 方法，该方法主要是遍历所有的 IDLE 对象，然后对每个对象执行检测驱除操作，具体源码如下所示：</p>
-<ul>
-<li>调用 startEvictionTest 方法将状态更改为 EVICTED。</li>
-<li>根据驱除策略和对象超时时间判断是否要驱除。</li>
-<li>如果需要被驱除则调用 destroy 方法销毁对象。</li>
-<li>如果设置了 testWhileIdle 则调用 PooledObject 的 validateObject 进行可用性校验。</li>
-<li>调用 endEvictionTest 将状态更改为 IDLE。</li>
-</ul>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public void evict() throws Exception {
-    if (idleObjects.size() &gt; 0) {
-        ....
-        final EvictionPolicy&lt;T&gt; evictionPolicy = getEvictionPolicy();
-        synchronized (evictionLock) {
-            for (int i = 0, m = getNumTests(); i &lt; m; i++) {
-                &#x2F;&#x2F; 1 遍历所有 idle 的对象
-                try {
-                    underTest = evictionIterator.next();
-                } catch (final NoSuchElementException nsee) {
-                }
-                &#x2F;&#x2F; 2 调用 startEvictionTest 将状态变更为 EVICTED
-                if (!underTest.startEvictionTest()) {
-                    continue;
-                }
-                &#x2F;&#x2F; 3 根据驱除策略判断是否要驱除
-                boolean evict = evictionPolicy.evict(evictionConfig, underTest,
-                        idleObjects.size());
-
-                if (evict) {
-                    &#x2F;&#x2F; 4 进行驱除
-                    destroy(underTest);
-                    destroyedByEvictorCount.incrementAndGet();
-                } else {
-                    &#x2F;&#x2F; 5 如果需要检测，则进行可用性检测
-                    if (testWhileIdle) {
-                        factory.activateObject(underTest);
-                        factory.validateObject(underTest));
-                        factory.passivateObject(underTest);
-                        }
-                    &#x2F;&#x2F; 5 变更状态为 IDLE
-                    if (!underTest.endEvictionTest(idleObjects)) {
-                    }
-                }
-            }
-        }
-    }
-    .... &#x2F;&#x2F; abandoned 相关的操作
-}
-</code></pre>
-<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>后续会分析 Hikari 和 Druid 数据库连接池的实现，请大家多多关注。</p>
-<p><a href="http://remcarpediem.net/article/8c16d4e4/">个人博客，欢迎来玩</a></p>
-<p><img src="https://upload-images.jianshu.io/upload_images/623378-289642734e6eb81b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
-<li><a href="https://zhuanlan.zhihu.com/p/32204303" target="_blank" rel="noopener">https://zhuanlan.zhihu.com/p/32204303</a></li>
-<li><a href="https://juejin.im/post/5af026a06fb9a07ac47ff282" target="_blank" rel="noopener">https://juejin.im/post/5af026a06fb9a07ac47ff282</a></li>
-<li>高性能连接池的技术细节 <a href="https://yq.aliyun.com/articles/59497" target="_blank" rel="noopener">https://yq.aliyun.com/articles/59497</a></li>
-<li>apache common的通用池 <a href="http://www.victorchu.info/2019/01/05/%E4%BB%8Eapache-common-pool%E7%9C%8B%E5%A6%82%E4%BD%95%E5%86%99%E4%B8%80%E4%B8%AA%E9%80%9A%E7%94%A8%E6%B1%A0/" target="_blank" rel="noopener">http://www.victorchu.info/2019/01/05/%E4%BB%8Eapache-common-pool%E7%9C%8B%E5%A6%82%E4%BD%95%E5%86%99%E4%B8%80%E4%B8%AA%E9%80%9A%E7%94%A8%E6%B1%A0/</a></li>
-<li>如何设计一个连接池：commons-pool2源码分 <a href="https://throwsnew.com/2017/06/12/commons-pool/" target="_blank" rel="noopener">https://throwsnew.com/2017/06/12/commons-pool/</a></li>
-<li><a href="https://zhuanlan.zhihu.com/p/32204303" target="_blank" rel="noopener">https://zhuanlan.zhihu.com/p/32204303</a></li>
-<li><a href="https://yq.aliyun.com/articles/59497](https://yq.aliyun.com/articles/59497" target="_blank" rel="noopener">https://yq.aliyun.com/articles/59497](https://yq.aliyun.com/articles/59497</a></li>
-</ul>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></div>   
+                <div class="article-more-link">
+                    <a href="/article/d5009955/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/d5009955/" class="leancloud_visitors" data-flag-title="Java 数据持久化系列之池化技术">
@@ -1568,7 +792,7 @@ public void evict() throws Exception {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/d5009955/" data-id="ckauf70xw0022wi66nicvl10o" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/d5009955/" data-id="ckaufl90a001yjv669q82yoyu" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1680,37 +904,45 @@ public void evict() throws Exception {
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <h3 id="年度计划"><a href="#年度计划" class="headerlink" title="年度计划"></a>年度计划</h3><p>OKR：目标和关键成果法</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><h3 id="年度计划"><a href="#年度计划" class="headerlink" title="年度计划"></a>年度计划</h3><p>OKR：目标和关键成果法</p>
 <h4 id="一、公众号："><a href="#一、公众号：" class="headerlink" title="一、公众号："></a>一、公众号：</h4><ul>
 <li>微信公众号 2万粉丝量</li>
 <li>每周一次文章</li>
 </ul>
-<h4 id="二、身体"><a href="#二、身体" class="headerlink" title="二、身体"></a>二、身体</h4><ul>
-<li>坚持每周2次锻炼，包括健身房、篮球等</li>
-</ul>
-<h4 id="三、英语"><a href="#三、英语" class="headerlink" title="三、英语"></a>三、英语</h4><ul>
-<li>报考英语考试</li>
-</ul>
-<h4 id="四、技术"><a href="#四、技术" class="headerlink" title="四、技术"></a>四、技术</h4><h5 id="开源社区贡献"><a href="#开源社区贡献" class="headerlink" title="开源社区贡献"></a>开源社区贡献</h5><h5 id="中间件学习和性能优化"><a href="#中间件学习和性能优化" class="headerlink" title="中间件学习和性能优化"></a>中间件学习和性能优化</h5><ul>
-<li>kafka、rocketmq技术</li>
-<li>jvm性能优化</li>
-<li>算法leetcode</li>
-</ul>
-<h4 id="五、计划追踪总结体系建立"><a href="#五、计划追踪总结体系建立" class="headerlink" title="五、计划追踪总结体系建立"></a>五、计划追踪总结体系建立</h4><ul>
-<li>形成每周工作计划、追踪和总结</li>
-</ul>
-<h4 id="六、股票"><a href="#六、股票" class="headerlink" title="六、股票"></a>六、股票</h4><ul>
-<li>入门股票</li>
-<li>5万股票计划</li>
-</ul>
-<h3 id="第一季度计划-1，2，3月"><a href="#第一季度计划-1，2，3月" class="headerlink" title="第一季度计划 1，2，3月"></a>第一季度计划 1，2，3月</h3><p>Kafka和rocketmq<br><a href="http://gk.link/a/10fuc" target="_blank" rel="noopener">http://gk.link/a/10fuc</a></p>
-<p>通读项目的设计文档：例如 Kafka 的设计文档，基本涵盖了消息队列设计的关键决策部分；Disruptor 的设计白皮书，详细的阐述了 Java 单机高性能的设计技巧。</p>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></div>   
+                <div class="article-more-link">
+                    <a href="/article/75dc863d/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/75dc863d/" class="leancloud_visitors" data-flag-title="2020年，计划目录">
@@ -1723,7 +955,7 @@ public void evict() throws Exception {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/75dc863d/" data-id="ckauf70x4000bwi662r8tgj3v" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/75dc863d/" data-id="ckaufl8zc0009jv66k0sw9tpz" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1835,76 +1067,45 @@ public void evict() throws Exception {
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>上一篇<a href="https://mp.weixin.qq.com/s/IkQYqnaO2lLmDunzlYvqPg" target="_blank" rel="noopener">《分布式数据缓存中的一致性哈希算法》</a><br>文章中讲述了一致性哈希算法的基本原理和实现，今天就以 Redis Cluster 为例，详细讲解一下分布式数据缓存中的数据分片，上线下线时数据迁移以及请求重定向等操作。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>上一篇<a href="https://mp.weixin.qq.com/s/IkQYqnaO2lLmDunzlYvqPg" target="_blank" rel="noopener">《分布式数据缓存中的一致性哈希算法》</a><br>文章中讲述了一致性哈希算法的基本原理和实现，今天就以 Redis Cluster 为例，详细讲解一下分布式数据缓存中的数据分片，上线下线时数据迁移以及请求重定向等操作。</p>
 <h3 id="Redis-集群简介"><a href="#Redis-集群简介" class="headerlink" title="Redis 集群简介"></a>Redis 集群简介</h3><p><img src="/images/19_1221/7_image1.webp" alt=""></p>
 <p>Redis Cluster 是 Redis 的分布式解决方案，在 3.0 版本正式推出，有效地解决了 Redis 分布式方面的需求。</p>
 <p>Redis Cluster 一般由多个节点组成，节点数量至少为 6 个才能保证组成完整高可用的集群，其中三个为主节点，三个为从节点。三个主节点会分配槽，处理客户端的命令请求，而从节点可用在主节点故障后，顶替主节点。</p>
 <p><img src="/images/19_1221/7_image2.webp" alt=""><br>图片来源 redislabs</p>
-<p>如上图所示，该集群中包含 6 个 Redis 节点，3主3从，分别为M1，M2，M3，S1，S2，S3。除了主从 Redis 节点之间进行数据复制外，所有 Redis 节点之间采用 Gossip 协议进行通信，交换维护节点元数据信息。</p>
-<p>一般来说，主 Redis 节点会处理 Clients 的读写操作，而从节点只处理读操作。</p>
-<h3 id="数据分片策略"><a href="#数据分片策略" class="headerlink" title="数据分片策略"></a>数据分片策略</h3><blockquote>
-<p>分布式数据存储方案中最为重要的一点就是数据分片，也就是所谓的 Sharding。</p>
-</blockquote>
-<p>为了使得集群能够水平扩展，首要解决的问题就是如何将整个数据集按照一定的规则分配到多个节点上，常用的数据分片的方法有：范围分片，哈希分片，一致性哈希算法，哈希槽等。</p>
-<p>范围分片假设数据集是有序，将顺序相临近的数据放在一起，可以很好的支持遍历操作。范围分片的缺点是面对顺序写时，会存在热点。比如日志类型的写入，一般日志的顺序都是和时间相关的，时间是单调递增的，因此写入的热点永远在最后一个分片。</p>
-<p><img src="/images/19_1221/7_image3.webp" alt="范围分区"></p>
-<p>对于关系型的数据库，因为经常性的需要表扫描或者索引扫描，基本上都会使用范围的分片策略。</p>
-<p>哈希分片和一致性哈希算法在上一篇文章中已经学习过了，感兴趣的同学可以去了解一下<a href="https://mp.weixin.qq.com/s/IkQYqnaO2lLmDunzlYvqPg" target="_blank" rel="noopener">《分布式数据缓存中的一致性哈希算法》</a>。我们接下来主要来看Redis 的虚拟哈希槽策略。</p>
-<p>Redis Cluster 采用虚拟哈希槽分区，所有的键根据哈希函数映射到 0 ~ 16383 整数槽内，计算公式：slot = CRC16(key) &amp; 16383。每一个节点负责维护一部分槽以及槽所映射的键值数据。</p>
-<p>Redis 虚拟槽分区的特点：</p>
-<ul>
-<li>解耦数据和节点之间的关系，简化了节点扩容和收缩难度。</li>
-<li>节点自身维护槽的映射关系，不需要客户端或者代理服务维护槽分区元数据</li>
-<li>支持节点、槽和键之间的映射查询，用于数据路由，在线集群伸缩等场景。</li>
-</ul>
-<p><img src="/images/19_1221/7_image4.webp" alt=""></p>
-<p>Redis 集群提供了灵活的节点扩容和收缩方案。在不影响集群对外服务的情况下，可以为集群添加节点进行扩容也可以下线部分节点进行缩容。可以说，<strong>槽是 Redis 集群管理数据的基本单位</strong>，集群伸缩就是槽和数据在节点之间的移动。</p>
-<p>下面我们就先来看一下 Redis 集群伸缩的原理。然后再了解当 Redis 节点数据迁移过程中或者故障恢复时如何保证集群可用。</p>
-<h3 id="扩容集群"><a href="#扩容集群" class="headerlink" title="扩容集群"></a>扩容集群</h3><p>为了让读者更好的理解上线节点时的扩容操作，我们通过 Redis Cluster 的命令来模拟整个过程。</p>
-<p><img src="/images/19_1221/7_image5.webp" alt=""></p>
-<p>当一个 Redis 新节点运行并加入现有集群后，我们需要为其迁移槽和数据。首先要为新节点指定槽的迁移计划，确保迁移后每个节点负责相似数量的槽，从而保证这些节点的数据均匀。</p>
-<p>1) 首先启动一个 Redis 节点，记为 M4。<br>2) 使用 cluster meet 命令，让新 Redis 节点加入到集群中。新节点刚开始都是主节点状态，由于没有负责的槽，所以不能接受任何读写操作，后续我们就给他迁移槽和填充数据。<br>3) 对 M4 节点发送 cluster setslot { slot } importing { sourceNodeId} 命令，让目标节点准备导入槽的数据。<br>4) 对源节点，也就是 M1，M2，M3 节点发送 cluster setslot { slot } migrating { targetNodeId} 命令，让源节点准备迁出槽的数据。<br>5) 源节点执行 cluster getkeysinslot { slot } { count } 命令，获取 count 个属于槽 { slot } 的键，然后执行步骤六的操作进行迁移键值数据。<br>6) 在源节点上执行 migrate { targetNodeIp} “ “ 0 { timeout } keys { key… } 命令，把获取的键通过 pipeline 机制批量迁移到目标节点，批量迁移版本的 migrate 命令在 Redis 3.0.6 以上版本提供。<br>7) 重复执行步骤 5 和步骤 6 直到槽下所有的键值数据迁移到目标节点。<br>8) 向集群内所有主节点发送 cluster setslot { slot } node { targetNodeId } 命令，通知槽分配给目标节点。为了保证槽节点映射变更及时传播，需要遍历发送给所有主节点更新被迁移的槽执行新节点。</p>
-<h3 id="收缩集群"><a href="#收缩集群" class="headerlink" title="收缩集群"></a>收缩集群</h3><p>收缩节点就是将 Redis 节点下线，整个流程需要如下操作流程。</p>
-<p>1) 首先需要确认下线节点是否有负责的槽，如果是，需要把槽迁移到其他节点，保证节点下线后整个集群槽节点映射的完整性。<br>2) 当下线节点不再负责槽或者本身是从节点时，就可以通知集群内其他节点忘记下线节点，当所有的节点忘记改节点后可以正常关闭。</p>
-<p>下线节点需要将节点自己负责的槽迁移到其他节点，原理与之前节点扩容的迁移槽过程一致。</p>
-<p><img src="/images/19_1221/7_image6.webp" alt=""></p>
-<p>迁移完槽后，还需要通知集群内所有节点忘记下线的节点，也就是说让其他节点不再与要下线的节点进行 Gossip 消息交换。</p>
-<p>Redis 集群使用 cluster forget { downNodeId } 命令来讲指定的节点加入到禁用列表中，在禁用列表内的节点不再发送 Gossip 消息。</p>
-<h3 id="客户端路由"><a href="#客户端路由" class="headerlink" title="客户端路由"></a>客户端路由</h3><p>在集群模式下，Redis 节点接收任何键相关命令时首先计算键对应的槽，在根据槽找出所对应的节点，如果节点是自身，则处理键命令；否则回复 MOVED 重定向错误，通知客户端请求正确的节点。这个过程称为 MOVED 重定向。</p>
-<p><strong><em>需要注意的是 Redis 计算槽时并非只简单的计算键值内容，当键值内容包括大括号时，则只计算括号内的内容。</em></strong>比如说，key 为 user:{10000}:books时，计算哈希值只计算10000。</p>
-<p>MOVED 错误示例如下，键 <code>x</code> 所属的哈希槽 <code>3999</code> ，以及负责处理这个槽的节点的 IP 和端口号 <code>127.0.0.1:6381</code> 。 客户端需要根据这个 IP 和端口号， 向所属的节点重新发送一次 GET 命令请求。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">GET x
--MOVED 3999 127.0.0.1:6381
-</code></pre>
-<p>由于请求重定向会增加 IO 开销，这不是 Redis 集群高效的使用方式，而是要使用 Smart 集群客户端。Smart 客户端通过在内部维护 slot 到 Redis节点的映射关系，本地就可以实现键到节点的查找，从而保证 IO 效率的最大化，而 MOVED 重定向负责协助客户端更新映射关系。</p>
-<p>Redis 集群支持在线迁移槽( slot ) 和数据来完成水平伸缩，当 slot 对应的数据从源节点到目标节点迁移过程中，客户端需要做到智能迁移，保证键命令可正常执行。例如当 slot 数据从源节点迁移到目标节点时，期间可能出现一部分数据在源节点，而另一部分在目标节点。</p>
-<p><img src="/images/19_1221/7_image7.webp" alt=""></p>
-<p>所以，综合上述情况，客户端命令执行流程如下所示：</p>
-<ul>
-<li>客户端根据本地 slot 缓存发送命令到源节点，如果存在键对应则直接执行并返回结果给客户端。</li>
-<li>如果节点返回 MOVED 错误，更新本地的 slot 到 Redis 节点的映射关系，然后重新发起请求。</li>
-<li>如果数据正在迁移中，节点会回复 ASK 重定向异常。格式如下: ( error ) ASK { slot } { targetIP } : {targetPort}</li>
-<li>客户端从 ASK 重定向异常提取出目标节点信息，发送 asking 命令到目标节点打开客户端连接标识，再执行键命令。</li>
-</ul>
-<p>ASK 和 MOVED 虽然都是对客户端的重定向控制，但是有着本质区别。ASK 重定向说明集群正在进行 slot 数据迁移，客户端无法知道什么时候迁移完成，因此只能是临时性的重定向，客户端不会更新 slot 到 Redis 节点的映射缓存。但是 MOVED 重定向说明键对应的槽已经明确指定到新的节点，因此需要更新 slot 到 Redis 节点的映射缓存。</p>
-<h3 id="故障转移"><a href="#故障转移" class="headerlink" title="故障转移"></a>故障转移</h3><p>当 Redis 集群内少量节点出现故障时通过自动故障转移保证集群可以正常对外提供服务。</p>
-<p>当某一个 Redis 节点客观下线时，Redis 集群会从其从节点中通过选主选出一个替代它，从而保证集群的高可用性。这块内容并不是本文的核心内容，感兴趣的同学可以自己学习。</p>
-<p>但是，有一点要注意。默认情况下，当集群 16384 个槽任何一个没有指派到节点时整个集群不可用。执行任何键命令返回 CLUSTERDOWN Hash slot not served 命令。<strong><em>当持有槽的主节点下线时，从故障发现到自动完成转移期间整个集群是不可用状态，对于大多数业务无法忍受这情况，因此建议将参数 cluster-require-full-coverage 配置为 no ，当主节点故障时只影响它负责槽的相关命令执行，不会影响其他主节点的可用性</em></strong>。</p>
-<p><img src="/images/logo.webp" alt=""></p>
-<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
-<li>《Redis 开发与运维》</li>
-<li><a href="https://juejin.im/entry/593a498aac502e006ccd6656" target="_blank" rel="noopener">https://juejin.im/entry/593a498aac502e006ccd6656</a></li>
-<li><a href="https://phachon.com/redis/redis-3.html" target="_blank" rel="noopener">https://phachon.com/redis/redis-3.html</a></li>
-<li><a href="http://kdf5000.com/2017/04/17/%E5%B8%B8%E8%A7%81%E7%9A%84%E5%87%A0%E7%A7%8DSharding%E7%AD%96%E7%95%A5/" target="_blank" rel="noopener">http://kdf5000.com/2017/04/17/%E5%B8%B8%E8%A7%81%E7%9A%84%E5%87%A0%E7%A7%8DSharding%E7%AD%96%E7%95%A5/</a></li>
-</ul>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></div>   
+                <div class="article-more-link">
+                    <a href="/article/24b8edbf/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/24b8edbf/" class="leancloud_visitors" data-flag-title="Redis Cluster 的数据分片机制">
@@ -1917,7 +1118,7 @@ public void evict() throws Exception {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/24b8edbf/" data-id="ckauf70yi003uwi66rtxnvbp3" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/24b8edbf/" data-id="ckaufl910003tjv66b62ovizr" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2029,415 +1230,45 @@ public void evict() throws Exception {
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>在上一篇文章中<a href="http://remcarpediem.net/article/4cc1fb9/">《Redis 命令执行过程(上)》</a>中，我们首先了解 Redis 命令执行的整体流程，然后细致分析了从 Redis 启动到建立 socket 连接，再到读取 socket 数据到输入缓冲区，解析命令，执行命令等过程的原理和实现细节。接下来，我们来具体看一下 set 和 get 命令的实现细节和如何将命令结果通过输出缓冲区和 socket 发送给 Redis 客户端。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>在上一篇文章中<a href="http://remcarpediem.net/article/4cc1fb9/">《Redis 命令执行过程(上)》</a>中，我们首先了解 Redis 命令执行的整体流程，然后细致分析了从 Redis 启动到建立 socket 连接，再到读取 socket 数据到输入缓冲区，解析命令，执行命令等过程的原理和实现细节。接下来，我们来具体看一下 set 和 get 命令的实现细节和如何将命令结果通过输出缓冲区和 socket 发送给 Redis 客户端。</p>
 <p><img src="/images/19_1221/1_image1.png" alt=""></p>
 <h3 id="set-和-get-命令具体实现"><a href="#set-和-get-命令具体实现" class="headerlink" title="set 和 get 命令具体实现"></a>set 和 get 命令具体实现</h3><p>前文讲到 processCommand 方法会从输入缓冲区中解析出对应的 redisCommand，然后调用 call 方法执行解析出来的 redisCommand的 proc 方法。不同命令的的 proc 方法是不同的，比如说名为 set 的 redisCommand 的 proc 是 setCommand 方法，而 get 的则是 getCommand 方法。通过这种形式，实际上实现在Java 中特别常见的多态策略。</p>
 
 <!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">void call(client *c, int flags) {
-    ....
-    c-&gt;cmd-&gt;proc(c);
-    ....
-}
-&#x2F;&#x2F; redisCommand结构体
-struct redisCommand {
-    char *name;
-    &#x2F;&#x2F; 对应方法的函数范式
-    redisCommandProc *proc;
-    .... &#x2F;&#x2F; 其他定义
-};
-&#x2F;&#x2F; 使用 typedef 定义的别名
-typedef void redisCommandProc(client *c);
-&#x2F;&#x2F; 不同的命令，调用不同的方法。
-struct redisCommand redisCommandTable[] = {
-    {&quot;get&quot;,getCommand,2,&quot;rF&quot;,0,NULL,1,1,1,0,0},
-    {&quot;set&quot;,setCommand,-3,&quot;wm&quot;,0,NULL,1,1,1,0,0},
-    {&quot;hmset&quot;,hsetCommand,-4,&quot;wmF&quot;,0,NULL,1,1,1,0,0},
-    .... &#x2F;&#x2F; 所有的 redis 命令都有
-}
-</code></pre>
-<p><img src="/images/19_1221/1_image2.png" alt=""></p>
-<p>setCommand 会判断set命令是否携带了nx、xx、ex或者px等可选参数，然后调用setGenericCommand命令。我们直接来看 setGenericCommand 方法。</p>
-<p>setGenericCommand 方法的处理逻辑如下所示：</p>
-<ul>
-<li>首先判断 set 的类型是 set_nx 还是 set_xx，如果是 nx 并且 key 已经存在则直接返回；如果是 xx 并且 key 不存在则直接返回。</li>
-<li>调用 setKey 方法将键值添加到对应的 Redis 数据库中。</li>
-<li>如果有过期时间，则调用 setExpire 将设置过期时间</li>
-<li>进行键空间通知</li>
-<li>返回对应的值给客户端。</li>
-</ul>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">&#x2F;&#x2F; t_string.c 
-void setGenericCommand(client *c, int flags, robj *key, robj *val, robj *expire, int unit, robj *ok_reply, robj *abort_reply) {
-    long long milliseconds = 0; 
-    &#x2F;**
-     * 设置了过期时间；expire是robj类型，获取整数值
-     *&#x2F;
-    if (expire) {
-        if (getLongLongFromObjectOrReply(c, expire, &amp;milliseconds, NULL) != C_OK)
-            return;
-        if (milliseconds &lt;= 0) {
-            addReplyErrorFormat(c,&quot;invalid expire time in %s&quot;,c-&gt;cmd-&gt;name);
-            return;
-        }
-        if (unit == UNIT_SECONDS) milliseconds *= 1000;
-    }
-    &#x2F;**
-     * NX，key存在时直接返回；XX，key不存在时直接返回
-     * lookupKeyWrite 是在对应的数据库中寻找键值是否存在
-     *&#x2F;
-    if ((flags &amp; OBJ_SET_NX &amp;&amp; lookupKeyWrite(c-&gt;db,key) != NULL) ||
-        (flags &amp; OBJ_SET_XX &amp;&amp; lookupKeyWrite(c-&gt;db,key) == NULL))
-    {
-        addReply(c, abort_reply ? abort_reply : shared.nullbulk);
-        return;
-    }
-    &#x2F;**
-     * 添加到数据字典
-     *&#x2F;
-    setKey(c-&gt;db,key,val);
-    server.dirty++;
-    &#x2F;**
-     * 过期时间添加到过期字典
-     *&#x2F;
-    if (expire) setExpire(c,c-&gt;db,key,mstime()+milliseconds);
-    &#x2F;**
-     * 键空间通知
-     *&#x2F;
-    notifyKeyspaceEvent(NOTIFY_STRING,&quot;set&quot;,key,c-&gt;db-&gt;id);
-    if (expire) notifyKeyspaceEvent(NOTIFY_GENERIC,
-        &quot;expire&quot;,key,c-&gt;db-&gt;id);
-    &#x2F;**
-     * 返回值，addReply 在 get 命令时再具体讲解
-     *&#x2F;
-    addReply(c, ok_reply ? ok_reply : shared.ok);
-}
-</code></pre>
-<p>具体 setKey 和 setExpire 的方法实现我们这里就不细讲，其实就是将键值添加到db的 dict 数据哈希表中，将键和过期时间添加到 expires 哈希表中，如下图所示。</p>
-<p><img src="/images/19_1221/1_image3.png" alt=""></p>
-<p>接下来看 getCommand 的具体实现，同样的，它底层会调用 getGenericCommand 方法。</p>
-<p>getGenericCommand 方法会调用 lookupKeyReadOrReply 来从 dict 数据哈希表中查找对应的 key值。如果找不到，则直接返回 C_OK；如果找到了，则根据值的类型，调用 addReply 或者 addReplyBulk 方法将值添加到输出缓冲区中。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">int getGenericCommand(client *c) {
-    robj *o;
-    &#x2F;&#x2F; 调用 lookupKeyReadOrReply 从数据字典中查找对应的键
-    if ((o = lookupKeyReadOrReply(c,c-&gt;argv[1],shared.nullbulk)) == NULL)
-        return C_OK;
-    &#x2F;&#x2F; 如果是string类型，调用 addReply 单行返回。如果是其他对象类型，则调用 addReplyBulk
-    if (o-&gt;type != OBJ_STRING) {
-        addReply(c,shared.wrongtypeerr);
-        return C_ERR;
-    } else {
-        addReplyBulk(c,o);
-        return C_OK;
-    }
-}
-</code></pre>
-<p>lookupKeyReadWithFlags 会从 redisDb 中查找对应的键值对，它首先会调用 expireIfNeeded判断键是否过期并且需要删除，如果为过期，则调用 lookupKey 方法从 dict 哈希表中查找并返回。具体解释可以看代码中的详细注释</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">&#x2F;*
- * 查找key的读操作，如果key找不到或者已经逻辑上过期返回 NULL，有一些副作用
- *   1 如果key到达过期时间，它会被设备为过期，并且删除
- *   2 更新key的最近访问时间
- *   3 更新全局缓存击中概率
- * flags 有两个值: LOOKUP_NONE 一般都是这个；LOOKUP_NOTOUCH 不修改最近访问时间
- *&#x2F;
-robj *lookupKeyReadWithFlags(redisDb *db, robj *key, int flags) { &#x2F;&#x2F; db.c
-    robj *val;
-    &#x2F;&#x2F; 检查键是否过期
-    if (expireIfNeeded(db,key) == 1) {
-        .... &#x2F;&#x2F; master和 slave 对这种情况的特殊处理
-    }
-    &#x2F;&#x2F; 查找键值字典
-    val = lookupKey(db,key,flags);
-    &#x2F;&#x2F; 更新全局缓存命中率
-    if (val == NULL)
-        server.stat_keyspace_misses++;
-    else
-        server.stat_keyspace_hits++;
-    return val;
-}
-</code></pre>
-<p> Redis 在调用查找键值系列方法前都会先调用 expireIfNeeded 来判断键是否过期，然后根据 Redis 是否配置了懒删除来进行同步删除或者异步删除。关于键删除的细节可以查看<a href="http://remcarpediem.net/article/e66f8da0/">《详解 Redis 内存管理机制和实现》</a>一文。</p>
-<p>在判断键释放过期的逻辑中有两个特殊情况：</p>
-<ul>
-<li>如果当前 Redis 是主从结构中的从实例，则只判断键是否过期，不直接对键进行删除，而是要等待主实例发送过来的删除命令后再进行删除。如果当前 Redis 是主实例，则调用 propagateExpire 来传播过期指令。</li>
-<li>如果当前正在进行 Lua 脚本执行，因为其原子性和事务性，整个执行过期中时间都按照其开始执行的那一刻计算，也就是说lua执行时未过期的键，在它整个执行过程中也都不会过期。</li>
-</ul>
-<p><img src="/images/19_1221/1_image4.png" alt=""></p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&#x2F;*
- * 在调用 lookupKey*系列方法前调用该方法。
- * 如果是slave：
- *  slave 并不主动过期删除key，但是返回值仍然会返回键已经被删除。
- *  master 如果key过期了，会主动删除过期键，并且触发 AOF 和同步操作。
- * 返回值为0表示键仍然有效，否则返回1
- *&#x2F;
-int expireIfNeeded(redisDb *db, robj *key) { &#x2F;&#x2F; db.c
-    &#x2F;&#x2F; 获取键的过期时间
-    mstime_t when = getExpire(db,key);
-    mstime_t now;
-
-    if (when &lt; 0) return 0;
-
-    &#x2F;*
-     * 如果当前是在执行lua脚本，根据其原子性，整个执行过期中时间都按照其开始执行的那一刻计算
-     * 也就是说lua执行时未过期的键，在它整个执行过程中也都不会过期。
-     *&#x2F; 
-    now = server.lua_caller ? server.lua_time_start : mstime();
-
-    &#x2F;&#x2F; slave 直接返回键是否过期
-    if (server.masterhost != NULL) return now &gt; when;
-    &#x2F;&#x2F; master时，键未过期直接返回
-    if (now &lt;= when) return 0;
-
-    &#x2F;&#x2F; 键过期，删除键
-    server.stat_expiredkeys++;
-    &#x2F;&#x2F; 触发命令传播
-    propagateExpire(db,key,server.lazyfree_lazy_expire);
-    &#x2F;&#x2F; 和键空间事件
-    notifyKeyspaceEvent(NOTIFY_EXPIRED,
-        &quot;expired&quot;,key,db-&gt;id);
-    &#x2F;&#x2F; 根据是否懒删除，调用不同的函数 
-    return server.lazyfree_lazy_expire ? dbAsyncDelete(db,key) :
-                                         dbSyncDelete(db,key);
-}
-</code></pre>
-<p>lookupKey 方法则是通过 dictFind 方法从 redisDb 的 dict 哈希表中查找键值，如果能找到，则根据 redis 的 maxmemory_policy 策略来判断是更新 lru 的最近访问时间，还是调用 updateFU 方法更新其他指标，这些指标可以在后续内存不足时对键值进行回收。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">robj *lookupKey(redisDb *db, robj *key, int flags) {
-    &#x2F;&#x2F; dictFind 根据 key 获取字典的entry
-    dictEntry *de = dictFind(db-&gt;dict,key-&gt;ptr);
-    if (de) {
-        &#x2F;&#x2F; 获取 value
-        robj *val = dictGetVal(de);
-        &#x2F;&#x2F; 当处于 rdb aof 子进程复制阶段或者 flags 不是 LOOKUP_NOTOUCH
-        if (server.rdb_child_pid == -1 &amp;&amp;
-            server.aof_child_pid == -1 &amp;&amp;
-            !(flags &amp; LOOKUP_NOTOUCH))
-        {
-            &#x2F;&#x2F; 如果是 MAXMEMORY_FLAG_LFU 则进行相应操作
-            if (server.maxmemory_policy &amp; MAXMEMORY_FLAG_LFU) {
-                updateLFU(val);
-            } else {
-                &#x2F;&#x2F; 更新最近访问时间
-                val-&gt;lru = LRU_CLOCK();
-            }
-        }
-        return val;
-    } else {
-        return NULL;
-    }
-}
-</code></pre>
-<h3 id="将命令结果写入输出缓冲区"><a href="#将命令结果写入输出缓冲区" class="headerlink" title="将命令结果写入输出缓冲区"></a>将命令结果写入输出缓冲区</h3><p>在所有的 redisCommand 执行的最后，一般都会调用 addReply 方法进行结果返回，我们的分析也来到了 Redis 命令执行的返回数据阶段。</p>
-<p>addReply 方法做了两件事情：</p>
-<ul>
-<li>prepareClientToWrite 判断是否需要返回数据，并且将当前 client 添加到等待写返回数据队列中。</li>
-<li>调用 _addReplyToBuffer 和 _addReplyObjectToList 方法将返回值写入到输出缓冲区中，等待写入 socekt。</li>
-</ul>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">void addReply(client *c, robj *obj) {
-    if (prepareClientToWrite(c) != C_OK) return;
-    if (sdsEncodedObject(obj)) {
-        &#x2F;&#x2F; 需要将响应内容添加到output buffer中。总体思路是，先尝试向固定buffer添加，添加失败的话，在尝试添加到响应链表
-        if (_addReplyToBuffer(c,obj-&gt;ptr,sdslen(obj-&gt;ptr)) != C_OK)
-            _addReplyObjectToList(c,obj);
-    } else if (obj-&gt;encoding == OBJ_ENCODING_INT) {
-        .... &#x2F;&#x2F; 特殊情况的优化
-    } else {
-        serverPanic(&quot;Wrong obj-&gt;encoding in addReply()&quot;);
-    }
-}
-</code></pre>
-<p>prepareClientToWrite 首先判断了当前 client是否需要返回数据：</p>
-<ul>
-<li>Lua 脚本执行的 client 则需要返回值；</li>
-<li>如果客户端发送来 REPLY OFF 或者 SKIP 命令，则不需要返回值；</li>
-<li>如果是主从复制时的主实例 client，则不需要返回值；</li>
-<li>当前是在 AOF loading 状态的假 client，则不需要返回值。</li>
-</ul>
-<p>接着如果这个 client 还未处于延迟等待写入 (CLIENT_PENDING_WRITE)的状态，则将其设置为该状态，并将其加入到 Redis 的等待写入返回值客户端队列中，也就是 clients_pending_write队列。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">int prepareClientToWrite(client *c) {
-    &#x2F;&#x2F; 如果是 lua client 则直接OK
-    if (c-&gt;flags &amp; (CLIENT_LUA|CLIENT_MODULE)) return C_OK;
-    &#x2F;&#x2F; 客户端发来过 REPLY OFF 或者 SKIP 命令，不需要发送返回值
-    if (c-&gt;flags &amp; (CLIENT_REPLY_OFF|CLIENT_REPLY_SKIP)) return C_ERR;
-
-    &#x2F;&#x2F; master 作为client 向 slave 发送命令，不需要接收返回值
-    if ((c-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;
-        !(c-&gt;flags &amp; CLIENT_MASTER_FORCE_REPLY)) return C_ERR;
-    &#x2F;&#x2F; AOF loading 时的假client 不需要返回值
-    if (c-&gt;fd &lt;= 0) return C_ERR; 
-
-    &#x2F;&#x2F; 将client加入到等待写入返回值队列中，下次事件周期会进行返回值写入。
-    if (!clientHasPendingReplies(c) &amp;&amp;
-        !(c-&gt;flags &amp; CLIENT_PENDING_WRITE) &amp;&amp;
-        (c-&gt;replstate == REPL_STATE_NONE ||
-         (c-&gt;replstate == SLAVE_STATE_ONLINE &amp;&amp; !c-&gt;repl_put_online_on_ack)))
-    {
-        &#x2F;&#x2F; 设置标志位并且将client加入到 clients_pending_write 队列中
-        c-&gt;flags |= CLIENT_PENDING_WRITE;
-        listAddNodeHead(server.clients_pending_write,c);
-    }
-    &#x2F;&#x2F; 表示已经在排队，进行返回数据
-    return C_OK;
-}
-</code></pre>
-<p>Redis 将存储等待返回的响应数据的空间，也就是输出缓冲区分成两部分，一个固定大小的 buffer 和一个响应内容数据的链表。在链表为空并且 buffer 有足够空间时，则将响应添加到 buffer 中。如果 buffer 满了则创建一个节点追加到链表上。_addReplyToBuffer 和 _addReplyObjectToList 就是分别向这两个空间写数据的方法。</p>
-<p><img src="/images/19_1221/1_image5.png" alt=""></p>
-<p>固定buffer和响应链表，整体上构成了一个队列。这么组织的好处是，既可以节省内存，不需一开始预先分配大块内存，并且可以避免频繁分配、回收内存。</p>
-<p>上面就是响应内容写入输出缓冲区的过程，下面看一下将数据从输出缓冲区写入 socket 的过程。</p>
-<p>prepareClientToWrite 函数，将客户端加入到了Redis 的等待写入返回值客户端队列中，也就是 clients_pending_write 队列。请求处理的事件处理逻辑就结束了，等待 Redis 下一次事件循环处理时，将响应从输出缓冲区写入到 socket 中。</p>
-<h3 id="将命令返回值从输出缓冲区写入-socket"><a href="#将命令返回值从输出缓冲区写入-socket" class="headerlink" title="将命令返回值从输出缓冲区写入 socket"></a>将命令返回值从输出缓冲区写入 socket</h3><p>在 <a href="http://remcarpediem.net/article/1aa2da89/">《Redis 事件机制详解》</a><br>一文中我们知道，Redis 在两次事件循环之间会调用 beforeSleep 方法处理一些事情，而对 clients_pending_write 列表的处理就在其中。</p>
-<p>下面的 aeMain 方法就是 Redis 事件循环的主逻辑，可以看到每次循环时都会调用 beforesleep 方法。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">void aeMain(aeEventLoop *eventLoop) { &#x2F;&#x2F; ae.c
-    eventLoop-&gt;stop = 0;
-    while (!eventLoop-&gt;stop) {
-        &#x2F;* 如果有需要在事件处理前执行的函数，那么执行它 *&#x2F;
-        if (eventLoop-&gt;beforesleep != NULL)
-            eventLoop-&gt;beforesleep(eventLoop);
-        &#x2F;* 开始处理事件*&#x2F;
-        aeProcessEvents(eventLoop, AE_ALL_EVENTS|AE_CALL_AFTER_SLEEP);
-    }
-}
-</code></pre></p>
-<p>beforeSleep 函数会调用 handleClientsWithPendingWrites 函数来处理 clients_pending_write 列表。</p>
-<p>handleClientsWithPendingWrites 方法会遍历 clients_pending_write 列表，对于每个 client 都会先调用 writeToClient 方法来尝试将返回数据从输出缓存区写入到 socekt中，如果还未写完，则只能调用 aeCreateFileEvent 方法来注册一个写数据事件处理器 sendReplyToClient，等待 Redis 事件机制的再次调用。</p>
-<p><img src="/images/19_1221/1_image6.png" alt=""></p>
-<p>这样的好处时对于返回数据较少的客户端，不需要麻烦的注册写数据事件，等待事件触发再写数据到 socket，而是在下一次事件循环周期就直接将数据写到 socket中，加快了数据返回的响应速度。</p>
-<p>但是从这里也会发现，如果 clients_pending_write 队列过长，则处理时间也会很久，阻塞正常的事件响应处理，导致 Redis 后续命令延时增加。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">&#x2F;&#x2F; 直接将返回值写到client的输出缓冲区中，不需要进行系统调用，也不需要注册写事件处理器
-int handleClientsWithPendingWrites(void) {
-    listIter li;
-    listNode *ln;
-    &#x2F;&#x2F; 获取系统延迟写队列的长度
-    int processed = listLength(server.clients_pending_write);
-
-    listRewind(server.clients_pending_write,&amp;li);
-    &#x2F;&#x2F; 依次处理
-    while((ln = listNext(&amp;li))) {
-        client *c = listNodeValue(ln);
-        c-&gt;flags &amp;= ~CLIENT_PENDING_WRITE;
-        listDelNode(server.clients_pending_write,ln);
-
-        &#x2F;&#x2F; 将缓冲值写入client的socket中，如果写完，则跳过之后的操作。
-        if (writeToClient(c-&gt;fd,c,0) == C_ERR) continue;
-
-        &#x2F;&#x2F; 还有数据未写入，只能注册写事件处理器了
-        if (clientHasPendingReplies(c)) {
-            int ae_flags = AE_WRITABLE;
-            if (server.aof_state == AOF_ON &amp;&amp;
-                server.aof_fsync == AOF_FSYNC_ALWAYS)
-            {
-                ae_flags |= AE_BARRIER;
-            }
-            &#x2F;&#x2F; 注册写事件处理器 sendReplyToClient，等待执行
-            if (aeCreateFileEvent(server.el, c-&gt;fd, ae_flags,
-                sendReplyToClient, c) == AE_ERR)
-            {
-                    freeClientAsync(c);
-            }
-        }
-    }
-    return processed;
-}
-</code></pre>
-<p>sendReplyToClient 方法其实也会调用 writeToClient 方法，该方法就是将输出缓冲区中的 buf 和 reply 列表中的数据都尽可能多的写入到对应的 socket中。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">&#x2F;&#x2F; 将输出缓冲区中的数据写入socket，如果还有数据未处理则返回C_OK
-int writeToClient(int fd, client *c, int handler_installed) {
-    ssize_t nwritten = 0, totwritten = 0;
-    size_t objlen;
-    sds o;
-    &#x2F;&#x2F; 仍然有数据未写入
-    while(clientHasPendingReplies(c)) {
-        &#x2F;&#x2F; 如果缓冲区有数据
-        if (c-&gt;bufpos &gt; 0) {
-            &#x2F;&#x2F; 写入到 fd 代表的 socket 中
-            nwritten = write(fd,c-&gt;buf+c-&gt;sentlen,c-&gt;bufpos-c-&gt;sentlen);
-            if (nwritten &lt;= 0) break;
-            c-&gt;sentlen += nwritten;
-            &#x2F;&#x2F; 统计本次一共输出了多少子节
-            totwritten += nwritten;
-
-            &#x2F;&#x2F; buffer中的数据已经发送，则重置标志位，让响应的后续数据写入buffer
-            if ((int)c-&gt;sentlen == c-&gt;bufpos) {
-                c-&gt;bufpos = 0;
-                c-&gt;sentlen = 0;
-            }
-        } else {
-            &#x2F;&#x2F; 缓冲区没有数据，从reply队列中拿
-            o = listNodeValue(listFirst(c-&gt;reply));
-            objlen = sdslen(o);
-
-            if (objlen == 0) {
-                listDelNode(c-&gt;reply,listFirst(c-&gt;reply));
-                continue;
-            }
-            &#x2F;&#x2F; 将队列中的数据写入 socket
-            nwritten = write(fd, o + c-&gt;sentlen, objlen - c-&gt;sentlen);
-            if (nwritten &lt;= 0) break;
-            c-&gt;sentlen += nwritten;
-            totwritten += nwritten;
-            &#x2F;&#x2F; 如果写入成功，则删除队列
-            if (c-&gt;sentlen == objlen) {
-                listDelNode(c-&gt;reply,listFirst(c-&gt;reply));
-                c-&gt;sentlen = 0;
-                c-&gt;reply_bytes -= objlen;
-                if (listLength(c-&gt;reply) == 0)
-                    serverAssert(c-&gt;reply_bytes == 0);
-            }
-        }
-        &#x2F;&#x2F; 如果输出的字节数量已经超过NET_MAX_WRITES_PER_EVENT限制，break
-        if (totwritten &gt; NET_MAX_WRITES_PER_EVENT &amp;&amp;
-            (server.maxmemory == 0 ||
-             zmalloc_used_memory() &lt; server.maxmemory) &amp;&amp;
-            !(c-&gt;flags &amp; CLIENT_SLAVE)) break;
-    }
-    server.stat_net_output_bytes += totwritten;
-    if (nwritten == -1) {
-        if (errno == EAGAIN) {
-            nwritten = 0;
-        } else {
-            serverLog(LL_VERBOSE,
-                &quot;Error writing to client: %s&quot;, strerror(errno));
-            freeClient(c);
-            return C_ERR;
-        }
-    }
-    if (!clientHasPendingReplies(c)) {
-        c-&gt;sentlen = 0;
-        &#x2F;&#x2F;如果内容已经全部输出，删除事件处理器
-        if (handler_installed) aeDeleteFileEvent(server.el,c-&gt;fd,AE_WRITABLE);
-        &#x2F;&#x2F; 数据全部返回，则关闭client和连接
-        if (c-&gt;flags &amp; CLIENT_CLOSE_AFTER_REPLY) {
-            freeClient(c);
-            return C_ERR;
-        }
-    }
-    return C_OK;
-}
-</code></pre>
-<p><a href="[http://remcarpediem.net/article/1aa2da89/](http://remcarpediem.net/article/1aa2da89/">个人博客地址，欢迎查看</a>)<br><img src="/images/logo.png" alt=""></p>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></div>   
+                <div class="article-more-link">
+                    <a href="/article/1dd72ef8/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/1dd72ef8/" class="leancloud_visitors" data-flag-title="Redis 命令执行过程(下)">
@@ -2450,7 +1281,7 @@ int writeToClient(int fd, client *c, int handler_installed) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/1dd72ef8/" data-id="ckauf70yt004iwi66nxxvbx4e" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/1dd72ef8/" data-id="ckaufl9150044jv668na4sfun" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -2562,515 +1393,45 @@ int writeToClient(int fd, client *c, int handler_installed) {
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>今天我们来了解一下 Redis 命令执行的过程。在之前的文章中<a href="http://remcarpediem.net/article/ef4e619/">《当 Redis 发生高延迟时，到底发生了什么》</a>我们曾简单的描述了一条命令的执行过程，本篇文章展示深入说明一下，加深读者对 Redis 的了解。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>今天我们来了解一下 Redis 命令执行的过程。在之前的文章中<a href="http://remcarpediem.net/article/ef4e619/">《当 Redis 发生高延迟时，到底发生了什么》</a>我们曾简单的描述了一条命令的执行过程，本篇文章展示深入说明一下，加深读者对 Redis 的了解。</p>
 <p>如下图所示，一条命令执行完成并且返回数据一共涉及三部分，第一步是建立连接阶段，响应了socket的建立，并且创建了client对象；第二步是处理阶段，从socket读取数据到输入缓冲区，然后解析并获得命令，执行命令并将返回值存储到输出缓冲区中；第三步是数据返回阶段，将返回值从输出缓冲区写到socket中，返回给客户端，最后关闭client。</p>
 <p><img src="/images/19_1221/1_image1.png" alt=""></p>
 <p>这三个阶段之间是通过事件机制串联了，在 Redis 启动阶段首先要注册socket连接建立事件处理器：</p>
 <ul>
-<li>当客户端发来建立socket的连接的请求时，对应的处理器方法会被执行，建立连接阶段的相关处理就会进行，然后注册socket读取事件处理器</li>
-<li>当客户端发来命令时，读取事件处理器方法会被执行，对应处理阶段的相关逻辑都会被执行，然后注册socket写事件处理器</li>
-<li>当写事件处理器被执行时，就是将返回值写回到socket中。</li>
-</ul>
-<p><img src="/images/19_1221/2_image1.png" alt=""></p>
-<p>接下来，我们分别来看一下各个步骤的具体原理和代码实现。</p>
-<h3 id="启动时监听socket"><a href="#启动时监听socket" class="headerlink" title="启动时监听socket"></a>启动时监听socket</h3><p>Redis 服务器启动时，会调用 initServer 方法，首先会建立 Redis 自己的事件机制 eventLoop，然后在其上注册周期时间事件处理器，最后在所监听的 socket 上<br>创建文件事件处理器，监听 socket 建立连接的事件，其处理函数为 acceptTcpHandler。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">void initServer(void) { &#x2F;&#x2F; server.c
-    ....
-    &#x2F;**
-     * 创建eventLoop
-     *&#x2F;
-    server.el = aeCreateEventLoop(server.maxclients+CONFIG_FDSET_INCR);
-    &#x2F;* Open the TCP listening socket for the user commands. *&#x2F;
-
-    if (server.port != 0 &amp;&amp;
-        listenToPort(server.port,server.ipfd,&amp;server.ipfd_count) == C_ERR)
-        exit(1);
-
-    &#x2F;**
-     * 注册周期时间事件，处理后台操作，比如说客户端操作、过期键等
-     *&#x2F;
-    if (aeCreateTimeEvent(server.el, 1, serverCron, NULL, NULL) == AE_ERR) {
-        serverPanic(&quot;Can&#39;t create event loop timers.&quot;);
-        exit(1);
-    }
-    &#x2F;**
-     * 为所有监听的socket创建文件事件，监听可读事件；事件处理函数为acceptTcpHandler
-     * 
-     *&#x2F;
-    for (j = 0; j &lt; server.ipfd_count; j++) {
-        if (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE,
-            acceptTcpHandler,NULL) == AE_ERR)
-            {
-                serverPanic(
-                    &quot;Unrecoverable error creating server.ipfd file event.&quot;);
-            }
-    }
-    ....
-}
-</code></pre></p>
-<p>在《Redis 事件机制详解》一文中，我们曾详细介绍过 Redis 的事件机制，可以说，Redis 命令执行过程中都是由事件机制协调管理的，也就是 initServer 方法中生成的 aeEventLoop。当socket发生对应的事件时，aeEventLoop 对调用已经注册的对应的事件处理器。</p>
-<p><img src="/images/19_1221/2_image2.png" alt=""></p>
-<h3 id="建立连接和Client"><a href="#建立连接和Client" class="headerlink" title="建立连接和Client"></a>建立连接和Client</h3><p>当客户端向 Redis 建立 socket时，aeEventLoop 会调用 acceptTcpHandler 处理函数，服务器会为每个链接创建一个 Client 对象，并创建相应文件事件来监听socket的可读事件，并指定事件处理函数。</p>
-<p>acceptTcpHandler 函数会首先调用 <code>anetTcpAccept</code>方法，它底层会调用 socket 的 accept 方法，也就是接受客户端来的建立连接请求，然后调用 <code>acceptCommonHandler</code>方法，继续后续的逻辑处理。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 当客户端建立链接时进行的eventloop处理函数  networking.c
-void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
-    ....
-    &#x2F;&#x2F; 层层调用，最后在anet.c 中 anetGenericAccept 方法中调用 socket 的 accept 方法
-    cfd = anetTcpAccept(server.neterr, fd, cip, sizeof(cip), &amp;cport);
-    if (cfd == ANET_ERR) {
-        if (errno != EWOULDBLOCK)
-            serverLog(LL_WARNING,
-                &quot;Accepting client connection: %s&quot;, server.neterr);
-        return;
-    }
-    serverLog(LL_VERBOSE,&quot;Accepted %s:%d&quot;, cip, cport);
-    &#x2F;**
-     * 进行socket 建立连接后的处理
-     *&#x2F;
-    acceptCommonHandler(cfd,0,cip);
-}
-</code></pre></p>
-<p>acceptCommonHandler 则首先调用 createClient 创建 client，接着判断当前 client 的数量是否超出了配置的 maxclients，如果超过，则给客户端发送错误信息，并且释放 client。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">static void acceptCommonHandler(int fd, int flags, char *ip) { &#x2F;&#x2F;networking.c
-    client *c;
-    &#x2F;&#x2F; 创建redisClient
-    c = createClient(fd)
-    &#x2F;&#x2F; 当 maxClient 属性被设置，并且client数量已经超出时，给client发送error，然后释放连接
-    if (listLength(server.clients) &gt; server.maxclients) {
-        char *err = &quot;-ERR max number of clients reached\r\n&quot;;
-        if (write(c-&gt;fd,err,strlen(err)) == -1) {
-        }
-        server.stat_rejected_conn++;
-        freeClient(c);
-        return;
-    }
-    .... &#x2F;&#x2F; 处理为设置密码时默认保护状态的客户端连接
-    &#x2F;&#x2F; 统计连接数
-    server.stat_numconnections++;
-    c-&gt;flags |= flags;
-}
-</code></pre>
-<p>createClient 方法用于创建 client，它代表着连接到 Redis 客户端，每个客户端都有各自的输入缓冲区和输出缓冲区，输入缓冲区存储客户端通过 socket 发送过来的数据，输出缓冲区则存储着 Redis 对客户端的响应数据。client一共有三种类型，不同类型的对应缓冲区的大小都不同。</p>
-<ul>
-<li>普通客户端是除了复制和订阅的客户端之外的所有连接</li>
-<li>从客户端用于主从复制，主节点会为每个从节点单独建立一条连接用于命令复制</li>
-<li>订阅客户端用于发布订阅功能</li>
-</ul>
-<p><img src="/images/19_1221/2_image3.png" alt=""></p>
-<p>createClient 方法除了创建 client 结构体并设置其属性值外，还会对 socket进行配置并注册读事件处理器</p>
-<p>设置 socket 为 非阻塞 socket、设置 NO_DELAY 和 SO_KEEPALIVE标志位来关闭 Nagle 算法并且启动 socket 存活检查机制。</p>
-<p>设置读事件处理器，当客户端通过 socket 发送来数据后，Redis 会调用 readQueryFromClient 方法。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">client *createClient(int fd) {
-    client *c = zmalloc(sizeof(client));
-    &#x2F;&#x2F; fd 为 -1，表示其他特殊情况创建的client，redis在进行比如lua脚本执行之类的情况下也会创建client
-    if (fd != -1) {
-        &#x2F;&#x2F; 配置socket为非阻塞、NO_DELAY不开启Nagle算法和SO_KEEPALIVE
-        anetNonBlock(NULL,fd);
-        anetEnableTcpNoDelay(NULL,fd);
-        if (server.tcpkeepalive)
-            anetKeepAlive(NULL,fd,server.tcpkeepalive);
-        &#x2F;**
-         * 向 eventLoop 中注册了 readQueryFromClient。
-         * readQueryFromClient 的作用就是从client中读取客户端的查询缓冲区内容。
-         * 绑定读事件到事件 loop （开始接收命令请求）
-         *&#x2F;
-        if (aeCreateFileEvent(server.el,fd,AE_READABLE,
-            readQueryFromClient, c) == AE_ERR)
-        {
-            close(fd);
-            zfree(c);
-            return NULL;
-        }
-    }
-    &#x2F;&#x2F; 默认选择数据库
-    selectDb(c,0);
-    uint64_t client_id;
-    atomicGetIncr(server.next_client_id,client_id,1);
-    c-&gt;id = client_id;
-    c-&gt;fd = fd;
-    .... &#x2F;&#x2F; 设置client的属性
-    return c;
-}
-</code></pre>
-<p>client 的属性中有很多属性，比如后边会看到的输入缓冲区 querybuf 和输出缓冲区 buf，这里因为代码过长做了省略，感兴趣的同学可以自行阅读源码。</p>
-<h3 id="读取socket数据到输入缓冲区"><a href="#读取socket数据到输入缓冲区" class="headerlink" title="读取socket数据到输入缓冲区"></a>读取socket数据到输入缓冲区</h3><p>readQueryFromClient 方法会调用 read 方法从 socket 中读取数据到输入缓冲区中，然后判断其大小是否大于系统设置的 client_max_querybuf_len，如果大于，则向 Redis返回错误信息，并关闭 client。</p>
-<p>将数据读取到输入缓冲区后，readQueryFromClient 方法会根据 client 的类型来做不同的处理，如果是普通类型，则直接调用 processInputBuffer 来处理；如果是主从客户端，还需要将命令同步到自己的从服务器中。也就是说，Redis实例将主实例传来的命令执行后，继续将命令同步给自己的从实例。</p>
-<p><img src="/images/19_1221/2_image4.png" alt=""></p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 处理从client中读取客户端的输入缓冲区内容。
-void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
-    client *c = (client*) privdata;
-    ....
-    if (c-&gt;querybuf_peak &lt; qblen) c-&gt;querybuf_peak = qblen;
-    c-&gt;querybuf = sdsMakeRoomFor(c-&gt;querybuf, readlen);
-    &#x2F;&#x2F; 从 fd 对应的socket中读取到 client 中的 querybuf 输入缓冲区
-    nread = read(fd, c-&gt;querybuf+qblen, readlen);
-    if (nread == -1) {
-        .... &#x2F;&#x2F; 出错释放 client
-    } else if (nread == 0) {
-        &#x2F;&#x2F; 客户端主动关闭 connection
-        serverLog(LL_VERBOSE, &quot;Client closed connection&quot;);
-        freeClient(c);
-        return;
-    } else if (c-&gt;flags &amp; CLIENT_MASTER) { 
-        &#x2F;*
-         * 当这个client代表主从的master节点时，将query buffer和 pending_querybuf结合
-         * 用于主从复制中的命令传播？？？？
-         *&#x2F;
-        c-&gt;pending_querybuf = sdscatlen(c-&gt;pending_querybuf,
-                                        c-&gt;querybuf+qblen,nread);
-    }
-    &#x2F;&#x2F; 增加已经读取的字节数
-    sdsIncrLen(c-&gt;querybuf,nread);
-    c-&gt;lastinteraction = server.unixtime;
-    if (c-&gt;flags &amp; CLIENT_MASTER) c-&gt;read_reploff += nread;
-    server.stat_net_input_bytes += nread;
-    &#x2F;&#x2F; 如果大于系统配置的最大客户端缓存区大小，也就是配置文件中的client-query-buffer-limit
-    if (sdslen(c-&gt;querybuf) &gt; server.client_max_querybuf_len) {
-        sds ci = catClientInfoString(sdsempty(),c), bytes = sdsempty();
-        &#x2F;&#x2F; 返回错误信息，并且关闭client
-        bytes = sdscatrepr(bytes,c-&gt;querybuf,64);
-        serverLog(LL_WARNING,&quot;Closing client that reached max query buffer length: %s (qbuf initial bytes: %s)&quot;, ci, bytes);
-        sdsfree(ci);
-        sdsfree(bytes);
-        freeClient(c);
-        return;
-    }
-
-    
-    if (!(c-&gt;flags &amp; CLIENT_MASTER)) {
-        &#x2F;&#x2F; processInputBuffer 处理输入缓冲区
-        processInputBuffer(c);
-    } else {
-        &#x2F;&#x2F; 如果client是master的连接
-        size_t prev_offset = c-&gt;reploff;
-        processInputBuffer(c);
-        &#x2F;&#x2F; 判断是否同步偏移量发生变化，则通知到后续的slave
-        size_t applied = c-&gt;reploff - prev_offset;
-
-        if (applied) {
-            replicationFeedSlavesFromMasterStream(server.slaves,
-                    c-&gt;pending_querybuf, applied);
-            sdsrange(c-&gt;pending_querybuf,applied,-1);
-        }
-    }
-}
-</code></pre>
-<h3 id="解析获取命令"><a href="#解析获取命令" class="headerlink" title="解析获取命令"></a>解析获取命令</h3><p>processInputBuffer 主要是将输入缓冲区中的数据解析成对应的命令，根据命令类型是 PROTO_REQ_MULTIBULK 还是 PROTO_REQ_INLINE，来分别调用 processInlineBuffer 和 processMultibulkBuffer 方法来解析命令。</p>
-<p>然后调用 processCommand 方法来执行命令。执行成功后，如果是主从客户端，还需要更新同步偏移量 reploff 属性，然后重置 client，让client可以接收一条命令。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">void processInputBuffer(client *c) { &#x2F;&#x2F; networking.c
-    server.current_client = c;
-    &#x2F;* 当缓冲区中还有数据时就一直处理 *&#x2F;
-    while(sdslen(c-&gt;querybuf)) {
-        .... &#x2F;&#x2F; 处理 client 的各种状态
-        &#x2F;* 判断命令请求类型 telnet发送的命令和redis-cli发送的命令请求格式不同 *&#x2F;
-        if (!c-&gt;reqtype) {
-            if (c-&gt;querybuf[0] == &#39;*&#39;) {
-                c-&gt;reqtype = PROTO_REQ_MULTIBULK;
-            } else {
-                c-&gt;reqtype = PROTO_REQ_INLINE;
-            }
-        }
-        &#x2F;**
-         * 从缓冲区解析命令
-         *&#x2F;
-        if (c-&gt;reqtype == PROTO_REQ_INLINE) {
-            if (processInlineBuffer(c) != C_OK) break;
-        } else if (c-&gt;reqtype == PROTO_REQ_MULTIBULK) {
-            if (processMultibulkBuffer(c) != C_OK) break;
-        } else {
-            serverPanic(&quot;Unknown request type&quot;);
-        }
-
-        &#x2F;* 参数个数为0时重置client，可以接受下一个命令 *&#x2F;
-        if (c-&gt;argc == 0) {
-            resetClient(c);
-        } else {
-            &#x2F;&#x2F; 执行命令
-            if (processCommand(c) == C_OK) {
-                if (c-&gt;flags &amp; CLIENT_MASTER &amp;&amp; !(c-&gt;flags &amp; CLIENT_MULTI)) {
-                    &#x2F;&#x2F; 如果是master的client发来的命令，则 更新 reploff
-                    c-&gt;reploff = c-&gt;read_reploff - sdslen(c-&gt;querybuf);
-                }
-
-                &#x2F;&#x2F; 如果不是阻塞状态，则重置client，可以接受下一个命令
-                if (!(c-&gt;flags &amp; CLIENT_BLOCKED) || c-&gt;btype != BLOCKED_MODULE)
-                    resetClient(c);
-            }
-        }
-    }
-    server.current_client = NULL;
-}
-</code></pre>
-<p>解析命令暂时不看，就是将 redis 命令文本信息，记录到client的argv/argc属性中</p>
-<h3 id="执行命令"><a href="#执行命令" class="headerlink" title="执行命令"></a>执行命令</h3><p>processCommand 方法会处理很多逻辑，不过大致可以分为三个部分：首先是调用 lookupCommand 方法获得对应的 redisCommand；接着是检测当前 Redis 是否可以执行该命令；最后是调用 call 方法真正执行命令。</p>
-<p>processCommand会做如下逻辑处理：</p>
-<ul>
-<li>1 如果命令名称为 quit，则直接返回，并且设置客户端标志位。</li>
-<li>2 根据 argv[0] 查找对应的 redisCommand，所有的命令都存储在命令字典 redisCommandTable 中，根据命令名称可以获取对应的命令。</li>
-<li>3 进行用户权限校验。</li>
-<li>4 如果是集群模式，处理集群重定向。当命令发送者是 master 或者 命令没有任何 key 的参数时可以不重定向。</li>
-<li>5 预防 maxmemory 情况，先尝试回收一下，如果不行，则返回异常。</li>
-<li>6 当此服务器是 master 时：aof 持久化失败时，或上一次 bgsave 执行错误，且配置 bgsave 参数和 stop_writes_on_bgsave_err；禁止执行写命令。</li>
-<li>7 当此服务器时master时：如果配置了 repl_min_slaves_to_write，当slave数目小于时，禁止执行写命令。</li>
-<li>8 当时只读slave时，除了 master 的不接受其他写命令。</li>
-<li>9 当客户端正在订阅频道时，只会执行部分命令。</li>
-<li>10 服务器为slave，但是没有连接 master 时，只会执行带有 CMD_STALE 标志的命令，如 info 等</li>
-<li>11 正在加载数据库时，只会执行带有 CMD_LOADING 标志的命令，其余都会被拒绝。</li>
-<li>12 当服务器因为执行lua脚本阻塞时，只会执行部分命令，其余都会拒绝</li>
-<li>13 如果是事务命令，则开启事务，命令进入等待队列；否则直接执行命令。</li>
-</ul>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">int processCommand(client *c) {
-    &#x2F;&#x2F; 1 处理 quit 命令
-    if (!strcasecmp(c-&gt;argv[0]-&gt;ptr,&quot;quit&quot;)) {
-        addReply(c,shared.ok);
-        c-&gt;flags |= CLIENT_CLOSE_AFTER_REPLY;
-        return C_ERR;
-    }
-
-    &#x2F;**
-     * 根据 argv[0] 查找对应的 command
-     * 2 命令字典查找指定命令；所有的命令都存储在命令字典中 struct redisCommand redisCommandTable[]={}
-     *&#x2F;
-    c-&gt;cmd = c-&gt;lastcmd = lookupCommand(c-&gt;argv[0]-&gt;ptr);
-    if (!c-&gt;cmd) {
-        &#x2F;&#x2F; 处理未知命令
-    } else if ((c-&gt;cmd-&gt;arity &gt; 0 &amp;&amp; c-&gt;cmd-&gt;arity != c-&gt;argc) ||
-               (c-&gt;argc &lt; -c-&gt;cmd-&gt;arity)) {
-        &#x2F;&#x2F; 处理参数错误
-    }
-    &#x2F;&#x2F; 3 检查用户验证
-    if (server.requirepass &amp;&amp; !c-&gt;authenticated &amp;&amp; c-&gt;cmd-&gt;proc != authCommand)
-    {
-        flagTransaction(c);
-        addReply(c,shared.noautherr);
-        return C_OK;
-    }
-
-    &#x2F;**
-     * 4 如果是集群模式，处理集群重定向。当命令发送者是master或者 命令没有任何key的参数时可以不重定向
-     *&#x2F;
-    if (server.cluster_enabled &amp;&amp;
-        !(c-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;
-        !(c-&gt;flags &amp; CLIENT_LUA &amp;&amp;
-          server.lua_caller-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;
-        !(c-&gt;cmd-&gt;getkeys_proc == NULL &amp;&amp; c-&gt;cmd-&gt;firstkey == 0 &amp;&amp;
-          c-&gt;cmd-&gt;proc != execCommand))
-    {
-        int hashslot;
-        int error_code;
-        &#x2F;&#x2F; 查询可以执行的node信息
-        clusterNode *n = getNodeByQuery(c,c-&gt;cmd,c-&gt;argv,c-&gt;argc,
-                                        &amp;hashslot,&amp;error_code);
-        if (n == NULL || n != server.cluster-&gt;myself) {
-            if (c-&gt;cmd-&gt;proc == execCommand) {
-                discardTransaction(c);
-            } else {
-                flagTransaction(c);
-            }
-            clusterRedirectClient(c,n,hashslot,error_code);
-            return C_OK;
-        }
-    }
-
-    &#x2F;&#x2F; 5 处理maxmemory请求，先尝试回收一下，如果不行，则返回异常
-    if (server.maxmemory) {
-        int retval = freeMemoryIfNeeded();
-        ....
-    }
-
-    &#x2F;**
-     * 6 当此服务器是master时：aof持久化失败时，或上一次bgsave执行错误，
-     * 且配置bgsave参数和stop_writes_on_bgsave_err；禁止执行写命令
-     *&#x2F;
-    if (((server.stop_writes_on_bgsave_err &amp;&amp;
-          server.saveparamslen &gt; 0 &amp;&amp;
-          server.lastbgsave_status == C_ERR) ||
-          server.aof_last_write_status == C_ERR) &amp;&amp;
-        server.masterhost == NULL &amp;&amp;
-        (c-&gt;cmd-&gt;flags &amp; CMD_WRITE ||
-         c-&gt;cmd-&gt;proc == pingCommand)) { .... }
-
-    &#x2F;**
-     * 7 当此服务器时master时：如果配置了repl_min_slaves_to_write，
-     * 当slave数目小于时，禁止执行写命令
-     *&#x2F;
-    if (server.masterhost == NULL &amp;&amp;
-        server.repl_min_slaves_to_write &amp;&amp;
-        server.repl_min_slaves_max_lag &amp;&amp;
-        c-&gt;cmd-&gt;flags &amp; CMD_WRITE &amp;&amp;
-        server.repl_good_slaves_count &lt; server.repl_min_slaves_to_write) { .... }
-
-    &#x2F;**
-     * 8 当时只读slave时，除了master的不接受其他写命令
-     *&#x2F;
-    if (server.masterhost &amp;&amp; server.repl_slave_ro &amp;&amp;
-        !(c-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;
-        c-&gt;cmd-&gt;flags &amp; CMD_WRITE) { .... }
-
-    &#x2F;**
-     * 9 当客户端正在订阅频道时，只会执行以下命令
-     *&#x2F;
-    if (c-&gt;flags &amp; CLIENT_PUBSUB &amp;&amp;
-        c-&gt;cmd-&gt;proc != pingCommand &amp;&amp;
-        c-&gt;cmd-&gt;proc != subscribeCommand &amp;&amp;
-        c-&gt;cmd-&gt;proc != unsubscribeCommand &amp;&amp;
-        c-&gt;cmd-&gt;proc != psubscribeCommand &amp;&amp;
-        c-&gt;cmd-&gt;proc != punsubscribeCommand) { .... }
-    &#x2F;**
-     * 10 服务器为slave，但没有正确连接master时，只会执行带有CMD_STALE标志的命令，如info等
-     *&#x2F;
-    if (server.masterhost &amp;&amp; server.repl_state != REPL_STATE_CONNECTED &amp;&amp;
-        server.repl_serve_stale_data == 0 &amp;&amp;
-        !(c-&gt;cmd-&gt;flags &amp; CMD_STALE)) {...}
-    &#x2F;**
-     * 11 正在加载数据库时，只会执行带有CMD_LOADING标志的命令，其余都会被拒绝
-     *&#x2F;
-    if (server.loading &amp;&amp; !(c-&gt;cmd-&gt;flags &amp; CMD_LOADING)) { .... }
-    &#x2F;**
-     * 12 当服务器因为执行lua脚本阻塞时，只会执行以下几个命令，其余都会拒绝
-     *&#x2F;
-    if (server.lua_timedout &amp;&amp;
-          c-&gt;cmd-&gt;proc != authCommand &amp;&amp;
-          c-&gt;cmd-&gt;proc != replconfCommand &amp;&amp;
-        !(c-&gt;cmd-&gt;proc == shutdownCommand &amp;&amp;
-          c-&gt;argc == 2 &amp;&amp;
-          tolower(((char*)c-&gt;argv[1]-&gt;ptr)[0]) == &#39;n&#39;) &amp;&amp;
-        !(c-&gt;cmd-&gt;proc == scriptCommand &amp;&amp;
-          c-&gt;argc == 2 &amp;&amp;
-          tolower(((char*)c-&gt;argv[1]-&gt;ptr)[0]) == &#39;k&#39;)) {....}
-
-    &#x2F;**
-     * 13 开始执行命令
-     *&#x2F;
-    if (c-&gt;flags &amp; CLIENT_MULTI &amp;&amp;
-        c-&gt;cmd-&gt;proc != execCommand &amp;&amp; c-&gt;cmd-&gt;proc != discardCommand &amp;&amp;
-        c-&gt;cmd-&gt;proc != multiCommand &amp;&amp; c-&gt;cmd-&gt;proc != watchCommand)
-    {
-        &#x2F;**
-         * 开启了事务，命令只会入队列
-         *&#x2F;
-        queueMultiCommand(c);
-        addReply(c,shared.queued);
-    } else {
-        &#x2F;**
-         * 直接执行命令
-         *&#x2F;
-        call(c,CMD_CALL_FULL);
-        c-&gt;woff = server.master_repl_offset;
-        if (listLength(server.ready_keys))
-            handleClientsBlockedOnLists();
-    }
-    return C_OK;
-}
-
-
-struct redisCommand redisCommandTable[] = {
-    {&quot;get&quot;,getCommand,2,&quot;rF&quot;,0,NULL,1,1,1,0,0},
-    {&quot;set&quot;,setCommand,-3,&quot;wm&quot;,0,NULL,1,1,1,0,0},
-    {&quot;hmset&quot;,hsetCommand,-4,&quot;wmF&quot;,0,NULL,1,1,1,0,0},
-    .... &#x2F;&#x2F; 所有的 redis 命令都有
-}
-</code></pre>
-<p>call 方法是 Redis 中执行命令的通用方法，它会处理通用的执行命令的前置和后续操作。</p>
-<p><img src="/images/19_1221/2_image5.png" alt=""></p>
-<ul>
-<li>如果有监视器 monitor，则需要将命令发送给监视器。</li>
-<li>调用 redisCommand 的proc 方法，执行对应具体的命令逻辑。</li>
-<li>如果开启了 CMD_CALL_SLOWLOG，则需要记录慢查询日志</li>
-<li>如果开启了 CMD_CALL_STATS，则需要记录一些统计信息</li>
-<li>如果开启了 CMD_CALL_PROPAGATE，则当 dirty大于0时，需要调用 propagate 方法来进行命令传播。</li>
-</ul>
-<p><img src="/images/19_1221/2_image6.png" alt=""></p>
-<p>命令传播就是将命令写入 repl-backlog-buffer 缓冲中，并发送给各个从服务器中。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-c">&#x2F;&#x2F; 执行client中持有的 redisCommand 命令
-void call(client *c, int flags) {
-    &#x2F;**
-     * dirty记录数据库修改次数；start记录命令开始执行时间us；duration记录命令执行花费时间
-     *&#x2F;
-    long long dirty, start, duration;
-    int client_old_flags = c-&gt;flags;
-
-    &#x2F;**
-     * 有监视器的话，需要将不是从AOF获取的命令会发送给监视器。当然，这里会消耗时间
-     *&#x2F;
-    if (listLength(server.monitors) &amp;&amp;
-        !server.loading &amp;&amp;
-        !(c-&gt;cmd-&gt;flags &amp; (CMD_SKIP_MONITOR|CMD_ADMIN)))
-    {
-        replicationFeedMonitors(c,server.monitors,c-&gt;db-&gt;id,c-&gt;argv,c-&gt;argc);
-    }
-    ....
-    &#x2F;* Call the command. *&#x2F;
-    dirty = server.dirty;
-    start = ustime();
-    &#x2F;&#x2F; 处理命令，调用命令处理函数
-    c-&gt;cmd-&gt;proc(c);
-    duration = ustime()-start;
-    dirty = server.dirty-dirty;
-    if (dirty &lt; 0) dirty = 0;
-
-    .... &#x2F;&#x2F; Lua 脚本的一些特殊处理
-
-    &#x2F;**
-     * CMD_CALL_SLOWLOG 表示要记录慢查询日志
-     *&#x2F;
-    if (flags &amp; CMD_CALL_SLOWLOG &amp;&amp; c-&gt;cmd-&gt;proc != execCommand) {
-        char *latency_event = (c-&gt;cmd-&gt;flags &amp; CMD_FAST) ?
-                              &quot;fast-command&quot; : &quot;command&quot;;
-        latencyAddSampleIfNeeded(latency_event,duration&#x2F;1000);
-        slowlogPushEntryIfNeeded(c,c-&gt;argv,c-&gt;argc,duration);
-    }
-    &#x2F;**
-     * CMD_CALL_STATS 表示要统计
-     *&#x2F;
-    if (flags &amp; CMD_CALL_STATS) {
-        c-&gt;lastcmd-&gt;microseconds += duration;
-        c-&gt;lastcmd-&gt;calls++;
-    }
-    &#x2F;**
-     * CMD_CALL_PROPAGATE表示要进行广播命令
-     *&#x2F;
-    if (flags &amp; CMD_CALL_PROPAGATE &amp;&amp;
-        (c-&gt;flags &amp; CLIENT_PREVENT_PROP) != CLIENT_PREVENT_PROP)
-    {
-        int propagate_flags = PROPAGATE_NONE;
-        &#x2F;**
-         * dirty大于0时，需要广播命令给slave和aof
-         *&#x2F;
-        if (dirty) propagate_flags |= (PROPAGATE_AOF|PROPAGATE_REPL);
-        .... 
-        &#x2F;**
-         * 广播命令，写如aof，发送命令到slave
-         * 也就是传说中的传播命令
-         *&#x2F;
-        if (propagate_flags != PROPAGATE_NONE &amp;&amp; !(c-&gt;cmd-&gt;flags &amp; CMD_MODULE))
-            propagate(c-&gt;cmd,c-&gt;db-&gt;id,c-&gt;argv,c-&gt;argc,propagate_flags);
-    }
-    ....
-}
-</code></pre>
-<p>由于文章篇幅问题，本篇文章就先讲到这里，后半部分在接下来的文章中进行讲解，欢迎大家继续关注。</p>
-<p><img src="/images/logo.png" alt=""></p>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></ul></div>   
+                <div class="article-more-link">
+                    <a href="/article/4cc1fb9/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/4cc1fb9/" class="leancloud_visitors" data-flag-title="Redis 命令执行过程(上)">
@@ -3083,7 +1444,7 @@ void call(client *c, int flags) {
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/4cc1fb9/" data-id="ckauf70yl003zwi66ayliitc4" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/4cc1fb9/" data-id="ckaufl9140041jv6633hxo0iw" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -3200,210 +1561,45 @@ void call(client *c, int flags) {
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>前段时间小冰在工作中遇到了一系列关于数据持久化的问题，在排查问题时发现自己对 Java 后端的数据持久化框架的原理都不太了解，只有不断试错，因此走了很多弯路。于是下定决心，集中精力学习了持久化相关框架的原理和实现，总结出这个系列。</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>前段时间小冰在工作中遇到了一系列关于数据持久化的问题，在排查问题时发现自己对 Java 后端的数据持久化框架的原理都不太了解，只有不断试错，因此走了很多弯路。于是下定决心，集中精力学习了持久化相关框架的原理和实现，总结出这个系列。</p>
 <p><img src="/images/19_1125/image1.webp" alt=""></p>
 <p>上图是我根据相关源码和网上资料总结的有关 Java 数据持久化的架构图(只代表本人想法，如有问题，欢迎留言指出)。最下层就是今天要讲的 JDBC，上一层是数据库连接池层，包括 HikariCP 和 Druid等；再上一层是分库分表中间件，比如说 ShardingJDBC；再向上是对象关系映射层，也就是 ORM，包括 Mybatis 和 JPA；最上边是 Spring 的事务管理。</p>
 <p>本系列的文章会依次讲解图中各个开源框架的基础使用，然后描述其原理和代码实现，最后会着重分析它们之间是如何相互集成和配合的。</p>
 <p>废话不多说，我们先来看 JDBC。</p>
-<h3 id="JDBC-定义"><a href="#JDBC-定义" class="headerlink" title="JDBC 定义"></a>JDBC 定义</h3><p>JDBC是Java Database Connectivity的简称，它定义了一套访问数据库的规范和接口。但它自身不参与数据库访问的实现。因此对于目前存在的数据库（譬如Mysql、Oracle）来说，要么数据库制造商本身提供这些规范与接口的实现，要么社区提供这些实现。</p>
-<p><img src="/images/19_1125/image2.webp" alt=""></p>
-<p>如上图所示，Java 程序只依赖于 JDBC API，通过 DriverManager 来获取驱动，并且针对不同的数据库可以使用不同的驱动。这是典型的桥接的设计模式，把抽象 Abstraction 与行为实现Implementation 分离开来，从而可以保持各部分的独立性以及应对他们的功能扩展。</p>
-<h3 id="JDBC-基础代码示例"><a href="#JDBC-基础代码示例" class="headerlink" title="JDBC 基础代码示例"></a>JDBC 基础代码示例</h3><p>单纯使用 JDBC 的代码逻辑十分简单，我们就以最为常用的MySQL 为例，展示一下使用 JDBC 来建立数据库连接、执行查询语句和遍历结果的过程。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public static void connectionTest(){
-
-    Connection connection = null;
-    Statement statement = null;
-    ResultSet resultSet = null;
-
-    try {
-        &#x2F;&#x2F; 1. 加载并注册 MySQL 的驱动
-        Class.forName(&quot;com.mysql.cj.jdbc.Driver&quot;).newInstance();
-
-        &#x2F;&#x2F; 2. 根据特定的数据库连接URL，返回与此URL的所匹配的数据库驱动对象
-        Driver driver = DriverManager.getDriver(URL);
-        &#x2F;&#x2F; 3. 传入参数，比如说用户名和密码
-        Properties props = new Properties();
-        props.put(&quot;user&quot;, USER_NAME);
-        props.put(&quot;password&quot;, PASSWORD);
-
-        &#x2F;&#x2F; 4. 使用数据库驱动创建数据库连接 Connection
-        connection = driver.connect(URL, props);
-
-        &#x2F;&#x2F; 5. 从数据库连接 connection 中获得 Statement 对象
-        statement = connection.createStatement();
-        &#x2F;&#x2F; 6. 执行 sql 语句，返回结果
-        resultSet = statement.executeQuery(&quot;select * from activity&quot;);
-        &#x2F;&#x2F; 7. 处理结果，取出数据
-        while(resultSet.next())
-        {
-            System.out.println(resultSet.getString(2));
-        }
-
-        .....
-    }finally{
-        &#x2F;&#x2F; 8.关闭链接，释放资源  按照JDBC的规范，使用完成后管理链接，
-        &#x2F;&#x2F; 释放资源，释放顺序应该是： ResultSet -&gt;Statement -&gt;Connection
-        resultSet.close();
-        statement.close();
-        connection.close();
-    }
-}
-</code></pre>
-<p>代码中有详细的注释描述每一步的过程，相信大家也都对这段代码十分熟悉。</p>
-<p>唯一要提醒的是使用完之后的资源释放顺序。按照 JDBC 规范，应该依次释放 ResultSet，Statement 和 Connection。当然这只是规范，很多开源框架都没有严格的执行，但是 HikariCP却严格准守了，它可以带来很多优势，这些会在之后的文章中讲解。</p>
-<p><img src="/images/19_1125/image3.webp" alt=""></p>
-<p>上图是 JDBC 中核心的 5 个类或者接口的关系，它们分别是 DriverManager、Driver、Connection、Statement 和 ResultSet。</p>
-<p>DriverManager 负责管理数据库驱动程序，根据 URL 获取与之匹配的 Driver 具体实现。Driver 则负责处理与具体数据库的通信细节，根据 URL 创建数据库连接 Connection。</p>
-<p>Connection 表示与数据库的一个连接会话，可以和数据库进行数据交互。Statement 是需要执行的 SQL 语句或者存储过程语句对应的实体，可以执行对应的 SQL 语句。ResultSet 则是 Statement 执行后获得的结果集对象，可以使用迭代器从中遍历数据。</p>
-<p>不同数据库的驱动都会实现各自的 Driver、Connection、Statement 和 ResultSet。而更为重要的是，众多数据库连接池和分库分表框架也都是实现了自己的 Connection、Statement 和 ResultSet，比如说 HikariCP、Druid 和 ShardingJDBC。我们接下来会经常看到它们的身影。</p>
-<p><img src="/images/19_1125/image4.webp" alt=""></p>
-<p>接下来，我们依次看一下这几个类及其涉及的操作的原理和源码实现。</p>
-<h3 id="载入-Driver-实现"><a href="#载入-Driver-实现" class="headerlink" title="载入 Driver 实现"></a>载入 Driver 实现</h3><p>可以直接使用 Class#forName的方式来载入驱动实现，或者在 JDBC 4.0 后则基于 SPI 机制来导入驱动实现，通过在 META-INF/services/java.sql.Driver 文件中指定实现类的方式来导入驱动实现，下面我们就来看一下两种方式的实现原理。</p>
-<p>Class#forName 作用是要求 JVM 查找并加载指定的类，如果在类中有静态初始化器的话，JVM 会执行该类的静态代码段。加载具体 Driver 实现时，就会执行 Driver 中的静态代码段，将该 Driver 实现注册到 DriverManager 中。我们来看一下 MySQL 对应 Driver 的具体代码。它就是直接调用了 DriverManager的 registerDriver 方法将自己注册到其维护的驱动列表中。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public class Driver extends NonRegisteringDriver implements java.sql.Driver {
-    public Driver() throws SQLException {
-    }
-
-    static {
-        &#x2F;&#x2F; 直接调用 DriverManager的 registerDriver 将自己注册到其中
-        DriverManager.registerDriver(new Driver());
-    }
-}
-</code></pre>
-<p>SPI 机制使用 ServiceLoader 类来提供服务发现机制，动态地为某个接口寻找服务实现。当服务的提供者提供了服务接口的一种实现之后，必须根据 SPI 约定在 META-INF/services 目录下创建一个以服务接口命名的文件，在该文件中写入实现该服务接口的具体实现类。当服务调用 ServiceLoader 的 load 方法的时候，ServiceLoader 能够通过约定的目录找到指定的文件，并装载实例化，完成服务的发现。</p>
-<p>DriverManager 中的 loadInitialDrivers 方法会使用 ServiceLoader 的 load 方法加载目前项目路径下的所有 Driver 实现。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">public class DriverManager {
-    &#x2F;&#x2F; 程序中已经注册的Driver具体实现信息列表。registerDriver类就是将Driver加入到这个列表
-    private final static CopyOnWriteArrayList&lt;DriverInfo&gt; registeredDrivers = new CopyOnWriteArrayList&lt;&gt;();
-    &#x2F;&#x2F; 使用ServiceLoader 加载具体的jdbc driver实现
-    static {
-        loadInitialDrivers();
-    }
-    private static void loadInitialDrivers() {
-        &#x2F;&#x2F; 省略了异常处理
-        &#x2F;&#x2F; 获得系统属性 jdbc.drivers 配置的值
-        String drivers = AccessController.doPrivileged(new PrivilegedAction&lt;String&gt;() {
-            public String run() {
-                return System.getProperty(&quot;jdbc.drivers&quot;);
-            }
-        });
-
-        AccessController.doPrivileged(new PrivilegedAction&lt;Void&gt;() {
-            public Void run() {
-
-                ServiceLoader&lt;Driver&gt; loadedDrivers = ServiceLoader.load(Driver.class);
-                Iterator&lt;Driver&gt; driversIterator = loadedDrivers.iterator();
-                &#x2F;&#x2F; 通过 ServiceLoader 获取到Driver的具体实现类，然后加载这些类，会调用其静态代码块
-                while(driversIterator.hasNext()) {
-                    driversIterator.next();
-                }
-                return null;
-            }
-        });
-
-        String[] driversList = drivers.split(&quot;:&quot;);
-        &#x2F;&#x2F; for 循环加载系统属性中的Driver类。
-        for (String aDriver : driversList) {
-            println(&quot;DriverManager.Initialize: loading &quot; + aDriver);
-            Class.forName(aDriver, true,
-                    ClassLoader.getSystemClassLoader());
-        }
-    }
-}
-</code></pre>
-<p>比如说，项目引用了 MySQL 的 jar包 mysql-connector-java，在这个 jar 包的 META-INF/services 文件夹下有一个叫 java.sql.Driver 的文件，文件的内容为 com.mysql.cj.jdbc.Driver。而 ServiceLoader 的 load 方法找到这个文件夹下的文件，读取文件的内容，然后加载出文件内容所指定的 Driver 实现。而正如之前所分析的，这个 Driver 类被加载时，会调用 DriverManager 的 registerDriver 方法，从而完成了驱动的加载。</p>
-<h3 id="Connection、Statement-和-ResultSet"><a href="#Connection、Statement-和-ResultSet" class="headerlink" title="Connection、Statement 和 ResultSet"></a>Connection、Statement 和 ResultSet</h3><p>当程序加载完具体驱动实现后，接下来就是建立与数据库的连接，执行 SQL 语句并且处理返回结果了，其过程如下图所示。</p>
-<p><img src="/images/19_1125/image5.webp" alt=""></p>
-<h4 id="建立-Connection"><a href="#建立-Connection" class="headerlink" title="建立 Connection"></a>建立 Connection</h4><p>创建 Connection 连接对象，可以使用 Driver 的 connect 方法，也可以使用 DriverManager 提供的 getConnection 方法，此方法通过 url 自动匹配对应的驱动 Driver 实例，然后还是调用对应的 connect 方法返回 Connection 对象实例。</p>
-<p>建立 Connection 会涉及到与数据库进行网络请求等大量费时的操作，为了提升性能，往往都会引入数据库连接池，也就是说复用 Connection，免去每次都创建 Connection 所消耗的时间和系统资源。</p>
-<p>Connection 默认情况下，对于创建的 Statement 执行的 SQL 语句都是自动提交事务的，即在 Statement 语句执行完后，自动执行 commit 操作，将事务提交，结果影响到物理数据库。为了满足更好地事务控制需求，我们也可以手动地控制事务，手动地在Statement 的 SQL 语句执行后进行 commit 或者rollback。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">connection = driver.connect(URL, props);
-&#x2F;&#x2F; 将自动提交关闭
-connection.setAutoCommit(false);
-
-statement = connection.createStatement();
-statement.execute(&quot;INSERT INTO activity (activity_id, activity_name, product_id, start_time, end_time, total, status, sec_speed, buy_limit, buy_rate) VALUES (1, &#39;香蕉大甩卖&#39;, 1, 530871061, 530872061, 20, 0, 1, 1, 0.20);&quot;);
-&#x2F;&#x2F; 执行后手动 commit
-statement.getConnection().commit();
-</code></pre>
-<h3 id="Statement"><a href="#Statement" class="headerlink" title="Statement"></a>Statement</h3><p>Statement 的功能在于根据传入的 SQL 语句，将传入 SQL 经过整理组合成数据库能够识别的执行语句(对于静态的 SQL 语句，不需要整理组合；而对于预编译SQL 语句和批量语句，则需要整理)，然后传递 SQL 请求，之后会得到返回的结果。对于查询 SQL，结果会以 ResultSet 的形式返回。</p>
-<p>当你创建了一个 Statement 对象之后，你可以用它的三个执行方法的任一方法来执行 SQL 语句。</p>
-<ul>
-<li>boolean execute(String SQL) : 如果 ResultSet 对象可以被检索，则返回的布尔值为 true ，否则返回 false 。当你需要使用真正的动态 SQL 时，可以使用这个方法来执行 SQL DDL 语句。</li>
-<li>int executeUpdate(String SQL) : 返回执行 SQL 语句影响的行的数目。使用该方法来执行 SQL 语句，是希望得到一些受影响的行的数目，例如，INSERT，UPDATE 或 DELETE 语句。</li>
-<li>ResultSet executeQuery(String SQL) : 返回一个 ResultSet 对象。当你希望得到一个结果集时使用该方法，就像你使用一个 SELECT 语句。</li>
-</ul>
-<p>对于不同类型的 SQL 语句，Statement 有不同的接口与其对应。</p>
-<p><img src="/images/19_1125/image6.webp" alt=""></p>
-<table>
-<thead>
-<tr>
-<th>接口</th>
-<th>介绍  </th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Statement</td>
-<td>适合运行静态 SQL 语句，不接受动态参数</td>
-</tr>
-<tr>
-<td>PreparedStatement</td>
-<td>计划多次使用并且预先编译的 SQL 语句，接口需要传入额外的参数</td>
-</tr>
-<tr>
-<td>CallableStatement</td>
-<td>用于访问数据库存储过程</td>
-</tr>
-</tbody>
-</table>
-<p>Statement 主要用于执行静态SQL语句，即内容固定不变的SQL语句。Statement每执行一次都要对传入的SQL语句编译一次，效率较差。而 PreparedStatement则解决了这个问题，它会对 SQL 进行预编译，提高了执行效率。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">PreparedStatement pstmt = null;
-    try {
-        String SQL = &quot;Update activity SET activity_name = ? WHERE activity_id = ?&quot;;
-        pstmt = connection.prepareStatement(SQL);
-        pstmt.setString(1, &quot;测试&quot;);
-        pstmt.setInt(2, 1);
-        pstmt.executeUpdate();
-    }
-    catch (SQLException e) {
-    }
-    finally {
-        pstmt.close();
-    }
-}
-</code></pre>
-<p>除此之外， PreparedStatement 还可以预防 SQL 注入，因为 PreparedStatement 不允许在插入参数时改变 SQL 语句的逻辑结构。</p>
-<p>PreparedStatement 传入任何数据不会和原 SQL 语句发生匹配关系，无需对输入的数据做过滤。如果用户将”or 1 = 1”传入赋值给占位符，下述SQL 语句将无法执行：select * from t where username = ? and password = ?。</p>
-<h3 id="ResultSet"><a href="#ResultSet" class="headerlink" title="ResultSet"></a>ResultSet</h3><p>当 Statement 查询 SQL 执行后，会得到 ResultSet 对象，ResultSet 对象是 SQL语句查询的结果集合。ResultSet 对从数据库返回的结果进行了封装，使用迭代器的模式可以逐条取出结果集中的记录。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">while(resultSet.next()) {
-    System.out.println(resultSet.getString(2));
-}
-</code></pre>
-<p>ResultSet 一般也建议使用完毕直接 close 掉，但是需要注意的是关闭 ResultSet 对象不关闭其持有的 Blob、Clob 或 NClob 对象。 Blob、Clob 或 NClob 对象在它们被创建的的事务期间会一直持有效，除非其 free 函数被调用。</p>
-<p><img src="/images/logo.png" alt=""></p>
-<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
-<li><a href="https://blog.csdn.net/wl044090432/article/details/60768342" target="_blank" rel="noopener">https://blog.csdn.net/wl044090432/article/details/60768342</a></li>
-<li><a href="https://blog.csdn.net/luanlouis/article/details/29850811" target="_blank" rel="noopener">https://blog.csdn.net/luanlouis/article/details/29850811</a></li>
-</ul>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></div>   
+                <div class="article-more-link">
+                    <a href="/article/8c16d4e4/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/8c16d4e4/" class="leancloud_visitors" data-flag-title="Java 数据持久化系列之JDBC">
@@ -3416,7 +1612,7 @@ statement.getConnection().commit();
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/8c16d4e4/" data-id="ckauf70xt001vwi66i2j7hj39" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/8c16d4e4/" data-id="ckaufl909001ujv66d23fqm1s" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -3528,115 +1724,45 @@ statement.getConnection().commit();
             </header>
         
         
+
         <div class="article-entry" itemprop="articleBody">
-        
             
-            <p>Redis 是一种内存数据库，将数据保存在内存中，读写效率要比传统的将数据保存在磁盘上的数据库要快很多。但是 Redis 也会发生延迟时，这是就需要我们对其产生原因有深刻的了解，以便于快速排查问题，解决 Redis的延迟问题</p>
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>Redis 是一种内存数据库，将数据保存在内存中，读写效率要比传统的将数据保存在磁盘上的数据库要快很多。但是 Redis 也会发生延迟时，这是就需要我们对其产生原因有深刻的了解，以便于快速排查问题，解决 Redis的延迟问题</p>
 <h3 id="一条命令执行过程"><a href="#一条命令执行过程" class="headerlink" title="一条命令执行过程"></a>一条命令执行过程</h3><p>在本文场景下，延迟 (latency) 是指从客户端发送命令到客户端接收到命令返回值的时间间隔。所以我们先来看一下 Redis 一条命令执行的步骤，其中每个步骤出问题都可能导致高延迟。</p>
 <p><img src="/images/19_1112/image1.webp" alt=""></p>
 <p>上图是 Redis 客户端发送一条命令的执行过程示意图，绿色的是执行步骤，而蓝色的则是可能出现的导致高延迟的原因。</p>
 <p>网络连接限制、网络传输速率和CPU性能等是所有服务端都可能产生的性能问题。但是 Redis 有自己独有的可能导致高延迟的问题：命令或者数据结构误用、持久化阻塞和内存交换。</p>
-<p>而且更为致命的是，Redis 采用单线程和事件驱动的机制来处理网络请求，分别有对应的连接应答处理器，命令请求处理器和命令回复处理器来处理客户端的网络请求事件，处理完一个事件就继续处理队列中的下一个。一条命令处理出现了高延迟会影响接下来处于排队状态的其他命令。有关 Redis 事件处理机制的可以参考<a href="http://remcarpediem.net/article/1aa2da89/">本篇文章</a>。</p>
-<p><img src="/images/19_1112/image2.webp" alt=""></p>
-<p>对于高延迟，Redis 原生提供慢查询统计功能，执行 slowlog get {n} 命令可以获取最近的 n 条慢查询命令，默认对于执行超过10毫秒(可配置)的命令都会记录到一个定长队列中，线上实例建议设置为1毫秒便于及时发现毫秒级以上的命令。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike"># 超过 slowlog-log-slower-than 阈值的命令都会被记录到慢查询队列中
-# 队列最大长度为 slowlog-max-len
-slowlog-log-slower-than 10000
-slowlog-max-len 128
-</code></pre></p>
-<p>如果命令执行时间在毫秒级，则实例实际OPS只有1000左右。慢查询队列长度默认128，可适当调大。慢查询本身只记录了命令执行时间，不包括数据网络传输时间和命令排队时间，因此客户端发生阻塞异常 后，可能不是当前命令缓慢，而是在等待其他命令执行。需要重点比对异常和慢查询发生的时间点，确认是否有慢查询造成的命令阻塞排队。</p>
-<p>slowlog的输出格式如下所示。第一个字段表示该条记录在所有慢日志中的序号，最新的记录被展示在最前面；第二个字段是这条记录被记录时的系统时间，可以用 date 命令来将其转换为友好的格式第三个字段表示这条命令的响应时间，单位为 us (微秒)；第四个字段为对应的 Redis 操作。<br>
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&gt; slowlog get
-1) 1) (integer) 26
-   2) (integer) 1450253133
-   3) (integer) 43097
-   4) 1) &quot;flushdb&quot;
-</code></pre></p>
-<p>下面我们就来依次看一下不合理地使用命令或者数据结构、持久化阻塞和内存交换所导致的高延迟问题。</p>
-<h3 id="不合理的命令或者数据结构"><a href="#不合理的命令或者数据结构" class="headerlink" title="不合理的命令或者数据结构"></a>不合理的命令或者数据结构</h3><p>一般来说 Redis 执行命令速度都非常快，但是当数据量达到一定级别时，某些命令的执行就会花费大量时间，比如对一个包含上万个元素的 hash 结构执行 hgetall 操作，由于数据量比较大且命令算法复杂度是 O(n)，这条命令执行速度必然很慢。</p>
-<p>这个问题就是典型的不合理使用命令和数据结构。对于高并发的场景我们应该尽量避免在大对象上执行算法复杂度超过 O(n) 的命令。对于键值较多的 hash 结构可以使用 scan 系列命令来逐步遍历，而不是直接使用 hgetall 来全部获取。</p>
-<p>Redis 本身提供发现大对象的工具，对应命令：redis-cli-h {ip} -p {port} bigkeys。这条命令会使用 scan 从指定的 Redis DB 中持续采样，实时输出当时得到的 value 占用空间最大的 key 值，并在最后给出各种数据结构的 biggest key 的总结报告。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&gt; redis-cli -h host -p 12345 --bigkeys
-
-# Scanning the entire keyspace to find biggest keys as well as
-# average sizes per key type.  You can use -i 0.1 to sleep 0.1 sec
-# per 100 SCAN commands (not usually needed).
-
-[00.00%] Biggest hash   found so far &#39;idx:user&#39; with 1 fields
-[00.00%] Biggest hash   found so far &#39;idx:product&#39; with 3 fields
-[00.00%] Biggest hash   found so far &#39;idx:order&#39; with 14 fields
-[02.29%] Biggest hash   found so far &#39;idx:fund&#39; with 16 fields
-[02.29%] Biggest hash   found so far &#39;idx:pay&#39; with 69 fields
-[04.45%] Biggest set    found so far &#39;indexed_word_set&#39; with 1482 members
-[05.93%] Biggest hash   found so far &#39;idx:address&#39; with 159 fields
-[11.79%] Biggest hash   found so far &#39;idx:reply&#39; with 196 fields
-
--------- summary -------
-
-Sampled 1484 keys in the keyspace!
-Total key length in bytes is 13488 (avg len 9.09)
-
-Biggest    set found &#39;indexed_word_set&#39; has 1482 members
-Biggest   hash found &#39;idx:的&#39; has 196 fields
-
-0 strings with 0 bytes (00.00% of keys, avg size 0.00)
-0 lists with 0 items (00.00% of keys, avg size 0.00)
-2 sets with 1710 members (00.13% of keys, avg size 855.00)
-1482 hashs with 6731 fields (99.87% of keys, avg size 4.54)
-0 zsets with 0 members (00.00% of keys, avg size 0.00)
-</code></pre>
-<h4 id="持久化阻塞"><a href="#持久化阻塞" class="headerlink" title="持久化阻塞"></a>持久化阻塞</h4><p>对于开启了持久化功能的Redis节点，需要排查是否是持久化导致的阻 塞。持久化引起主线程阻塞的操作主要有：fork 阻塞、AOF刷盘阻塞。</p>
-<p>fork 操作发生在 RDB 和 AOF 重写时，Redis 主线程调用 fork 操作产生共享内存的子进程，由子进程完成对应的持久化工作。如果 fork 操作本身耗时过长，必然会导致主线程的阻塞。</p>
-<p><img src="/images/19_1112/image3.webp" alt=""></p>
-<p>Redis 执行 fork 操作产生的子进程内存占用量表现为与父进程相同，理论上需要一倍的物理内存来完成相应的操作。但是 Linux 具有写时复制技术 (copy-on-write)，父子进程会共享相同的物理内存页，当父进程处理写请求时会对需要修改的页复制出一份副本完成写操作，而子进程依然读取 fork 时整个父进程的内存快照。所以，一般来说，fork 不会消耗过多时间。</p>
-<p>可以执行<code>info stats</code>命令获取到 latest_fork_usec 指标，表示 Redis 最近一次 fork 操作耗时，如果耗时很大，比如超过1秒，则需要做出优化调整。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&gt; redis-cli -c -p 7000 info | grep -w latest_fork_usec
-latest_fork_usec:315
-</code></pre>
-<p>当我们开启AOF持久化功能时，文件刷盘的方式一般采用每秒一次，后 台线程每秒对AOF文件做 fsync 操作。当硬盘压力过大时，fsync 操作需要等待，直到写入完成。如果主线程发现距离上一次的 fsync 成功超过2秒，为了数据安全性它会阻塞直到后台线程执行 fsync 操作完成。这种阻塞行为主要是硬盘压力引起，可以查看 Redis日志识别出这种情况，当发生这种阻塞行为时，会打印如下日志：</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">Asynchronous AOF fsync is taking too long (disk is busy). \ 
-Writing the AOF buffer without waiting for fsync to complete, \
-this may slow down Redis.
-</code></pre>
-<p>也可以查看 info persistence 统计中的 aof_delayed_fsync 指标，每次发生 fdatasync 阻塞主线程时会累加。</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&gt;info persistence
-loading:0
-aof_pending_bio_fsync:0
-aof_delayed_fsync:0
-</code></pre>
-<h3 id="内存交换"><a href="#内存交换" class="headerlink" title="内存交换"></a>内存交换</h3><p>内存交换（swap）对于 Redis 来说是非常致命的，Redis 保证高性能的一个重要前提是所有的数据在内存中。如果操作系统把 Redis 使用的部分内存换出到硬盘，由于内存与硬盘读写速度差几个数量级，会导致发生交换后的 Redis 性能急剧下降。识别 Redis 内存交换的检查方法如下：</p>
-
-<!-- Has Prism -->
-<pre class="line-numbers" style=""><code class="language-clike">&gt;redis-cli -p 6383 info server | grep process_id # 查询 redis 进程号
-&gt;cat &#x2F;proc&#x2F;4476&#x2F;smaps | grep Swap # 查询内存交换大小
-Swap: 0 kB 
-Swap: 4 kB 
-Swap: 0 kB 
-Swap: 0 kB
-</code></pre>
-<p>如果交换量都是0KB或者个别的是4KB，则是正常现象，说明Redis进程内存没有被交换。</p>
-<p>有很多方法可以避免内存交换的发生。比如说：</p>
-<ul>
-<li>保证机器充足的可用内存</li>
-<li>确保所有Redis实例设置最大可用内存(maxmemory)，防止极端情况下 Redis 内存不可控的增长。</li>
-<li>降低系统使用swap优先级，如<code>echo10&gt;/proc/sys/vm/swappiness</code>。</li>
-</ul>
-<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
-<li><a href="https://redis.io/topics/latency" target="_blank" rel="noopener">https://redis.io/topics/latency</a></li>
-</ul>
-
-        
-        </div>
+<p>
+                    
+                
+            
+            
+                </p></div>   
+                <div class="article-more-link">
+                    <a href="/article/ef4e619/#more">Read More</a>
+                </div>
+                    
         <footer class="article-footer">
             <!-- id 将作为查询条件 -->
             <span id="/article/ef4e619/" class="leancloud_visitors" data-flag-title="当 Redis 发生高延迟时，到底发生了什么">
@@ -3649,7 +1775,7 @@ Swap: 0 kB
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/ef4e619/" data-id="ckauf70zv0077wi66de7oj9op" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/ef4e619/" data-id="ckaufl92k0072jv66vo5md9xq" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
