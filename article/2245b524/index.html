@@ -14,10 +14,10 @@
 <meta property="og:description" content="前言MySQL 死锁异常是我们经常会遇到的线上异常类别，一旦线上业务日间复杂，各种业务操作之间往往会产生锁冲突，有些会导致死锁异常。这种死锁异常一般要在特定时间特定数据和特定业务操作才会复现，并且分析解决时还需要了解 MySQL 锁冲突相关知识，所以一般遇到这些偶尔出现的死锁异常，往往一时没有头绪，不好处理。 本篇文章会讲解一下如果线上发生了死锁异常，如何去排查和处理。除了系列前文讲解的有关加锁和">
 <meta property="og:locale" content="Chinese">
 <meta property="og:image" content="http://cdn.remcarpediem.net/2020-09-28-151927.png">
-<meta property="og:image" content="http://remcarpediem.net/Users/simu/Downloads/carbon%20(18">
-<meta property="og:image" content="http://remcarpediem.net/Users/simu/Downloads/carbon%20(19">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2020-10-01-012810.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2020-09-28-151942.png">
 <meta property="og:image" content="http://cdn.remcarpediem.net/2020-05-26-144752.png">
-<meta property="og:updated_time" content="2020-09-28T15:32:06.000Z">
+<meta property="og:updated_time" content="2020-10-01T01:28:39.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="MySQL死锁系列-线上死锁问题排查思路">
 <meta name="twitter:description" content="前言MySQL 死锁异常是我们经常会遇到的线上异常类别，一旦线上业务日间复杂，各种业务操作之间往往会产生锁冲突，有些会导致死锁异常。这种死锁异常一般要在特定时间特定数据和特定业务操作才会复现，并且分析解决时还需要了解 MySQL 锁冲突相关知识，所以一般遇到这些偶尔出现的死锁异常，往往一时没有头绪，不好处理。 本篇文章会讲解一下如果线上发生了死锁异常，如何去排查和处理。除了系列前文讲解的有关加锁和">
@@ -304,7 +304,7 @@ set GLOBAL innodb_status_output_locks=OFF;
 <pre class="line-numbers" style=""><code class="language-clike">set GLOBAL innodb_print_all_deadlocks=ON;
 </code></pre>
 <h3 id="死锁日志的分析"><a href="#死锁日志的分析" class="headerlink" title="死锁日志的分析"></a>死锁日志的分析</h3><p>通过上述手段，我们可以拿到死锁日志，下图是我做实验触发死锁异常时获取的日志(省略的部分信息)。</p>
-<p><img src="/Users/simu/Downloads/carbon (18" alt="carbon (/Users/simu/Desktop/carbon (18).png)">.png)</p>
+<p><img src="http://cdn.remcarpediem.net/2020-10-01-012810.png" alt=""></p>
 <p>该日志会列出死锁发生的时间，死锁相关的事务，并显示出两个事务(可惜，多事务发生死锁时，也只显示两个事务)在<strong>发生死锁时执行的 SQL 语句、持有或等待的锁信息和最终回滚的事务</strong>。</p>
 <p>下面，我们来一段一段的解读该日志中给出的信息，我们按照图中标注的顺序来介绍：</p>
 
@@ -342,7 +342,7 @@ RECORD LOCKS space id 2 page no 4 n bits 80 index PRIMARY of table `test`.`t` tr
 </code></pre>
 <p>其中 <code>--base64-output=decode-rows</code> 表示 row 模式 binlog日志，所以该方法只适用于 row 模式的 binlog日志，但是目前主流 MySQL 运维也都是把 binlog 日志设置为 row 模式，所以这点限制也就无伤大雅。<code>-v</code> 则表示将行事件重构成被注释掉的伪SQL语句。</p>
 <p>我们可以<strong>通过死锁日志中死锁发生的具体事件和最终获取锁事务正在执行的SQL的参数信息找到 binlog 中该事务的对应信息</strong>，比如我们可以直接通过死锁日志截图中的具体的时间 10点57分和 Tom1、Teddy2 等 SQL 的具体数据信息在 binlog 找到对应的位置，具体如下图所示。</p>
-<p><img src="/Users/simu/Downloads/carbon (19" alt="carbon (http://cdn.remcarpediem.net/2020-09-28-151942.png)">.png)</p>
+<p><img src="http://cdn.remcarpediem.net/2020-09-28-151942.png" alt=""></p>
 <p>根据 binlog 的具体信息，我们可以清晰的找到最终获取锁事务所执行的所有 SQL 语句，也就能找到其对应的业务代码，接下来我们就能进行具体的锁冲突分析。</p>
 <h3 id="小节"><a href="#小节" class="headerlink" title="小节"></a>小节</h3><p>死锁系列终于告一段落，如果大伙有什么疑问或者文中有什么错误，欢迎在下方留言讨论。也希望大家继续持续关注。</p>
 <p><a href="http://remcarpediem.net/">个人博客，欢迎来玩</a></p>
@@ -364,7 +364,7 @@ RECORD LOCKS space id 2 page no 4 n bits 80 index PRIMARY of table `test`.`t` tr
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/2245b524/" data-id="ckfmox8re002rmdseiwib85n8" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/2245b524/" data-id="ckfq545az003047sehhfne9du" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
