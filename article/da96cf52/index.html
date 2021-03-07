@@ -18,7 +18,7 @@
 <meta property="og:image" content="http://cdn.remcarpediem.net/2021-03-07-005432.png">
 <meta property="og:image" content="http://cdn.remcarpediem.net/2021-03-07-005440.png">
 <meta property="og:image" content="http://cdn.remcarpediem.net/2020-05-26-144752.png">
-<meta property="og:updated_time" content="2021-03-07T13:00:23.000Z">
+<meta property="og:updated_time" content="2021-03-07T13:17:25.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="MySQL读写分离，写完读不到问题如何解决">
 <meta name="twitter:description" content="大家好，我是历小冰。 今天我们来详细了解一下主从同步延迟时读写分离发生写后读不到的问题，依次讲解问题出现的原因，解决策略以及 Sharding-jdbc、MyCat 和 MaxScale 等开源数据库中间件具体的实现方案。 写后读不到问题MySQL 经典的一主两从三节点架构是大多数创业公司初期使用的主流数据存储方案之一，主节点处理写操作，两个从节点处理读操作，分摊了主库的压力。 但是，有时候可能会">
@@ -305,7 +305,7 @@ var _hmt = _hmt || [];
 hintManager.setMasterRouteOnly();
 &#x2F;&#x2F; 继续JDBC操作
 </code></pre>
-<p>它的原理就是在 SQL 语句前</p>
+<p>它的原理就是在 SQL 语句前添加 Hint，然后数据库中间件会识别出 Hint，将其路由到​主节点。​</p>
 <p>下面，我们就来看一下如果要去从库查询，并且要避免过期读的方案，并分析各个方案的优缺点。</p>
 <h4 id="判断主备无延迟"><a href="#判断主备无延迟" class="headerlink" title="判断主备无延迟"></a>判断主备无延迟</h4><p>第二种方案是使用 show slave status 语句结果中的部分值来判断主从同步的延迟时间：</p>
 
@@ -415,7 +415,7 @@ SET @maxscale_secret_variable=(SELECT CASE WHEN WAIT_FOR_EXECUTED_GTID_SET(&#39;
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/da96cf52/" data-id="cklz5yfto003dqkse9ahtb56b" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
+    <a data-url="http://remcarpediem.net/article/da96cf52/" data-id="cklz6ko0l003arvsek48q3kf9" class="article-share-link"><i class="fa fa-share"></i>Compartir</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
