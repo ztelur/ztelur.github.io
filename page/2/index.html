@@ -294,7 +294,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/755443b5/" data-id="cknnac3ns008hgvjd0xrzn606" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/755443b5/" data-id="cknnaul7r008e6qjdywptsrjn" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -453,166 +453,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/5a35e6d9/" data-id="cknnac3jb003bgvjdhdwxfnps" class="article-share-link"><i class="fa fa-share"></i>Share</a>
-<script>
-    (function ($) {
-        // Prevent duplicate binding
-        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
-            __SHARE_BUTTON_BINDED__ = true;
-        } else {
-            return;
-        }
-        $('body').on('click', function() {
-            $('.article-share-box.on').removeClass('on');
-        }).on('click', '.article-share-link', function(e) {
-            e.stopPropagation();
-
-            var $this = $(this),
-                url = $this.attr('data-url'),
-                encodedUrl = encodeURIComponent(url),
-                id = 'article-share-box-' + $this.attr('data-id'),
-                offset = $this.offset(),
-                box;
-
-            if ($('#' + id).length) {
-                box = $('#' + id);
-
-                if (box.hasClass('on')){
-                    box.removeClass('on');
-                    return;
-                }
-            } else {
-                var html = [
-                    '<div id="' + id + '" class="article-share-box">',
-                        '<input class="article-share-input" value="' + url + '">',
-                        '<div class="article-share-links">',
-                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
-                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
-                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
-                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
-                        '</div>',
-                    '</div>'
-                ].join('');
-
-              box = $(html);
-
-              $('body').append(box);
-            }
-
-            $('.article-share-box.on').hide();
-
-            box.css({
-                top: offset.top + 25,
-                left: offset.left
-            }).addClass('on');
-
-        }).on('click', '.article-share-box', function (e) {
-            e.stopPropagation();
-        }).on('click', '.article-share-box-input', function () {
-            $(this).select();
-        }).on('click', '.article-share-box-link', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
-        });
-    })(jQuery);
-</script>
-
-            
-    
-
-        </footer>
-    </div>
-    
-</article>
-
-
-
-    <article id="post-MySQL-optimizer-trace表的神奇用处" class="article article-type-post" itemscope="" itemprop="blogPost">
-    <div class="article-inner">
-        
-        
-            <header class="article-header">
-                
-    
-        <h1 itemprop="name">
-            <a class="article-title" href="/article/e3e7a535/">100% 展示 MySQL 语句执行的神器-Optimizer Trace</a>
-        </h1>
-    
-
-                
-                    <div class="article-meta">
-                        
-                        
-    <div class="article-date">
-        <i class="fa fa-calendar"></i>
-        <a href="/article/e3e7a535/">
-            <time datetime="2020-05-10T14:04:45.000Z" itemprop="datePublished">2020-05-10</time>
-        </a>
-    </div>
-
-
-                        
-                        
-    <div class="article-tag">
-        <i class="fa fa-tag"></i>
-        <a class="tag-link" href="/tags/MySQL/">MySQL</a>
-    </div>
-
-                    </div>
-                
-            </header>
-        
-        
-
-        <div class="article-entry" itemprop="articleBody">
-            
-            
-                
-                    
-                    
-                        
-                        
-                    
-                        
-                        
-                    
-                        
-                        
-                    
-                        
-                        
-                    
-                        
-                        
-                    
-                    
-                        
-                        <p></p><p>在上一篇文章<a href="https://mp.weixin.qq.com/s/88sGSpVYfGBREH-vZkl_jg" target="_blank" rel="noopener">《用Explain 命令分析 MySQL 的 SQL 执行》</a>中，我们讲解了 Explain 命令的详细使用。但是它只能展示 SQL 语句的执行计划，无法展示为什么一些其他的执行计划未被选择，比如说明明有索引，但是为什么查询时未使用索引等。为此，MySQL 提供了 Optimizer Trace 功能，让我们能更加详细的了解 SQL 语句执行的所有分析，优化和选择过程。</p>
-<p>如果您想更深入地了解为什么选择某个查询计划，那么优化器跟踪非常有用。虽然 EXPLAIN 显示选定的计划，但Optimizer Trace 能显示为什么选择计划：您将能够看到替代计划，估计成本以及做出的决策。本篇文章会详细讲解 Optimizer Trace 展示的所有相关信息，并且会辅之一些具体使用案例。</p>
-<h3 id="基于成本的执行计划"><a href="#基于成本的执行计划" class="headerlink" title="基于成本的执行计划"></a>基于成本的执行计划</h3><p>在了解 Optimizer Trace 的之前，我们先来学习一下 MySQL 是如何选择众多执行计划的。</p>
-<p>MySQL 会使用一个基于成本(cost)的优化器对执行计划进行选择。每个执行计划的成本大致反应了该计划查询所需要的资源，主要因素是计算查询时将要访问的行数。优化器主要根据从存储引擎获取数据的统计数据和数据字典中元数据信息来做出判断。它会决定是使用全表扫描或者使用某一个索引进行扫描，也会决定表 join的顺序。优化器的作用如下图所示。</p>
-<p><img src="http://cdn.remcarpediem.net/2020-08-02-131930.png" alt="_images/optimizer-overview.png"></p>
-<p>
-                    
-                
-            
-            
-                </p></div>   
-                <div class="article-more-link" style="padding: 5px 20px 5px 20px;">
-                    <a href="/article/e3e7a535/#more">Read More</a>
-                </div>
-                    
-        <footer class="article-footer">
-            
-            <div class="share-container">
-
-
-
-</div>
-
-    <a data-url="http://remcarpediem.net/article/e3e7a535/" data-id="cknnac3j5002sgvjdobixgru2" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/5a35e6d9/" data-id="cknnaul5900386qjdklfab82x" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -771,7 +612,166 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/e3e7a535/" data-id="cknnac3nl0087gvjdswwzfxdk" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/e3e7a535/" data-id="cknnaul7p00886qjdtg38grva" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+<script>
+    (function ($) {
+        // Prevent duplicate binding
+        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
+            __SHARE_BUTTON_BINDED__ = true;
+        } else {
+            return;
+        }
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+            
+    
+
+        </footer>
+    </div>
+    
+</article>
+
+
+
+    <article id="post-MySQL-optimizer-trace表的神奇用处" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+        
+            <header class="article-header">
+                
+    
+        <h1 itemprop="name">
+            <a class="article-title" href="/article/e3e7a535/">100% 展示 MySQL 语句执行的神器-Optimizer Trace</a>
+        </h1>
+    
+
+                
+                    <div class="article-meta">
+                        
+                        
+    <div class="article-date">
+        <i class="fa fa-calendar"></i>
+        <a href="/article/e3e7a535/">
+            <time datetime="2020-05-10T14:04:45.000Z" itemprop="datePublished">2020-05-10</time>
+        </a>
+    </div>
+
+
+                        
+                        
+    <div class="article-tag">
+        <i class="fa fa-tag"></i>
+        <a class="tag-link" href="/tags/MySQL/">MySQL</a>
+    </div>
+
+                    </div>
+                
+            </header>
+        
+        
+
+        <div class="article-entry" itemprop="articleBody">
+            
+            
+                
+                    
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                        
+                        
+                    
+                    
+                        
+                        <p></p><p>在上一篇文章<a href="https://mp.weixin.qq.com/s/88sGSpVYfGBREH-vZkl_jg" target="_blank" rel="noopener">《用Explain 命令分析 MySQL 的 SQL 执行》</a>中，我们讲解了 Explain 命令的详细使用。但是它只能展示 SQL 语句的执行计划，无法展示为什么一些其他的执行计划未被选择，比如说明明有索引，但是为什么查询时未使用索引等。为此，MySQL 提供了 Optimizer Trace 功能，让我们能更加详细的了解 SQL 语句执行的所有分析，优化和选择过程。</p>
+<p>如果您想更深入地了解为什么选择某个查询计划，那么优化器跟踪非常有用。虽然 EXPLAIN 显示选定的计划，但Optimizer Trace 能显示为什么选择计划：您将能够看到替代计划，估计成本以及做出的决策。本篇文章会详细讲解 Optimizer Trace 展示的所有相关信息，并且会辅之一些具体使用案例。</p>
+<h3 id="基于成本的执行计划"><a href="#基于成本的执行计划" class="headerlink" title="基于成本的执行计划"></a>基于成本的执行计划</h3><p>在了解 Optimizer Trace 的之前，我们先来学习一下 MySQL 是如何选择众多执行计划的。</p>
+<p>MySQL 会使用一个基于成本(cost)的优化器对执行计划进行选择。每个执行计划的成本大致反应了该计划查询所需要的资源，主要因素是计算查询时将要访问的行数。优化器主要根据从存储引擎获取数据的统计数据和数据字典中元数据信息来做出判断。它会决定是使用全表扫描或者使用某一个索引进行扫描，也会决定表 join的顺序。优化器的作用如下图所示。</p>
+<p><img src="http://cdn.remcarpediem.net/2020-08-02-131930.png" alt="_images/optimizer-overview.png"></p>
+<p>
+                    
+                
+            
+            
+                </p></div>   
+                <div class="article-more-link" style="padding: 5px 20px 5px 20px;">
+                    <a href="/article/e3e7a535/#more">Read More</a>
+                </div>
+                    
+        <footer class="article-footer">
+            
+            <div class="share-container">
+
+
+
+</div>
+
+    <a data-url="http://remcarpediem.net/article/e3e7a535/" data-id="cknnaul4v002o6qjd1hmok34f" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -930,7 +930,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/a94bd30a/" data-id="cknnac3je003kgvjdcsubvzmx" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/a94bd30a/" data-id="cknnaul5c003f6qjd4jzyrp9r" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1094,7 +1094,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/d5009955/" data-id="cknnac3iy002cgvjd1vne4haj" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/d5009955/" data-id="cknnaul4o00276qjd7708z9yn" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1253,7 +1253,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/75dc863d/" data-id="cknnac3hv000dgvjd4kksslhp" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/75dc863d/" data-id="cknnaul3n000b6qjdlpj6bhg8" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1412,7 +1412,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/24b8edbf/" data-id="cknnac3kb004ggvjdchkomhtx" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/24b8edbf/" data-id="cknnaul5w004h6qjd6whm9350" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1571,7 +1571,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/1dd72ef8/" data-id="cknnac3kf004ogvjdysxdjmgh" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/1dd72ef8/" data-id="cknnaul61004r6qjdkdz0jaw0" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
@@ -1730,7 +1730,7 @@ var _hmt = _hmt || [];
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/4cc1fb9/" data-id="cknnac3kh004vgvjdez5r6ixd" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/4cc1fb9/" data-id="cknnaul62004t6qjdxhu04mcp" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
