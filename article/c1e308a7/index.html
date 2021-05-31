@@ -20,7 +20,7 @@
 <meta property="og:image" content="http://cdn.remcarpediem.net/2021-05-31-142340.png">
 <meta property="og:image" content="http://cdn.remcarpediem.net/2021-05-31-142350.png">
 <meta property="og:image" content="http://cdn.remcarpediem.net/2020-05-26-144752.png">
-<meta property="og:updated_time" content="2021-05-31T14:29:37.000Z">
+<meta property="og:updated_time" content="2021-05-31T14:35:04.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="ElasticSearch 如何配置Uptime 监控组件可用性">
 <meta name="twitter:description" content="本文收录至《Elastic Stack 实战手册》，欢迎和我一起解锁开发者共创书籍，系统学习 Elasticsearch，地址点我  现在互联网架构随着用户的增加，而越来越复杂，可能要有成千上万个不同的组件和不同的实例，对这些组件可用性的监控是提供高可用服务的关键之一，Elastic 为此推出了 Uptime App。 Elasticsearch 使用 Heartbeat 进行组件的监控。 Hea">
@@ -267,19 +267,19 @@ var _hmt = _hmt || [];
             
             
                 <p>本文收录至《Elastic Stack 实战手册》，欢迎和我一起解锁开发者共创书籍，系统学习 Elasticsearch，地址<a href="https://developer.aliyun.com/topic/elasticstack/playbook" target="_blank" rel="noopener">点我</a></p>
-<p><img src="http://cdn.remcarpediem.net/2021-05-31-142843.png" alt="lALPD2BoQko0AwbMls0C0A_720_150"></p>
+<p><img src="http://cdn.remcarpediem.net/2021-05-31-142843.png" alt=""></p>
 <p>现在互联网架构随着用户的增加，而越来越复杂，可能要有成千上万个不同的组件和不同的实例，对这些组件可用性的监控是提供高可用服务的关键之一，Elastic 为此推出了 Uptime App。</p>
 <p>Elasticsearch 使用 Heartbeat 进行组件的监控。</p>
 <p>Heartbeat 也就是我们通常所说的心跳，通过 Hearteat 我们可以判断一个网络组件，当前是否存活，是否可以对外正常提供服务。</p>
 <p>Heartbeat 是一个轻量级的数据收集器。它用来帮我们进行 Uptime 的健康监控。它可以定期通过 HTTP、TCP 或 ICMP 等方式验证组件是否处于运行状态，然后将收集到的状态和信息上报给 Elasticsearch。</p>
 <p>而 Kibana 中的 Uptime app 则为我们提供了查看可用性数据的仪表板，以监控服务器或服务的正常运行，并提供了报警功能支持。</p>
 <p>Elasticsearch 使用 Heartbeat 来进行 Uptime 的监控的架构可以表述如下：</p>
-<p><img src="http://cdn.remcarpediem.net/2021-05-31-142200.png" alt="es-uptime"></p>
+<p><img src="http://cdn.remcarpediem.net/2021-05-31-142200.png" alt="架构示意图"></p>
 <p>下面，我们将依次讲解 Uptime App 的安装，Heartbeat 的配置和各类监控组件的配置。</p>
 <h4 id="安装-Uptime-App"><a href="#安装-Uptime-App" class="headerlink" title="安装 Uptime App"></a>安装 Uptime App</h4><p>如果我们打开我们的 Kibana 并点击 Uptime 应用，那么第一次打开的时候，我们可以看到，如下的界面。</p>
-<p><img src="http://cdn.remcarpediem.net/2021-05-31-142309.png" alt="image1"></p>
+<p><img src="http://cdn.remcarpediem.net/2021-05-31-142309.png" alt=""></p>
 <p>点击 Install Heartbeat，就会跳转到配置 Uptime Monitors 的文档界面，你可以按照这个界面上的步骤进行 Heartbeat 的安装，配置，启动和测试 Kibana 是否接收到 Heartbeat 上传的数据。</p>
-<p><img src="http://cdn.remcarpediem.net/2021-05-31-142323.png" alt="image2"></p>
+<p><img src="http://cdn.remcarpediem.net/2021-05-31-142323.png" alt=""></p>
 <p>Heartbeat 在不同平台有多种安装方式，比如说 macOS、DEB、RPM 和 Windows 等，我们这里介绍最为常用的 Docker 安装方式，其后续部署和启动步骤则大同小异，读者可以自行根据需要进行实践。</p>
 <p>需要注意的是，安装的 Heartbeat 必须和 Elasticsearch 或 Kibana 版本相同，所以我们这里选取 heartbeat:7.10.0 版本的镜像。</p>
 
@@ -315,9 +315,9 @@ heartbeat.reference.yml  heartbeat.yml  kibana  logs  monitors.d
 .&#x2F;heartbeat -e
 </code></pre>
 <p>查看上述命令的输出日志没有什么异常后，可以再次来到 Uptime Monitors 界面，点击其 Check data 按钮检查是否接收到了数据，如果接受到了数据，则可以点击 Uptime App 按钮，前往 Uptime App 界面查看详细数据。</p>
-<p><img src="http://cdn.remcarpediem.net/2021-05-31-142340.png" alt="image3"></p>
+<p><img src="http://cdn.remcarpediem.net/2021-05-31-142340.png" alt=""></p>
 <p>运行过一段时间的 Uptime App 界面如下图所示。</p>
-<p><img src="http://cdn.remcarpediem.net/2021-05-31-142350.png" alt="image4"></p>
+<p><img src="http://cdn.remcarpediem.net/2021-05-31-142350.png" alt=""></p>
 <p>我们可以看到界面分为两大部分，上半部分是统计区，通过饼图和柱状图展示了当前监控器 Monitor 的状态和过去一段时间中 Monitor 的状态。而下半部分是具体的 Monitor 列表，一共有两个 Monitors，分别是监听 taobao 网和 aliyun 网站，目前两个都是 Up 状态。</p>
 <h4 id="配置-Heartbeat"><a href="#配置-Heartbeat" class="headerlink" title="配置 Heartbeat"></a>配置 Heartbeat</h4><p>上边讲解了安装 Heartbeat 和 Uptime 的整体流程，本小节详细解决一下 Heartbeat 的配置，也就是 heartbeat.yml 文件的配置。</p>
 <p>heartbeat.yml 文件一般有两部分组成：</p>
@@ -391,7 +391,7 @@ output.elasticsearch:
 
 </div>
 
-    <a data-url="http://remcarpediem.net/article/c1e308a7/" data-id="ckpcpks4r001phuji0rv055i8" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://remcarpediem.net/article/c1e308a7/" data-id="ckpcprlw1001stmjir16rrntz" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         // Prevent duplicate binding
