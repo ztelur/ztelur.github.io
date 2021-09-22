@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="Ch">
+<head><meta name="generator" content="Hexo 3.8.0">
+    <meta charset="utf-8">
+    
+    <title>为什么 ElasticSearch 比 MySQL 更适合复杂条件搜索 | 程序员历小冰</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="熟悉 MySQL 的同学一定都知道，MySQL 对于复杂条件查询的支持并不好。MySQL 最多使用一个条件涉及的索引来过滤，然后剩余的条件只能在遍历行过程中进行内存过滤，对这个过程不了解的同学可以先行阅读一下《MySQL复杂where条件分析》。 上述这种处理复杂条件查询的方式因为只能通过一个索引进行过滤，所以需要进行大量的 I/O 操作来读取行数据，并消耗 CPU 进行内存过滤，导致查询性能的下">
+<meta name="keywords" content="ElasticSearch">
+<meta property="og:type" content="article">
+<meta property="og:title" content="为什么 ElasticSearch 比 MySQL 更适合复杂条件搜索">
+<meta property="og:url" content="http://remcarpediem.net/article/699640c9/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="熟悉 MySQL 的同学一定都知道，MySQL 对于复杂条件查询的支持并不好。MySQL 最多使用一个条件涉及的索引来过滤，然后剩余的条件只能在遍历行过程中进行内存过滤，对这个过程不了解的同学可以先行阅读一下《MySQL复杂where条件分析》。 上述这种处理复杂条件查询的方式因为只能通过一个索引进行过滤，所以需要进行大量的 I/O 操作来读取行数据，并消耗 CPU 进行内存过滤，导致查询性能的下">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-02-18-135551.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-02-18-135602.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-02-18-135610.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-02-18-135617.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-02-18-135623.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-02-18-135634.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-02-18-135643.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2020-05-26-144752.png">
+<meta property="og:updated_time" content="2021-04-12T13:58:53.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="为什么 ElasticSearch 比 MySQL 更适合复杂条件搜索">
+<meta name="twitter:description" content="熟悉 MySQL 的同学一定都知道，MySQL 对于复杂条件查询的支持并不好。MySQL 最多使用一个条件涉及的索引来过滤，然后剩余的条件只能在遍历行过程中进行内存过滤，对这个过程不了解的同学可以先行阅读一下《MySQL复杂where条件分析》。 上述这种处理复杂条件查询的方式因为只能通过一个索引进行过滤，所以需要进行大量的 I/O 操作来读取行数据，并消耗 CPU 进行内存过滤，导致查询性能的下">
+<meta name="twitter:image" content="http://cdn.remcarpediem.net/2021-02-18-135551.png">
+    
+
+    
+        <link rel="alternate" href="/atom.xml" title="程序员历小冰" type="application/atom+xml">
+    
+
+    
+        <link rel="icon" href="/css/images/avatar.jpeg">
+    
+
+    <link rel="stylesheet" href="/libs/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/libs/open-sans/styles.css">
+    <link rel="stylesheet" href="/libs/source-code-pro/styles.css">
+
+    <link rel="stylesheet" href="/css/style.css">
+
+    <script src="/libs/jquery/2.1.3/jquery.min.js"></script>
+    
+    
+        <link rel="stylesheet" href="/libs/lightgallery/css/lightgallery.min.css">
+    
+    
+    
+    
+    
+        
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+    
+
+
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+</html>
+<body>
+    <div id="container">
+        <header id="header">
+    <div id="header-main" class="header-inner">
+        <div class="outer">
+            <a href="/" id="logo">
+                <i class="logo"></i>
+                <span class="site-title">程序员历小冰</span>
+            </a>
+            <nav id="main-nav">
+                
+                    <a class="main-nav-link" href="/.">主页</a>
+                
+                    <a class="main-nav-link" href="/categories">分类</a>
+                
+                    <a class="main-nav-link" href="/archives">归档</a>
+                
+                    <a class="main-nav-link" href="/book">读书</a>
+                
+                    <a class="main-nav-link" href="/categories/plan">计划</a>
+                
+                    <a class="main-nav-link" href="/about">关于</a>
+                
+            </nav>
+            
+                
+                <nav id="sub-nav">
+                    <div class="profile" id="profile-nav">
+                        <a id="profile-anchor" href="javascript:;">
+                            <img class="avatar" src="/css/images/avatar.jpeg">
+                            <i class="fa fa-caret-down"></i>
+                        </a>
+                    </div>
+                </nav>
+            
+            <div id="search-form-wrap">
+
+    <form class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
+        <button type="submit" class="search-form-submit"></button>
+    </form>
+    <div class="ins-search">
+    <div class="ins-search-mask"></div>
+    <div class="ins-search-container">
+        <div class="ins-input-wrapper">
+            <input type="text" class="ins-search-input" placeholder="Type something...">
+            <span class="ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/js/insight.js"></script>
+
+</div>
+        </div>
+    </div>
+    <div id="main-nav-mobile" class="header-sub header-inner">
+        <table class="menu outer">
+            <tr>
+                
+                    <td><a class="main-nav-link" href="/.">主页</a></td>
+                
+                    <td><a class="main-nav-link" href="/categories">分类</a></td>
+                
+                    <td><a class="main-nav-link" href="/archives">归档</a></td>
+                
+                    <td><a class="main-nav-link" href="/book">读书</a></td>
+                
+                    <td><a class="main-nav-link" href="/categories/plan">计划</a></td>
+                
+                    <td><a class="main-nav-link" href="/about">关于</a></td>
+                
+                <td>
+                    
+    <div class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
+    </div>
+
+                </td>
+            </tr>
+        </table>
+    </div>
+</header>
+
+        <div class="outer">
+            
+                
+
+<aside id="profile" class="profile-fixed">
+    <div class="inner profile-inner">
+        <div class="base-info profile-block">
+            <img id="avatar" src="/css/images/avatar.jpeg">
+            <h2 id="name">历小冰</h2>
+            <h3 id="title">后端开发工程师</h3>
+            <span id="location"><i class="fa fa-map-marker"></i>中国，南京</span>
+            <img id="wechat" src="/css/images/wechat_public.jpg">
+            <a id="follow" target="_blank" href="/css/images/wechat_public.jpg">⬆关注公众号⬆</a>
+        </div>
+        <div class="article-info profile-block">
+            <div class="article-info-block">
+                107
+                <span>posts</span>
+            </div>
+            <div class="article-info-block">
+                67
+                <span>tags</span>
+            </div>
+        </div>
+        
+        <div class="profile-block social-links">
+            <table>
+                <tr>
+                    
+                    
+                    <td>
+                        <a href="https://github.com/ztelur" target="_blank" title="github" class="tooltip">
+                            <i class="fa fa-github"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/css/images/wechat.jpeg" target="_blank" title="wechat" class="tooltip">
+                            <i class="fa fa-wechat"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/atom.xml" target="_blank" title="rss" class="tooltip">
+                            <i class="fa fa-rss"></i>
+                        </a>
+                    </td>
+                    
+                </tr>
+            </table>
+        </div>
+        
+    </div>
+</aside>
+
+            
+            <section id="main"><article id="post-为什么-ElasticSearch-比-MySQL-更适合复杂条件搜索" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+        
+            <header class="article-header">
+                
+    
+        <h1 class="article-title" itemprop="name">
+            为什么 ElasticSearch 比 MySQL 更适合复杂条件搜索
+        </h1>
+    
+
+                
+                    <div class="article-meta">
+                        
+                        
+    <div class="article-date">
+        <i class="fa fa-calendar"></i>
+        <a href="/article/699640c9/">
+            <time datetime="2021-02-18T14:00:30.000Z" itemprop="datePublished">2021-02-18</time>
+        </a>
+    </div>
+
+
+                        
+                        
+    <div class="article-tag">
+        <i class="fa fa-tag"></i>
+        <a class="tag-link" href="/tags/ElasticSearch/">ElasticSearch</a>
+    </div>
+
+                    </div>
+                
+            </header>
+        
+        
+
+        <div class="article-entry" itemprop="articleBody">
+            
+            
+                
+            
+            
+                <p>熟悉 MySQL 的同学一定都知道，MySQL 对于复杂条件查询的支持并不好。MySQL 最多使用一个条件涉及的索引来过滤，然后剩余的条件只能在遍历行过程中进行内存过滤，对这个过程不了解的同学可以先行阅读一下<a href="http://remcarpediem.net/article/89b25dd5/">《MySQL复杂where条件分析》</a>。</p>
+<p>上述这种处理复杂条件查询的方式因为只能通过一个索引进行过滤，所以需要进行大量的 I/O 操作来读取行数据，并消耗 CPU 进行内存过滤，导致查询性能的下降。</p>
+<p>而 ElasticSearch 因其特性，十分适合进行复杂条件查询，是业界主流的复杂条件查询场景解决方案，广泛应用于订单和日志查询等场景。</p>
+<p>下面我们就一起来看一下，为什么 ElasticSearch 适合进行复杂条件查询。</p>
+<h4 id="ElasticSearch-简介"><a href="#ElasticSearch-简介" class="headerlink" title="ElasticSearch 简介"></a>ElasticSearch 简介</h4><p>Elasticsearch 是开源的实时分布式搜索分析引擎，内部使用 Lucene 做索引与搜索。它提供”准实时搜索”能力，并且能动态集群规模，弹性扩容。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-02-18-135551.png" alt="Image result for ElasticSearch"></p>
+<p>Elasticsearch 使用 Lucene 作为其全文搜索引擎，用于处理纯文本的数据，但 Lucene 只是一个库，提供建立索引、执行搜索等接口，但不包含分布式服务，这些正是 Elasticsearch 做的。</p>
+<p>下面，我们来介绍一下 ElasticSearch 的相关概念。为了便于初学者理解，我们先将 ElasticSearch 中的概念和 MySQL 中的概念大致地进行对应。但是<strong><em>二者在具体细节上还是有很多差异的，大家深入了解 ElasticSearch 就会将二者区分清楚</em></strong>，不能强行对比等同。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-02-18-135602.png" alt="es_mysql_compare"></p>
+<ul>
+<li>ElasticSearch 中的索引 Index 类似于 MySQL 中的数据库 Database；</li>
+<li>ElasticSearch 中的类型 Type 类似于 MySQL 中的表 Table；需要注意，这个概念在 7.x 版本中被完全删除，而且概念上和 Table 也有较大差异；</li>
+<li>ElasticSearch 中的文档 Document 类似于 MySQL 中的数据行 Row，每个文档由多个字段 Filed 组成，这个Filed 就类似于 MySQL 的 Column；</li>
+<li>ElasticSearch 中的映射 Mapping 是对索引库中的索引字段及其数据类型进行定义，类似于关系型数据库中的表结构 Schema；</li>
+<li>ElasticSearch 使用自己的领域语言 Query DSL 来进行增删改查，而 MySQL 使用 SQL 语言进行上诉操作。</li>
+</ul>
+<p>ElasticSearch 还有一系列有关其分布式特性的概念，我们这里就暂不介绍了，等后续学习到其分布式特性时在进行介绍。</p>
+<h4 id="倒排索引"><a href="#倒排索引" class="headerlink" title="倒排索引"></a>倒排索引</h4><p>MySQL 有 B+ 树索引，而 ElasticSearch 则是倒排索引 (Inverted Index)，它通过倒排索引来实现比 MySQL 更快的过滤和复杂条件的查询，此外，全文搜索功能也是依赖倒排索引才能实现。下面，我们就具体来看一下何为倒排索引。</p>
+<p>倒排索引按照维基百科的描述，是存储文档内容到文档位置映射关系的数据库索引结构。不过只看定义，我是有点迷惑，这不是和 MySQL 的非主键索引类似嘛，为什么要叫它“倒排”呢？这个问题我目前也为搞清楚，可能要等到后续了解了其具体实现才能理解。</p>
+<p>我们还是以书籍检索为例，假设有以下数据，每一行就是一个 Document，每个 Document 由 id，ISBN 号，作者名称和评分组成。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-02-18-135610.png" alt="img"></p>
+<p>给上述数据按照 ISBN 和 Author 建立的倒排索引如下所示。倒排索引是每个字段分开建立的，相互独立。有两个专门的术语，分别是索引 Term 和倒排表 Posting List。字段的值就是 Term，比如 N0007，而 Term 对应的文档 ID 的列表就是 Posting List，对应图中红色的部分。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-02-18-135617.png" alt="book_revert_index"></p>
+<p>一般 Term 都是按照顺序排序的，比如 Author 名称就是按照字母序进行了排序，排序之后，当我们搜索某一个 Term 时，就不需要从头遍历，而是采用二分查找。一系列排序后的 Term 就组成了索引表 Term Dictionary。</p>
+<p>但是 Term Dictionary 往往很大，无法完整放入内存，这是为了更快的查询，还需要再给它创建索引，也就是 Term Index 。</p>
+<p>ElasticSearch 使用 Burst-Trie 结构来实现 Term Index，它是一种前缀树 Trie 的一种变种，它主要是将后缀进行了压缩，降低了Trie的高度，从而获取更好查询性能。</p>
+<p>Term Index 并不需要像 MySQL 的索引一样，包含所有的 Term，而是包含的是这些 Term 的前缀。它就类似于字典的查询目录，可以进行快速定位到 Term Dictionary 的某一位置，然后再从这个位置向后查询。</p>
+<p>综上， Alice，Alf，Arlan，Bob，Tom 等词的倒排索引如下所示。绿色部分是 Term Index，蓝色部分是 Term Dictionary，红色部分是 Posting List。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-02-18-135623.png" alt="es_all_index"></p>
+<p>一般来说，Term Index 都是全部缓存在内存中，查询时，先通过其快速定位到 Term Dictionary 对应的大致范围，然后再进行磁盘读取查找对应的 Term，这样就大大减少了磁盘 I/O 的次数。</p>
+<h4 id="联合索引查询"><a href="#联合索引查询" class="headerlink" title="联合索引查询"></a>联合索引查询</h4><p>了解了 ElasticSearch 的倒排索引后，我们再来看看其如何处理复杂的联合索引查询。比如上述书籍例子中，我们需要查询评分等于2.2并且作者名称叫 Tom的书籍。</p>
+<p>理论上，我们只需要分别按照 Score 和 Author 字段的倒排索引进行查询，获取响应的 Posting List，再将其做交集合并即可。</p>
+<p>这里又要吐槽一下 MySQL，它是不支持这个合并操作的，它只能按照一个字段的索引进行查询，然后根据另外一个字段的条件做内存过滤。顺便说一下，MySQL 的 join 功能也弱爆了，感兴趣的同学可以了解一下<a href="http://remcarpediem.net/article/cd0b2c21/">这篇文章</a></p>
+<p>而 ElasticSearch 则支持使用跳表 Skip List和 Bitset 的方式将数据集进行合并。</p>
+<ul>
+<li>使用 Skip List 结构，同时遍历 Score 和 Author 查询出来的 Posting List，利用其 Skip List 结构，相互跳跃对比，得出合集。</li>
+<li>使用 Bitset 结构，对 Score 和 Author 查询出来的 Posting List 的值计算出各自的 Bitset，然后进行 AND 操作。</li>
+</ul>
+<h4 id="跳表合并策略"><a href="#跳表合并策略" class="headerlink" title="跳表合并策略"></a>跳表合并策略</h4><p>ElasticSearch 在存储 Posting List 数据时，就保存了对应的多级跳表结构响应的数据，这也体现了其空间换时间的基本思想。</p>
+<p>这里先介绍一下跳表的基本概念，它其实是一种可以进行二分查找的有序链表。跳表在原有的有序链表上面增加了多级索引，通过索引来实现快速查找。首先在最高级索引上查找最后一个小于当前查找元素的位置，然后再跳到次高级索引继续查找，直到跳到最底层为止，通过这种方式，加快了查询的速度。</p>
+<p>比如，按照 Score 查出来的 Posting List 为[2,3,4,5,7,9,10,11]，按照 Author 查出来的结果为 [3,8,9,12,13]，则二者的跳表结构如下图所示。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-02-18-135634.png" alt="es_skip_list"></p>
+<p>具体合并过程则是先选最短的 posting list，也就是 Author 的结果集，从其最小的一个 id 开始，将其作为当前最大值。然后依次剩余 posting list 中查找大于或等于该值的位置。</p>
+<p>比如上述结果集中，先去 Score 结果集中查找 3，找到后，就表明 3是二者的合集元素之一；然后再重新开启一轮，选取 Author 结果集中 3 的下一个值 8 ，去 Score 结果集查询 8，发现了大于等于 8 的最小的值是 9 ，所以不可能有共同的值 8，然后再去 Author 结果集查找 9 ，发现其大于等于 9 的最小值是 12，所以再去 Score 结果集中查找大于等于 12的值，发现并不存在；最终得出二者的合集就只有[3]。</p>
+<p>在查询过程中，每个 posting list 都可以根据当前 id 通过 skip list 快速跳过不符合的 id 值，加速整个合并取交集的过程。</p>
+<p>ElasticSearch 对于较长的 posting list 也会使用 Frame Of Reference 进行压缩编码，减少了磁盘占用，减少了索引尺寸。有关具体存储结构的实现我们后续再进行细聊。</p>
+<h4 id="Bitset-合并策略"><a href="#Bitset-合并策略" class="headerlink" title="Bitset 合并策略"></a>Bitset 合并策略</h4><p>ElasticSearch除了使用 skipList 来进行数据磁盘读取时的合并操作外，还会将一些查询条件对应的结果集 posting list 进行内存缓存，也就是所谓的 Filter Cache，为了后续再次复用。</p>
+<p>为了减少内存缓存所消耗的内存空间大小，ElasticSearch 没有使用单纯的数组和 bitset 来存储 posting list，而是使用要压缩效率更高的 Roaring Bitmap。</p>
+<p>我们可以先来讲一下单纯数组或 bitset 数据结构为什么并不使用。比如如下一道较为常见的面试题目：</p>
+<blockquote>
+<p>给定含有40亿个不重复的位于[0, 2^32 - 1]区间内的整数的集合，如何快速判定某个数是否在该集合内？</p>
+</blockquote>
+<p>如果我们要使用 unsigned long 数组来存储它的话，也就需要消耗 40亿 * 32 位 = 160 Byte，大致是 16000 MB。</p>
+<p>如果要使用位图 Bitset 来存储的话，即某个数位于原集合内，就将它对应的位图内的比特置为1，否则保持为0。这样只需要消耗 2 ^ 32 位 = 512 MB，<strong><em>这可只有原来的 3.2 % 左右</em></strong>。</p>
+<p>但是，Bitset 也有其缺陷，也就是稀疏存储的问题，比如上述集合并不是 40亿，而是只有2，3个，那么 Bitset 中只有少数几位是1，其他位都是 0，但是它仍然占用了 512 MB。</p>
+<p>而 RoaringBitmap 就是为了解决稀疏存储的问题。下图就是 RoaringBitmap 的基本原理示意图。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-02-18-135643.png" alt="img"></p>
+<p>首先，如上图所示，计算出32位无符号整数和 65536 的除数和余数。其含义表示，将32位无符号整数按照高16位分桶，即最多可能有2^16=65536个桶，术语惩治为 container。存储数据时，按照数据的高16位找到 container（找不到就会新建一个），再将低16位放入container中。也就是说，一个 RoaringBitmap 就是很多container的集合。</p>
+<p>然后 container 内具体的存储结构要根据存入其内数据的基数来决定。</p>
+<ul>
+<li><p>基数小于 2 ^ 12 次方即 4096时，使用unsigned short类型的有序数组来存储，最大消耗空间就是  8 KB。</p>
+</li>
+<li><p>基数大于 4096 时，则使用大小为 2 ^ 16 次方的普通 bitset 来存储，固定消耗 8 KB。当然，有些时候也会对 bitset 进行行程长度编码（RLE）压缩，进一步减少空间占用。</p>
+</li>
+</ul>
+<p>ElasticSearch 就是使用 Roaring Bitmap 来缓存不同条件查询出来的 posting list，然后再进行与操作计算出最终结果集。</p>
+<h4 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h4><p>至此，我们也算了解了 ElasticSearch 为什么比 MySQL 更适合复杂条件查询，但是有好就有弊，因为为了查询做了这么多的准备工作，ElasticSearch 的插入速度就会慢于 MySQL，而且<strong>数据存入ES后并不是立马就能检索到</strong>。</p>
+<p>欢迎持续关注历小冰，后续继续为大家分享 MySQL、Redis 和 ElasticSearch 等数据库相关的原理和实践经验。</p>
+<p><a href="http://remcarpediem.net/">个人博客，欢迎来玩</a></p>
+<p><img src="http://cdn.remcarpediem.net/2020-05-26-144752.png" alt=""></p>
+<h5 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h5><ul>
+<li><a href="http://www.nosqlnotes.com/technotes/searchengine/lucene-invertedindex/" target="_blank" rel="noopener">http://www.nosqlnotes.com/technotes/searchengine/lucene-invertedindex/</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/33671444" target="_blank" rel="noopener">https://zhuanlan.zhihu.com/p/33671444</a></li>
+<li><a href="https://www.cnblogs.com/forfuture1978/archive/2010/04/04/1704258.html" target="_blank" rel="noopener">https://www.cnblogs.com/forfuture1978/archive/2010/04/04/1704258.html</a></li>
+<li><a href="https://www.jianshu.com/p/818ac4e90daf" target="_blank" rel="noopener">https://www.jianshu.com/p/818ac4e90daf</a></li>
+</ul>
+
+                </div>
+                    
+        <footer class="article-footer">
+            
+                <!-- id 将作为查询条件 -->
+                <span id="/article/699640c9/" class="leancloud_visitors" data-flag-title="为什么 ElasticSearch 比 MySQL 更适合复杂条件搜索">
+                    <em class="post-meta-item-text">阅读量 </em>
+                    <i class="leancloud-visitors-count">1000</i>
+                </span>
+             
+            <div class="share-container">
+
+
+
+</div>
+
+    <a data-url="http://remcarpediem.net/article/699640c9/" data-id="cktvm8c5y006sjaje5p4xeoo8" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+<script>
+    (function ($) {
+        // Prevent duplicate binding
+        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
+            __SHARE_BUTTON_BINDED__ = true;
+        } else {
+            return;
+        }
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+            
+    
+
+        </footer>
+    </div>
+    
+        
+<nav id="article-nav">
+    
+        <a href="/article/da96cf52/" id="article-nav-newer" class="article-nav-link-wrap">
+            <strong class="article-nav-caption">Newer</strong>
+            <div class="article-nav-title">
+                
+                    MySQL读写分离，写完读不到问题如何解决
+                
+            </div>
+        </a>
+    
+    
+        <a href="/article/89dcb81b/" id="article-nav-older" class="article-nav-link-wrap">
+            <strong class="article-nav-caption">Older</strong>
+            <div class="article-nav-title">编程小技巧之 Linux 文本处理命令（二）</div>
+        </a>
+    
+</nav>
+
+
+    
+</article>
+
+
+    
+    
+        <section id="comments">
+    <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+    <div id="vcomments"></div>
+    <script>
+        new Valine({
+            el: '#vcomments',
+            app_id: 'Py2W9ndz8WJGDduj0id77Yq7-gzGzoHsz',
+            app_key: 'cTJCvL6VOQL5ozXfABqDbAyP',
+            placeholder: '欢迎大家积极留言交流',
+            visitor: true
+        })
+    </script>
+</section>
+    
+
+</section>
+            
+                
+<aside id="sidebar">
+   
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">recent</h3>
+        <div class="widget">
+            <ul id="recent-post" class="">
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/da48b455/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/da48b455/" class="title">Go 语言嵌入和多态机制对比</a></p>
+                            <p class="item-date"><time datetime="2021-09-22T14:24:00.000Z" itemprop="datePublished">2021-09-22</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/c1e308a7/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/c1e308a7/" class="title">ElasticSearch 如何配置Uptime 监控组件可用性</a></p>
+                            <p class="item-date"><time datetime="2021-05-31T14:26:20.000Z" itemprop="datePublished">2021-05-31</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/147d0da9/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/147d0da9/" class="title">ElasticSearch 如何使用 TDigest 算法计算亿级数据的百分位数？</a></p>
+                            <p class="item-date"><time datetime="2021-04-18T14:47:33.000Z" itemprop="datePublished">2021-04-18</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/e68831dd/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/e68831dd/" class="title">ElasticSearch 如何使用 ik 进行中文分词？</a></p>
+                            <p class="item-date"><time datetime="2021-04-12T13:57:35.000Z" itemprop="datePublished">2021-04-12</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/da96cf52/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/da96cf52/" class="title">MySQL读写分离，写完读不到问题如何解决</a></p>
+                            <p class="item-date"><time datetime="2021-03-07T12:55:59.000Z" itemprop="datePublished">2021-03-07</time></p>
+                        </div>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">categories</h3>
+        <div class="widget">
+            <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">25</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MySQL/">MySQL</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Netty/">Netty</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Redis/">Redis</a><span class="category-list-count">16</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SICP/">SICP</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/docker/">docker</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/java-persistent/">java persistent</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/plan/">plan</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">2</span></li></ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">archives</h3>
+        <div class="widget">
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/09/">September 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/05/">May 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/04/">April 2021</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/02/">February 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/09/">September 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/06/">June 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">tag cloud</h3>
+        <div class="widget tagcloud">
+            <a href="/tags/AOP/" style="font-size: 12.5px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/ElasticSearch/" style="font-size: 17.5px;">ElasticSearch</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/Go/" style="font-size: 10px;">Go</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 15px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/MySQL/" style="font-size: 20px;">MySQL</a> <a href="/tags/Netty/" style="font-size: 15px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 12.5px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/Redis/" style="font-size: 10px;">Redis</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 12.5px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 12.5px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 12.5px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 15px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 12.5px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 10px;">linux</a> <a href="/tags/mysql/" style="font-size: 12.5px;">mysql</a> <a href="/tags/persistent/" style="font-size: 12.5px;">persistent</a> <a href="/tags/redis/" style="font-size: 17.5px;">redis</a> <a href="/tags/scroll/" style="font-size: 12.5px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 12.5px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 12.5px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 15px;">注解</a> <a href="/tags/第三方库/" style="font-size: 12.5px;">第三方库</a> <a href="/tags/算法/" style="font-size: 15px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 12.5px;">限流</a>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">links</h3>
+        <div class="widget">
+            <ul>
+                
+                    <li>
+                        <a href="http://www.blueskykong.com/">aoho blog</a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+
+    
+    <div id="toTop" class="fa fa-angle-up"></div>
+</aside>
+
+            
+        </div>
+        <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2021 历小冰<br>
+            <a href="https://beian.miit.gov.cn">鲁ICP备19003047号</a> 
+        </div>
+    </div>
+</footer>
+        
+    
+        <script src="/libs/lightgallery/js/lightgallery.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-thumbnail.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-pager.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-autoplay.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-fullscreen.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-zoom.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-hash.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-share.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-video.min.js"></script>
+    
+    
+    
+
+
+
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
+<!-- Custom Scripts -->
+<script src="/js/main.js"></script>
+
+    </div>
+</body>
+</html>

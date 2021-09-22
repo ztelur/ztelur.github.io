@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="Ch">
+<head><meta name="generator" content="Hexo 3.8.0">
+    <meta charset="utf-8">
+    
+    <title>Java 数据持久化系列之JDBC | 程序员历小冰</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="前段时间小冰在工作中遇到了一系列关于数据持久化的问题，在排查问题时发现自己对 Java 后端的数据持久化框架的原理都不太了解，只有不断试错，因此走了很多弯路。于是下定决心，集中精力学习了持久化相关框架的原理和实现，总结出这个系列。  上图是我根据相关源码和网上资料总结的有关 Java 数据持久化的架构图(只代表本人想法，如有问题，欢迎留言指出)。最下层就是今天要讲的 JDBC，上一层是数据库连接池">
+<meta name="keywords" content="persistent">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java 数据持久化系列之JDBC">
+<meta property="og:url" content="http://remcarpediem.net/article/8c16d4e4/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="前段时间小冰在工作中遇到了一系列关于数据持久化的问题，在排查问题时发现自己对 Java 后端的数据持久化框架的原理都不太了解，只有不断试错，因此走了很多弯路。于是下定决心，集中精力学习了持久化相关框架的原理和实现，总结出这个系列。  上图是我根据相关源码和网上资料总结的有关 Java 数据持久化的架构图(只代表本人想法，如有问题，欢迎留言指出)。最下层就是今天要讲的 JDBC，上一层是数据库连接池">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1125/image1.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1125/image2.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1125/image3.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1125/image4.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1125/image5.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1125/image6.webp">
+<meta property="og:image" content="http://remcarpediem.net/images/logo.png">
+<meta property="og:updated_time" content="2020-01-27T10:08:00.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Java 数据持久化系列之JDBC">
+<meta name="twitter:description" content="前段时间小冰在工作中遇到了一系列关于数据持久化的问题，在排查问题时发现自己对 Java 后端的数据持久化框架的原理都不太了解，只有不断试错，因此走了很多弯路。于是下定决心，集中精力学习了持久化相关框架的原理和实现，总结出这个系列。  上图是我根据相关源码和网上资料总结的有关 Java 数据持久化的架构图(只代表本人想法，如有问题，欢迎留言指出)。最下层就是今天要讲的 JDBC，上一层是数据库连接池">
+<meta name="twitter:image" content="http://remcarpediem.net/images/19_1125/image1.webp">
+    
+
+    
+        <link rel="alternate" href="/atom.xml" title="程序员历小冰" type="application/atom+xml">
+    
+
+    
+        <link rel="icon" href="/css/images/avatar.jpeg">
+    
+
+    <link rel="stylesheet" href="/libs/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/libs/open-sans/styles.css">
+    <link rel="stylesheet" href="/libs/source-code-pro/styles.css">
+
+    <link rel="stylesheet" href="/css/style.css">
+
+    <script src="/libs/jquery/2.1.3/jquery.min.js"></script>
+    
+    
+        <link rel="stylesheet" href="/libs/lightgallery/css/lightgallery.min.css">
+    
+    
+    
+    
+    
+        
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+    
+
+
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+</html>
+<body>
+    <div id="container">
+        <header id="header">
+    <div id="header-main" class="header-inner">
+        <div class="outer">
+            <a href="/" id="logo">
+                <i class="logo"></i>
+                <span class="site-title">程序员历小冰</span>
+            </a>
+            <nav id="main-nav">
+                
+                    <a class="main-nav-link" href="/.">主页</a>
+                
+                    <a class="main-nav-link" href="/categories">分类</a>
+                
+                    <a class="main-nav-link" href="/archives">归档</a>
+                
+                    <a class="main-nav-link" href="/book">读书</a>
+                
+                    <a class="main-nav-link" href="/categories/plan">计划</a>
+                
+                    <a class="main-nav-link" href="/about">关于</a>
+                
+            </nav>
+            
+                
+                <nav id="sub-nav">
+                    <div class="profile" id="profile-nav">
+                        <a id="profile-anchor" href="javascript:;">
+                            <img class="avatar" src="/css/images/avatar.jpeg">
+                            <i class="fa fa-caret-down"></i>
+                        </a>
+                    </div>
+                </nav>
+            
+            <div id="search-form-wrap">
+
+    <form class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
+        <button type="submit" class="search-form-submit"></button>
+    </form>
+    <div class="ins-search">
+    <div class="ins-search-mask"></div>
+    <div class="ins-search-container">
+        <div class="ins-input-wrapper">
+            <input type="text" class="ins-search-input" placeholder="Type something...">
+            <span class="ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/js/insight.js"></script>
+
+</div>
+        </div>
+    </div>
+    <div id="main-nav-mobile" class="header-sub header-inner">
+        <table class="menu outer">
+            <tr>
+                
+                    <td><a class="main-nav-link" href="/.">主页</a></td>
+                
+                    <td><a class="main-nav-link" href="/categories">分类</a></td>
+                
+                    <td><a class="main-nav-link" href="/archives">归档</a></td>
+                
+                    <td><a class="main-nav-link" href="/book">读书</a></td>
+                
+                    <td><a class="main-nav-link" href="/categories/plan">计划</a></td>
+                
+                    <td><a class="main-nav-link" href="/about">关于</a></td>
+                
+                <td>
+                    
+    <div class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
+    </div>
+
+                </td>
+            </tr>
+        </table>
+    </div>
+</header>
+
+        <div class="outer">
+            
+                
+
+<aside id="profile" class="profile-fixed">
+    <div class="inner profile-inner">
+        <div class="base-info profile-block">
+            <img id="avatar" src="/css/images/avatar.jpeg">
+            <h2 id="name">历小冰</h2>
+            <h3 id="title">后端开发工程师</h3>
+            <span id="location"><i class="fa fa-map-marker"></i>中国，南京</span>
+            <img id="wechat" src="/css/images/wechat_public.jpg">
+            <a id="follow" target="_blank" href="/css/images/wechat_public.jpg">⬆关注公众号⬆</a>
+        </div>
+        <div class="article-info profile-block">
+            <div class="article-info-block">
+                107
+                <span>posts</span>
+            </div>
+            <div class="article-info-block">
+                67
+                <span>tags</span>
+            </div>
+        </div>
+        
+        <div class="profile-block social-links">
+            <table>
+                <tr>
+                    
+                    
+                    <td>
+                        <a href="https://github.com/ztelur" target="_blank" title="github" class="tooltip">
+                            <i class="fa fa-github"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/css/images/wechat.jpeg" target="_blank" title="wechat" class="tooltip">
+                            <i class="fa fa-wechat"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/atom.xml" target="_blank" title="rss" class="tooltip">
+                            <i class="fa fa-rss"></i>
+                        </a>
+                    </td>
+                    
+                </tr>
+            </table>
+        </div>
+        
+    </div>
+</aside>
+
+            
+            <section id="main"><article id="post-Java-数据持久化系列之JDBC" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+        
+            <header class="article-header">
+                
+    
+        <h1 class="article-title" itemprop="name">
+            Java 数据持久化系列之JDBC
+        </h1>
+    
+
+                
+                    <div class="article-meta">
+                        
+                        
+    <div class="article-date">
+        <i class="fa fa-calendar"></i>
+        <a href="/article/8c16d4e4/">
+            <time datetime="2019-11-25T14:16:34.000Z" itemprop="datePublished">2019-11-25</time>
+        </a>
+    </div>
+
+
+                        
+    <div class="article-category">
+    	<i class="fa fa-folder"></i>
+        <a class="article-category-link" href="/categories/java-persistent/">java persistent</a>
+    </div>
+
+                        
+    <div class="article-tag">
+        <i class="fa fa-tag"></i>
+        <a class="tag-link" href="/tags/persistent/">persistent</a>
+    </div>
+
+                    </div>
+                
+            </header>
+        
+        
+
+        <div class="article-entry" itemprop="articleBody">
+            
+            
+                
+            
+            
+                <p>前段时间小冰在工作中遇到了一系列关于数据持久化的问题，在排查问题时发现自己对 Java 后端的数据持久化框架的原理都不太了解，只有不断试错，因此走了很多弯路。于是下定决心，集中精力学习了持久化相关框架的原理和实现，总结出这个系列。</p>
+<p><img src="/images/19_1125/image1.webp" alt=""></p>
+<p>上图是我根据相关源码和网上资料总结的有关 Java 数据持久化的架构图(只代表本人想法，如有问题，欢迎留言指出)。最下层就是今天要讲的 JDBC，上一层是数据库连接池层，包括 HikariCP 和 Druid等；再上一层是分库分表中间件，比如说 ShardingJDBC；再向上是对象关系映射层，也就是 ORM，包括 Mybatis 和 JPA；最上边是 Spring 的事务管理。</p>
+<p>本系列的文章会依次讲解图中各个开源框架的基础使用，然后描述其原理和代码实现，最后会着重分析它们之间是如何相互集成和配合的。</p>
+<p>废话不多说，我们先来看 JDBC。</p>
+<h3 id="JDBC-定义"><a href="#JDBC-定义" class="headerlink" title="JDBC 定义"></a>JDBC 定义</h3><p>JDBC是Java Database Connectivity的简称，它定义了一套访问数据库的规范和接口。但它自身不参与数据库访问的实现。因此对于目前存在的数据库（譬如Mysql、Oracle）来说，要么数据库制造商本身提供这些规范与接口的实现，要么社区提供这些实现。</p>
+<p><img src="/images/19_1125/image2.webp" alt=""></p>
+<p>如上图所示，Java 程序只依赖于 JDBC API，通过 DriverManager 来获取驱动，并且针对不同的数据库可以使用不同的驱动。这是典型的桥接的设计模式，把抽象 Abstraction 与行为实现Implementation 分离开来，从而可以保持各部分的独立性以及应对他们的功能扩展。</p>
+<h3 id="JDBC-基础代码示例"><a href="#JDBC-基础代码示例" class="headerlink" title="JDBC 基础代码示例"></a>JDBC 基础代码示例</h3><p>单纯使用 JDBC 的代码逻辑十分简单，我们就以最为常用的MySQL 为例，展示一下使用 JDBC 来建立数据库连接、执行查询语句和遍历结果的过程。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public static void connectionTest(){
+
+    Connection connection = null;
+    Statement statement = null;
+    ResultSet resultSet = null;
+
+    try {
+        &#x2F;&#x2F; 1. 加载并注册 MySQL 的驱动
+        Class.forName(&quot;com.mysql.cj.jdbc.Driver&quot;).newInstance();
+
+        &#x2F;&#x2F; 2. 根据特定的数据库连接URL，返回与此URL的所匹配的数据库驱动对象
+        Driver driver = DriverManager.getDriver(URL);
+        &#x2F;&#x2F; 3. 传入参数，比如说用户名和密码
+        Properties props = new Properties();
+        props.put(&quot;user&quot;, USER_NAME);
+        props.put(&quot;password&quot;, PASSWORD);
+
+        &#x2F;&#x2F; 4. 使用数据库驱动创建数据库连接 Connection
+        connection = driver.connect(URL, props);
+
+        &#x2F;&#x2F; 5. 从数据库连接 connection 中获得 Statement 对象
+        statement = connection.createStatement();
+        &#x2F;&#x2F; 6. 执行 sql 语句，返回结果
+        resultSet = statement.executeQuery(&quot;select * from activity&quot;);
+        &#x2F;&#x2F; 7. 处理结果，取出数据
+        while(resultSet.next())
+        {
+            System.out.println(resultSet.getString(2));
+        }
+
+        .....
+    }finally{
+        &#x2F;&#x2F; 8.关闭链接，释放资源  按照JDBC的规范，使用完成后管理链接，
+        &#x2F;&#x2F; 释放资源，释放顺序应该是： ResultSet -&gt;Statement -&gt;Connection
+        resultSet.close();
+        statement.close();
+        connection.close();
+    }
+}
+</code></pre>
+<p>代码中有详细的注释描述每一步的过程，相信大家也都对这段代码十分熟悉。</p>
+<p>唯一要提醒的是使用完之后的资源释放顺序。按照 JDBC 规范，应该依次释放 ResultSet，Statement 和 Connection。当然这只是规范，很多开源框架都没有严格的执行，但是 HikariCP却严格准守了，它可以带来很多优势，这些会在之后的文章中讲解。</p>
+<p><img src="/images/19_1125/image3.webp" alt=""></p>
+<p>上图是 JDBC 中核心的 5 个类或者接口的关系，它们分别是 DriverManager、Driver、Connection、Statement 和 ResultSet。</p>
+<p>DriverManager 负责管理数据库驱动程序，根据 URL 获取与之匹配的 Driver 具体实现。Driver 则负责处理与具体数据库的通信细节，根据 URL 创建数据库连接 Connection。</p>
+<p>Connection 表示与数据库的一个连接会话，可以和数据库进行数据交互。Statement 是需要执行的 SQL 语句或者存储过程语句对应的实体，可以执行对应的 SQL 语句。ResultSet 则是 Statement 执行后获得的结果集对象，可以使用迭代器从中遍历数据。</p>
+<p>不同数据库的驱动都会实现各自的 Driver、Connection、Statement 和 ResultSet。而更为重要的是，众多数据库连接池和分库分表框架也都是实现了自己的 Connection、Statement 和 ResultSet，比如说 HikariCP、Druid 和 ShardingJDBC。我们接下来会经常看到它们的身影。</p>
+<p><img src="/images/19_1125/image4.webp" alt=""></p>
+<p>接下来，我们依次看一下这几个类及其涉及的操作的原理和源码实现。</p>
+<h3 id="载入-Driver-实现"><a href="#载入-Driver-实现" class="headerlink" title="载入 Driver 实现"></a>载入 Driver 实现</h3><p>可以直接使用 Class#forName的方式来载入驱动实现，或者在 JDBC 4.0 后则基于 SPI 机制来导入驱动实现，通过在 META-INF/services/java.sql.Driver 文件中指定实现类的方式来导入驱动实现，下面我们就来看一下两种方式的实现原理。</p>
+<p>Class#forName 作用是要求 JVM 查找并加载指定的类，如果在类中有静态初始化器的话，JVM 会执行该类的静态代码段。加载具体 Driver 实现时，就会执行 Driver 中的静态代码段，将该 Driver 实现注册到 DriverManager 中。我们来看一下 MySQL 对应 Driver 的具体代码。它就是直接调用了 DriverManager的 registerDriver 方法将自己注册到其维护的驱动列表中。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public class Driver extends NonRegisteringDriver implements java.sql.Driver {
+    public Driver() throws SQLException {
+    }
+
+    static {
+        &#x2F;&#x2F; 直接调用 DriverManager的 registerDriver 将自己注册到其中
+        DriverManager.registerDriver(new Driver());
+    }
+}
+</code></pre>
+<p>SPI 机制使用 ServiceLoader 类来提供服务发现机制，动态地为某个接口寻找服务实现。当服务的提供者提供了服务接口的一种实现之后，必须根据 SPI 约定在 META-INF/services 目录下创建一个以服务接口命名的文件，在该文件中写入实现该服务接口的具体实现类。当服务调用 ServiceLoader 的 load 方法的时候，ServiceLoader 能够通过约定的目录找到指定的文件，并装载实例化，完成服务的发现。</p>
+<p>DriverManager 中的 loadInitialDrivers 方法会使用 ServiceLoader 的 load 方法加载目前项目路径下的所有 Driver 实现。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public class DriverManager {
+    &#x2F;&#x2F; 程序中已经注册的Driver具体实现信息列表。registerDriver类就是将Driver加入到这个列表
+    private final static CopyOnWriteArrayList&lt;DriverInfo&gt; registeredDrivers = new CopyOnWriteArrayList&lt;&gt;();
+    &#x2F;&#x2F; 使用ServiceLoader 加载具体的jdbc driver实现
+    static {
+        loadInitialDrivers();
+    }
+    private static void loadInitialDrivers() {
+        &#x2F;&#x2F; 省略了异常处理
+        &#x2F;&#x2F; 获得系统属性 jdbc.drivers 配置的值
+        String drivers = AccessController.doPrivileged(new PrivilegedAction&lt;String&gt;() {
+            public String run() {
+                return System.getProperty(&quot;jdbc.drivers&quot;);
+            }
+        });
+
+        AccessController.doPrivileged(new PrivilegedAction&lt;Void&gt;() {
+            public Void run() {
+
+                ServiceLoader&lt;Driver&gt; loadedDrivers = ServiceLoader.load(Driver.class);
+                Iterator&lt;Driver&gt; driversIterator = loadedDrivers.iterator();
+                &#x2F;&#x2F; 通过 ServiceLoader 获取到Driver的具体实现类，然后加载这些类，会调用其静态代码块
+                while(driversIterator.hasNext()) {
+                    driversIterator.next();
+                }
+                return null;
+            }
+        });
+
+        String[] driversList = drivers.split(&quot;:&quot;);
+        &#x2F;&#x2F; for 循环加载系统属性中的Driver类。
+        for (String aDriver : driversList) {
+            println(&quot;DriverManager.Initialize: loading &quot; + aDriver);
+            Class.forName(aDriver, true,
+                    ClassLoader.getSystemClassLoader());
+        }
+    }
+}
+</code></pre>
+<p>比如说，项目引用了 MySQL 的 jar包 mysql-connector-java，在这个 jar 包的 META-INF/services 文件夹下有一个叫 java.sql.Driver 的文件，文件的内容为 com.mysql.cj.jdbc.Driver。而 ServiceLoader 的 load 方法找到这个文件夹下的文件，读取文件的内容，然后加载出文件内容所指定的 Driver 实现。而正如之前所分析的，这个 Driver 类被加载时，会调用 DriverManager 的 registerDriver 方法，从而完成了驱动的加载。</p>
+<h3 id="Connection、Statement-和-ResultSet"><a href="#Connection、Statement-和-ResultSet" class="headerlink" title="Connection、Statement 和 ResultSet"></a>Connection、Statement 和 ResultSet</h3><p>当程序加载完具体驱动实现后，接下来就是建立与数据库的连接，执行 SQL 语句并且处理返回结果了，其过程如下图所示。</p>
+<p><img src="/images/19_1125/image5.webp" alt=""></p>
+<h4 id="建立-Connection"><a href="#建立-Connection" class="headerlink" title="建立 Connection"></a>建立 Connection</h4><p>创建 Connection 连接对象，可以使用 Driver 的 connect 方法，也可以使用 DriverManager 提供的 getConnection 方法，此方法通过 url 自动匹配对应的驱动 Driver 实例，然后还是调用对应的 connect 方法返回 Connection 对象实例。</p>
+<p>建立 Connection 会涉及到与数据库进行网络请求等大量费时的操作，为了提升性能，往往都会引入数据库连接池，也就是说复用 Connection，免去每次都创建 Connection 所消耗的时间和系统资源。</p>
+<p>Connection 默认情况下，对于创建的 Statement 执行的 SQL 语句都是自动提交事务的，即在 Statement 语句执行完后，自动执行 commit 操作，将事务提交，结果影响到物理数据库。为了满足更好地事务控制需求，我们也可以手动地控制事务，手动地在Statement 的 SQL 语句执行后进行 commit 或者rollback。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">connection = driver.connect(URL, props);
+&#x2F;&#x2F; 将自动提交关闭
+connection.setAutoCommit(false);
+
+statement = connection.createStatement();
+statement.execute(&quot;INSERT INTO activity (activity_id, activity_name, product_id, start_time, end_time, total, status, sec_speed, buy_limit, buy_rate) VALUES (1, &#39;香蕉大甩卖&#39;, 1, 530871061, 530872061, 20, 0, 1, 1, 0.20);&quot;);
+&#x2F;&#x2F; 执行后手动 commit
+statement.getConnection().commit();
+</code></pre>
+<h3 id="Statement"><a href="#Statement" class="headerlink" title="Statement"></a>Statement</h3><p>Statement 的功能在于根据传入的 SQL 语句，将传入 SQL 经过整理组合成数据库能够识别的执行语句(对于静态的 SQL 语句，不需要整理组合；而对于预编译SQL 语句和批量语句，则需要整理)，然后传递 SQL 请求，之后会得到返回的结果。对于查询 SQL，结果会以 ResultSet 的形式返回。</p>
+<p>当你创建了一个 Statement 对象之后，你可以用它的三个执行方法的任一方法来执行 SQL 语句。</p>
+<ul>
+<li>boolean execute(String SQL) : 如果 ResultSet 对象可以被检索，则返回的布尔值为 true ，否则返回 false 。当你需要使用真正的动态 SQL 时，可以使用这个方法来执行 SQL DDL 语句。</li>
+<li>int executeUpdate(String SQL) : 返回执行 SQL 语句影响的行的数目。使用该方法来执行 SQL 语句，是希望得到一些受影响的行的数目，例如，INSERT，UPDATE 或 DELETE 语句。</li>
+<li>ResultSet executeQuery(String SQL) : 返回一个 ResultSet 对象。当你希望得到一个结果集时使用该方法，就像你使用一个 SELECT 语句。</li>
+</ul>
+<p>对于不同类型的 SQL 语句，Statement 有不同的接口与其对应。</p>
+<p><img src="/images/19_1125/image6.webp" alt=""></p>
+<table>
+<thead>
+<tr>
+<th>接口</th>
+<th>介绍  </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Statement</td>
+<td>适合运行静态 SQL 语句，不接受动态参数</td>
+</tr>
+<tr>
+<td>PreparedStatement</td>
+<td>计划多次使用并且预先编译的 SQL 语句，接口需要传入额外的参数</td>
+</tr>
+<tr>
+<td>CallableStatement</td>
+<td>用于访问数据库存储过程</td>
+</tr>
+</tbody>
+</table>
+<p>Statement 主要用于执行静态SQL语句，即内容固定不变的SQL语句。Statement每执行一次都要对传入的SQL语句编译一次，效率较差。而 PreparedStatement则解决了这个问题，它会对 SQL 进行预编译，提高了执行效率。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">PreparedStatement pstmt = null;
+    try {
+        String SQL = &quot;Update activity SET activity_name = ? WHERE activity_id = ?&quot;;
+        pstmt = connection.prepareStatement(SQL);
+        pstmt.setString(1, &quot;测试&quot;);
+        pstmt.setInt(2, 1);
+        pstmt.executeUpdate();
+    }
+    catch (SQLException e) {
+    }
+    finally {
+        pstmt.close();
+    }
+}
+</code></pre>
+<p>除此之外， PreparedStatement 还可以预防 SQL 注入，因为 PreparedStatement 不允许在插入参数时改变 SQL 语句的逻辑结构。</p>
+<p>PreparedStatement 传入任何数据不会和原 SQL 语句发生匹配关系，无需对输入的数据做过滤。如果用户将”or 1 = 1”传入赋值给占位符，下述SQL 语句将无法执行：select * from t where username = ? and password = ?。</p>
+<h3 id="ResultSet"><a href="#ResultSet" class="headerlink" title="ResultSet"></a>ResultSet</h3><p>当 Statement 查询 SQL 执行后，会得到 ResultSet 对象，ResultSet 对象是 SQL语句查询的结果集合。ResultSet 对从数据库返回的结果进行了封装，使用迭代器的模式可以逐条取出结果集中的记录。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">while(resultSet.next()) {
+    System.out.println(resultSet.getString(2));
+}
+</code></pre>
+<p>ResultSet 一般也建议使用完毕直接 close 掉，但是需要注意的是关闭 ResultSet 对象不关闭其持有的 Blob、Clob 或 NClob 对象。 Blob、Clob 或 NClob 对象在它们被创建的的事务期间会一直持有效，除非其 free 函数被调用。</p>
+<p><img src="/images/logo.png" alt=""></p>
+<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
+<li><a href="https://blog.csdn.net/wl044090432/article/details/60768342" target="_blank" rel="noopener">https://blog.csdn.net/wl044090432/article/details/60768342</a></li>
+<li><a href="https://blog.csdn.net/luanlouis/article/details/29850811" target="_blank" rel="noopener">https://blog.csdn.net/luanlouis/article/details/29850811</a></li>
+</ul>
+
+                </div>
+                    
+        <footer class="article-footer">
+            
+                <!-- id 将作为查询条件 -->
+                <span id="/article/8c16d4e4/" class="leancloud_visitors" data-flag-title="Java 数据持久化系列之JDBC">
+                    <em class="post-meta-item-text">阅读量 </em>
+                    <i class="leancloud-visitors-count">1000</i>
+                </span>
+             
+            <div class="share-container">
+
+
+
+</div>
+
+    <a data-url="http://remcarpediem.net/article/8c16d4e4/" data-id="cktvm8c3c0028jajeajev8na0" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+<script>
+    (function ($) {
+        // Prevent duplicate binding
+        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
+            __SHARE_BUTTON_BINDED__ = true;
+        } else {
+            return;
+        }
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+            
+    
+
+        </footer>
+    </div>
+    
+        
+<nav id="article-nav">
+    
+        <a href="/article/4cc1fb9/" id="article-nav-newer" class="article-nav-link-wrap">
+            <strong class="article-nav-caption">Newer</strong>
+            <div class="article-nav-title">
+                
+                    Redis 命令执行过程(上)
+                
+            </div>
+        </a>
+    
+    
+        <a href="/article/ef4e619/" id="article-nav-older" class="article-nav-link-wrap">
+            <strong class="article-nav-caption">Older</strong>
+            <div class="article-nav-title">当 Redis 发生高延迟时，到底发生了什么</div>
+        </a>
+    
+</nav>
+
+
+    
+</article>
+
+
+    
+    
+        <section id="comments">
+    <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+    <div id="vcomments"></div>
+    <script>
+        new Valine({
+            el: '#vcomments',
+            app_id: 'Py2W9ndz8WJGDduj0id77Yq7-gzGzoHsz',
+            app_key: 'cTJCvL6VOQL5ozXfABqDbAyP',
+            placeholder: '欢迎大家积极留言交流',
+            visitor: true
+        })
+    </script>
+</section>
+    
+
+</section>
+            
+                
+<aside id="sidebar">
+   
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">recent</h3>
+        <div class="widget">
+            <ul id="recent-post" class="">
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/da48b455/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/da48b455/" class="title">Go 语言嵌入和多态机制对比</a></p>
+                            <p class="item-date"><time datetime="2021-09-22T14:24:00.000Z" itemprop="datePublished">2021-09-22</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/c1e308a7/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/c1e308a7/" class="title">ElasticSearch 如何配置Uptime 监控组件可用性</a></p>
+                            <p class="item-date"><time datetime="2021-05-31T14:26:20.000Z" itemprop="datePublished">2021-05-31</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/147d0da9/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/147d0da9/" class="title">ElasticSearch 如何使用 TDigest 算法计算亿级数据的百分位数？</a></p>
+                            <p class="item-date"><time datetime="2021-04-18T14:47:33.000Z" itemprop="datePublished">2021-04-18</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/e68831dd/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/e68831dd/" class="title">ElasticSearch 如何使用 ik 进行中文分词？</a></p>
+                            <p class="item-date"><time datetime="2021-04-12T13:57:35.000Z" itemprop="datePublished">2021-04-12</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/da96cf52/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/da96cf52/" class="title">MySQL读写分离，写完读不到问题如何解决</a></p>
+                            <p class="item-date"><time datetime="2021-03-07T12:55:59.000Z" itemprop="datePublished">2021-03-07</time></p>
+                        </div>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">categories</h3>
+        <div class="widget">
+            <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">25</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MySQL/">MySQL</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Netty/">Netty</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Redis/">Redis</a><span class="category-list-count">16</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SICP/">SICP</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/docker/">docker</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/java-persistent/">java persistent</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/plan/">plan</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">2</span></li></ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">archives</h3>
+        <div class="widget">
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/09/">September 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/05/">May 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/04/">April 2021</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/02/">February 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/09/">September 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/06/">June 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">tag cloud</h3>
+        <div class="widget tagcloud">
+            <a href="/tags/AOP/" style="font-size: 12.5px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/ElasticSearch/" style="font-size: 17.5px;">ElasticSearch</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/Go/" style="font-size: 10px;">Go</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 15px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/MySQL/" style="font-size: 20px;">MySQL</a> <a href="/tags/Netty/" style="font-size: 15px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 12.5px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/Redis/" style="font-size: 10px;">Redis</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 12.5px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 12.5px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 12.5px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 15px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 12.5px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 10px;">linux</a> <a href="/tags/mysql/" style="font-size: 12.5px;">mysql</a> <a href="/tags/persistent/" style="font-size: 12.5px;">persistent</a> <a href="/tags/redis/" style="font-size: 17.5px;">redis</a> <a href="/tags/scroll/" style="font-size: 12.5px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 12.5px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 12.5px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 15px;">注解</a> <a href="/tags/第三方库/" style="font-size: 12.5px;">第三方库</a> <a href="/tags/算法/" style="font-size: 15px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 12.5px;">限流</a>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">links</h3>
+        <div class="widget">
+            <ul>
+                
+                    <li>
+                        <a href="http://www.blueskykong.com/">aoho blog</a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+
+    
+    <div id="toTop" class="fa fa-angle-up"></div>
+</aside>
+
+            
+        </div>
+        <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2021 历小冰<br>
+            <a href="https://beian.miit.gov.cn">鲁ICP备19003047号</a> 
+        </div>
+    </div>
+</footer>
+        
+    
+        <script src="/libs/lightgallery/js/lightgallery.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-thumbnail.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-pager.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-autoplay.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-fullscreen.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-zoom.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-hash.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-share.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-video.min.js"></script>
+    
+    
+    
+
+
+
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
+<!-- Custom Scripts -->
+<script src="/js/main.js"></script>
+
+    </div>
+</body>
+</html>
