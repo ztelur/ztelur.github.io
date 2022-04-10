@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="Ch">
+<head><meta name="generator" content="Hexo 3.8.0">
+    <meta charset="utf-8">
+    
+    <title>Redis 命令执行过程(上) | 程序员历小冰</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="今天我们来了解一下 Redis 命令执行的过程。在之前的文章中《当 Redis 发生高延迟时，到底发生了什么》我们曾简单的描述了一条命令的执行过程，本篇文章展示深入说明一下，加深读者对 Redis 的了解。 如下图所示，一条命令执行完成并且返回数据一共涉及三部分，第一步是建立连接阶段，响应了socket的建立，并且创建了client对象；第二步是处理阶段，从socket读取数据到输入缓冲区，然后解">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis 命令执行过程(上)">
+<meta property="og:url" content="http://remcarpediem.net/article/4cc1fb9/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="今天我们来了解一下 Redis 命令执行的过程。在之前的文章中《当 Redis 发生高延迟时，到底发生了什么》我们曾简单的描述了一条命令的执行过程，本篇文章展示深入说明一下，加深读者对 Redis 的了解。 如下图所示，一条命令执行完成并且返回数据一共涉及三部分，第一步是建立连接阶段，响应了socket的建立，并且创建了client对象；第二步是处理阶段，从socket读取数据到输入缓冲区，然后解">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/1_image1.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/2_image1.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/2_image2.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/2_image3.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/2_image4.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/2_image5.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_1221/2_image6.png">
+<meta property="og:image" content="http://remcarpediem.net/images/logo.png">
+<meta property="og:updated_time" content="2022-04-10T02:36:55.941Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Redis 命令执行过程(上)">
+<meta name="twitter:description" content="今天我们来了解一下 Redis 命令执行的过程。在之前的文章中《当 Redis 发生高延迟时，到底发生了什么》我们曾简单的描述了一条命令的执行过程，本篇文章展示深入说明一下，加深读者对 Redis 的了解。 如下图所示，一条命令执行完成并且返回数据一共涉及三部分，第一步是建立连接阶段，响应了socket的建立，并且创建了client对象；第二步是处理阶段，从socket读取数据到输入缓冲区，然后解">
+<meta name="twitter:image" content="http://remcarpediem.net/images/19_1221/1_image1.png">
+    
+
+    
+        <link rel="alternate" href="/atom.xml" title="程序员历小冰" type="application/atom+xml">
+    
+
+    
+        <link rel="icon" href="/css/images/avatar.jpeg">
+    
+
+    <link rel="stylesheet" href="/libs/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/libs/open-sans/styles.css">
+    <link rel="stylesheet" href="/libs/source-code-pro/styles.css">
+
+    <link rel="stylesheet" href="/css/style.css">
+
+    <script src="/libs/jquery/2.1.3/jquery.min.js"></script>
+    
+    
+        <link rel="stylesheet" href="/libs/lightgallery/css/lightgallery.min.css">
+    
+    
+    
+    
+    
+        
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+    
+
+
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+</html>
+<body>
+    <div id="container">
+        <header id="header">
+    <div id="header-main" class="header-inner">
+        <div class="outer">
+            <a href="/" id="logo">
+                <i class="logo"></i>
+                <span class="site-title">程序员历小冰</span>
+            </a>
+            <nav id="main-nav">
+                
+                    <a class="main-nav-link" href="/.">主页</a>
+                
+                    <a class="main-nav-link" href="/categories">分类</a>
+                
+                    <a class="main-nav-link" href="/archives">归档</a>
+                
+                    <a class="main-nav-link" href="/book">读书</a>
+                
+                    <a class="main-nav-link" href="/categories/plan">计划</a>
+                
+                    <a class="main-nav-link" href="/about">关于</a>
+                
+            </nav>
+            
+                
+                <nav id="sub-nav">
+                    <div class="profile" id="profile-nav">
+                        <a id="profile-anchor" href="javascript:;">
+                            <img class="avatar" src="/css/images/avatar.jpeg">
+                            <i class="fa fa-caret-down"></i>
+                        </a>
+                    </div>
+                </nav>
+            
+            <div id="search-form-wrap">
+
+    <form class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Rechercher">
+        <button type="submit" class="search-form-submit"></button>
+    </form>
+    <div class="ins-search">
+    <div class="ins-search-mask"></div>
+    <div class="ins-search-container">
+        <div class="ins-input-wrapper">
+            <input type="text" class="ins-search-input" placeholder="Type something...">
+            <span class="ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Articles',
+            PAGES: 'Pages',
+            CATEGORIES: 'Catégories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/js/insight.js"></script>
+
+</div>
+        </div>
+    </div>
+    <div id="main-nav-mobile" class="header-sub header-inner">
+        <table class="menu outer">
+            <tr>
+                
+                    <td><a class="main-nav-link" href="/.">主页</a></td>
+                
+                    <td><a class="main-nav-link" href="/categories">分类</a></td>
+                
+                    <td><a class="main-nav-link" href="/archives">归档</a></td>
+                
+                    <td><a class="main-nav-link" href="/book">读书</a></td>
+                
+                    <td><a class="main-nav-link" href="/categories/plan">计划</a></td>
+                
+                    <td><a class="main-nav-link" href="/about">关于</a></td>
+                
+                <td>
+                    
+    <div class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Rechercher">
+    </div>
+
+                </td>
+            </tr>
+        </table>
+    </div>
+</header>
+
+        <div class="outer">
+            
+                
+
+<aside id="profile" class="profile-fixed">
+    <div class="inner profile-inner">
+        <div class="base-info profile-block">
+            <img id="avatar" src="/css/images/avatar.jpeg">
+            <h2 id="name">历小冰</h2>
+            <h3 id="title">后端开发工程师</h3>
+            <span id="location"><i class="fa fa-map-marker"></i>中国，南京</span>
+            <img id="wechat" src="/css/images/wechat_public.jpg">
+            <a id="follow" target="_blank" href="/css/images/wechat_public.jpg">⬆关注公众号⬆</a>
+        </div>
+        <div class="article-info profile-block">
+            <div class="article-info-block">
+                109
+                <span>Articles</span>
+            </div>
+            <div class="article-info-block">
+                67
+                <span>Tags</span>
+            </div>
+        </div>
+        
+        <div class="profile-block social-links">
+            <table>
+                <tr>
+                    
+                    
+                    <td>
+                        <a href="https://github.com/ztelur" target="_blank" title="github" class="tooltip">
+                            <i class="fa fa-github"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/css/images/wechat.jpeg" target="_blank" title="wechat" class="tooltip">
+                            <i class="fa fa-wechat"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/atom.xml" target="_blank" title="rss" class="tooltip">
+                            <i class="fa fa-rss"></i>
+                        </a>
+                    </td>
+                    
+                </tr>
+            </table>
+        </div>
+        
+    </div>
+</aside>
+
+            
+            <section id="main"><article id="post-Redis-命令执行过程-上" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+        
+            <header class="article-header">
+                
+    
+        <h1 class="article-title" itemprop="name">
+            Redis 命令执行过程(上)
+        </h1>
+    
+
+                
+                    <div class="article-meta">
+                        
+                        
+    <div class="article-date">
+        <i class="fa fa-calendar"></i>
+        <a href="/article/4cc1fb9/">
+            <time datetime="2019-12-09T14:25:54.000Z" itemprop="datePublished">2019-12-09</time>
+        </a>
+    </div>
+
+
+                        
+    <div class="article-category">
+    	<i class="fa fa-folder"></i>
+        <a class="article-category-link" href="/categories/Redis/">Redis</a>
+    </div>
+
+                        
+                    </div>
+                
+            </header>
+        
+        
+
+        <div class="article-entry" itemprop="articleBody">
+            
+            
+                
+            
+            
+                <p>今天我们来了解一下 Redis 命令执行的过程。在之前的文章中<a href="http://remcarpediem.net/article/ef4e619/">《当 Redis 发生高延迟时，到底发生了什么》</a>我们曾简单的描述了一条命令的执行过程，本篇文章展示深入说明一下，加深读者对 Redis 的了解。</p>
+<p>如下图所示，一条命令执行完成并且返回数据一共涉及三部分，第一步是建立连接阶段，响应了socket的建立，并且创建了client对象；第二步是处理阶段，从socket读取数据到输入缓冲区，然后解析并获得命令，执行命令并将返回值存储到输出缓冲区中；第三步是数据返回阶段，将返回值从输出缓冲区写到socket中，返回给客户端，最后关闭client。</p>
+<p><img src="/images/19_1221/1_image1.png" alt=""></p>
+<p>这三个阶段之间是通过事件机制串联了，在 Redis 启动阶段首先要注册socket连接建立事件处理器：</p>
+<ul>
+<li>当客户端发来建立socket的连接的请求时，对应的处理器方法会被执行，建立连接阶段的相关处理就会进行，然后注册socket读取事件处理器</li>
+<li>当客户端发来命令时，读取事件处理器方法会被执行，对应处理阶段的相关逻辑都会被执行，然后注册socket写事件处理器</li>
+<li>当写事件处理器被执行时，就是将返回值写回到socket中。</li>
+</ul>
+<p><img src="/images/19_1221/2_image1.png" alt=""></p>
+<p>接下来，我们分别来看一下各个步骤的具体原理和代码实现。</p>
+<h3 id="启动时监听socket"><a href="#启动时监听socket" class="headerlink" title="启动时监听socket"></a>启动时监听socket</h3><p>Redis 服务器启动时，会调用 initServer 方法，首先会建立 Redis 自己的事件机制 eventLoop，然后在其上注册周期时间事件处理器，最后在所监听的 socket 上<br>创建文件事件处理器，监听 socket 建立连接的事件，其处理函数为 acceptTcpHandler。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-c">void initServer(void) { &#x2F;&#x2F; server.c
+    ....
+    &#x2F;**
+     * 创建eventLoop
+     *&#x2F;
+    server.el = aeCreateEventLoop(server.maxclients+CONFIG_FDSET_INCR);
+    &#x2F;* Open the TCP listening socket for the user commands. *&#x2F;
+
+    if (server.port != 0 &amp;&amp;
+        listenToPort(server.port,server.ipfd,&amp;server.ipfd_count) == C_ERR)
+        exit(1);
+
+    &#x2F;**
+     * 注册周期时间事件，处理后台操作，比如说客户端操作、过期键等
+     *&#x2F;
+    if (aeCreateTimeEvent(server.el, 1, serverCron, NULL, NULL) == AE_ERR) {
+        serverPanic(&quot;Can&#39;t create event loop timers.&quot;);
+        exit(1);
+    }
+    &#x2F;**
+     * 为所有监听的socket创建文件事件，监听可读事件；事件处理函数为acceptTcpHandler
+     * 
+     *&#x2F;
+    for (j = 0; j &lt; server.ipfd_count; j++) {
+        if (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE,
+            acceptTcpHandler,NULL) == AE_ERR)
+            {
+                serverPanic(
+                    &quot;Unrecoverable error creating server.ipfd file event.&quot;);
+            }
+    }
+    ....
+}
+</code></pre></p>
+<p>在《Redis 事件机制详解》一文中，我们曾详细介绍过 Redis 的事件机制，可以说，Redis 命令执行过程中都是由事件机制协调管理的，也就是 initServer 方法中生成的 aeEventLoop。当socket发生对应的事件时，aeEventLoop 对调用已经注册的对应的事件处理器。</p>
+<p><img src="/images/19_1221/2_image2.png" alt=""></p>
+<h3 id="建立连接和Client"><a href="#建立连接和Client" class="headerlink" title="建立连接和Client"></a>建立连接和Client</h3><p>当客户端向 Redis 建立 socket时，aeEventLoop 会调用 acceptTcpHandler 处理函数，服务器会为每个链接创建一个 Client 对象，并创建相应文件事件来监听socket的可读事件，并指定事件处理函数。</p>
+<p>acceptTcpHandler 函数会首先调用 <code>anetTcpAccept</code>方法，它底层会调用 socket 的 accept 方法，也就是接受客户端来的建立连接请求，然后调用 <code>acceptCommonHandler</code>方法，继续后续的逻辑处理。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 当客户端建立链接时进行的eventloop处理函数  networking.c
+void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
+    ....
+    &#x2F;&#x2F; 层层调用，最后在anet.c 中 anetGenericAccept 方法中调用 socket 的 accept 方法
+    cfd = anetTcpAccept(server.neterr, fd, cip, sizeof(cip), &amp;cport);
+    if (cfd == ANET_ERR) {
+        if (errno != EWOULDBLOCK)
+            serverLog(LL_WARNING,
+                &quot;Accepting client connection: %s&quot;, server.neterr);
+        return;
+    }
+    serverLog(LL_VERBOSE,&quot;Accepted %s:%d&quot;, cip, cport);
+    &#x2F;**
+     * 进行socket 建立连接后的处理
+     *&#x2F;
+    acceptCommonHandler(cfd,0,cip);
+}
+</code></pre></p>
+<p>acceptCommonHandler 则首先调用 createClient 创建 client，接着判断当前 client 的数量是否超出了配置的 maxclients，如果超过，则给客户端发送错误信息，并且释放 client。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-c">static void acceptCommonHandler(int fd, int flags, char *ip) { &#x2F;&#x2F;networking.c
+    client *c;
+    &#x2F;&#x2F; 创建redisClient
+    c = createClient(fd)
+    &#x2F;&#x2F; 当 maxClient 属性被设置，并且client数量已经超出时，给client发送error，然后释放连接
+    if (listLength(server.clients) &gt; server.maxclients) {
+        char *err = &quot;-ERR max number of clients reached\r\n&quot;;
+        if (write(c-&gt;fd,err,strlen(err)) == -1) {
+        }
+        server.stat_rejected_conn++;
+        freeClient(c);
+        return;
+    }
+    .... &#x2F;&#x2F; 处理为设置密码时默认保护状态的客户端连接
+    &#x2F;&#x2F; 统计连接数
+    server.stat_numconnections++;
+    c-&gt;flags |= flags;
+}
+</code></pre>
+<p>createClient 方法用于创建 client，它代表着连接到 Redis 客户端，每个客户端都有各自的输入缓冲区和输出缓冲区，输入缓冲区存储客户端通过 socket 发送过来的数据，输出缓冲区则存储着 Redis 对客户端的响应数据。client一共有三种类型，不同类型的对应缓冲区的大小都不同。</p>
+<ul>
+<li>普通客户端是除了复制和订阅的客户端之外的所有连接</li>
+<li>从客户端用于主从复制，主节点会为每个从节点单独建立一条连接用于命令复制</li>
+<li>订阅客户端用于发布订阅功能</li>
+</ul>
+<p><img src="/images/19_1221/2_image3.png" alt=""></p>
+<p>createClient 方法除了创建 client 结构体并设置其属性值外，还会对 socket进行配置并注册读事件处理器</p>
+<p>设置 socket 为 非阻塞 socket、设置 NO_DELAY 和 SO_KEEPALIVE标志位来关闭 Nagle 算法并且启动 socket 存活检查机制。</p>
+<p>设置读事件处理器，当客户端通过 socket 发送来数据后，Redis 会调用 readQueryFromClient 方法。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">client *createClient(int fd) {
+    client *c = zmalloc(sizeof(client));
+    &#x2F;&#x2F; fd 为 -1，表示其他特殊情况创建的client，redis在进行比如lua脚本执行之类的情况下也会创建client
+    if (fd != -1) {
+        &#x2F;&#x2F; 配置socket为非阻塞、NO_DELAY不开启Nagle算法和SO_KEEPALIVE
+        anetNonBlock(NULL,fd);
+        anetEnableTcpNoDelay(NULL,fd);
+        if (server.tcpkeepalive)
+            anetKeepAlive(NULL,fd,server.tcpkeepalive);
+        &#x2F;**
+         * 向 eventLoop 中注册了 readQueryFromClient。
+         * readQueryFromClient 的作用就是从client中读取客户端的查询缓冲区内容。
+         * 绑定读事件到事件 loop （开始接收命令请求）
+         *&#x2F;
+        if (aeCreateFileEvent(server.el,fd,AE_READABLE,
+            readQueryFromClient, c) == AE_ERR)
+        {
+            close(fd);
+            zfree(c);
+            return NULL;
+        }
+    }
+    &#x2F;&#x2F; 默认选择数据库
+    selectDb(c,0);
+    uint64_t client_id;
+    atomicGetIncr(server.next_client_id,client_id,1);
+    c-&gt;id = client_id;
+    c-&gt;fd = fd;
+    .... &#x2F;&#x2F; 设置client的属性
+    return c;
+}
+</code></pre>
+<p>client 的属性中有很多属性，比如后边会看到的输入缓冲区 querybuf 和输出缓冲区 buf，这里因为代码过长做了省略，感兴趣的同学可以自行阅读源码。</p>
+<h3 id="读取socket数据到输入缓冲区"><a href="#读取socket数据到输入缓冲区" class="headerlink" title="读取socket数据到输入缓冲区"></a>读取socket数据到输入缓冲区</h3><p>readQueryFromClient 方法会调用 read 方法从 socket 中读取数据到输入缓冲区中，然后判断其大小是否大于系统设置的 client_max_querybuf_len，如果大于，则向 Redis返回错误信息，并关闭 client。</p>
+<p>将数据读取到输入缓冲区后，readQueryFromClient 方法会根据 client 的类型来做不同的处理，如果是普通类型，则直接调用 processInputBuffer 来处理；如果是主从客户端，还需要将命令同步到自己的从服务器中。也就是说，Redis实例将主实例传来的命令执行后，继续将命令同步给自己的从实例。</p>
+<p><img src="/images/19_1221/2_image4.png" alt=""></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 处理从client中读取客户端的输入缓冲区内容。
+void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
+    client *c = (client*) privdata;
+    ....
+    if (c-&gt;querybuf_peak &lt; qblen) c-&gt;querybuf_peak = qblen;
+    c-&gt;querybuf = sdsMakeRoomFor(c-&gt;querybuf, readlen);
+    &#x2F;&#x2F; 从 fd 对应的socket中读取到 client 中的 querybuf 输入缓冲区
+    nread = read(fd, c-&gt;querybuf+qblen, readlen);
+    if (nread == -1) {
+        .... &#x2F;&#x2F; 出错释放 client
+    } else if (nread == 0) {
+        &#x2F;&#x2F; 客户端主动关闭 connection
+        serverLog(LL_VERBOSE, &quot;Client closed connection&quot;);
+        freeClient(c);
+        return;
+    } else if (c-&gt;flags &amp; CLIENT_MASTER) { 
+        &#x2F;*
+         * 当这个client代表主从的master节点时，将query buffer和 pending_querybuf结合
+         * 用于主从复制中的命令传播？？？？
+         *&#x2F;
+        c-&gt;pending_querybuf = sdscatlen(c-&gt;pending_querybuf,
+                                        c-&gt;querybuf+qblen,nread);
+    }
+    &#x2F;&#x2F; 增加已经读取的字节数
+    sdsIncrLen(c-&gt;querybuf,nread);
+    c-&gt;lastinteraction = server.unixtime;
+    if (c-&gt;flags &amp; CLIENT_MASTER) c-&gt;read_reploff += nread;
+    server.stat_net_input_bytes += nread;
+    &#x2F;&#x2F; 如果大于系统配置的最大客户端缓存区大小，也就是配置文件中的client-query-buffer-limit
+    if (sdslen(c-&gt;querybuf) &gt; server.client_max_querybuf_len) {
+        sds ci = catClientInfoString(sdsempty(),c), bytes = sdsempty();
+        &#x2F;&#x2F; 返回错误信息，并且关闭client
+        bytes = sdscatrepr(bytes,c-&gt;querybuf,64);
+        serverLog(LL_WARNING,&quot;Closing client that reached max query buffer length: %s (qbuf initial bytes: %s)&quot;, ci, bytes);
+        sdsfree(ci);
+        sdsfree(bytes);
+        freeClient(c);
+        return;
+    }
+
+    
+    if (!(c-&gt;flags &amp; CLIENT_MASTER)) {
+        &#x2F;&#x2F; processInputBuffer 处理输入缓冲区
+        processInputBuffer(c);
+    } else {
+        &#x2F;&#x2F; 如果client是master的连接
+        size_t prev_offset = c-&gt;reploff;
+        processInputBuffer(c);
+        &#x2F;&#x2F; 判断是否同步偏移量发生变化，则通知到后续的slave
+        size_t applied = c-&gt;reploff - prev_offset;
+
+        if (applied) {
+            replicationFeedSlavesFromMasterStream(server.slaves,
+                    c-&gt;pending_querybuf, applied);
+            sdsrange(c-&gt;pending_querybuf,applied,-1);
+        }
+    }
+}
+</code></pre>
+<h3 id="解析获取命令"><a href="#解析获取命令" class="headerlink" title="解析获取命令"></a>解析获取命令</h3><p>processInputBuffer 主要是将输入缓冲区中的数据解析成对应的命令，根据命令类型是 PROTO_REQ_MULTIBULK 还是 PROTO_REQ_INLINE，来分别调用 processInlineBuffer 和 processMultibulkBuffer 方法来解析命令。</p>
+<p>然后调用 processCommand 方法来执行命令。执行成功后，如果是主从客户端，还需要更新同步偏移量 reploff 属性，然后重置 client，让client可以接收一条命令。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">void processInputBuffer(client *c) { &#x2F;&#x2F; networking.c
+    server.current_client = c;
+    &#x2F;* 当缓冲区中还有数据时就一直处理 *&#x2F;
+    while(sdslen(c-&gt;querybuf)) {
+        .... &#x2F;&#x2F; 处理 client 的各种状态
+        &#x2F;* 判断命令请求类型 telnet发送的命令和redis-cli发送的命令请求格式不同 *&#x2F;
+        if (!c-&gt;reqtype) {
+            if (c-&gt;querybuf[0] == &#39;*&#39;) {
+                c-&gt;reqtype = PROTO_REQ_MULTIBULK;
+            } else {
+                c-&gt;reqtype = PROTO_REQ_INLINE;
+            }
+        }
+        &#x2F;**
+         * 从缓冲区解析命令
+         *&#x2F;
+        if (c-&gt;reqtype == PROTO_REQ_INLINE) {
+            if (processInlineBuffer(c) != C_OK) break;
+        } else if (c-&gt;reqtype == PROTO_REQ_MULTIBULK) {
+            if (processMultibulkBuffer(c) != C_OK) break;
+        } else {
+            serverPanic(&quot;Unknown request type&quot;);
+        }
+
+        &#x2F;* 参数个数为0时重置client，可以接受下一个命令 *&#x2F;
+        if (c-&gt;argc == 0) {
+            resetClient(c);
+        } else {
+            &#x2F;&#x2F; 执行命令
+            if (processCommand(c) == C_OK) {
+                if (c-&gt;flags &amp; CLIENT_MASTER &amp;&amp; !(c-&gt;flags &amp; CLIENT_MULTI)) {
+                    &#x2F;&#x2F; 如果是master的client发来的命令，则 更新 reploff
+                    c-&gt;reploff = c-&gt;read_reploff - sdslen(c-&gt;querybuf);
+                }
+
+                &#x2F;&#x2F; 如果不是阻塞状态，则重置client，可以接受下一个命令
+                if (!(c-&gt;flags &amp; CLIENT_BLOCKED) || c-&gt;btype != BLOCKED_MODULE)
+                    resetClient(c);
+            }
+        }
+    }
+    server.current_client = NULL;
+}
+</code></pre>
+<p>解析命令暂时不看，就是将 redis 命令文本信息，记录到client的argv/argc属性中</p>
+<h3 id="执行命令"><a href="#执行命令" class="headerlink" title="执行命令"></a>执行命令</h3><p>processCommand 方法会处理很多逻辑，不过大致可以分为三个部分：首先是调用 lookupCommand 方法获得对应的 redisCommand；接着是检测当前 Redis 是否可以执行该命令；最后是调用 call 方法真正执行命令。</p>
+<p>processCommand会做如下逻辑处理：</p>
+<ul>
+<li>1 如果命令名称为 quit，则直接返回，并且设置客户端标志位。</li>
+<li>2 根据 argv[0] 查找对应的 redisCommand，所有的命令都存储在命令字典 redisCommandTable 中，根据命令名称可以获取对应的命令。</li>
+<li>3 进行用户权限校验。</li>
+<li>4 如果是集群模式，处理集群重定向。当命令发送者是 master 或者 命令没有任何 key 的参数时可以不重定向。</li>
+<li>5 预防 maxmemory 情况，先尝试回收一下，如果不行，则返回异常。</li>
+<li>6 当此服务器是 master 时：aof 持久化失败时，或上一次 bgsave 执行错误，且配置 bgsave 参数和 stop_writes_on_bgsave_err；禁止执行写命令。</li>
+<li>7 当此服务器时master时：如果配置了 repl_min_slaves_to_write，当slave数目小于时，禁止执行写命令。</li>
+<li>8 当时只读slave时，除了 master 的不接受其他写命令。</li>
+<li>9 当客户端正在订阅频道时，只会执行部分命令。</li>
+<li>10 服务器为slave，但是没有连接 master 时，只会执行带有 CMD_STALE 标志的命令，如 info 等</li>
+<li>11 正在加载数据库时，只会执行带有 CMD_LOADING 标志的命令，其余都会被拒绝。</li>
+<li>12 当服务器因为执行lua脚本阻塞时，只会执行部分命令，其余都会拒绝</li>
+<li>13 如果是事务命令，则开启事务，命令进入等待队列；否则直接执行命令。</li>
+</ul>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-c">int processCommand(client *c) {
+    &#x2F;&#x2F; 1 处理 quit 命令
+    if (!strcasecmp(c-&gt;argv[0]-&gt;ptr,&quot;quit&quot;)) {
+        addReply(c,shared.ok);
+        c-&gt;flags |= CLIENT_CLOSE_AFTER_REPLY;
+        return C_ERR;
+    }
+
+    &#x2F;**
+     * 根据 argv[0] 查找对应的 command
+     * 2 命令字典查找指定命令；所有的命令都存储在命令字典中 struct redisCommand redisCommandTable[]={}
+     *&#x2F;
+    c-&gt;cmd = c-&gt;lastcmd = lookupCommand(c-&gt;argv[0]-&gt;ptr);
+    if (!c-&gt;cmd) {
+        &#x2F;&#x2F; 处理未知命令
+    } else if ((c-&gt;cmd-&gt;arity &gt; 0 &amp;&amp; c-&gt;cmd-&gt;arity != c-&gt;argc) ||
+               (c-&gt;argc &lt; -c-&gt;cmd-&gt;arity)) {
+        &#x2F;&#x2F; 处理参数错误
+    }
+    &#x2F;&#x2F; 3 检查用户验证
+    if (server.requirepass &amp;&amp; !c-&gt;authenticated &amp;&amp; c-&gt;cmd-&gt;proc != authCommand)
+    {
+        flagTransaction(c);
+        addReply(c,shared.noautherr);
+        return C_OK;
+    }
+
+    &#x2F;**
+     * 4 如果是集群模式，处理集群重定向。当命令发送者是master或者 命令没有任何key的参数时可以不重定向
+     *&#x2F;
+    if (server.cluster_enabled &amp;&amp;
+        !(c-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;
+        !(c-&gt;flags &amp; CLIENT_LUA &amp;&amp;
+          server.lua_caller-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;
+        !(c-&gt;cmd-&gt;getkeys_proc == NULL &amp;&amp; c-&gt;cmd-&gt;firstkey == 0 &amp;&amp;
+          c-&gt;cmd-&gt;proc != execCommand))
+    {
+        int hashslot;
+        int error_code;
+        &#x2F;&#x2F; 查询可以执行的node信息
+        clusterNode *n = getNodeByQuery(c,c-&gt;cmd,c-&gt;argv,c-&gt;argc,
+                                        &amp;hashslot,&amp;error_code);
+        if (n == NULL || n != server.cluster-&gt;myself) {
+            if (c-&gt;cmd-&gt;proc == execCommand) {
+                discardTransaction(c);
+            } else {
+                flagTransaction(c);
+            }
+            clusterRedirectClient(c,n,hashslot,error_code);
+            return C_OK;
+        }
+    }
+
+    &#x2F;&#x2F; 5 处理maxmemory请求，先尝试回收一下，如果不行，则返回异常
+    if (server.maxmemory) {
+        int retval = freeMemoryIfNeeded();
+        ....
+    }
+
+    &#x2F;**
+     * 6 当此服务器是master时：aof持久化失败时，或上一次bgsave执行错误，
+     * 且配置bgsave参数和stop_writes_on_bgsave_err；禁止执行写命令
+     *&#x2F;
+    if (((server.stop_writes_on_bgsave_err &amp;&amp;
+          server.saveparamslen &gt; 0 &amp;&amp;
+          server.lastbgsave_status == C_ERR) ||
+          server.aof_last_write_status == C_ERR) &amp;&amp;
+        server.masterhost == NULL &amp;&amp;
+        (c-&gt;cmd-&gt;flags &amp; CMD_WRITE ||
+         c-&gt;cmd-&gt;proc == pingCommand)) { .... }
+
+    &#x2F;**
+     * 7 当此服务器时master时：如果配置了repl_min_slaves_to_write，
+     * 当slave数目小于时，禁止执行写命令
+     *&#x2F;
+    if (server.masterhost == NULL &amp;&amp;
+        server.repl_min_slaves_to_write &amp;&amp;
+        server.repl_min_slaves_max_lag &amp;&amp;
+        c-&gt;cmd-&gt;flags &amp; CMD_WRITE &amp;&amp;
+        server.repl_good_slaves_count &lt; server.repl_min_slaves_to_write) { .... }
+
+    &#x2F;**
+     * 8 当时只读slave时，除了master的不接受其他写命令
+     *&#x2F;
+    if (server.masterhost &amp;&amp; server.repl_slave_ro &amp;&amp;
+        !(c-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;
+        c-&gt;cmd-&gt;flags &amp; CMD_WRITE) { .... }
+
+    &#x2F;**
+     * 9 当客户端正在订阅频道时，只会执行以下命令
+     *&#x2F;
+    if (c-&gt;flags &amp; CLIENT_PUBSUB &amp;&amp;
+        c-&gt;cmd-&gt;proc != pingCommand &amp;&amp;
+        c-&gt;cmd-&gt;proc != subscribeCommand &amp;&amp;
+        c-&gt;cmd-&gt;proc != unsubscribeCommand &amp;&amp;
+        c-&gt;cmd-&gt;proc != psubscribeCommand &amp;&amp;
+        c-&gt;cmd-&gt;proc != punsubscribeCommand) { .... }
+    &#x2F;**
+     * 10 服务器为slave，但没有正确连接master时，只会执行带有CMD_STALE标志的命令，如info等
+     *&#x2F;
+    if (server.masterhost &amp;&amp; server.repl_state != REPL_STATE_CONNECTED &amp;&amp;
+        server.repl_serve_stale_data == 0 &amp;&amp;
+        !(c-&gt;cmd-&gt;flags &amp; CMD_STALE)) {...}
+    &#x2F;**
+     * 11 正在加载数据库时，只会执行带有CMD_LOADING标志的命令，其余都会被拒绝
+     *&#x2F;
+    if (server.loading &amp;&amp; !(c-&gt;cmd-&gt;flags &amp; CMD_LOADING)) { .... }
+    &#x2F;**
+     * 12 当服务器因为执行lua脚本阻塞时，只会执行以下几个命令，其余都会拒绝
+     *&#x2F;
+    if (server.lua_timedout &amp;&amp;
+          c-&gt;cmd-&gt;proc != authCommand &amp;&amp;
+          c-&gt;cmd-&gt;proc != replconfCommand &amp;&amp;
+        !(c-&gt;cmd-&gt;proc == shutdownCommand &amp;&amp;
+          c-&gt;argc == 2 &amp;&amp;
+          tolower(((char*)c-&gt;argv[1]-&gt;ptr)[0]) == &#39;n&#39;) &amp;&amp;
+        !(c-&gt;cmd-&gt;proc == scriptCommand &amp;&amp;
+          c-&gt;argc == 2 &amp;&amp;
+          tolower(((char*)c-&gt;argv[1]-&gt;ptr)[0]) == &#39;k&#39;)) {....}
+
+    &#x2F;**
+     * 13 开始执行命令
+     *&#x2F;
+    if (c-&gt;flags &amp; CLIENT_MULTI &amp;&amp;
+        c-&gt;cmd-&gt;proc != execCommand &amp;&amp; c-&gt;cmd-&gt;proc != discardCommand &amp;&amp;
+        c-&gt;cmd-&gt;proc != multiCommand &amp;&amp; c-&gt;cmd-&gt;proc != watchCommand)
+    {
+        &#x2F;**
+         * 开启了事务，命令只会入队列
+         *&#x2F;
+        queueMultiCommand(c);
+        addReply(c,shared.queued);
+    } else {
+        &#x2F;**
+         * 直接执行命令
+         *&#x2F;
+        call(c,CMD_CALL_FULL);
+        c-&gt;woff = server.master_repl_offset;
+        if (listLength(server.ready_keys))
+            handleClientsBlockedOnLists();
+    }
+    return C_OK;
+}
+
+
+struct redisCommand redisCommandTable[] = {
+    {&quot;get&quot;,getCommand,2,&quot;rF&quot;,0,NULL,1,1,1,0,0},
+    {&quot;set&quot;,setCommand,-3,&quot;wm&quot;,0,NULL,1,1,1,0,0},
+    {&quot;hmset&quot;,hsetCommand,-4,&quot;wmF&quot;,0,NULL,1,1,1,0,0},
+    .... &#x2F;&#x2F; 所有的 redis 命令都有
+}
+</code></pre>
+<p>call 方法是 Redis 中执行命令的通用方法，它会处理通用的执行命令的前置和后续操作。</p>
+<p><img src="/images/19_1221/2_image5.png" alt=""></p>
+<ul>
+<li>如果有监视器 monitor，则需要将命令发送给监视器。</li>
+<li>调用 redisCommand 的proc 方法，执行对应具体的命令逻辑。</li>
+<li>如果开启了 CMD_CALL_SLOWLOG，则需要记录慢查询日志</li>
+<li>如果开启了 CMD_CALL_STATS，则需要记录一些统计信息</li>
+<li>如果开启了 CMD_CALL_PROPAGATE，则当 dirty大于0时，需要调用 propagate 方法来进行命令传播。</li>
+</ul>
+<p><img src="/images/19_1221/2_image6.png" alt=""></p>
+<p>命令传播就是将命令写入 repl-backlog-buffer 缓冲中，并发送给各个从服务器中。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-c">&#x2F;&#x2F; 执行client中持有的 redisCommand 命令
+void call(client *c, int flags) {
+    &#x2F;**
+     * dirty记录数据库修改次数；start记录命令开始执行时间us；duration记录命令执行花费时间
+     *&#x2F;
+    long long dirty, start, duration;
+    int client_old_flags = c-&gt;flags;
+
+    &#x2F;**
+     * 有监视器的话，需要将不是从AOF获取的命令会发送给监视器。当然，这里会消耗时间
+     *&#x2F;
+    if (listLength(server.monitors) &amp;&amp;
+        !server.loading &amp;&amp;
+        !(c-&gt;cmd-&gt;flags &amp; (CMD_SKIP_MONITOR|CMD_ADMIN)))
+    {
+        replicationFeedMonitors(c,server.monitors,c-&gt;db-&gt;id,c-&gt;argv,c-&gt;argc);
+    }
+    ....
+    &#x2F;* Call the command. *&#x2F;
+    dirty = server.dirty;
+    start = ustime();
+    &#x2F;&#x2F; 处理命令，调用命令处理函数
+    c-&gt;cmd-&gt;proc(c);
+    duration = ustime()-start;
+    dirty = server.dirty-dirty;
+    if (dirty &lt; 0) dirty = 0;
+
+    .... &#x2F;&#x2F; Lua 脚本的一些特殊处理
+
+    &#x2F;**
+     * CMD_CALL_SLOWLOG 表示要记录慢查询日志
+     *&#x2F;
+    if (flags &amp; CMD_CALL_SLOWLOG &amp;&amp; c-&gt;cmd-&gt;proc != execCommand) {
+        char *latency_event = (c-&gt;cmd-&gt;flags &amp; CMD_FAST) ?
+                              &quot;fast-command&quot; : &quot;command&quot;;
+        latencyAddSampleIfNeeded(latency_event,duration&#x2F;1000);
+        slowlogPushEntryIfNeeded(c,c-&gt;argv,c-&gt;argc,duration);
+    }
+    &#x2F;**
+     * CMD_CALL_STATS 表示要统计
+     *&#x2F;
+    if (flags &amp; CMD_CALL_STATS) {
+        c-&gt;lastcmd-&gt;microseconds += duration;
+        c-&gt;lastcmd-&gt;calls++;
+    }
+    &#x2F;**
+     * CMD_CALL_PROPAGATE表示要进行广播命令
+     *&#x2F;
+    if (flags &amp; CMD_CALL_PROPAGATE &amp;&amp;
+        (c-&gt;flags &amp; CLIENT_PREVENT_PROP) != CLIENT_PREVENT_PROP)
+    {
+        int propagate_flags = PROPAGATE_NONE;
+        &#x2F;**
+         * dirty大于0时，需要广播命令给slave和aof
+         *&#x2F;
+        if (dirty) propagate_flags |= (PROPAGATE_AOF|PROPAGATE_REPL);
+        .... 
+        &#x2F;**
+         * 广播命令，写如aof，发送命令到slave
+         * 也就是传说中的传播命令
+         *&#x2F;
+        if (propagate_flags != PROPAGATE_NONE &amp;&amp; !(c-&gt;cmd-&gt;flags &amp; CMD_MODULE))
+            propagate(c-&gt;cmd,c-&gt;db-&gt;id,c-&gt;argv,c-&gt;argc,propagate_flags);
+    }
+    ....
+}
+</code></pre>
+<p>由于文章篇幅问题，本篇文章就先讲到这里，后半部分在接下来的文章中进行讲解，欢迎大家继续关注。</p>
+<p><img src="/images/logo.png" alt=""></p>
+
+                </div>
+                    
+        <footer class="article-footer">
+            
+                <!-- id 将作为查询条件 -->
+                <span id="/article/4cc1fb9/" class="leancloud_visitors" data-flag-title="Redis 命令执行过程(上)">
+                    <em class="post-meta-item-text">阅读量 </em>
+                    <i class="leancloud-visitors-count">1000</i>
+                </span>
+             
+            <div class="share-container">
+
+
+
+</div>
+
+    <a data-url="http://remcarpediem.net/article/4cc1fb9/" data-id="cl1sxuvp70054o6jbei1fv8pj" class="article-share-link"><i class="fa fa-share"></i>Partager</a>
+<script>
+    (function ($) {
+        // Prevent duplicate binding
+        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
+            __SHARE_BUTTON_BINDED__ = true;
+        } else {
+            return;
+        }
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+            
+    
+
+        </footer>
+    </div>
+    
+        
+<nav id="article-nav">
+    
+        <a href="/article/1dd72ef8/" id="article-nav-newer" class="article-nav-link-wrap">
+            <strong class="article-nav-caption">Plus récent</strong>
+            <div class="article-nav-title">
+                
+                    Redis 命令执行过程(下)
+                
+            </div>
+        </a>
+    
+    
+        <a href="/article/8c16d4e4/" id="article-nav-older" class="article-nav-link-wrap">
+            <strong class="article-nav-caption">Plus ancien</strong>
+            <div class="article-nav-title">Java 数据持久化系列之JDBC</div>
+        </a>
+    
+</nav>
+
+
+    
+</article>
+
+
+    
+    
+        <section id="comments">
+    <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+    <div id="vcomments"></div>
+    <script>
+        new Valine({
+            el: '#vcomments',
+            app_id: 'Py2W9ndz8WJGDduj0id77Yq7-gzGzoHsz',
+            app_key: 'cTJCvL6VOQL5ozXfABqDbAyP',
+            placeholder: '欢迎大家积极留言交流',
+            visitor: true
+        })
+    </script>
+</section>
+    
+
+</section>
+            
+                
+<aside id="sidebar">
+   
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Récents</h3>
+        <div class="widget">
+            <ul id="recent-post" class="">
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/304c0753/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"><a class="article-category-link" href="/categories/plan/">plan</a></p>
+                            <p class="item-title"><a href="/article/304c0753/" class="title">2022年记录目录</a></p>
+                            <p class="item-date"><time datetime="2022-04-10T02:37:08.000Z" itemprop="datePublished">2022-04-10</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/293e04b1/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/293e04b1/" class="title">Go 结构体函数调用底层实现</a></p>
+                            <p class="item-date"><time datetime="2021-11-01T13:12:00.000Z" itemprop="datePublished">2021-11-01</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/da48b455/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/da48b455/" class="title">Go 语言嵌入和多态机制对比</a></p>
+                            <p class="item-date"><time datetime="2021-09-22T14:24:00.000Z" itemprop="datePublished">2021-09-22</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/c1e308a7/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/c1e308a7/" class="title">ElasticSearch 如何配置Uptime 监控组件可用性</a></p>
+                            <p class="item-date"><time datetime="2021-05-31T14:26:20.000Z" itemprop="datePublished">2021-05-31</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/147d0da9/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/147d0da9/" class="title">ElasticSearch 如何使用 TDigest 算法计算亿级数据的百分位数？</a></p>
+                            <p class="item-date"><time datetime="2021-04-18T14:47:33.000Z" itemprop="datePublished">2021-04-18</time></p>
+                        </div>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Catégories</h3>
+        <div class="widget">
+            <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">25</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MySQL/">MySQL</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Netty/">Netty</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Redis/">Redis</a><span class="category-list-count">16</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SICP/">SICP</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/docker/">docker</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/java-persistent/">java persistent</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/plan/">plan</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">2</span></li></ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Archives</h3>
+        <div class="widget">
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/09/">September 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/05/">May 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/04/">April 2021</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/02/">February 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/09/">September 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/06/">June 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Nuage de tags</h3>
+        <div class="widget tagcloud">
+            <a href="/tags/AOP/" style="font-size: 12.5px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/ElasticSearch/" style="font-size: 17.5px;">ElasticSearch</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/Go/" style="font-size: 12.5px;">Go</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 15px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/MySQL/" style="font-size: 20px;">MySQL</a> <a href="/tags/Netty/" style="font-size: 15px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 12.5px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/Redis/" style="font-size: 10px;">Redis</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 12.5px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 12.5px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 12.5px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 15px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 12.5px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 10px;">linux</a> <a href="/tags/mysql/" style="font-size: 12.5px;">mysql</a> <a href="/tags/persistent/" style="font-size: 12.5px;">persistent</a> <a href="/tags/redis/" style="font-size: 17.5px;">redis</a> <a href="/tags/scroll/" style="font-size: 12.5px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 12.5px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 12.5px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 15px;">注解</a> <a href="/tags/第三方库/" style="font-size: 12.5px;">第三方库</a> <a href="/tags/算法/" style="font-size: 15px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 12.5px;">限流</a>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">Liens</h3>
+        <div class="widget">
+            <ul>
+                
+                    <li>
+                        <a href="http://www.blueskykong.com/">aoho blog</a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+
+    
+    <div id="toTop" class="fa fa-angle-up"></div>
+</aside>
+
+            
+        </div>
+        <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2022 历小冰<br>
+            <a href="https://beian.miit.gov.cn">鲁ICP备19003047号</a> 
+        </div>
+    </div>
+</footer>
+        
+    
+        <script src="/libs/lightgallery/js/lightgallery.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-thumbnail.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-pager.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-autoplay.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-fullscreen.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-zoom.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-hash.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-share.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-video.min.js"></script>
+    
+    
+    
+
+
+
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
+<!-- Custom Scripts -->
+<script src="/js/main.js"></script>
+
+    </div>
+</body>
+</html>

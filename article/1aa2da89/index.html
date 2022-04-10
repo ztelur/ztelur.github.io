@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="Ch">
+<head><meta name="generator" content="Hexo 3.8.0">
+    <meta charset="utf-8">
+    
+    <title>Redis 事件机制详解 | 程序员历小冰</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="Redis 采用事件驱动机制来处理大量的网络IO。它并没有使用 libevent 或者 libev 这样的成熟开源方案，而是自己实现一个非常简洁的事件驱动库 ae_event。 Redis中的事件驱动库只关注网络IO，以及定时器。该事件库处理下面两类事件：  文件事件(file  event)：用于处理 Redis 服务器和客户端之间的网络IO。 时间事件(time  eveat)：Redis 服">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis 事件机制详解">
+<meta property="og:url" content="http://remcarpediem.net/article/1aa2da89/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="Redis 采用事件驱动机制来处理大量的网络IO。它并没有使用 libevent 或者 libev 这样的成熟开源方案，而是自己实现一个非常简洁的事件驱动库 ae_event。 Redis中的事件驱动库只关注网络IO，以及定时器。该事件库处理下面两类事件：  文件事件(file  event)：用于处理 Redis 服务器和客户端之间的网络IO。 时间事件(time  eveat)：Redis 服">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://remcarpediem.net/images/19_85/image1.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_85/image2.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_85/image3.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_85/image4.png">
+<meta property="og:image" content="http://remcarpediem.net/images/19_85/image5.png">
+<meta property="og:image" content="http://remcarpediem.net/images/logo.png">
+<meta property="og:updated_time" content="2022-04-10T02:36:55.940Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Redis 事件机制详解">
+<meta name="twitter:description" content="Redis 采用事件驱动机制来处理大量的网络IO。它并没有使用 libevent 或者 libev 这样的成熟开源方案，而是自己实现一个非常简洁的事件驱动库 ae_event。 Redis中的事件驱动库只关注网络IO，以及定时器。该事件库处理下面两类事件：  文件事件(file  event)：用于处理 Redis 服务器和客户端之间的网络IO。 时间事件(time  eveat)：Redis 服">
+<meta name="twitter:image" content="http://remcarpediem.net/images/19_85/image1.png">
+    
+
+    
+        <link rel="alternate" href="/atom.xml" title="程序员历小冰" type="application/atom+xml">
+    
+
+    
+        <link rel="icon" href="/css/images/avatar.jpeg">
+    
+
+    <link rel="stylesheet" href="/libs/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/libs/open-sans/styles.css">
+    <link rel="stylesheet" href="/libs/source-code-pro/styles.css">
+
+    <link rel="stylesheet" href="/css/style.css">
+
+    <script src="/libs/jquery/2.1.3/jquery.min.js"></script>
+    
+    
+        <link rel="stylesheet" href="/libs/lightgallery/css/lightgallery.min.css">
+    
+    
+    
+    
+    
+        
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+    
+
+
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+</html>
+<body>
+    <div id="container">
+        <header id="header">
+    <div id="header-main" class="header-inner">
+        <div class="outer">
+            <a href="/" id="logo">
+                <i class="logo"></i>
+                <span class="site-title">程序员历小冰</span>
+            </a>
+            <nav id="main-nav">
+                
+                    <a class="main-nav-link" href="/.">主页</a>
+                
+                    <a class="main-nav-link" href="/categories">分类</a>
+                
+                    <a class="main-nav-link" href="/archives">归档</a>
+                
+                    <a class="main-nav-link" href="/book">读书</a>
+                
+                    <a class="main-nav-link" href="/categories/plan">计划</a>
+                
+                    <a class="main-nav-link" href="/about">关于</a>
+                
+            </nav>
+            
+                
+                <nav id="sub-nav">
+                    <div class="profile" id="profile-nav">
+                        <a id="profile-anchor" href="javascript:;">
+                            <img class="avatar" src="/css/images/avatar.jpeg">
+                            <i class="fa fa-caret-down"></i>
+                        </a>
+                    </div>
+                </nav>
+            
+            <div id="search-form-wrap">
+
+    <form class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Rechercher">
+        <button type="submit" class="search-form-submit"></button>
+    </form>
+    <div class="ins-search">
+    <div class="ins-search-mask"></div>
+    <div class="ins-search-container">
+        <div class="ins-input-wrapper">
+            <input type="text" class="ins-search-input" placeholder="Type something...">
+            <span class="ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Articles',
+            PAGES: 'Pages',
+            CATEGORIES: 'Catégories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/js/insight.js"></script>
+
+</div>
+        </div>
+    </div>
+    <div id="main-nav-mobile" class="header-sub header-inner">
+        <table class="menu outer">
+            <tr>
+                
+                    <td><a class="main-nav-link" href="/.">主页</a></td>
+                
+                    <td><a class="main-nav-link" href="/categories">分类</a></td>
+                
+                    <td><a class="main-nav-link" href="/archives">归档</a></td>
+                
+                    <td><a class="main-nav-link" href="/book">读书</a></td>
+                
+                    <td><a class="main-nav-link" href="/categories/plan">计划</a></td>
+                
+                    <td><a class="main-nav-link" href="/about">关于</a></td>
+                
+                <td>
+                    
+    <div class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Rechercher">
+    </div>
+
+                </td>
+            </tr>
+        </table>
+    </div>
+</header>
+
+        <div class="outer">
+            
+                
+
+<aside id="profile" class="profile-fixed">
+    <div class="inner profile-inner">
+        <div class="base-info profile-block">
+            <img id="avatar" src="/css/images/avatar.jpeg">
+            <h2 id="name">历小冰</h2>
+            <h3 id="title">后端开发工程师</h3>
+            <span id="location"><i class="fa fa-map-marker"></i>中国，南京</span>
+            <img id="wechat" src="/css/images/wechat_public.jpg">
+            <a id="follow" target="_blank" href="/css/images/wechat_public.jpg">⬆关注公众号⬆</a>
+        </div>
+        <div class="article-info profile-block">
+            <div class="article-info-block">
+                109
+                <span>Articles</span>
+            </div>
+            <div class="article-info-block">
+                67
+                <span>Tags</span>
+            </div>
+        </div>
+        
+        <div class="profile-block social-links">
+            <table>
+                <tr>
+                    
+                    
+                    <td>
+                        <a href="https://github.com/ztelur" target="_blank" title="github" class="tooltip">
+                            <i class="fa fa-github"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/css/images/wechat.jpeg" target="_blank" title="wechat" class="tooltip">
+                            <i class="fa fa-wechat"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/atom.xml" target="_blank" title="rss" class="tooltip">
+                            <i class="fa fa-rss"></i>
+                        </a>
+                    </td>
+                    
+                </tr>
+            </table>
+        </div>
+        
+    </div>
+</aside>
+
+            
+            <section id="main"><article id="post-Redis-事件机制详解" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+        
+            <header class="article-header">
+                
+    
+        <h1 class="article-title" itemprop="name">
+            Redis 事件机制详解
+        </h1>
+    
+
+                
+                    <div class="article-meta">
+                        
+                        
+    <div class="article-date">
+        <i class="fa fa-calendar"></i>
+        <a href="/article/1aa2da89/">
+            <time datetime="2019-08-04T10:37:29.000Z" itemprop="datePublished">2019-08-04</time>
+        </a>
+    </div>
+
+
+                        
+    <div class="article-category">
+    	<i class="fa fa-folder"></i>
+        <a class="article-category-link" href="/categories/Redis/">Redis</a>
+    </div>
+
+                        
+                    </div>
+                
+            </header>
+        
+        
+
+        <div class="article-entry" itemprop="articleBody">
+            
+            
+                
+            
+            
+                <p>Redis 采用事件驱动机制来处理大量的网络IO。它并没有使用 libevent 或者 libev 这样的成熟开源方案，而是自己实现一个非常简洁的事件驱动库 ae_event。</p>
+<p>Redis中的事件驱动库只关注网络IO，以及定时器。该事件库处理下面两类事件：</p>
+<ul>
+<li>文件事件(file  event)：用于处理 Redis 服务器和客户端之间的网络IO。</li>
+<li>时间事件(time  eveat)：Redis 服务器中的一些操作（比如serverCron函数）需要在给定的时间点执行，而时间事件就是处理这类定时操作的。</li>
+</ul>
+<p>事件驱动库的代码主要是在src/ae.c中实现的，其示意图如下所示。</p>
+<p><img src="/images/19_85/image1.png" alt="事件管理器示意图"></p>
+<p><code>aeEventLoop</code>是整个事件驱动的核心，它管理着文件事件表和时间事件列表，<br>不断地循环处理着就绪的文件事件和到期的时间事件。下面我们就先分别介绍文件事件和时间事件，然后讲述相关的<code>aeEventLoop</code>源码实现。</p>
+<h3 id="文件事件"><a href="#文件事件" class="headerlink" title="文件事件"></a>文件事件</h3><p>Redis基于Reactor模式开发了自己的网络事件处理器，也就是文件事件处理器。文件事件处理器使用IO多路复用技术，同时监听多个套接字，并为套接字关联不同的事件处理函数。当套接字的可读或者可写事件触发时，就会调用相应的事件处理函数。</p>
+<p>Redis 使用的IO多路复用技术主要有：<code>select</code>、<code>epoll</code>、<code>evport</code>和<code>kqueue</code>等。每个IO多路复用函数库在 Redis 源码中都对应一个单独的文件，比如ae_select.c，ae_epoll.c， ae_kqueue.c等。Redis 会根据不同的操作系统，按照不同的优先级选择多路复用技术。事件响应框架一般都采用该架构，比如 netty 和 libevent。</p>
+<p><img src="/images/19_85/image2.png" alt="示意图"></p>
+<p>如下图所示，文件事件处理器有四个组成部分，它们分别是套接字、I/O多路复用程序、文件事件分派器以及事件处理器。</p>
+<p><img src="/images/19_85/image3.png" alt="示意图"></p>
+<p>文件事件是对套接字操作的抽象，每当一个套接字准备好执行 accept、read、write和 close 等操作时，就会产生一个文件事件。因为 Redis 通常会连接多个套接字，所以多个文件事件有可能并发的出现。</p>
+<p>I/O多路复用程序负责监听多个套接字，并向文件事件派发器传递那些产生了事件的套接字。</p>
+<p>尽管多个文件事件可能会并发地出现，但I/O多路复用程序总是会将所有产生的套接字都放到同一个队列(也就是后文中描述的<code>aeEventLoop</code>的<code>fired</code>就绪事件表)里边，然后文件事件处理器会以有序、同步、单个套接字的方式处理该队列中的套接字，也就是处理就绪的文件事件。</p>
+<p><img src="/images/19_85/image4.png" alt="一次请求的过程示意图"></p>
+<p>所以，一次 Redis 客户端与服务器进行连接并且发送命令的过程如上图所示。</p>
+<ul>
+<li>客户端向服务端发起建立 socket 连接的请求，那么监听套接字将产生 AE_READABLE 事件，触发<strong>连接应答处理器</strong>执行。处理器会对客户端的连接请求进行应答，然后创建客户端套接字，以及客户端状态，并将客户端套接字的 AE_READABLE 事件与<strong>命令请求处理器</strong>关联。</li>
+<li>客户端建立连接后，向服务器发送命令，那么客户端套接字将产生 AE_READABLE 事件，触发<strong>命令请求处理器</strong>执行，处理器读取客户端命令，然后传递给相关程序去执行。</li>
+<li>执行命令获得相应的命令回复，为了将命令回复传递给客户端，服务器将客户端套接字的 AE_WRITEABLE 事件与<strong>命令回复处理器</strong>关联。当客户端试图读取命令回复时，客户端套接字产生 AE_WRITEABLE 事件，触发命令<strong>回复处理器</strong>将命令回复全部写入到套接字中。</li>
+</ul>
+<h3 id="时间事件"><a href="#时间事件" class="headerlink" title="时间事件"></a>时间事件</h3><p>Redis 的时间事件分为以下两类：</p>
+<ul>
+<li>定时事件：让一段程序在指定的时间之后执行一次。</li>
+<li>周期性事件：让一段程序每隔指定时间就执行一次。</li>
+</ul>
+<p>Redis 的时间事件的具体定义结构如下所示。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">typedef struct aeTimeEvent {
+    &#x2F;* 全局唯一ID *&#x2F;
+    long long id; &#x2F;* time event identifier. *&#x2F;
+    &#x2F;* 秒精确的UNIX时间戳，记录时间事件到达的时间*&#x2F;
+    long when_sec; &#x2F;* seconds *&#x2F;
+    &#x2F;* 毫秒精确的UNIX时间戳，记录时间事件到达的时间*&#x2F;
+    long when_ms; &#x2F;* milliseconds *&#x2F;
+    &#x2F;* 时间处理器 *&#x2F;
+    aeTimeProc *timeProc;
+    &#x2F;* 事件结束回调函数，析构一些资源*&#x2F;
+    aeEventFinalizerProc *finalizerProc;
+    &#x2F;* 私有数据 *&#x2F;
+    void *clientData;
+    &#x2F;* 前驱节点 *&#x2F;
+    struct aeTimeEvent *prev;
+    &#x2F;* 后继节点 *&#x2F;
+    struct aeTimeEvent *next;
+} aeTimeEvent;
+</code></pre>
+<p>一个时间事件是定时事件还是周期性事件取决于时间处理器的返回值：</p>
+<ul>
+<li>如果返回值是 AE_NOMORE，那么这个事件是一个定时事件，该事件在达到后删除，之后不会再重复。</li>
+<li>如果返回值是非 AE_NOMORE 的值，那么这个事件为周期性事件，当一个时间事件到达后，服务器会根据时间处理器的返回值，对时间事件的 <code>when</code> 属性进行更新，让这个事件在一段时间后再次达到。</li>
+</ul>
+<p>Redis 将所有时间事件都放在一个无序链表中，每次 Redis 会遍历整个链表，查找所有已经到达的时间事件，并且调用相应的事件处理器。</p>
+<p>介绍完文件事件和时间事件，我们接下来看一下 <code>aeEventLoop</code>的具体实现。</p>
+<h3 id="创建事件管理器"><a href="#创建事件管理器" class="headerlink" title="创建事件管理器"></a>创建事件管理器</h3><p>Redis 服务端在其初始化函数 <code>initServer</code>中，会创建事件管理器<code>aeEventLoop</code>对象。</p>
+<p>函数<code>aeCreateEventLoop</code>将创建一个事件管理器，主要是初始化 <code>aeEventLoop</code>的各个属性值，比如<code>events</code>、<code>fired</code>、<code>timeEventHead</code>和<code>apidata</code>：</p>
+<ul>
+<li>首先创建<code>aeEventLoop</code>对象。</li>
+<li>初始化未就绪文件事件表、就绪文件事件表。<code>events</code>指针指向未就绪文件事件表、<code>fired</code>指针指向就绪文件事件表。表的内容在后面添加具体事件时进行初变更。</li>
+<li>初始化时间事件列表，设置<code>timeEventHead</code>和<code>timeEventNextId</code>属性。</li>
+<li>调用<code>aeApiCreate</code> 函数创建<code>epoll</code>实例，并初始化 <code>apidata</code>。</li>
+</ul>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">aeEventLoop *aeCreateEventLoop(int setsize) {
+    aeEventLoop *eventLoop;
+    int i;
+    &#x2F;* 创建事件状态结构 *&#x2F;
+    if ((eventLoop = zmalloc(sizeof(*eventLoop))) == NULL) goto err;
+    &#x2F;* 创建未就绪事件表、就绪事件表 *&#x2F;
+    eventLoop-&gt;events = zmalloc(sizeof(aeFileEvent)*setsize);
+    eventLoop-&gt;fired = zmalloc(sizeof(aeFiredEvent)*setsize);
+    if (eventLoop-&gt;events == NULL || eventLoop-&gt;fired == NULL) goto err;
+    &#x2F;* 设置数组大小 *&#x2F;
+    eventLoop-&gt;setsize = setsize;
+    &#x2F;* 初始化执行最近一次执行时间 *&#x2F;
+    eventLoop-&gt;lastTime = time(NULL);
+    &#x2F;* 初始化时间事件结构 *&#x2F;
+    eventLoop-&gt;timeEventHead = NULL;
+    eventLoop-&gt;timeEventNextId = 0;
+    eventLoop-&gt;stop = 0;
+    eventLoop-&gt;maxfd = -1;
+    eventLoop-&gt;beforesleep = NULL;
+    eventLoop-&gt;aftersleep = NULL;
+    &#x2F;* 将多路复用io与事件管理器关联起来 *&#x2F;
+    if (aeApiCreate(eventLoop) == -1) goto err;
+    &#x2F;* 初始化监听事件 *&#x2F;
+    for (i = 0; i &lt; setsize; i++)
+        eventLoop-&gt;events[i].mask = AE_NONE;
+    return eventLoop;
+err:
+   .....
+}
+</code></pre>
+<p><code>aeApiCreate</code> 函数首先创建了<code>aeApiState</code>对象，初始化了epoll就绪事件表；然后调用<code>epoll_create</code>创建了<code>epoll</code>实例，最后将该<code>aeApiState</code>赋值给<code>apidata</code>属性。</p>
+<p><code>aeApiState</code>对象中<code>epfd</code>存储<code>epoll</code>的标识，<code>events</code>是一个<code>epoll</code>就绪事件数组，当有<code>epoll</code>事件发生时，所有发生的<code>epoll</code>事件和其描述符将存储在这个数组中。这个就绪事件数组由应用层开辟空间、内核负责把所有发生的事件填充到该数组。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">static int aeApiCreate(aeEventLoop *eventLoop) {
+    aeApiState *state = zmalloc(sizeof(aeApiState));
+
+    if (!state) return -1;
+    &#x2F;* 初始化epoll就绪事件表 *&#x2F;
+    state-&gt;events = zmalloc(sizeof(struct epoll_event)*eventLoop-&gt;setsize);
+    if (!state-&gt;events) {
+        zfree(state);
+        return -1;
+    }
+    &#x2F;* 创建 epoll 实例 *&#x2F;
+    state-&gt;epfd = epoll_create(1024); &#x2F;* 1024 is just a hint for the kernel *&#x2F;
+    if (state-&gt;epfd == -1) {
+        zfree(state-&gt;events);
+        zfree(state);
+        return -1;
+    }
+    &#x2F;* 事件管理器与epoll关联 *&#x2F;
+    eventLoop-&gt;apidata = state;
+    return 0;
+}
+typedef struct aeApiState {
+    &#x2F;* epoll_event 实例描述符*&#x2F;
+    int epfd;
+    &#x2F;* 存储epoll就绪事件表 *&#x2F;
+    struct epoll_event *events;
+} aeApiState;
+</code></pre>
+<h3 id="创建文件事件"><a href="#创建文件事件" class="headerlink" title="创建文件事件"></a>创建文件事件</h3><p><code>aeFileEvent</code>是文件事件结构，对于每一个具体的事件，都有读处理函数和写处理函数等。Redis 调用<code>aeCreateFileEvent</code>函数针对不同的套接字的读写事件注册对应的文件事件。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">typedef struct aeFileEvent {
+    &#x2F;* 监听事件类型掩码,值可以是 AE_READABLE 或 AE_WRITABLE *&#x2F;
+    int mask;
+    &#x2F;* 读事件处理器 *&#x2F;
+    aeFileProc *rfileProc;
+    &#x2F;* 写事件处理器 *&#x2F;
+    aeFileProc *wfileProc;
+    &#x2F;* 多路复用库的私有数据 *&#x2F;
+    void *clientData;
+} aeFileEvent;
+&#x2F;* 使用typedef定义的处理器函数的函数类型 *&#x2F;
+typedef void aeFileProc(struct aeEventLoop *eventLoop, 
+int fd, void *clientData, int mask);
+</code></pre>
+<p>比如说，Redis 进行主从复制时，从服务器需要主服务器建立连接，它会发起一个 socekt连接，然后调用<code>aeCreateFileEvent</code>函数针对发起的socket的读写事件注册了对应的事件处理器，也就是<code>syncWithMaster</code>函数。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">aeCreateFileEvent(server.el,fd,AE_READABLE|AE_WRITABLE,syncWithMaster,NULL);
+&#x2F;* 符合aeFileProc的函数定义 *&#x2F;
+void syncWithMaster(aeEventLoop *el, int fd, void *privdata, int mask) {....}
+</code></pre>
+<p><code>aeCreateFileEvent</code>的参数<code>fd</code>指的是具体的<code>socket</code>套接字，<code>proc</code>指<code>fd</code>产生事件时，具体的处理函数，<code>clientData</code>则是回调处理函数时需要传入的数据。<br><code>aeCreateFileEvent</code>主要做了三件事情：</p>
+<ul>
+<li>以<code>fd</code>为索引，在<code>events</code>未就绪事件表中找到对应事件。</li>
+<li>调用<code>aeApiAddEvent</code>函数，该事件注册到具体的底层 I/O 多路复用中，本例为epoll。</li>
+<li>填充事件的回调、参数、事件类型等参数。</li>
+</ul>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">int aeCreateFileEvent(aeEventLoop *eventLoop, int fd, int mask,
+                       aeFileProc *proc, void *clientData)
+{
+    &#x2F;* 取出 fd 对应的文件事件结构, fd 代表具体的 socket 套接字 *&#x2F;
+    aeFileEvent *fe = &amp;eventLoop-&gt;events[fd];
+    &#x2F;* 监听指定 fd 的指定事件 *&#x2F;
+    if (aeApiAddEvent(eventLoop, fd, mask) == -1)
+        return AE_ERR;
+    &#x2F;* 置文件事件类型，以及事件的处理器 *&#x2F;
+    fe-&gt;mask |= mask;
+    if (mask &amp; AE_READABLE) fe-&gt;rfileProc = proc;
+    if (mask &amp; AE_WRITABLE) fe-&gt;wfileProc = proc;
+    &#x2F;* 私有数据 *&#x2F;
+    fe-&gt;clientData = clientData;
+    if (fd &gt; eventLoop-&gt;maxfd)
+        eventLoop-&gt;maxfd = fd;
+    return AE_OK;
+}
+</code></pre>
+<p>如上文所说，Redis 基于的底层 I/O 多路复用库有多套，所以<code>aeApiAddEvent</code>也有多套实现，下面的源码是<code>epoll</code>下的实现。其核心操作就是调用<code>epoll</code>的<code>epoll_ctl</code>函数来向<code>epoll</code>注册响应事件。有关<code>epoll</code>相关的知识可以看一下<a href="https://mp.weixin.qq.com/s/O40MlDhAgCmcyUgu2jX1dg" target="_blank" rel="noopener">《Java NIO源码分析》</a><br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) {
+    aeApiState *state = eventLoop-&gt;apidata;
+    struct epoll_event ee = {0}; &#x2F;* avoid valgrind warning *&#x2F;
+    &#x2F;* 如果 fd 没有关联任何事件，那么这是一个 ADD 操作。如果已经关联了某个&#x2F;某些事件，那么这是一个 MOD 操作。 *&#x2F;
+    int op = eventLoop-&gt;events[fd].mask == AE_NONE ?
+            EPOLL_CTL_ADD : EPOLL_CTL_MOD;
+
+    &#x2F;* 注册事件到 epoll *&#x2F;
+    ee.events = 0;
+    mask |= eventLoop-&gt;events[fd].mask; &#x2F;* Merge old events *&#x2F;
+    if (mask &amp; AE_READABLE) ee.events |= EPOLLIN;
+    if (mask &amp; AE_WRITABLE) ee.events |= EPOLLOUT;
+    ee.data.fd = fd;
+    &#x2F;* 调用epoll_ctl 系统调用，将事件加入epoll中 *&#x2F;
+    if (epoll_ctl(state-&gt;epfd,op,fd,&amp;ee) == -1) return -1;
+    return 0;
+}
+</code></pre></p>
+<h3 id="事件处理"><a href="#事件处理" class="headerlink" title="事件处理"></a>事件处理</h3><p>因为 Redis 中同时存在文件事件和时间事件两个事件类型，所以服务器必须对这两个事件进行调度，决定何时处理文件事件，何时处理时间事件，以及如何调度它们。</p>
+<p><code>aeMain</code>函数以一个无限循环不断地调用<code>aeProcessEvents</code>函数来处理所有的事件。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">void aeMain(aeEventLoop *eventLoop) {
+    eventLoop-&gt;stop = 0;
+    while (!eventLoop-&gt;stop) {
+        &#x2F;* 如果有需要在事件处理前执行的函数，那么执行它 *&#x2F;
+        if (eventLoop-&gt;beforesleep != NULL)
+            eventLoop-&gt;beforesleep(eventLoop);
+        &#x2F;* 开始处理事件*&#x2F;
+        aeProcessEvents(eventLoop, AE_ALL_EVENTS|AE_CALL_AFTER_SLEEP);
+    }
+}
+</code></pre>
+<p>下面是<code>aeProcessEvents</code>的伪代码，它会首先计算距离当前时间最近的时间事件，以此计算一个超时时间；然后调用<code>aeApiPoll</code>函数去等待底层的I/O多路复用事件就绪；<code>aeApiPoll</code>函数返回之后，会处理所有已经产生文件事件和已经达到的时间事件。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;* 伪代码 *&#x2F;
+int aeProcessEvents(aeEventLoop *eventLoop, int flags) {
+    &#x2F;* 获取到达时间距离当前时间最接近的时间事件*&#x2F;
+    time_event = aeSearchNearestTimer();
+    &#x2F;* 计算最接近的时间事件距离到达还有多少毫秒*&#x2F;
+    remaind_ms = time_event.when - unix_ts_now();
+    &#x2F;* 如果事件已经到达，那么remaind_ms为负数，将其设置为0 *&#x2F;
+    if (remaind_ms &lt; 0) remaind_ms = 0;
+    &#x2F;* 根据 remaind_ms 的值，创建 timeval 结构*&#x2F;
+    timeval = create_timeval_with_ms(remaind_ms);
+    &#x2F;* 阻塞并等待文件事件产生，最大阻塞时间由传入的 timeval 结构决定，如果remaind_ms 的值为0，则aeApiPoll 调用后立刻返回，不阻塞*&#x2F;
+    &#x2F;* aeApiPoll调用epoll_wait函数，等待I&#x2F;O事件*&#x2F;
+    aeApiPoll(timeval);
+    &#x2F;* 处理所有已经产生的文件事件*&#x2F;
+    processFileEvents();
+    &#x2F;* 处理所有已经到达的时间事件*&#x2F;
+    processTimeEvents();
+}
+</code></pre>
+<p>与<code>aeApiAddEvent</code>类似，<code>aeApiPoll</code>也有多套实现，它其实就做了两件事情，调用<code>epoll_wait</code>阻塞等待<code>epoll</code>的事件就绪，超时时间就是之前根据最快达到时间事件计算而来的超时时间；然后将就绪的<code>epoll</code>事件转换到fired就绪事件。<code>aeApiPoll</code>就是上文所说的I/O多路复用程序。具体过程如下图所示。</p>
+<p><img src="/images/19_85/image5.png" alt="aeApiPoll示意图"></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) 
+{
+    aeApiState *state = eventLoop-&gt;apidata;
+    int retval, numevents = 0;
+    &#x2F;&#x2F; 调用epoll_wait函数，等待时间为最近达到时间事件的时间计算而来。
+    retval = epoll_wait(state-&gt;epfd,state-&gt;events,eventLoop-&gt;setsize,
+            tvp ? (tvp-&gt;tv_sec*1000 + tvp-&gt;tv_usec&#x2F;1000) : -1);
+    &#x2F;&#x2F; 有至少一个事件就绪？
+    if (retval &gt; 0) 
+    {
+        int j;
+        &#x2F;*为已就绪事件设置相应的模式，并加入到 eventLoop 的 fired 数组中*&#x2F;
+        numevents = retval;
+        for (j = 0; j &lt; numevents; j++) 
+	{
+            int mask = 0;
+            struct epoll_event *e = state-&gt;events+j;
+            if (e-&gt;events &amp; EPOLLIN)
+		mask |= AE_READABLE;
+            if (e-&gt;events &amp; EPOLLOUT)
+		mask |= AE_WRITABLE;
+            if (e-&gt;events &amp; EPOLLERR) 
+		mask |= AE_WRITABLE;
+            if (e-&gt;events &amp; EPOLLHUP)
+		mask |= AE_WRITABLE;
+            &#x2F;* 设置就绪事件表元素 *&#x2F;
+            eventLoop-&gt;fired[j].fd = e-&gt;data.fd;
+            eventLoop-&gt;fired[j].mask = mask;
+        }
+    }
+    
+    &#x2F;&#x2F; 返回已就绪事件个数
+    return numevents;
+}
+</code></pre>
+<p><code>processFileEvent</code>是处理就绪文件事件的伪代码，也是上文所述的文件事件分派器，它其实就是遍历<code>fired</code>就绪事件表，然后根据对应的事件类型来调用事件中注册的不同处理器，读事件调用<code>rfileProc</code>，而写事件调用<code>wfileProc</code>。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">void processFileEvent(int numevents) {
+    for (j = 0; j &lt; numevents; j++) {
+            &#x2F;* 从已就绪数组中获取事件 *&#x2F;
+            aeFileEvent *fe = &amp;eventLoop-&gt;events[eventLoop-&gt;fired[j].fd];
+            int mask = eventLoop-&gt;fired[j].mask;
+            int fd = eventLoop-&gt;fired[j].fd;
+            int fired = 0;
+            int invert = fe-&gt;mask &amp; AE_BARRIER;
+	        &#x2F;* 读事件 *&#x2F;
+            if (!invert &amp;&amp; fe-&gt;mask &amp; mask &amp; AE_READABLE) {
+                &#x2F;* 调用读处理函数 *&#x2F;
+                fe-&gt;rfileProc(eventLoop,fd,fe-&gt;clientData,mask);
+                fired++;
+            }
+            &#x2F;* 写事件. *&#x2F;
+            if (fe-&gt;mask &amp; mask &amp; AE_WRITABLE) {
+                if (!fired || fe-&gt;wfileProc != fe-&gt;rfileProc) {
+                    fe-&gt;wfileProc(eventLoop,fd,fe-&gt;clientData,mask);
+                    fired++;
+                }
+            }
+            if (invert &amp;&amp; fe-&gt;mask &amp; mask &amp; AE_READABLE) {
+                if (!fired || fe-&gt;wfileProc != fe-&gt;rfileProc) {
+                    fe-&gt;rfileProc(eventLoop,fd,fe-&gt;clientData,mask);
+                    fired++;
+                }
+            }
+            processed++;
+        }
+    }
+}
+</code></pre>
+<p>而<code>processTimeEvents</code>是处理时间事件的函数，它会遍历<code>aeEventLoop</code>的事件事件列表，如果时间事件到达就执行其<code>timeProc</code>函数，并根据函数的返回值是否等于<code>AE_NOMORE</code>来决定该时间事件是否是周期性事件，并修改器到达时间。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">static int processTimeEvents(aeEventLoop *eventLoop) {
+    int processed = 0;
+    aeTimeEvent *te;
+    long long maxId;
+    time_t now = time(NULL);
+    ....
+    eventLoop-&gt;lastTime = now;
+
+    te = eventLoop-&gt;timeEventHead;
+    maxId = eventLoop-&gt;timeEventNextId-1;
+    &#x2F;* 遍历时间事件链表 *&#x2F;
+    while(te) {
+        long now_sec, now_ms;
+        long long id;
+
+        &#x2F;* 删除需要删除的时间事件 *&#x2F;
+        if (te-&gt;id == AE_DELETED_EVENT_ID) {
+            aeTimeEvent *next = te-&gt;next;
+            if (te-&gt;prev)
+                te-&gt;prev-&gt;next = te-&gt;next;
+            else
+                eventLoop-&gt;timeEventHead = te-&gt;next;
+            if (te-&gt;next)
+                te-&gt;next-&gt;prev = te-&gt;prev;
+            if (te-&gt;finalizerProc)
+                te-&gt;finalizerProc(eventLoop, te-&gt;clientData);
+            zfree(te);
+            te = next;
+            continue;
+        }
+
+        &#x2F;* id 大于最大maxId,是该循环周期生成的时间事件，不处理 *&#x2F;
+        if (te-&gt;id &gt; maxId) {
+            te = te-&gt;next;
+            continue;
+        }
+        aeGetTime(&amp;now_sec, &amp;now_ms);
+        &#x2F;* 事件已经到达，调用其timeProc函数*&#x2F;
+        if (now_sec &gt; te-&gt;when_sec ||
+            (now_sec == te-&gt;when_sec &amp;&amp; now_ms &gt;= te-&gt;when_ms))
+        {
+            int retval;
+
+            id = te-&gt;id;
+            retval = te-&gt;timeProc(eventLoop, id, te-&gt;clientData);
+            processed++;
+            &#x2F;* 如果返回值不等于 AE_NOMORE,表示是一个周期性事件，修改其when_sec和when_ms属性*&#x2F;
+            if (retval != AE_NOMORE) {
+                aeAddMillisecondsToNow(retval,&amp;te-&gt;when_sec,&amp;te-&gt;when_ms);
+            } else {
+                &#x2F;* 一次性事件，标记为需删除，下次遍历时会删除*&#x2F;
+                te-&gt;id = AE_DELETED_EVENT_ID;
+            }
+        }
+        te = te-&gt;next;
+    }
+    return processed;
+}
+</code></pre></p>
+<h3 id="删除事件"><a href="#删除事件" class="headerlink" title="删除事件"></a>删除事件</h3><p>当不在需要某个事件时，需要把事件删除掉。例如: 如果fd同时监听读事件、写事件。当不在需要监听写事件时，可以把该fd的写事件删除。</p>
+<p><code>aeDeleteEventLoop</code>函数的执行过程总结为以下几个步骤<br>1、根据<code>fd</code>在未就绪表中查找到事件<br>2、取消该<code>fd</code>对应的相应事件标识符<br>3、调用<code>aeApiFree</code>函数，内核会将epoll监听红黑树上的相应事件监听取消。</p>
+<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>接下来，我们会继续学习 Redis 的主从复制相关的原理，欢迎大家持续关注。</p>
+<p><img src="/images/logo.png" alt=""></p>
+
+                </div>
+                    
+        <footer class="article-footer">
+            
+                <!-- id 将作为查询条件 -->
+                <span id="/article/1aa2da89/" class="leancloud_visitors" data-flag-title="Redis 事件机制详解">
+                    <em class="post-meta-item-text">阅读量 </em>
+                    <i class="leancloud-visitors-count">1000</i>
+                </span>
+             
+            <div class="share-container">
+
+
+
+</div>
+
+    <a data-url="http://remcarpediem.net/article/1aa2da89/" data-id="cl1sxuvp4004yo6jbq2uezta4" class="article-share-link"><i class="fa fa-share"></i>Partager</a>
+<script>
+    (function ($) {
+        // Prevent duplicate binding
+        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
+            __SHARE_BUTTON_BINDED__ = true;
+        } else {
+            return;
+        }
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+            
+    
+
+        </footer>
+    </div>
+    
+        
+<nav id="article-nav">
+    
+        <a href="/article/45ef130c/" id="article-nav-newer" class="article-nav-link-wrap">
+            <strong class="article-nav-caption">Plus récent</strong>
+            <div class="article-nav-title">
+                
+                    编程小技巧之 Linux 文本处理命令
+                
+            </div>
+        </a>
+    
+    
+        <a href="/article/376c55d8/" id="article-nav-older" class="article-nav-link-wrap">
+            <strong class="article-nav-caption">Plus ancien</strong>
+            <div class="article-nav-title">Redis AOF 持久化详解</div>
+        </a>
+    
+</nav>
+
+
+    
+</article>
+
+
+    
+    
+        <section id="comments">
+    <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+    <div id="vcomments"></div>
+    <script>
+        new Valine({
+            el: '#vcomments',
+            app_id: 'Py2W9ndz8WJGDduj0id77Yq7-gzGzoHsz',
+            app_key: 'cTJCvL6VOQL5ozXfABqDbAyP',
+            placeholder: '欢迎大家积极留言交流',
+            visitor: true
+        })
+    </script>
+</section>
+    
+
+</section>
+            
+                
+<aside id="sidebar">
+   
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Récents</h3>
+        <div class="widget">
+            <ul id="recent-post" class="">
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/304c0753/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"><a class="article-category-link" href="/categories/plan/">plan</a></p>
+                            <p class="item-title"><a href="/article/304c0753/" class="title">2022年记录目录</a></p>
+                            <p class="item-date"><time datetime="2022-04-10T02:37:08.000Z" itemprop="datePublished">2022-04-10</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/293e04b1/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/293e04b1/" class="title">Go 结构体函数调用底层实现</a></p>
+                            <p class="item-date"><time datetime="2021-11-01T13:12:00.000Z" itemprop="datePublished">2021-11-01</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/da48b455/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/da48b455/" class="title">Go 语言嵌入和多态机制对比</a></p>
+                            <p class="item-date"><time datetime="2021-09-22T14:24:00.000Z" itemprop="datePublished">2021-09-22</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/c1e308a7/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/c1e308a7/" class="title">ElasticSearch 如何配置Uptime 监控组件可用性</a></p>
+                            <p class="item-date"><time datetime="2021-05-31T14:26:20.000Z" itemprop="datePublished">2021-05-31</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/147d0da9/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/147d0da9/" class="title">ElasticSearch 如何使用 TDigest 算法计算亿级数据的百分位数？</a></p>
+                            <p class="item-date"><time datetime="2021-04-18T14:47:33.000Z" itemprop="datePublished">2021-04-18</time></p>
+                        </div>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Catégories</h3>
+        <div class="widget">
+            <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">25</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MySQL/">MySQL</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Netty/">Netty</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Redis/">Redis</a><span class="category-list-count">16</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SICP/">SICP</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/docker/">docker</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/java-persistent/">java persistent</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/plan/">plan</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">2</span></li></ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Archives</h3>
+        <div class="widget">
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/09/">September 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/05/">May 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/04/">April 2021</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/02/">February 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/09/">September 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/06/">June 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Nuage de tags</h3>
+        <div class="widget tagcloud">
+            <a href="/tags/AOP/" style="font-size: 12.5px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/ElasticSearch/" style="font-size: 17.5px;">ElasticSearch</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/Go/" style="font-size: 12.5px;">Go</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 15px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/MySQL/" style="font-size: 20px;">MySQL</a> <a href="/tags/Netty/" style="font-size: 15px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 12.5px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/Redis/" style="font-size: 10px;">Redis</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 12.5px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 12.5px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 12.5px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 15px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 12.5px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 10px;">linux</a> <a href="/tags/mysql/" style="font-size: 12.5px;">mysql</a> <a href="/tags/persistent/" style="font-size: 12.5px;">persistent</a> <a href="/tags/redis/" style="font-size: 17.5px;">redis</a> <a href="/tags/scroll/" style="font-size: 12.5px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 12.5px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 12.5px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 15px;">注解</a> <a href="/tags/第三方库/" style="font-size: 12.5px;">第三方库</a> <a href="/tags/算法/" style="font-size: 15px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 12.5px;">限流</a>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">Liens</h3>
+        <div class="widget">
+            <ul>
+                
+                    <li>
+                        <a href="http://www.blueskykong.com/">aoho blog</a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+
+    
+    <div id="toTop" class="fa fa-angle-up"></div>
+</aside>
+
+            
+        </div>
+        <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2022 历小冰<br>
+            <a href="https://beian.miit.gov.cn">鲁ICP备19003047号</a> 
+        </div>
+    </div>
+</footer>
+        
+    
+        <script src="/libs/lightgallery/js/lightgallery.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-thumbnail.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-pager.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-autoplay.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-fullscreen.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-zoom.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-hash.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-share.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-video.min.js"></script>
+    
+    
+    
+
+
+
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
+<!-- Custom Scripts -->
+<script src="/js/main.js"></script>
+
+    </div>
+</body>
+</html>

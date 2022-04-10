@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="Ch">
+<head><meta name="generator" content="Hexo 3.8.0">
+    <meta charset="utf-8">
+    
+    <title>Gson源码分析 | 程序员历小冰</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="&amp;emsp;最近研究了google开源的Json库Gson，在这里进行总结一下，应该会分为3篇博客。第一篇主要讲一下Gson的整个框架吧；第二篇主要总结一下Gson关于反射的部分;最后一篇会总结一下JsonWriter和JsonReader，主要是Json对象的处理啦。 Gson&amp;emsp;Gson是可以转换Java对象为JSON表示的java库，也可以将JSON转换为Java对象，并且可以转换你">
+<meta name="keywords" content="GSON">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Gson源码分析">
+<meta property="og:url" content="http://remcarpediem.net/article/ba92fa77/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="&amp;emsp;最近研究了google开源的Json库Gson，在这里进行总结一下，应该会分为3篇博客。第一篇主要讲一下Gson的整个框架吧；第二篇主要总结一下Gson关于反射的部分;最后一篇会总结一下JsonWriter和JsonReader，主要是Json对象的处理啦。 Gson&amp;emsp;Gson是可以转换Java对象为JSON表示的java库，也可以将JSON转换为Java对象，并且可以转换你">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://7xjsjy.com1.z0.glb.clouddn.com/gson_GsonUML.jpg">
+<meta property="og:updated_time" content="2022-04-10T02:36:55.916Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Gson源码分析">
+<meta name="twitter:description" content="&amp;emsp;最近研究了google开源的Json库Gson，在这里进行总结一下，应该会分为3篇博客。第一篇主要讲一下Gson的整个框架吧；第二篇主要总结一下Gson关于反射的部分;最后一篇会总结一下JsonWriter和JsonReader，主要是Json对象的处理啦。 Gson&amp;emsp;Gson是可以转换Java对象为JSON表示的java库，也可以将JSON转换为Java对象，并且可以转换你">
+<meta name="twitter:image" content="http://7xjsjy.com1.z0.glb.clouddn.com/gson_GsonUML.jpg">
+    
+
+    
+        <link rel="alternate" href="/atom.xml" title="程序员历小冰" type="application/atom+xml">
+    
+
+    
+        <link rel="icon" href="/css/images/avatar.jpeg">
+    
+
+    <link rel="stylesheet" href="/libs/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/libs/open-sans/styles.css">
+    <link rel="stylesheet" href="/libs/source-code-pro/styles.css">
+
+    <link rel="stylesheet" href="/css/style.css">
+
+    <script src="/libs/jquery/2.1.3/jquery.min.js"></script>
+    
+    
+        <link rel="stylesheet" href="/libs/lightgallery/css/lightgallery.min.css">
+    
+    
+    
+    
+    
+        
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+    
+
+
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+</html>
+<body>
+    <div id="container">
+        <header id="header">
+    <div id="header-main" class="header-inner">
+        <div class="outer">
+            <a href="/" id="logo">
+                <i class="logo"></i>
+                <span class="site-title">程序员历小冰</span>
+            </a>
+            <nav id="main-nav">
+                
+                    <a class="main-nav-link" href="/.">主页</a>
+                
+                    <a class="main-nav-link" href="/categories">分类</a>
+                
+                    <a class="main-nav-link" href="/archives">归档</a>
+                
+                    <a class="main-nav-link" href="/book">读书</a>
+                
+                    <a class="main-nav-link" href="/categories/plan">计划</a>
+                
+                    <a class="main-nav-link" href="/about">关于</a>
+                
+            </nav>
+            
+                
+                <nav id="sub-nav">
+                    <div class="profile" id="profile-nav">
+                        <a id="profile-anchor" href="javascript:;">
+                            <img class="avatar" src="/css/images/avatar.jpeg">
+                            <i class="fa fa-caret-down"></i>
+                        </a>
+                    </div>
+                </nav>
+            
+            <div id="search-form-wrap">
+
+    <form class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Rechercher">
+        <button type="submit" class="search-form-submit"></button>
+    </form>
+    <div class="ins-search">
+    <div class="ins-search-mask"></div>
+    <div class="ins-search-container">
+        <div class="ins-input-wrapper">
+            <input type="text" class="ins-search-input" placeholder="Type something...">
+            <span class="ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Articles',
+            PAGES: 'Pages',
+            CATEGORIES: 'Catégories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/js/insight.js"></script>
+
+</div>
+        </div>
+    </div>
+    <div id="main-nav-mobile" class="header-sub header-inner">
+        <table class="menu outer">
+            <tr>
+                
+                    <td><a class="main-nav-link" href="/.">主页</a></td>
+                
+                    <td><a class="main-nav-link" href="/categories">分类</a></td>
+                
+                    <td><a class="main-nav-link" href="/archives">归档</a></td>
+                
+                    <td><a class="main-nav-link" href="/book">读书</a></td>
+                
+                    <td><a class="main-nav-link" href="/categories/plan">计划</a></td>
+                
+                    <td><a class="main-nav-link" href="/about">关于</a></td>
+                
+                <td>
+                    
+    <div class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Rechercher">
+    </div>
+
+                </td>
+            </tr>
+        </table>
+    </div>
+</header>
+
+        <div class="outer">
+            
+                
+
+<aside id="profile" class="profile-fixed">
+    <div class="inner profile-inner">
+        <div class="base-info profile-block">
+            <img id="avatar" src="/css/images/avatar.jpeg">
+            <h2 id="name">历小冰</h2>
+            <h3 id="title">后端开发工程师</h3>
+            <span id="location"><i class="fa fa-map-marker"></i>中国，南京</span>
+            <img id="wechat" src="/css/images/wechat_public.jpg">
+            <a id="follow" target="_blank" href="/css/images/wechat_public.jpg">⬆关注公众号⬆</a>
+        </div>
+        <div class="article-info profile-block">
+            <div class="article-info-block">
+                109
+                <span>Articles</span>
+            </div>
+            <div class="article-info-block">
+                67
+                <span>Tags</span>
+            </div>
+        </div>
+        
+        <div class="profile-block social-links">
+            <table>
+                <tr>
+                    
+                    
+                    <td>
+                        <a href="https://github.com/ztelur" target="_blank" title="github" class="tooltip">
+                            <i class="fa fa-github"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/css/images/wechat.jpeg" target="_blank" title="wechat" class="tooltip">
+                            <i class="fa fa-wechat"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/atom.xml" target="_blank" title="rss" class="tooltip">
+                            <i class="fa fa-rss"></i>
+                        </a>
+                    </td>
+                    
+                </tr>
+            </table>
+        </div>
+        
+    </div>
+</aside>
+
+            
+            <section id="main"><article id="post-Gson源码分析" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+        
+            <header class="article-header">
+                
+    
+        <h1 class="article-title" itemprop="name">
+            Gson源码分析
+        </h1>
+    
+
+                
+                    <div class="article-meta">
+                        
+                        
+    <div class="article-date">
+        <i class="fa fa-calendar"></i>
+        <a href="/article/ba92fa77/">
+            <time datetime="2015-10-02T08:24:34.000Z" itemprop="datePublished">2015-10-02</time>
+        </a>
+    </div>
+
+
+                        
+    <div class="article-category">
+    	<i class="fa fa-folder"></i>
+        <a class="article-category-link" href="/categories/Java/">Java</a>
+    </div>
+
+                        
+    <div class="article-tag">
+        <i class="fa fa-tag"></i>
+        <a class="tag-link" href="/tags/GSON/">GSON</a>
+    </div>
+
+                    </div>
+                
+            </header>
+        
+        
+
+        <div class="article-entry" itemprop="articleBody">
+            
+            
+                
+            
+            
+                <p>&emsp;最近研究了google开源的Json库Gson，在这里进行总结一下，应该会分为3篇博客。第一篇主要讲一下Gson的整个框架吧；第二篇主要总结一下Gson关于反射的部分;最后一篇会总结一下JsonWriter和JsonReader，主要是Json对象的处理啦。</p>
+<h3 id="Gson"><a href="#Gson" class="headerlink" title="Gson"></a>Gson</h3><p>&emsp;Gson是可以转换Java对象为JSON表示的java库，也可以将JSON转换为Java对象，并且可以转换你没有源代码的预设的复杂对象<br>&emsp;现在有一些JSON转换库，但是大多数都需要你在class中设置annotation；如果没有class的源代码你就无法实现转换，而且大多数无法支持全部的Java范型。Gson把实现上述作为设计的主要目标。<br>&emsp;Gson的目标</p>
+<ul>
+<li>提供简单的toJson(),和fromJson来实现Java对象和JSON数据的相互转换</li>
+<li>运行预先存在的无法修改的对象与Json的转换</li>
+<li>支持Java范型</li>
+<li>运行用户自定义对象的结构</li>
+<li>支持复杂对象的处理</li>
+</ul>
+<h3 id="框架描述"><a href="#框架描述" class="headerlink" title="框架描述"></a>框架描述</h3><p><img src="http://7xjsjy.com1.z0.glb.clouddn.com/gson_GsonUML.jpg" alt="框架类图"><br> &emsp;这是Gson库的类图，没有将所有类都表现上去，只是画了几个比较主要的类和我研究过的类。这篇文章就主要梳理一下这个框架，研究一下几个比较主要的函数的流程和各个对象的协作。</p>
+<h4 id="1-GsonBuilder"><a href="#1-GsonBuilder" class="headerlink" title="1.GsonBuilder"></a>1.GsonBuilder</h4><p> &emsp;GsonBuilder是Gson对象的Builder类啦，我们可以先看一下Gson对象的构造函数的复杂度啦,所以如果希望配置Gson,就只有使用Builder模式啦，这也是Java设计模式中所推荐的<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">Gson(final Excluder excluder, final FieldNamingStrategy fieldNamingPolicy,
+      final Map&lt;Type, InstanceCreator&lt;?&gt;&gt; instanceCreators, boolean serializeNulls,
+      boolean complexMapKeySerialization, boolean generateNonExecutableGson, boolean htmlSafe,
+      boolean prettyPrinting, boolean serializeSpecialFloatingPointValues,
+      LongSerializationPolicy longSerializationPolicy,
+      List&lt;TypeAdapterFactory&gt; typeAdapterFactories)
+</code></pre></p>
+<p>&emsp; GsonBuilder文件中的注释也有说明：</p>
+<blockquote>
+<p>使用这个对象去配置你的Gson对象，当你希望修改默认配置时</p>
+</blockquote>
+<p>&emsp;我们现在可以依次介绍一下GsonBuilder的成员变量或者说是其所依赖的类型吧。</p>
+<ul>
+<li><p><code>Exculder</code> 是用来配置一些你不希望被转换成JSON格式的对象的成员变量的，比如你只希望自己的对象中所有public的成员变量被转换为JSON格式，那么就需要使用到这个对象，添加规则去除去所有非pulbic的成员变量。</p>
+</li>
+<li><p><code>LongSerializationPolicy</code>  </p>
+</li>
+<li><p><code>FieldNamingStragety</code></p>
+</li>
+<li><p><code>InstanceCreator</code> </p>
+</li>
+<li><p><code>TypeAdapterFactory</code></p>
+</li>
+</ul>
+<h4 id="2-Gson"><a href="#2-Gson" class="headerlink" title="2.Gson"></a>2.Gson</h4><p>&emsp;Gson对象就是我们最常使用的对象啦，它有一系列的fromJson,toJson的成员函数供我们调用，这篇文章的一个重点就是梳理同这两类函数的逻辑。<br>&emsp;我们先来看一下Gson的构造函数吧。构造函数名和参数列表在前边已经列出来啦，构造函数中就是将参数列表中的对象配置为成员变量，不过要注意的是对TypeAdapterFactory的操作啦。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">
+	....
+    List&lt;TypeAdapterFactory&gt; factories = new ArrayList&lt;TypeAdapterFactory&gt;();
+
+    &#x2F;&#x2F; built-in type adapters that cannot be overridden
+    factories.add(TypeAdapters.JSON_ELEMENT_FACTORY);
+    factories.add(ObjectTypeAdapter.FACTORY);
+    ..... &#x2F;&#x2F;还有很多基本的TypeAdapterFactory
+    &#x2F;&#x2F; the excluder must precede all adapters that handle user-defined types
+    factories.add(excluder);
+
+    &#x2F;&#x2F; user&#39;s type adapters
+    factories.addAll(typeAdapterFactories);
+
+    &#x2F;&#x2F; type adapters for basic platform types
+    factories.add(TypeAdapters.STRING_FACTORY); &#x2F;&#x2F;里边是一些基本类型的adapter啦
+       ......
+    this.factories = Collections.unmodifiableList(factories);
+</code></pre></p>
+<p>&emsp;Gson内置了很多基本类型和对象的转换组件，类型为<code>TypeAdapter</code>,可以通过相应的<code>TypeAdapterFactory</code>来获得，所以这里<code>factories</code>就预先加载了很多基本类型转换组件的Factory,然后<code>factories.addAll(typeAdapterFactories)</code>是添加构造函数中传入的用户自定义的<code>TypeAdapterFactory</code><br> &emsp;<code>fromJson</code>和<code>toJson</code>这两类函数我们在介绍完所有的类之后在解析吧。</p>
+<h4 id="3-TypeAdapter"><a href="#3-TypeAdapter" class="headerlink" title="3.TypeAdapter"></a>3.TypeAdapter</h4><p>&emsp;这是一个抽象类，提供了两个抽象函数作为hook函数来让用户重载，分别是<code>public abstract void write(JsonWriter out, T value) throws IOException;</code>和<code>public abstract T read(JsonReader in) throws IOException;</code>一读一写，用户如果要解析自己自定义的对象，就可以继承这个类，然后实现上述两个方法，并在<code>GsonBuilder中使用</code>GsonBuilder registerTypeAdapter(Type type, Object typeAdapter) <code>来注册这个转换类，然后Gson就可以对你的自定义对象进行转换啦。需要注意的是，这里的转换完全由你自己控制，所以可定制性比较强。在介绍</code>TypeAdapters`时，我们会介绍几个简单的TypeAdapter的实现。</p>
+<h4 id="4-TypeAdapterFactory"><a href="#4-TypeAdapterFactory" class="headerlink" title="4.TypeAdapterFactory"></a>4.TypeAdapterFactory</h4><p>&emsp;这是一个接口，自定义了一个函数:<code>&lt;T&gt; TypeAdapter&lt;T&gt; create(Gson gson, TypeToken&lt;T&gt; type);</code>,具体的实现方法，我们可以在后边的<code>TypeAdapters</code>类中看到.</p>
+<h4 id="5-TypeAdapters"><a href="#5-TypeAdapters" class="headerlink" title="5.TypeAdapters"></a>5.TypeAdapters</h4><p>&emsp;这个类中定义了几乎所有的基础类型的TypeAdapter和Factory,我们现在挑出一个来研究一下。这是一个URL对象的JSON转换器啦。<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public static final TypeAdapter&lt;URL&gt; URL = new TypeAdapter&lt;URL&gt;() {
+    @Override
+    public URL read(JsonReader in) throws IOException {
+      if (in.peek() == JsonToken.NULL) {
+        in.nextNull();
+        return null;
+      }
+      String nextString = in.nextString(); &#x2F;&#x2F;读出in中的内容
+      return &quot;null&quot;.equals(nextString) ? null : new URL(nextString);&#x2F;&#x2F;根据读出的内容，创建URL对象
+    }
+    @Override
+    public void write(JsonWriter out, URL value) throws IOException {
+      out.value(value == null ? null : value.toExternalForm()); &#x2F;&#x2F;写入内容
+    }
+  };
+
+  public static final TypeAdapterFactory URL_FACTORY = newFactory(URL.class, URL);&#x2F;&#x2F;创建Facotry啦
+</code></pre></p>
+<p> &emsp; 我们可以看到，这是一个URL的转换器，<code>JsonReader</code>和<code>JsonWriter</code>后边会介绍到，现在你就可以把他们当做类似于StringBuilder一类的Json的生成器和解释器。</p>
+<h4 id="6-TypeToken"><a href="#6-TypeToken" class="headerlink" title="6.TypeToken"></a>6.TypeToken</h4><p>&emsp;TypeToken可以看做是对Java范型的扩展，大家都知道Java范型是有类型擦除效果的，无法获得其真实类型。而这个类就是为了处理这种情况的，我们从文件中的注释也可以了解到。具体的内容，我们希望在Gson相关的第二篇博文中再详细说明，主要就是涉及围绕TypeToken的一系列的Gson对范型的支持和处理。<br>&emsp;而在Gson对象中，TypeToken主要是用于根据Type来获得相应的TypeAdapter。</p>
+<h4 id="其他类"><a href="#其他类" class="headerlink" title="其他类"></a>其他类</h4><p>&emsp;还有很多其他的类没有介绍，其中有些不太重要，我也没有太多了解，另外一些我会在接下去的两篇博文中详细介绍。</p>
+<h3 id="转换流程"><a href="#转换流程" class="headerlink" title="转换流程"></a>转换流程</h3><p>&emsp;接下来，我们就主要理通Gson两个最重要的函数的逻辑，之后的两篇博文会详细介绍其中的重要的细节，这篇博文就只诉说每一步大致的作用啦。</p>
+<h4 id="1-fromJson"><a href="#1-fromJson" class="headerlink" title="1 fromJson()"></a>1 fromJson()</h4><p>&emsp;函数名为fromJson的函数比较多，我们只看下边这个<br>
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike"> @SuppressWarnings(&quot;unchecked&quot;)
+  public &lt;T&gt; T fromJson(JsonReader reader, Type typeOfT) throws JsonIOException, JsonSyntaxException {
+    boolean isEmpty = true;
+    boolean oldLenient = reader.isLenient();
+    reader.setLenient(true);
+    try {
+      reader.peek();
+      isEmpty = false;
+      &#x2F;&#x2F; 反射部分的精髓,主要的就是TypeToken和TypeAdapter啦
+      TypeToken&lt;T&gt; typeToken = (TypeToken&lt;T&gt;) TypeToken.get(typeOfT);  &#x2F;&#x2F;1:工厂方法,其中调用typeToken的构造器
+      TypeAdapter&lt;T&gt; typeAdapter = getAdapter(typeToken); &#x2F;&#x2F;2:通过type来获得Adapter啊
+      T object = typeAdapter.read(reader);&#x2F;&#x2F;3:通过typeAdapter来转换对象
+      return object;
+    } catch (EOFException e) {
+      &#x2F;*
+       * For compatibility with JSON 1.5 and earlier, we return null for empty
+       * documents instead of throwing.
+       *&#x2F;
+      if (isEmpty) {
+        return null;
+      }
+      throw new JsonSyntaxException(e);
+    } catch (IllegalStateException e) {
+      throw new JsonSyntaxException(e);
+    } catch (IOException e) {
+      &#x2F;&#x2F; TODO(inder): Figure out whether it is indeed right to rethrow this as JsonSyntaxException
+      throw new JsonSyntaxException(e);
+    } finally {
+      reader.setLenient(oldLenient);
+    }
+  }
+</code></pre></p>
+<p>&emsp;如同代码中标注的一样，<code>fromJson</code>中大致分为3个比较重要的步奏.</p>
+<ul>
+<li><p>TypeToken<t> typeToken = (TypeToken<t>) TypeToken.get(typeOfT); 获得要转换类型对应的TypeToken对象，主要涉及的Gson中范型和反射的部分逻辑，我们第二篇博文再讲</t></t></p>
+</li>
+<li><p>TypeAdapter<t> typeAdapter = getAdapter(typeToken); //通过type来获得Adapter啊,这个我们先来看一下getAdapter函数,就是找出TypeToken所对应的TypeAdapter对象，用于下一步的解析。</t></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">@SuppressWarnings(&quot;unchecked&quot;)
+  public &lt;T&gt; TypeAdapter&lt;T&gt; getAdapter(TypeToken&lt;T&gt; type) {
+    TypeAdapter&lt;?&gt; cached = typeTokenCache.get(type);  &#x2F;&#x2F; typeTokenCache?? 创造adapter是很麻烦的事情吗？有cache
+    if (cached != null) {
+      return (TypeAdapter&lt;T&gt;) cached;
+
+    }
+
+    Map&lt;TypeToken&lt;?&gt;, FutureTypeAdapter&lt;?&gt;&gt; threadCalls = calls.get();  &#x2F;&#x2F;threadLocal get
+    boolean requiresThreadLocalCleanup = false; &#x2F;&#x2F;是否需要清理threadLocal中的数据
+    if (threadCalls == null) {
+      threadCalls = new HashMap&lt;TypeToken&lt;?&gt;, FutureTypeAdapter&lt;?&gt;&gt;();
+      calls.set(threadCalls);
+      requiresThreadLocalCleanup = true;
+    }
+
+    &#x2F;&#x2F; the key and value type parameters always agree
+    FutureTypeAdapter&lt;T&gt; ongoingCall = (FutureTypeAdapter&lt;T&gt;) threadCalls.get(type);
+    if (ongoingCall != null) {
+      return ongoingCall;
+    }
+
+    try {
+      FutureTypeAdapter&lt;T&gt; call = new FutureTypeAdapter&lt;T&gt;();
+      threadCalls.put(type, call);
+
+      for (TypeAdapterFactory factory : factories) {
+        TypeAdapter&lt;T&gt; candidate = factory.create(this, type);  &#x2F;&#x2F; 通过factory 来创建TypeAdapter啊，由于需要遍历list比较麻烦
+        if (candidate != null) {
+          call.setDelegate(candidate);
+          typeTokenCache.put(type, candidate);
+          return candidate;
+        }
+      }
+     ....
+    } finally {
+      threadCalls.remove(type);
+	  ....
+    }
+  }
+</code></pre>
+<ul>
+<li>T object = typeAdapter.read(reader);//3:通过typeAdapter来转换对象,具体过程，和JsonReader，JsonWriter的原理，第三篇博文再进行讲述<h4 id="2-toJson"><a href="#2-toJson" class="headerlink" title="2 toJson"></a>2 toJson</h4>&emsp;其实toJson和fromJson很像，就是获得相应的TypeAdapter,只不过这次调用的是write方法。这里就不累赘多说啦。<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3>&emsp;博客还未写完，代码还没有看透…..</li>
+</ul>
+</li>
+</ul>
+
+                </div>
+                    
+        <footer class="article-footer">
+            
+                <!-- id 将作为查询条件 -->
+                <span id="/article/ba92fa77/" class="leancloud_visitors" data-flag-title="Gson源码分析">
+                    <em class="post-meta-item-text">阅读量 </em>
+                    <i class="leancloud-visitors-count">1000</i>
+                </span>
+             
+            <div class="share-container">
+
+
+
+</div>
+
+    <a data-url="http://remcarpediem.net/article/ba92fa77/" data-id="cl1sxuvny0027o6jb32ui7u5w" class="article-share-link"><i class="fa fa-share"></i>Partager</a>
+<script>
+    (function ($) {
+        // Prevent duplicate binding
+        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
+            __SHARE_BUTTON_BINDED__ = true;
+        } else {
+            return;
+        }
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+            
+    
+
+        </footer>
+    </div>
+    
+        
+<nav id="article-nav">
+    
+        <a href="/article/a62ad67/" id="article-nav-newer" class="article-nav-link-wrap">
+            <strong class="article-nav-caption">Plus récent</strong>
+            <div class="article-nav-title">
+                
+                    Gson源码分析二
+                
+            </div>
+        </a>
+    
+    
+        <a href="/article/68b9bfcd/" id="article-nav-older" class="article-nav-link-wrap">
+            <strong class="article-nav-caption">Plus ancien</strong>
+            <div class="article-nav-title">Android-Async-Http 源码解析</div>
+        </a>
+    
+</nav>
+
+
+    
+</article>
+
+
+    
+    
+        <section id="comments">
+    <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+    <div id="vcomments"></div>
+    <script>
+        new Valine({
+            el: '#vcomments',
+            app_id: 'Py2W9ndz8WJGDduj0id77Yq7-gzGzoHsz',
+            app_key: 'cTJCvL6VOQL5ozXfABqDbAyP',
+            placeholder: '欢迎大家积极留言交流',
+            visitor: true
+        })
+    </script>
+</section>
+    
+
+</section>
+            
+                
+<aside id="sidebar">
+   
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Récents</h3>
+        <div class="widget">
+            <ul id="recent-post" class="">
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/304c0753/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"><a class="article-category-link" href="/categories/plan/">plan</a></p>
+                            <p class="item-title"><a href="/article/304c0753/" class="title">2022年记录目录</a></p>
+                            <p class="item-date"><time datetime="2022-04-10T02:37:08.000Z" itemprop="datePublished">2022-04-10</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/293e04b1/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/293e04b1/" class="title">Go 结构体函数调用底层实现</a></p>
+                            <p class="item-date"><time datetime="2021-11-01T13:12:00.000Z" itemprop="datePublished">2021-11-01</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/da48b455/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/da48b455/" class="title">Go 语言嵌入和多态机制对比</a></p>
+                            <p class="item-date"><time datetime="2021-09-22T14:24:00.000Z" itemprop="datePublished">2021-09-22</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/c1e308a7/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/c1e308a7/" class="title">ElasticSearch 如何配置Uptime 监控组件可用性</a></p>
+                            <p class="item-date"><time datetime="2021-05-31T14:26:20.000Z" itemprop="datePublished">2021-05-31</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/147d0da9/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/147d0da9/" class="title">ElasticSearch 如何使用 TDigest 算法计算亿级数据的百分位数？</a></p>
+                            <p class="item-date"><time datetime="2021-04-18T14:47:33.000Z" itemprop="datePublished">2021-04-18</time></p>
+                        </div>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Catégories</h3>
+        <div class="widget">
+            <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">25</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MySQL/">MySQL</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Netty/">Netty</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Redis/">Redis</a><span class="category-list-count">16</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SICP/">SICP</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/docker/">docker</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/java-persistent/">java persistent</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/plan/">plan</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">2</span></li></ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Archives</h3>
+        <div class="widget">
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/09/">September 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/05/">May 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/04/">April 2021</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/02/">February 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/09/">September 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/06/">June 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Nuage de tags</h3>
+        <div class="widget tagcloud">
+            <a href="/tags/AOP/" style="font-size: 12.5px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/ElasticSearch/" style="font-size: 17.5px;">ElasticSearch</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/Go/" style="font-size: 12.5px;">Go</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 15px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/MySQL/" style="font-size: 20px;">MySQL</a> <a href="/tags/Netty/" style="font-size: 15px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 12.5px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/Redis/" style="font-size: 10px;">Redis</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 12.5px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 12.5px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 12.5px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 15px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 12.5px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 10px;">linux</a> <a href="/tags/mysql/" style="font-size: 12.5px;">mysql</a> <a href="/tags/persistent/" style="font-size: 12.5px;">persistent</a> <a href="/tags/redis/" style="font-size: 17.5px;">redis</a> <a href="/tags/scroll/" style="font-size: 12.5px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 12.5px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 12.5px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 15px;">注解</a> <a href="/tags/第三方库/" style="font-size: 12.5px;">第三方库</a> <a href="/tags/算法/" style="font-size: 15px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 12.5px;">限流</a>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">Liens</h3>
+        <div class="widget">
+            <ul>
+                
+                    <li>
+                        <a href="http://www.blueskykong.com/">aoho blog</a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+
+    
+    <div id="toTop" class="fa fa-angle-up"></div>
+</aside>
+
+            
+        </div>
+        <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2022 历小冰<br>
+            <a href="https://beian.miit.gov.cn">鲁ICP备19003047号</a> 
+        </div>
+    </div>
+</footer>
+        
+    
+        <script src="/libs/lightgallery/js/lightgallery.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-thumbnail.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-pager.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-autoplay.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-fullscreen.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-zoom.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-hash.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-share.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-video.min.js"></script>
+    
+    
+    
+
+
+
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
+<!-- Custom Scripts -->
+<script src="/js/main.js"></script>
+
+    </div>
+</body>
+</html>

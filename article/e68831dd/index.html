@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="Ch">
+<head><meta name="generator" content="Hexo 3.8.0">
+    <meta charset="utf-8">
+    
+    <title>ElasticSearch 如何使用 ik 进行中文分词？ | 程序员历小冰</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="大家好，我是历小冰。在《为什么 ElasticSearch 比 MySQL 更适合复杂条件搜索》 一文中，我们讲解了 ElasticSearch 如何在数据存储方面支持全文搜索和复杂条件查询，本篇文章则着重分析 ElasticSearch 在全文搜索前如何使用 ik 进行分词，让大家对 ElasticSearch 的全文搜索和 ik 中文分词原理有一个全面且深入的了解。 全文搜索和精确匹配Elas">
+<meta name="keywords" content="ElasticSearch">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ElasticSearch 如何使用 ik 进行中文分词？">
+<meta property="og:url" content="http://remcarpediem.net/article/e68831dd/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="大家好，我是历小冰。在《为什么 ElasticSearch 比 MySQL 更适合复杂条件搜索》 一文中，我们讲解了 ElasticSearch 如何在数据存储方面支持全文搜索和复杂条件查询，本篇文章则着重分析 ElasticSearch 在全文搜索前如何使用 ik 进行分词，让大家对 ElasticSearch 的全文搜索和 ik 中文分词原理有一个全面且深入的了解。 全文搜索和精确匹配Elas">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-04-12-135907.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-04-12-135916.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-04-12-135931.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-04-12-135940.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-04-12-135946.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2020-05-26-144752.png">
+<meta property="og:updated_time" content="2022-04-10T02:36:55.913Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="ElasticSearch 如何使用 ik 进行中文分词？">
+<meta name="twitter:description" content="大家好，我是历小冰。在《为什么 ElasticSearch 比 MySQL 更适合复杂条件搜索》 一文中，我们讲解了 ElasticSearch 如何在数据存储方面支持全文搜索和复杂条件查询，本篇文章则着重分析 ElasticSearch 在全文搜索前如何使用 ik 进行分词，让大家对 ElasticSearch 的全文搜索和 ik 中文分词原理有一个全面且深入的了解。 全文搜索和精确匹配Elas">
+<meta name="twitter:image" content="http://cdn.remcarpediem.net/2021-04-12-135907.png">
+    
+
+    
+        <link rel="alternate" href="/atom.xml" title="程序员历小冰" type="application/atom+xml">
+    
+
+    
+        <link rel="icon" href="/css/images/avatar.jpeg">
+    
+
+    <link rel="stylesheet" href="/libs/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/libs/open-sans/styles.css">
+    <link rel="stylesheet" href="/libs/source-code-pro/styles.css">
+
+    <link rel="stylesheet" href="/css/style.css">
+
+    <script src="/libs/jquery/2.1.3/jquery.min.js"></script>
+    
+    
+        <link rel="stylesheet" href="/libs/lightgallery/css/lightgallery.min.css">
+    
+    
+    
+    
+    
+        
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+    
+
+
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+</html>
+<body>
+    <div id="container">
+        <header id="header">
+    <div id="header-main" class="header-inner">
+        <div class="outer">
+            <a href="/" id="logo">
+                <i class="logo"></i>
+                <span class="site-title">程序员历小冰</span>
+            </a>
+            <nav id="main-nav">
+                
+                    <a class="main-nav-link" href="/.">主页</a>
+                
+                    <a class="main-nav-link" href="/categories">分类</a>
+                
+                    <a class="main-nav-link" href="/archives">归档</a>
+                
+                    <a class="main-nav-link" href="/book">读书</a>
+                
+                    <a class="main-nav-link" href="/categories/plan">计划</a>
+                
+                    <a class="main-nav-link" href="/about">关于</a>
+                
+            </nav>
+            
+                
+                <nav id="sub-nav">
+                    <div class="profile" id="profile-nav">
+                        <a id="profile-anchor" href="javascript:;">
+                            <img class="avatar" src="/css/images/avatar.jpeg">
+                            <i class="fa fa-caret-down"></i>
+                        </a>
+                    </div>
+                </nav>
+            
+            <div id="search-form-wrap">
+
+    <form class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Rechercher">
+        <button type="submit" class="search-form-submit"></button>
+    </form>
+    <div class="ins-search">
+    <div class="ins-search-mask"></div>
+    <div class="ins-search-container">
+        <div class="ins-input-wrapper">
+            <input type="text" class="ins-search-input" placeholder="Type something...">
+            <span class="ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Articles',
+            PAGES: 'Pages',
+            CATEGORIES: 'Catégories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/js/insight.js"></script>
+
+</div>
+        </div>
+    </div>
+    <div id="main-nav-mobile" class="header-sub header-inner">
+        <table class="menu outer">
+            <tr>
+                
+                    <td><a class="main-nav-link" href="/.">主页</a></td>
+                
+                    <td><a class="main-nav-link" href="/categories">分类</a></td>
+                
+                    <td><a class="main-nav-link" href="/archives">归档</a></td>
+                
+                    <td><a class="main-nav-link" href="/book">读书</a></td>
+                
+                    <td><a class="main-nav-link" href="/categories/plan">计划</a></td>
+                
+                    <td><a class="main-nav-link" href="/about">关于</a></td>
+                
+                <td>
+                    
+    <div class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Rechercher">
+    </div>
+
+                </td>
+            </tr>
+        </table>
+    </div>
+</header>
+
+        <div class="outer">
+            
+                
+
+<aside id="profile" class="profile-fixed">
+    <div class="inner profile-inner">
+        <div class="base-info profile-block">
+            <img id="avatar" src="/css/images/avatar.jpeg">
+            <h2 id="name">历小冰</h2>
+            <h3 id="title">后端开发工程师</h3>
+            <span id="location"><i class="fa fa-map-marker"></i>中国，南京</span>
+            <img id="wechat" src="/css/images/wechat_public.jpg">
+            <a id="follow" target="_blank" href="/css/images/wechat_public.jpg">⬆关注公众号⬆</a>
+        </div>
+        <div class="article-info profile-block">
+            <div class="article-info-block">
+                109
+                <span>Articles</span>
+            </div>
+            <div class="article-info-block">
+                67
+                <span>Tags</span>
+            </div>
+        </div>
+        
+        <div class="profile-block social-links">
+            <table>
+                <tr>
+                    
+                    
+                    <td>
+                        <a href="https://github.com/ztelur" target="_blank" title="github" class="tooltip">
+                            <i class="fa fa-github"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/css/images/wechat.jpeg" target="_blank" title="wechat" class="tooltip">
+                            <i class="fa fa-wechat"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/atom.xml" target="_blank" title="rss" class="tooltip">
+                            <i class="fa fa-rss"></i>
+                        </a>
+                    </td>
+                    
+                </tr>
+            </table>
+        </div>
+        
+    </div>
+</aside>
+
+            
+            <section id="main"><article id="post-ElasticSearch-如何使用-ik-进行中文分词？" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+        
+            <header class="article-header">
+                
+    
+        <h1 class="article-title" itemprop="name">
+            ElasticSearch 如何使用 ik 进行中文分词？
+        </h1>
+    
+
+                
+                    <div class="article-meta">
+                        
+                        
+    <div class="article-date">
+        <i class="fa fa-calendar"></i>
+        <a href="/article/e68831dd/">
+            <time datetime="2021-04-12T13:57:35.000Z" itemprop="datePublished">2021-04-12</time>
+        </a>
+    </div>
+
+
+                        
+                        
+    <div class="article-tag">
+        <i class="fa fa-tag"></i>
+        <a class="tag-link" href="/tags/ElasticSearch/">ElasticSearch</a>
+    </div>
+
+                    </div>
+                
+            </header>
+        
+        
+
+        <div class="article-entry" itemprop="articleBody">
+            
+            
+                
+            
+            
+                <p>大家好，我是历小冰。在<a href="https://xie.infoq.cn/article/fba8d2b109cd2f4e45fb94de5" target="_blank" rel="noopener">《为什么 ElasticSearch 比 MySQL 更适合复杂条件搜索》 </a>一文中，我们讲解了 ElasticSearch 如何在数据存储方面支持全文搜索和复杂条件查询，本篇文章则着重分析 ElasticSearch 在全文搜索前如何使用 ik 进行分词，让大家对 ElasticSearch 的全文搜索和 ik 中文分词原理有一个全面且深入的了解。</p>
+<h3 id="全文搜索和精确匹配"><a href="#全文搜索和精确匹配" class="headerlink" title="全文搜索和精确匹配"></a>全文搜索和精确匹配</h3><p>ElasticSearch 支持对文本类型数据进行全文搜索和精确搜索，但是必须提前为其设置对应的类型：</p>
+<ul>
+<li>keyword 类型，存储时不会做分词处理，支持精确查询和分词匹配查询；</li>
+<li>text 类型，存储时会进行分词处理，也支持精确查询和分词匹配查询。</li>
+</ul>
+<p>比如，创建名为 <code>article</code> 的索引（Index），并为其两个字段（Filed）配置映射（Mapping），文章内容设置为 text 类型，而文章标题设置为 keyword 类型。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">curl -XPUT http:&#x2F;&#x2F;localhost:9200&#x2F;article
+curl -XPOST http:&#x2F;&#x2F;localhost:9200&#x2F;article&#x2F;_mapping -H &#39;Content-Type:application&#x2F;json&#39; -d&#39;
+{
+        &quot;properties&quot;: {
+            &quot;content&quot;: {
+                &quot;type&quot;: &quot;text&quot;
+            },
+            &quot;title&quot;: {
+                &quot;type&quot;: &quot;keyword&quot;
+            }
+        }
+
+}&#39;
+</code></pre>
+<p>Elasticsearch 在进行存储时，会对文章内容字段进行分词，获取并保存分词后的词元（tokens）；对文章标题则是不进行分词处理，直接保存原值。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-04-12-135907.png" alt="img"></p>
+<p>上图的右半边展示了 keyword 和 text 两种类型的不同存储处理过程。而左半边则展示了 ElasticSearch 相对应的两种查询方式：</p>
+<ul>
+<li>term 查询，也就是精确查询，不进行分词，而是直接根据输入词进行查询；</li>
+<li>match 查询，也就是分词匹配查询，先对输入词进行分词，然后逐个对分词后的词元进行查询。</li>
+</ul>
+<p>举个例子，有两篇文章，一篇的标题和内容都是“程序员”，另外一篇的标题和内容都是“程序”，那么二者在 ElasticSearch 中的倒排索引存储如下所示（假设使用特殊分词器）。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-04-12-135916.png" alt="img"></p>
+<p>这时，分别使用 term 和 match 查询对两个字段进行查询，就会得出如图右侧的结果。</p>
+<h3 id="Analyzer-处理过程"><a href="#Analyzer-处理过程" class="headerlink" title="Analyzer 处理过程"></a>Analyzer 处理过程</h3><p>可见，keyword 与 text 类型， term 与 match 查询方式之间不同就在于是否进行了分词。在 ElasticSearch 中将这个分词的过程统称了 Text analysis，也就是将字段从非结构化字符串（text）转化为结构化字符串（keyword）的过程。</p>
+<p>Text analysis 不仅仅只进行分词操作，而是包含如下流程：</p>
+<ul>
+<li>使用字符过滤器（Character filters），对原始的文本进行一些处理，例如去掉空白字符等；</li>
+<li>使用分词器（Tokenizer），对原始的文本进行分词处理，得到一些词元（tokens）；</li>
+<li>使用词元过滤器（Token filters），对上一步得到的词元继续进行处理，例如改变词元（小写化），删除词元（删除量词）或增加词元（增加同义词），合并同义词等。</li>
+</ul>
+<p><img src="http://cdn.remcarpediem.net/2021-04-12-135931.png" alt="img"></p>
+<p>ElasticSearch 中处理 Text analysis 的组件被称为 Analyzer。相应地，Analyzer 也由三部分组成，character filters、tokenizers 和 token filters。</p>
+<p>Elasticsearch 内置了 3 种字符过滤器、10 种分词器和 31 种词元过滤器。此外，还可以通过插件机制获取第三方实现的相应组件。开发者可以按照自身需求定制 Analyzer 的组成部分。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&quot;analyzer&quot;: {
+    &quot;my_analyzer&quot;: {
+        &quot;type&quot;:           &quot;custom&quot;,
+        &quot;char_filter&quot;:  [ &quot;html_strip&quot;],
+        &quot;tokenizer&quot;:      &quot;standard&quot;,
+        &quot;filter&quot;:       [ &quot;lowercase&quot;,]
+    }
+}
+</code></pre>
+<p>按照上述配置，<code>my_analyzer</code> 分析器的功能大致如下：</p>
+<ul>
+<li>字符过滤器是 <code>html_strip</code>，会去掉 HTML 标记相关的字符；</li>
+<li>分词器是 ElasticSearch 默认的标准分词器 <code>standard</code>；</li>
+<li>词元过滤器是小写化 <code>lowercase</code> 处理器，将英语单词小写化。</li>
+</ul>
+<p>一般来说，Analyzer 中最为重要的就是分词器，分词结果的好坏会直接影响到搜索的准确度和满意度。ElasticSearch 默认的分词器并不是处理中文分词的最优选择，目前业界主要使用 ik 进行中文分词。</p>
+<h3 id="ik-分词原理"><a href="#ik-分词原理" class="headerlink" title="ik 分词原理"></a>ik 分词原理</h3><p><a href="https://github.com/medcl/elasticsearch-analysis-ik" target="_blank" rel="noopener">ik</a> 是目前较为主流的 ElasticSearch 开源中文分词组件，它内置了基础的中文词库和分词算法帮忙开发者快速构建中文分词和搜索功能，它还提供了扩展词库字典和远程字典等功能，方便开发者扩充网络新词或流行语。</p>
+<p>ik 提供了三种内置词典，分别是：</p>
+<ul>
+<li>main.dic：主词典，包括日常的通用词语，比如程序员和编程等；</li>
+<li>quantifier.dic：量词词典，包括日常的量词，比如米、公顷和小时等；</li>
+<li>stopword.dic：停用词，主要指英语的停用词，比如 a、such、that 等。</li>
+</ul>
+<p>此外，开发者可以通过配置扩展词库字典和远程字典对上述词典进行扩展。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;!DOCTYPE properties SYSTEM &quot;http:&#x2F;&#x2F;java.sun.com&#x2F;dtd&#x2F;properties.dtd&quot;&gt;
+&lt;properties&gt;
+  &lt;comment&gt;IK Analyzer 扩展配置&lt;&#x2F;comment&gt;
+  &lt;!--用户可以在这里配置自己的扩展字典 --&gt;
+  &lt;entry key=&quot;ext_dict&quot;&gt;custom&#x2F;mydict.dic&lt;&#x2F;entry&gt;
+   &lt;!--用户可以在这里配置自己的扩展停止词字典--&gt;
+  &lt;entry key=&quot;ext_stopwords&quot;&gt;custom&#x2F;ext_stopword.dic&lt;&#x2F;entry&gt;
+   &lt;!--用户可以在这里配置远程扩展字典 --&gt;
+  &lt;entry key=&quot;remote_ext_dict&quot;&gt;location&lt;&#x2F;entry&gt;
+   &lt;!--用户可以在这里配置远程扩展停止词字典--&gt;
+  &lt;entry key=&quot;remote_ext_stopwords&quot;&gt;http:&#x2F;&#x2F;xxx.com&#x2F;xxx.dic&lt;&#x2F;entry&gt;
+&lt;&#x2F;properties&gt;
+</code></pre>
+<p>ik 跟随 ElasticSearch 启动时，会将默认词典和扩展词典读取并加载到内存，并使用字典树 tire tree （也叫前缀树）数据结构进行存储，方便后续分词时使用。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-04-12-135940.png" alt="img"></p>
+<p>字典树的典型结构如上图所示，每个节点是一个字，从根节点到叶节点，路径上经过的字符连接起来，为该节点对应的词。所以上图中的词包括：程序员、程门立雪、编织、编码和工作。</p>
+<h4 id="一、加载字典"><a href="#一、加载字典" class="headerlink" title="一、加载字典"></a>一、加载字典</h4><p>ik 的 <code>Dictionary</code> 单例对象会在初始化时，调用对应的 load 函数读取字典文件，构造三个由 <code>DictSegment</code> 组成的字典树，分别是 <code>MainDict</code>、<code>QuantifierDict</code> 和 <code>StopWords</code>。我们下面就来看一下其主词典的加载和构造过程。<code>loadMainDict</code> 函数较为简单，它会首先创建一个 <code>DictSegment</code> 对象作为字典树的根节点，然后分别去加载默认主字典，扩展主字典和远程主字典来填充字典树。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">private void loadMainDict() {
+    &#x2F;&#x2F; 建立一个主词典实例
+    _MainDict = new DictSegment((char) 0);
+
+    &#x2F;&#x2F; 读取主词典文件
+    Path file = PathUtils.get(getDictRoot(), Dictionary.PATH_DIC_MAIN);
+    loadDictFile(_MainDict, file, false, &quot;Main Dict&quot;);
+    &#x2F;&#x2F; 加载扩展词典
+    this.loadExtDict();
+    &#x2F;&#x2F; 加载远程自定义词库
+    this.loadRemoteExtDict();
+}
+</code></pre>
+<p>在 <code>loadDictFile</code> 函数执行过程中，会从词典文件读取一行一行的词，交给 <code>DictSegment</code> 的<code>fillSegment</code> 函数处理。</p>
+<p><code>fillSegment</code> 是构建字典树的核心函数，具体实现如下所示，处理逻辑大致有如下几个步骤：</p>
+<ul>
+<li>一、按照索引，获取词中的一个字；</li>
+<li>二、检查当前节点的子节点中是否有该字，如果没有，则将其加入到 <code>charMap</code>中；</li>
+<li>三、调用 <code>lookforSegment</code> 函数在字典树中寻找代表该字的节点，如果没有则插入一个新的；</li>
+<li>四、递归调用 <code>fillSegment</code>  函数处理下一个字。</li>
+</ul>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">private synchronized void fillSegment(char[] charArray , int begin , int length , int enabled){
+    &#x2F;&#x2F;获取字典表中的汉字对象
+    Character beginChar = Character.valueOf(charArray[begin]);
+    Character keyChar = charMap.get(beginChar);
+    &#x2F;&#x2F;字典中没有该字，则将其添加入字典
+    if(keyChar == null){
+        charMap.put(beginChar, beginChar);
+        keyChar = beginChar;
+    }
+    
+    &#x2F;&#x2F;搜索当前节点的存储，查询对应keyChar的keyChar，如果没有则创建
+    DictSegment ds = lookforSegment(keyChar , enabled);
+    if(ds != null){
+        &#x2F;&#x2F;处理keyChar对应的segment
+        if(length &gt; 1){
+            &#x2F;&#x2F;词元还没有完全加入词典树
+            ds.fillSegment(charArray, begin + 1, length - 1 , enabled);
+        }else if (length == 1){
+            &#x2F;&#x2F;已经是词元的最后一个char,设置当前节点状态为enabled，
+            &#x2F;&#x2F;enabled=1表明一个完整的词，enabled=0表示从词典中屏蔽当前词
+            ds.nodeState = enabled;
+        }
+    }
+}
+</code></pre>
+<p>ik 初始化过程大致如此，再进一步详细的逻辑大家可以直接去看源码，中间都是中文注释，相对来说较为容易阅读。</p>
+<h4 id="二、分词逻辑"><a href="#二、分词逻辑" class="headerlink" title="二、分词逻辑"></a>二、分词逻辑</h4><p>ik 中实现了 ElasticSearch 相关的抽象类，来提供自身的分词逻辑实现：</p>
+<ul>
+<li><code>IKAnalyzer</code> 继承了 <code>Analyzer</code> ，用来提供中文分词的分析器；</li>
+<li><code>IKTokenizer</code> 继承了 <code>Tokenizer</code>，用来提供中文分词的分词器，其 <code>incrementToken</code> 是 ElasticSearch 调用 ik 进行分词的入口函数。</li>
+</ul>
+<p><code>incrementToken</code> 函数会调用 <code>IKSegmenter</code> 的 <code>next</code>方法，来获取分词结果，它是 ik 分词的核心方法。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-04-12-135946.png" alt="img"></p>
+<p>如上图所示，<code>IKSegmenter</code> 中有三个分词器，在进行分词时会遍历词中的所有字，然后将单字按照顺序，让三个分词器进行处理：</p>
+<ul>
+<li><code>LetterSegmenter</code>，英文分词器比较简单，就是把连续的英文字符进行分词;</li>
+<li><code>CN_QuantifierSegmenter</code>，中文量词分词器，判断当前的字符是否是数词和量词，会把连起来的数词和量词分成一个词；</li>
+<li><code>CJKSegmenter</code>，核心分词器，基于前文的字典树进行分词。</li>
+</ul>
+<p>我们只讲解一下 <code>CJKSegmenter</code> 的实现，其 <code>analyze</code> 函数大致分为两个逻辑：</p>
+<ul>
+<li>根据单字去字典树中进行查询，如果单字是词，则生成词元；如果是词前缀，则放入到临时命中列表中；</li>
+<li>然后根据单字和之前处理时保存的临时命中列表数据一起去字典树中查询，如果命中，则生成词元。</li>
+</ul>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public void analyze(AnalyzeContext context) {
+			
+    &#x2F;&#x2F;优先处理tmpHits中的hit,根据单字和 hit 一起去查询
+    if(!this.tmpHits.isEmpty()){
+        ....
+        for(Hit hit : tmpArray){
+            hit = Dictionary.getSingleton().matchWithHit(context.getSegmentBuff(), context.getCursor() , hit);
+            if(hit.isMatch()){
+                &#x2F;&#x2F;输出当前的词
+                Lexeme newLexeme = new Lexeme(context.getBufferOffset() , hit.getBegin() , context.getCursor() - hit.getBegin() + 1 , Lexeme.TYPE_CNWORD);
+                context.addLexeme(newLexeme);
+                ....                 
+            }else if(hit.isUnmatch()){
+                &#x2F;&#x2F;hit不是词，移除
+                this.tmpHits.remove(hit);
+            }					
+        }
+    }			
+    
+    &#x2F;&#x2F;*********************************
+    &#x2F;&#x2F;再对当前指针位置的字符进行单字匹配
+    Hit singleCharHit = Dictionary.getSingleton().matchInMainDict(context.getSegmentBuff(), context.getCursor(), 1);
+    if(singleCharHit.isMatch()){&#x2F;&#x2F;首字成词
+        &#x2F;&#x2F;输出当前的词
+        Lexeme newLexeme = new Lexeme(context.getBufferOffset() , context.getCursor() , 1 , Lexeme.TYPE_CNWORD);
+        context.addLexeme(newLexeme);
+
+        &#x2F;&#x2F;同时也是词前缀
+        if(singleCharHit.isPrefix()){
+            &#x2F;&#x2F;前缀匹配则放入hit列表
+            this.tmpHits.add(singleCharHit);
+        }
+    }else if(singleCharHit.isPrefix()){&#x2F;&#x2F;首字为词前缀
+        &#x2F;&#x2F;前缀匹配则放入hit列表
+        this.tmpHits.add(singleCharHit);
+    }
+    .... &#x2F;&#x2F; 判断是否结束，清理工作
+}
+</code></pre>
+<p>具体的代码逻辑，如上所示。为了方便大家理解，举个例子，比如输入的词是 <code>编码工作</code>：</p>
+<ul>
+<li>首先处理<code>编</code>字</li>
+<li>因为当前 <code>tmpHits</code> 为空，直接进行单字判断；</li>
+<li>直接拿 <code>编</code> 字去前文示意图的字典树查询（详见 <code>matchInMainDict</code> 函数），发现能够命中，并且该字不是一个词的结尾，所以将 <code>编</code> 和其在输入词中的位置生成 <code>Hit</code> 对象，存储到 <code>tmpHits</code> 中。</li>
+<li>接着处理 <code>码</code> 字</li>
+<li>因为 <code>tmpHits</code> 不为空，所以拿着 <code>编</code> 对应的 <code>Hit</code> 对象和 <code>码</code>字去字典树中查询（详见 <code>matchWithHit</code> 函数）， 发现命中了 <code>编码</code> 一词，所以将这个词作为输出词元之一，存入 <code>AnalyzeContext</code>；但是因为 <code>码</code> 已经是叶节点，并没有子节点，表示不是其他词的前缀，所以将对应的 <code>Hit</code> 对象删除掉；</li>
+<li>接着拿单字 <code>码</code> 去字典树中查询，看单字是否成词，或者构成词的前缀。</li>
+<li>依次类推，将所有字处理完。</li>
+</ul>
+<h4 id="三、消除歧义和结果输出"><a href="#三、消除歧义和结果输出" class="headerlink" title="三、消除歧义和结果输出"></a>三、消除歧义和结果输出</h4><p>通过上述步骤，有时候会生成很多分词结果集合，比如说，<code>程序员爱编程</code> 会被分成 <code>程序员</code>、<code>程序</code>、<code>员</code>、<code>爱</code> 和 <code>编程</code> 五个结果。这也是 ik 的 ik_max_word 模式的输出结果。但是有些场景，开发者希望只有 <code>程序员</code>、<code>爱</code> 和 <code>编程</code> 三个分词结果，这时就需要使用 ik 的 ik_smart 模式，也就是进行消除歧义处理。</p>
+<p>ik 使用 <code>IKArbitrator</code> 进行消除歧义处理，主要使用组合遍历的方式进行处理。从上一阶段的分词结果中取出不相交的分词集合，所谓相交，就是其在文本中出现的位置是否重合。比如 <code>程序员</code>、<code>程序</code> 和 <code>员</code> 三个分词结果是相交的，但是 <code>爱</code> 和 <code>编程</code> 是不相交的。所以分歧处理时会将 <code>程序员</code>、<code>程序</code> 和 <code>员</code> 作为一个集合，<code>爱</code> 作为一个集合，<code>编码</code> 作为一个集合，分别进行处理，将集合中按照规则优先级最高的分词结果集选出来，具体规则如下所示：</p>
+<ul>
+<li>有效文本长度长优先；</li>
+<li>词元个数少优先；</li>
+<li>路径跨度大优先；</li>
+<li>位置越靠后的优先，因为根据统计学结论，逆向切分概率高于正向切分；</li>
+<li>词长越平均优先；</li>
+<li>词元位置权重大优先。</li>
+</ul>
+<p>根据上述规则，在第一个集合中，<code>程序员</code> 明显要比 <code>程序</code> 和 <code>员</code> 要更符合规则，所以消除歧义的结果就是输出 <code>程序员</code>，而不是 <code>程序</code> 和 <code>员</code>。</p>
+<p>最后，对于输入字来说，有些位置可能并不在输出结果中，所以会以单字的方式作为词元直接输出（详见<code>AnalyzeContext</code> 的 <code>outputToResult</code> 函数）。比如 <code>程序员是职业</code>，<code>是</code> 字是不会被分词出来的，但是在最终输出结果时，要将其作为单字输出。</p>
+<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>ElasticSearch 和 ik 组合是目前较为主流的中文搜索技术方案，理解其搜索和分词的基础流程和原理，有利于开发者更快地构建中文搜索功能，或基于自身需求，特殊定制搜索分词策略。</p>
+<p><a href="http://remcarpediem.net/">个人博客，欢迎来玩</a></p>
+<p><img src="http://cdn.remcarpediem.net/2020-05-26-144752.png" alt=""></p>
+
+                </div>
+                    
+        <footer class="article-footer">
+            
+                <!-- id 将作为查询条件 -->
+                <span id="/article/e68831dd/" class="leancloud_visitors" data-flag-title="ElasticSearch 如何使用 ik 进行中文分词？">
+                    <em class="post-meta-item-text">阅读量 </em>
+                    <i class="leancloud-visitors-count">1000</i>
+                </span>
+             
+            <div class="share-container">
+
+
+
+</div>
+
+    <a data-url="http://remcarpediem.net/article/e68831dd/" data-id="cl1sxuvnt001wo6jb5khc8ifq" class="article-share-link"><i class="fa fa-share"></i>Partager</a>
+<script>
+    (function ($) {
+        // Prevent duplicate binding
+        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
+            __SHARE_BUTTON_BINDED__ = true;
+        } else {
+            return;
+        }
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+            
+    
+
+        </footer>
+    </div>
+    
+        
+<nav id="article-nav">
+    
+        <a href="/article/147d0da9/" id="article-nav-newer" class="article-nav-link-wrap">
+            <strong class="article-nav-caption">Plus récent</strong>
+            <div class="article-nav-title">
+                
+                    ElasticSearch 如何使用 TDigest 算法计算亿级数据的百分位数？
+                
+            </div>
+        </a>
+    
+    
+        <a href="/article/da96cf52/" id="article-nav-older" class="article-nav-link-wrap">
+            <strong class="article-nav-caption">Plus ancien</strong>
+            <div class="article-nav-title">MySQL读写分离，写完读不到问题如何解决</div>
+        </a>
+    
+</nav>
+
+
+    
+</article>
+
+
+    
+    
+        <section id="comments">
+    <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+    <div id="vcomments"></div>
+    <script>
+        new Valine({
+            el: '#vcomments',
+            app_id: 'Py2W9ndz8WJGDduj0id77Yq7-gzGzoHsz',
+            app_key: 'cTJCvL6VOQL5ozXfABqDbAyP',
+            placeholder: '欢迎大家积极留言交流',
+            visitor: true
+        })
+    </script>
+</section>
+    
+
+</section>
+            
+                
+<aside id="sidebar">
+   
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Récents</h3>
+        <div class="widget">
+            <ul id="recent-post" class="">
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/304c0753/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"><a class="article-category-link" href="/categories/plan/">plan</a></p>
+                            <p class="item-title"><a href="/article/304c0753/" class="title">2022年记录目录</a></p>
+                            <p class="item-date"><time datetime="2022-04-10T02:37:08.000Z" itemprop="datePublished">2022-04-10</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/293e04b1/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/293e04b1/" class="title">Go 结构体函数调用底层实现</a></p>
+                            <p class="item-date"><time datetime="2021-11-01T13:12:00.000Z" itemprop="datePublished">2021-11-01</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/da48b455/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/da48b455/" class="title">Go 语言嵌入和多态机制对比</a></p>
+                            <p class="item-date"><time datetime="2021-09-22T14:24:00.000Z" itemprop="datePublished">2021-09-22</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/c1e308a7/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/c1e308a7/" class="title">ElasticSearch 如何配置Uptime 监控组件可用性</a></p>
+                            <p class="item-date"><time datetime="2021-05-31T14:26:20.000Z" itemprop="datePublished">2021-05-31</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/147d0da9/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/147d0da9/" class="title">ElasticSearch 如何使用 TDigest 算法计算亿级数据的百分位数？</a></p>
+                            <p class="item-date"><time datetime="2021-04-18T14:47:33.000Z" itemprop="datePublished">2021-04-18</time></p>
+                        </div>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Catégories</h3>
+        <div class="widget">
+            <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">25</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MySQL/">MySQL</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Netty/">Netty</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Redis/">Redis</a><span class="category-list-count">16</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SICP/">SICP</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/docker/">docker</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/java-persistent/">java persistent</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/plan/">plan</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">2</span></li></ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Archives</h3>
+        <div class="widget">
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/09/">September 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/05/">May 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/04/">April 2021</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/02/">February 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/09/">September 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/06/">June 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Nuage de tags</h3>
+        <div class="widget tagcloud">
+            <a href="/tags/AOP/" style="font-size: 12.5px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/ElasticSearch/" style="font-size: 17.5px;">ElasticSearch</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/Go/" style="font-size: 12.5px;">Go</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 15px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/MySQL/" style="font-size: 20px;">MySQL</a> <a href="/tags/Netty/" style="font-size: 15px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 12.5px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/Redis/" style="font-size: 10px;">Redis</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 12.5px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 12.5px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 12.5px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 15px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 12.5px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 10px;">linux</a> <a href="/tags/mysql/" style="font-size: 12.5px;">mysql</a> <a href="/tags/persistent/" style="font-size: 12.5px;">persistent</a> <a href="/tags/redis/" style="font-size: 17.5px;">redis</a> <a href="/tags/scroll/" style="font-size: 12.5px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 12.5px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 12.5px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 15px;">注解</a> <a href="/tags/第三方库/" style="font-size: 12.5px;">第三方库</a> <a href="/tags/算法/" style="font-size: 15px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 12.5px;">限流</a>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">Liens</h3>
+        <div class="widget">
+            <ul>
+                
+                    <li>
+                        <a href="http://www.blueskykong.com/">aoho blog</a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+
+    
+    <div id="toTop" class="fa fa-angle-up"></div>
+</aside>
+
+            
+        </div>
+        <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2022 历小冰<br>
+            <a href="https://beian.miit.gov.cn">鲁ICP备19003047号</a> 
+        </div>
+    </div>
+</footer>
+        
+    
+        <script src="/libs/lightgallery/js/lightgallery.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-thumbnail.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-pager.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-autoplay.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-fullscreen.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-zoom.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-hash.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-share.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-video.min.js"></script>
+    
+    
+    
+
+
+
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
+<!-- Custom Scripts -->
+<script src="/js/main.js"></script>
+
+    </div>
+</body>
+</html>

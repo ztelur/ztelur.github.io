@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="Ch">
+<head><meta name="generator" content="Hexo 3.8.0">
+    <meta charset="utf-8">
+    
+    <title>Go 语言嵌入和多态机制对比 | 程序员历小冰</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="简介面向对象语言设计最早可以追溯到 SIMULA 67，但直到 1980 年的 Smalltalk80 将其完善，并随着 Java 的崛起而全面流行起来。面向对象设计的语言大多都支持三个关键的语言特性：抽象数据类型、继承以及多态(方法动态派发)。 本文将以 Go 语言为主，讲解一下 Go 语言在面向对象领域的一些特性以及高级编程语言的一些通用领域知识。 继承在面向对象语言中，继承是代码复用和部分修">
+<meta name="keywords" content="Go">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 语言嵌入和多态机制对比">
+<meta property="og:url" content="http://remcarpediem.net/article/da48b455/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="简介面向对象语言设计最早可以追溯到 SIMULA 67，但直到 1980 年的 Smalltalk80 将其完善，并随着 Java 的崛起而全面流行起来。面向对象设计的语言大多都支持三个关键的语言特性：抽象数据类型、继承以及多态(方法动态派发)。 本文将以 Go 语言为主，讲解一下 Go 语言在面向对象领域的一些特性以及高级编程语言的一些通用领域知识。 继承在面向对象语言中，继承是代码复用和部分修">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-09-22-142538.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2020-05-26-144752.png">
+<meta property="og:updated_time" content="2022-04-10T02:36:55.915Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Go 语言嵌入和多态机制对比">
+<meta name="twitter:description" content="简介面向对象语言设计最早可以追溯到 SIMULA 67，但直到 1980 年的 Smalltalk80 将其完善，并随着 Java 的崛起而全面流行起来。面向对象设计的语言大多都支持三个关键的语言特性：抽象数据类型、继承以及多态(方法动态派发)。 本文将以 Go 语言为主，讲解一下 Go 语言在面向对象领域的一些特性以及高级编程语言的一些通用领域知识。 继承在面向对象语言中，继承是代码复用和部分修">
+<meta name="twitter:image" content="http://cdn.remcarpediem.net/2021-09-22-142538.png">
+    
+
+    
+        <link rel="alternate" href="/atom.xml" title="程序员历小冰" type="application/atom+xml">
+    
+
+    
+        <link rel="icon" href="/css/images/avatar.jpeg">
+    
+
+    <link rel="stylesheet" href="/libs/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/libs/open-sans/styles.css">
+    <link rel="stylesheet" href="/libs/source-code-pro/styles.css">
+
+    <link rel="stylesheet" href="/css/style.css">
+
+    <script src="/libs/jquery/2.1.3/jquery.min.js"></script>
+    
+    
+        <link rel="stylesheet" href="/libs/lightgallery/css/lightgallery.min.css">
+    
+    
+    
+    
+    
+        
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+    
+
+
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+</html>
+<body>
+    <div id="container">
+        <header id="header">
+    <div id="header-main" class="header-inner">
+        <div class="outer">
+            <a href="/" id="logo">
+                <i class="logo"></i>
+                <span class="site-title">程序员历小冰</span>
+            </a>
+            <nav id="main-nav">
+                
+                    <a class="main-nav-link" href="/.">主页</a>
+                
+                    <a class="main-nav-link" href="/categories">分类</a>
+                
+                    <a class="main-nav-link" href="/archives">归档</a>
+                
+                    <a class="main-nav-link" href="/book">读书</a>
+                
+                    <a class="main-nav-link" href="/categories/plan">计划</a>
+                
+                    <a class="main-nav-link" href="/about">关于</a>
+                
+            </nav>
+            
+                
+                <nav id="sub-nav">
+                    <div class="profile" id="profile-nav">
+                        <a id="profile-anchor" href="javascript:;">
+                            <img class="avatar" src="/css/images/avatar.jpeg">
+                            <i class="fa fa-caret-down"></i>
+                        </a>
+                    </div>
+                </nav>
+            
+            <div id="search-form-wrap">
+
+    <form class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Rechercher">
+        <button type="submit" class="search-form-submit"></button>
+    </form>
+    <div class="ins-search">
+    <div class="ins-search-mask"></div>
+    <div class="ins-search-container">
+        <div class="ins-input-wrapper">
+            <input type="text" class="ins-search-input" placeholder="Type something...">
+            <span class="ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Articles',
+            PAGES: 'Pages',
+            CATEGORIES: 'Catégories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/js/insight.js"></script>
+
+</div>
+        </div>
+    </div>
+    <div id="main-nav-mobile" class="header-sub header-inner">
+        <table class="menu outer">
+            <tr>
+                
+                    <td><a class="main-nav-link" href="/.">主页</a></td>
+                
+                    <td><a class="main-nav-link" href="/categories">分类</a></td>
+                
+                    <td><a class="main-nav-link" href="/archives">归档</a></td>
+                
+                    <td><a class="main-nav-link" href="/book">读书</a></td>
+                
+                    <td><a class="main-nav-link" href="/categories/plan">计划</a></td>
+                
+                    <td><a class="main-nav-link" href="/about">关于</a></td>
+                
+                <td>
+                    
+    <div class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Rechercher">
+    </div>
+
+                </td>
+            </tr>
+        </table>
+    </div>
+</header>
+
+        <div class="outer">
+            
+                
+
+<aside id="profile" class="profile-fixed">
+    <div class="inner profile-inner">
+        <div class="base-info profile-block">
+            <img id="avatar" src="/css/images/avatar.jpeg">
+            <h2 id="name">历小冰</h2>
+            <h3 id="title">后端开发工程师</h3>
+            <span id="location"><i class="fa fa-map-marker"></i>中国，南京</span>
+            <img id="wechat" src="/css/images/wechat_public.jpg">
+            <a id="follow" target="_blank" href="/css/images/wechat_public.jpg">⬆关注公众号⬆</a>
+        </div>
+        <div class="article-info profile-block">
+            <div class="article-info-block">
+                109
+                <span>Articles</span>
+            </div>
+            <div class="article-info-block">
+                67
+                <span>Tags</span>
+            </div>
+        </div>
+        
+        <div class="profile-block social-links">
+            <table>
+                <tr>
+                    
+                    
+                    <td>
+                        <a href="https://github.com/ztelur" target="_blank" title="github" class="tooltip">
+                            <i class="fa fa-github"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/css/images/wechat.jpeg" target="_blank" title="wechat" class="tooltip">
+                            <i class="fa fa-wechat"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/atom.xml" target="_blank" title="rss" class="tooltip">
+                            <i class="fa fa-rss"></i>
+                        </a>
+                    </td>
+                    
+                </tr>
+            </table>
+        </div>
+        
+    </div>
+</aside>
+
+            
+            <section id="main"><article id="post-Go-语言嵌入和多态机制对比" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+        
+            <header class="article-header">
+                
+    
+        <h1 class="article-title" itemprop="name">
+            Go 语言嵌入和多态机制对比
+        </h1>
+    
+
+                
+                    <div class="article-meta">
+                        
+                        
+    <div class="article-date">
+        <i class="fa fa-calendar"></i>
+        <a href="/article/da48b455/">
+            <time datetime="2021-09-22T14:24:00.000Z" itemprop="datePublished">2021-09-22</time>
+        </a>
+    </div>
+
+
+                        
+                        
+    <div class="article-tag">
+        <i class="fa fa-tag"></i>
+        <a class="tag-link" href="/tags/Go/">Go</a>
+    </div>
+
+                    </div>
+                
+            </header>
+        
+        
+
+        <div class="article-entry" itemprop="articleBody">
+            
+            
+                
+            
+            
+                <h3 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h3><p>面向对象语言设计最早可以追溯到 SIMULA 67，但直到 1980 年的 Smalltalk80 将其完善，并随着 Java 的崛起而全面流行起来。面向对象设计的语言大多都支持三个关键的语言特性：抽象数据类型、继承以及多态(方法动态派发)。</p>
+<p>本文将以 Go 语言为主，讲解一下 Go 语言在面向对象领域的一些特性以及高级编程语言的一些通用领域知识。</p>
+<h3 id="继承"><a href="#继承" class="headerlink" title="继承"></a>继承</h3><p>在面向对象语言中，继承是代码复用和部分修改的常见手段之一。通过继承，子类型可以获得父类型的属性和行为，并且子类型的实例可以被当做父类的实例使用。</p>
+<p>继承一般分为基于原型的继承（prototype-based inheritance）和基于类的继承（class-based inheritance），Javascript语言就实现了基于原型的继承，而其他场景后端语言多是实现了基于类的继承。</p>
+<p>Go 语言并未实现上述两种意义上的继承，而是提供嵌入机制。<strong>嵌入可以理解为一种组合或者代理模式的自动语法糖。</strong></p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">type Animal struct {
+   Name string
+ }
+ 
+ func (a *Animal) Eat() {
+   fmt.Printf(&quot;%v is eating&quot;, a.Name)
+   fmt.Println()
+ }
+ 
+ type Cat struct { 
+   *Animal &#x2F;&#x2F; 只有类型，并不定义成员变量名，表明是嵌入
+ }
+</code></pre>
+<p>如上代码所示，Animal 类型实现了 Eat 函数，而在 Cat 类型的定义中，嵌入了 Animal 类型。上述代码基本上等同于下面这段使用组合形式创建的 Cat 结构体</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">type Cat struct {
+    Animal *Animal
+}
+func (c *Cat) Eat() {
+    c.Animal.Eat()
+}
+
+cat := &amp;Cat{
+    Animal: &amp;Animal{
+        Name: &quot;cat&quot;,
+    },
+}
+</code></pre>
+<p>被嵌入的 Animal 类型被称为内部类型，而 Cat 被称为外部类型。外部类型会持有一个内部类型的实例，并对外提供所有内部类型的函数，而这些函数的内部实现则是直接调用了内部类型实例的对应函数。</p>
+<p>下面代码展示了外部类型初始化和调用其对应函数。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">cat := &amp;Cat{
+   Animal: &amp;Animal{
+     Name: &quot;cat&quot;,
+   },
+ }
+ cat.Eat()
+</code></pre>
+<p>可见，初始化 Cat 类型需要传入一个 Animal 类型，并且可以直接调用其 Eat 函数。不过需要注意的是，不同与一般的继承机制，Cat 并不是 Animal 的子类型，所以并不能作为 Animal 类型使用。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">cat := &amp;Cat{
+   Animal: &amp;Animal{
+     Name: &quot;cat&quot;,
+   },
+ }
+handleAnimalVal(cat) &#x2F;&#x2F; error Cat is not Animal
+handleAnimalPrt(&amp;val) &#x2F;&#x2F; error *Cat is not *Animal
+
+func handleAnimalVal(a Animal) {}
+func handleAnimalPtr(a *Animal) {}
+</code></pre>
+<p>而在基于类的继承中，子类是可以充当父类的实例使用的，比如 Java 通过 extend 关键字来实现继承，继承类被称为子类，被继承类被称为父类或超类，凡是接收父类的地方都可以使用子类。在 Go 语言中没有父子类替换机制。</p>
+<p>此外，继承并不是面向对象语言专属的概念，C 语言早在面向对象语言发明之前就提供了类似的机制来实现将数据结构伪装成另一种数据结构的特性，具体如下代码所示。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 省略头文件
+struct Animal {
+  char* name;
+} 
+  
+void eat(struct Animal* cat) {
+  printf(&quot;animal %v is eating&quot;, cat.Name)
+}
+struct Cat {
+  char* name;
+  int coat_color;
+}
+ 
+struct Cat* makeCat(char* name) {
+  struct Cat* cat = malloc(sizeof(struct Cat));
+  cat-&gt;name = name;
+  return cat;
+}
+ 
+void eat(struct Cat* cat) {
+   printf(&quot;cat %v is eating&quot;, cat.Name)
+}
+ 
+int main(int ac, char** av) {
+  struct Animal * animal = (struct Animal*) makeCat(&quot;Tom&quot;);
+  eat(animal);
+}
+</code></pre>
+<p>如上述代码的 main 函数实现所示，通过指针将 Cat 被伪装成 Animal 来使用，是因为 Cat 是 Animal 结构体的一个超集，二者共同拥有成员变量的顺序也是一样的，二者的结构体如下图所示。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-09-22-142538.png" alt="img"></p>
+<p>使用 Animal 指针指向一个 Cat 类型的结构体，并且可以将作为参数传递给 eat 函数，此时会调用以 Animal 类型指针为参数的 eat 函数，而不是以 Cat 类型指针为参数的 eat 函数。</p>
+<p>同时需要注意的是，在 C 语言例子中，开发者必须强制将 Cat 向上转型为 Animal，而在真正的面向对象编程语言中，这种类型的向上转换通常是隐式的，语言运行时或者编译器为我们自动做了类型转换。</p>
+<h3 id="多态"><a href="#多态" class="headerlink" title="多态"></a>多态</h3><p>在编程语言和类型系统中，多态（Polymorphism） 能为不同数据类型的实体提供统一的接口，或使用一个单一的符号来表示多个不同的类型。</p>
+<p>也就是说，多态能够允许同一段代码在不同上下文中拥有不同的类型，进行不同的实现绑定，从而在不影响类型检查的情况下，为不同类型编写通用的代码。如下代码就体现了多态。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">type IO interface {
+  read() []byte
+}
+
+func getChars(io IO) []byte {
+  return io.read()
+}
+</code></pre>
+<p>getChars 函数接收 IO 接口作为参数，然后调用其 read 函数读取数据。不同的 IO 其 read 函数是不同的，比如说从标准输入读取和从文件读取。所以，传入不同的 IO 接口实现类，则会调用其不同的 read 函数实现，也就是read 函数绑定了不同的实现，也就是所谓的多态。</p>
+<p><strong>不同的语言有着不同的多态实现方式，目前常见的多态实现方式一共有三类，分别是：参数多态 ( Parametric Polymorphism )、特定多态 ( Ad-hoc Polymorphism )和子类型多态 ( Subtype Polymorphism )。</strong></p>
+<p>类似于类型系统，按照代码进行绑定的时间，多态可以分为静态多态（static polymorphism）和动态多态（Dynamic Polymorphism）。静态多态的代码绑定发生在编译期，而动态多态的代码绑定发生在运行时。静多态牺牲灵活性获取性能，是零成本抽象，而动多态牺牲性能获取灵活性。</p>
+<p>动多态在运行时需要额外读取类信息等数据，花费更多时间，并占用较多空间，所以一般情况下都使用静多态。上述三种多态实现方式中，参数化多态和特定多态一般是静多态，子类型多态一般是动态多态。</p>
+<p>Go 语言只支持子类型多态(1.18版本将支持参数多态)，Rust 语言支持参数多态和特定多态，而 Java 语言则支持参数多态和子类型多态。</p>
+<h4 id="参数化多态"><a href="#参数化多态" class="headerlink" title="参数化多态"></a>参数化多态</h4><p>参数化多态实际上是指定义复合类型的成员变量和函数的参数时不指定其具体的类型，而是在真正使用时将其类型作为参数传入，从而使得复合类型和函数对各种具体类型都适用，从而避免大量重复性的工作，多用于队列，堆栈等容器类型和通用算法函数。</p>
+<p>参数化多态是泛型 (generic programming) 的一种实现方式，Go 语言预计在 1.18 版本引入参数化多态实现泛型编程，从而将一直被人所诟病的缺乏泛型编程导致代码重复的短板补齐。下述代码就是 Go 语言将来参数化多态的表现。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">type Vector[T any] []T
+&#x2F;&#x2F; 示例代码
+var v Vector[int]
+</code></pre>
+<p>如上代码所示，定义 Vector 类型时声明了一个类型参数T，并标明它可以是任意类型( any 关键字)，然后在真正初始化 Vector 类型变量时，传入类型 int，标明其实际上是一个 int 类型数组。</p>
+<h4 id="特定多态"><a href="#特定多态" class="headerlink" title="特定多态"></a>特定多态</h4><p>特定多态是针对函数和操作符重载等特定问题的多态实现方案。它不像参数化泛型一样，并不是一种通用多态方案，也不是编程语言类型系统的基础特性。</p>
+<p>函数重载（overloading）指的是多个函数拥有相同的名称，但是拥有不同的参数和实现。而操作符重载类似于函数重载，针对不同的参数具有不同的实现。Go 语言中只有参数不同的函数会被判定为命名重复，自然无法支持函数重载和特定多态。Java 代码为例讲述函数重载和操作符重载。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">public void Add(String a, String b) {
+  System.out.print(a + b);
+}
+ 
+public void Add(int a, int b) {
+  System.out.print(a + b);
+}
+ 
+Add(1,2) &#x2F;&#x2F; print 3
+Add(&quot;1&quot;,&quot;2&quot;) &#x2F;&#x2F; print 12
+</code></pre>
+<p>上述代码分别定义了参数为 string 和 int 类型的 Add 函数，在实际调用时，会根据传入的参数，调用不同的 Add函数实现。</p>
+<p>子类型多态是指一种父子类型的包含关系，子类型可以替代父类型作为参数进行传递，当调用父类型函数时，运行时会根据调用对象的实际类型来调用不同的函数实现。</p>
+<h4 id="子类型多态"><a href="#子类型多态" class="headerlink" title="子类型多态"></a>子类型多态</h4><p>子类型多态多存在于 Java 等面向对象语言中，Go 因其 Structural Typing 类型系统也可以实现子类型多态。</p>
+<p>在 Go 语言中， 如果类型实现了接口定义的所有函数，该类型就被认为实现了该接口。当然，鸭子类型系统并不能精确的表达语言抽象数据类型的全部特性，因为鸭子类型系统一般不进行静态类型检查，而语言会在编译期进行类型检查，所以语言的创造者们<strong>更喜欢用结构类型（Structural typing）一词来表述语言抽象类型系统。</strong></p>
+<p>需要注意的是，这里的子类型和继承并不是同一个概念，子类型反应的是类型(接口)实现的关系，而继承则是两个对象之间的关系，所以 Go 语言并没有继承特性也能实现子类型多态。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">type File struct {}
+
+func (f File) read() []byte { .... } 
+
+func main() {
+  f := File{}
+  getChars(f)
+}
+</code></pre>
+<p>如上代码所示，File 实现了 IO 类型的 read 函数，从而被认为是 IO 类型的子类型，所以就可以将类型为 File 的变量f传入参数为 IO 类型的 getChars 函数中。getChars 函数中会调用参数的 read 方法，Go语言运行时会根据参数的实际类型，进行函数绑定，调用 File 类型的 read 函数。这也体现了子类型多态属于动态多态，因为上述函数绑定发生在运行时。</p>
+<p>C语言也可以实现类似多态的代码机制，了解其具体实现方式有利于我们对多态和接口实现的本质有更好地理解。</p>
+<p>Linux中的驱动IO设备正是使用了这一机制，每个 IO 设备都提供 open、close、read、write和seek 五个函数，在其他语言中可以将其定义为接口或抽象类，而在C语言中的定义如下所示。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">struct FILE {
+  void (open)(char name, int mode);
+  void (close)();
+  int (read)();
+  void (write)(char);
+  void (seek)(long index, int mod);
+ }
+</code></pre>
+<p>FILE 结构体中有五个函数指针类型成员变量，分别对应上述五个函数。而不同的IO设备代码都需要各自实现自己版本的五个函数，并且将 FILE 结构体的函数指针变量指向对应的实现函数。</p>
+<p>如下代码所示，声明了 FILE 类型的 console 变量，将对应的五个函数的指针传入结构体中，作为其成员变量。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">#include &quot;file.h&quot;
+ 
+void open(char* name, int mode) { &#x2F;*...*&#x2F;}
+void close() {&#x2F;*...*&#x2F;}
+int read() {int c; &#x2F;*...*&#x2F; return c;}
+void write(char c) {&#x2F;*...*&#x2F;}
+void seek(long index, int mode) {&#x2F;*...*&#x2F;}
+ 
+struct FILE console = {open, close, read, write, seek};
+</code></pre>
+<p>最后，getchar 函数接收 FILE 类型的数据作为参数，然后通过结构体的函数指针，调用对应的函数，传入的 FILE 类型的数据不同，则函数指针不同，也就调动了不同的函数实现，从而展示了多态能力。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">extern struct FILE* STDIN;
+ 
+int getchar() {
+  return STDIN.read();
+}
+</code></pre>
+<p>C 语言的多态能力也在 Redis 的 dict 实现中有所体现，Redis 中很多数据结构都是依赖哈希表 dictType 实现的，所以其定义了 dictType 结构体，其成员变量都是所需函数的函数指针。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 定义哈希字典类型，及其所需的函数指针
+typedef struct dictType {
+  uint64_t (*hashFunction)(const void *key);
+  void *(*keyDup)(void *privdata, const void *key);
+  void *(*valDup)(void *privdata, const void *obj);
+  int (*keyCompare)(void *privdata, const void *key1, const void *key2);
+  void (*keyDestructor)(void *privdata, void *key);
+  void (*valDestructor)(void *privdata, void *obj);
+} dictType;
+</code></pre>
+<p>然后其具体数据结构诸如 Set 则需要实现自己版本的函数，并将其函数指针填充到对应的参数上。</p>
+
+<!-- Has Prism -->
+<pre class="line-numbers" style=""><code class="language-clike">&#x2F;&#x2F; 具体实现，定义 Set 类型，
+dictType setDictType = {
+  dictSdsHash,        &#x2F;* hash function *&#x2F;
+  NULL,           &#x2F;* key dup *&#x2F;
+  NULL,           &#x2F;* val dup *&#x2F;
+  dictSdsKeyCompare,     &#x2F;* key compare *&#x2F;
+  dictSdsDestructor,     &#x2F;* key destructor *&#x2F;
+  NULL            &#x2F;* val destructor *&#x2F;
+};
+</code></pre>
+<p>通过这两个 C 语言的案例，我们可以发现多态是函数指针的一种应用，C 语言可以使用函数指针来模拟多态，而面向编程语言将危险的函数指针隐藏掉，内化成语言本身的特性，提供了更加安全和方便的多态实现机制。</p>
+<p><a href="http://remcarpediem.net/">个人博客，欢迎来玩</a></p>
+<p><img src="http://cdn.remcarpediem.net/2020-05-26-144752.png" alt=""></p>
+
+                </div>
+                    
+        <footer class="article-footer">
+            
+                <!-- id 将作为查询条件 -->
+                <span id="/article/da48b455/" class="leancloud_visitors" data-flag-title="Go 语言嵌入和多态机制对比">
+                    <em class="post-meta-item-text">阅读量 </em>
+                    <i class="leancloud-visitors-count">1000</i>
+                </span>
+             
+            <div class="share-container">
+
+
+
+</div>
+
+    <a data-url="http://remcarpediem.net/article/da48b455/" data-id="cl1sxuvnw0024o6jba7jnse0j" class="article-share-link"><i class="fa fa-share"></i>Partager</a>
+<script>
+    (function ($) {
+        // Prevent duplicate binding
+        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
+            __SHARE_BUTTON_BINDED__ = true;
+        } else {
+            return;
+        }
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+            
+    
+
+        </footer>
+    </div>
+    
+        
+<nav id="article-nav">
+    
+        <a href="/article/293e04b1/" id="article-nav-newer" class="article-nav-link-wrap">
+            <strong class="article-nav-caption">Plus récent</strong>
+            <div class="article-nav-title">
+                
+                    Go 结构体函数调用底层实现
+                
+            </div>
+        </a>
+    
+    
+        <a href="/article/c1e308a7/" id="article-nav-older" class="article-nav-link-wrap">
+            <strong class="article-nav-caption">Plus ancien</strong>
+            <div class="article-nav-title">ElasticSearch 如何配置Uptime 监控组件可用性</div>
+        </a>
+    
+</nav>
+
+
+    
+</article>
+
+
+    
+    
+        <section id="comments">
+    <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+    <div id="vcomments"></div>
+    <script>
+        new Valine({
+            el: '#vcomments',
+            app_id: 'Py2W9ndz8WJGDduj0id77Yq7-gzGzoHsz',
+            app_key: 'cTJCvL6VOQL5ozXfABqDbAyP',
+            placeholder: '欢迎大家积极留言交流',
+            visitor: true
+        })
+    </script>
+</section>
+    
+
+</section>
+            
+                
+<aside id="sidebar">
+   
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Récents</h3>
+        <div class="widget">
+            <ul id="recent-post" class="">
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/304c0753/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"><a class="article-category-link" href="/categories/plan/">plan</a></p>
+                            <p class="item-title"><a href="/article/304c0753/" class="title">2022年记录目录</a></p>
+                            <p class="item-date"><time datetime="2022-04-10T02:37:08.000Z" itemprop="datePublished">2022-04-10</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/293e04b1/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/293e04b1/" class="title">Go 结构体函数调用底层实现</a></p>
+                            <p class="item-date"><time datetime="2021-11-01T13:12:00.000Z" itemprop="datePublished">2021-11-01</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/da48b455/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/da48b455/" class="title">Go 语言嵌入和多态机制对比</a></p>
+                            <p class="item-date"><time datetime="2021-09-22T14:24:00.000Z" itemprop="datePublished">2021-09-22</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/c1e308a7/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/c1e308a7/" class="title">ElasticSearch 如何配置Uptime 监控组件可用性</a></p>
+                            <p class="item-date"><time datetime="2021-05-31T14:26:20.000Z" itemprop="datePublished">2021-05-31</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/147d0da9/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/147d0da9/" class="title">ElasticSearch 如何使用 TDigest 算法计算亿级数据的百分位数？</a></p>
+                            <p class="item-date"><time datetime="2021-04-18T14:47:33.000Z" itemprop="datePublished">2021-04-18</time></p>
+                        </div>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Catégories</h3>
+        <div class="widget">
+            <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">25</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MySQL/">MySQL</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Netty/">Netty</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Redis/">Redis</a><span class="category-list-count">16</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SICP/">SICP</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/docker/">docker</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/java-persistent/">java persistent</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/plan/">plan</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">2</span></li></ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Archives</h3>
+        <div class="widget">
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/09/">September 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/05/">May 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/04/">April 2021</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/02/">February 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/09/">September 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/06/">June 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Nuage de tags</h3>
+        <div class="widget tagcloud">
+            <a href="/tags/AOP/" style="font-size: 12.5px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/ElasticSearch/" style="font-size: 17.5px;">ElasticSearch</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/Go/" style="font-size: 12.5px;">Go</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 15px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/MySQL/" style="font-size: 20px;">MySQL</a> <a href="/tags/Netty/" style="font-size: 15px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 12.5px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/Redis/" style="font-size: 10px;">Redis</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 12.5px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 12.5px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 12.5px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 15px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 12.5px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 10px;">linux</a> <a href="/tags/mysql/" style="font-size: 12.5px;">mysql</a> <a href="/tags/persistent/" style="font-size: 12.5px;">persistent</a> <a href="/tags/redis/" style="font-size: 17.5px;">redis</a> <a href="/tags/scroll/" style="font-size: 12.5px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 12.5px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 12.5px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 15px;">注解</a> <a href="/tags/第三方库/" style="font-size: 12.5px;">第三方库</a> <a href="/tags/算法/" style="font-size: 15px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 12.5px;">限流</a>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">Liens</h3>
+        <div class="widget">
+            <ul>
+                
+                    <li>
+                        <a href="http://www.blueskykong.com/">aoho blog</a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+
+    
+    <div id="toTop" class="fa fa-angle-up"></div>
+</aside>
+
+            
+        </div>
+        <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2022 历小冰<br>
+            <a href="https://beian.miit.gov.cn">鲁ICP备19003047号</a> 
+        </div>
+    </div>
+</footer>
+        
+    
+        <script src="/libs/lightgallery/js/lightgallery.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-thumbnail.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-pager.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-autoplay.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-fullscreen.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-zoom.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-hash.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-share.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-video.min.js"></script>
+    
+    
+    
+
+
+
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
+<!-- Custom Scripts -->
+<script src="/js/main.js"></script>
+
+    </div>
+</body>
+</html>

@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="Ch">
+<head><meta name="generator" content="Hexo 3.8.0">
+    <meta charset="utf-8">
+    
+    <title>ElasticSearch 如何使用 TDigest 算法计算亿级数据的百分位数？ | 程序员历小冰</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="大家好，我是历小冰。 ElasticSearch 作为一个分布式的开源搜索和分析引擎，不仅能够进行全文匹配搜索，还可以进行聚合分析。 今天，我们就来了解一下其聚合分析中较为常见的 percentiles 百分位数分析。n 个数据按数值大小排列，处于 p% 位置的值称第 p 百分位数。比如说，ElasticSearch 记录了每次网站请求访问的耗时，需要统计其 TP99，也就是整体请求中的 99%">
+<meta name="keywords" content="ElasticSearch">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ElasticSearch 如何使用 TDigest 算法计算亿级数据的百分位数？">
+<meta property="og:url" content="http://remcarpediem.net/article/147d0da9/index.html">
+<meta property="og:site_name" content="程序员历小冰">
+<meta property="og:description" content="大家好，我是历小冰。 ElasticSearch 作为一个分布式的开源搜索和分析引擎，不仅能够进行全文匹配搜索，还可以进行聚合分析。 今天，我们就来了解一下其聚合分析中较为常见的 percentiles 百分位数分析。n 个数据按数值大小排列，处于 p% 位置的值称第 p 百分位数。比如说，ElasticSearch 记录了每次网站请求访问的耗时，需要统计其 TP99，也就是整体请求中的 99%">
+<meta property="og:locale" content="Chinese">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-04-18-144605.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-04-18-144614.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-04-18-144620.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-04-18-144626.jpg">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-04-18-144630.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-04-18-144636.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-04-18-144646.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2021-04-18-144652.png">
+<meta property="og:image" content="http://cdn.remcarpediem.net/2020-05-26-144752.png">
+<meta property="og:updated_time" content="2022-04-10T02:36:55.912Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="ElasticSearch 如何使用 TDigest 算法计算亿级数据的百分位数？">
+<meta name="twitter:description" content="大家好，我是历小冰。 ElasticSearch 作为一个分布式的开源搜索和分析引擎，不仅能够进行全文匹配搜索，还可以进行聚合分析。 今天，我们就来了解一下其聚合分析中较为常见的 percentiles 百分位数分析。n 个数据按数值大小排列，处于 p% 位置的值称第 p 百分位数。比如说，ElasticSearch 记录了每次网站请求访问的耗时，需要统计其 TP99，也就是整体请求中的 99%">
+<meta name="twitter:image" content="http://cdn.remcarpediem.net/2021-04-18-144605.png">
+    
+
+    
+        <link rel="alternate" href="/atom.xml" title="程序员历小冰" type="application/atom+xml">
+    
+
+    
+        <link rel="icon" href="/css/images/avatar.jpeg">
+    
+
+    <link rel="stylesheet" href="/libs/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/libs/open-sans/styles.css">
+    <link rel="stylesheet" href="/libs/source-code-pro/styles.css">
+
+    <link rel="stylesheet" href="/css/style.css">
+
+    <script src="/libs/jquery/2.1.3/jquery.min.js"></script>
+    
+    
+        <link rel="stylesheet" href="/libs/lightgallery/css/lightgallery.min.css">
+    
+    
+    
+    
+    
+        
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?f089a91a688633df563c08899e3d893e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+    
+
+
+<link rel="stylesheet" href="/css/prism-okaidia.css" type="text/css"></head>
+</html>
+<body>
+    <div id="container">
+        <header id="header">
+    <div id="header-main" class="header-inner">
+        <div class="outer">
+            <a href="/" id="logo">
+                <i class="logo"></i>
+                <span class="site-title">程序员历小冰</span>
+            </a>
+            <nav id="main-nav">
+                
+                    <a class="main-nav-link" href="/.">主页</a>
+                
+                    <a class="main-nav-link" href="/categories">分类</a>
+                
+                    <a class="main-nav-link" href="/archives">归档</a>
+                
+                    <a class="main-nav-link" href="/book">读书</a>
+                
+                    <a class="main-nav-link" href="/categories/plan">计划</a>
+                
+                    <a class="main-nav-link" href="/about">关于</a>
+                
+            </nav>
+            
+                
+                <nav id="sub-nav">
+                    <div class="profile" id="profile-nav">
+                        <a id="profile-anchor" href="javascript:;">
+                            <img class="avatar" src="/css/images/avatar.jpeg">
+                            <i class="fa fa-caret-down"></i>
+                        </a>
+                    </div>
+                </nav>
+            
+            <div id="search-form-wrap">
+
+    <form class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Rechercher">
+        <button type="submit" class="search-form-submit"></button>
+    </form>
+    <div class="ins-search">
+    <div class="ins-search-mask"></div>
+    <div class="ins-search-container">
+        <div class="ins-input-wrapper">
+            <input type="text" class="ins-search-input" placeholder="Type something...">
+            <span class="ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Articles',
+            PAGES: 'Pages',
+            CATEGORIES: 'Catégories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/js/insight.js"></script>
+
+</div>
+        </div>
+    </div>
+    <div id="main-nav-mobile" class="header-sub header-inner">
+        <table class="menu outer">
+            <tr>
+                
+                    <td><a class="main-nav-link" href="/.">主页</a></td>
+                
+                    <td><a class="main-nav-link" href="/categories">分类</a></td>
+                
+                    <td><a class="main-nav-link" href="/archives">归档</a></td>
+                
+                    <td><a class="main-nav-link" href="/book">读书</a></td>
+                
+                    <td><a class="main-nav-link" href="/categories/plan">计划</a></td>
+                
+                    <td><a class="main-nav-link" href="/about">关于</a></td>
+                
+                <td>
+                    
+    <div class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Rechercher">
+    </div>
+
+                </td>
+            </tr>
+        </table>
+    </div>
+</header>
+
+        <div class="outer">
+            
+                
+
+<aside id="profile" class="profile-fixed">
+    <div class="inner profile-inner">
+        <div class="base-info profile-block">
+            <img id="avatar" src="/css/images/avatar.jpeg">
+            <h2 id="name">历小冰</h2>
+            <h3 id="title">后端开发工程师</h3>
+            <span id="location"><i class="fa fa-map-marker"></i>中国，南京</span>
+            <img id="wechat" src="/css/images/wechat_public.jpg">
+            <a id="follow" target="_blank" href="/css/images/wechat_public.jpg">⬆关注公众号⬆</a>
+        </div>
+        <div class="article-info profile-block">
+            <div class="article-info-block">
+                109
+                <span>Articles</span>
+            </div>
+            <div class="article-info-block">
+                67
+                <span>Tags</span>
+            </div>
+        </div>
+        
+        <div class="profile-block social-links">
+            <table>
+                <tr>
+                    
+                    
+                    <td>
+                        <a href="https://github.com/ztelur" target="_blank" title="github" class="tooltip">
+                            <i class="fa fa-github"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/css/images/wechat.jpeg" target="_blank" title="wechat" class="tooltip">
+                            <i class="fa fa-wechat"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/atom.xml" target="_blank" title="rss" class="tooltip">
+                            <i class="fa fa-rss"></i>
+                        </a>
+                    </td>
+                    
+                </tr>
+            </table>
+        </div>
+        
+    </div>
+</aside>
+
+            
+            <section id="main"><article id="post-ElasticSearch-如何使用-TDigest-算法计算亿级数据的百分位数？" class="article article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+        
+            <header class="article-header">
+                
+    
+        <h1 class="article-title" itemprop="name">
+            ElasticSearch 如何使用 TDigest 算法计算亿级数据的百分位数？
+        </h1>
+    
+
+                
+                    <div class="article-meta">
+                        
+                        
+    <div class="article-date">
+        <i class="fa fa-calendar"></i>
+        <a href="/article/147d0da9/">
+            <time datetime="2021-04-18T14:47:33.000Z" itemprop="datePublished">2021-04-18</time>
+        </a>
+    </div>
+
+
+                        
+                        
+    <div class="article-tag">
+        <i class="fa fa-tag"></i>
+        <a class="tag-link" href="/tags/ElasticSearch/">ElasticSearch</a>
+    </div>
+
+                    </div>
+                
+            </header>
+        
+        
+
+        <div class="article-entry" itemprop="articleBody">
+            
+            
+                
+            
+            
+                <p>大家好，我是历小冰。</p>
+<p>ElasticSearch 作为一个分布式的开源搜索和分析引擎，不仅能够进行全文匹配搜索，还可以进行聚合分析。</p>
+<p>今天，我们就来了解一下其聚合分析中较为常见的 percentiles 百分位数分析。n 个数据按数值大小排列，处于 p% 位置的值称第 p 百分位数。比如说，ElasticSearch 记录了每次网站请求访问的耗时，需要统计其 TP99，也就是整体请求中的 99% 的请求的最长耗时。</p>
+<h3 id="近似算法"><a href="#近似算法" class="headerlink" title="近似算法"></a>近似算法</h3><p>当数据量较小或者数据集中存储在同一位置时，进行类似 TP99 这样的百分位数分析就很容易。但当数据量不断增长时，对于数据进行聚合分析就需要在数据量，精确度和实时性三个方面进行取舍，只能满足其中两项。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-04-18-144605.png" alt="不可能三角"></p>
+<p>如上图所示，我们一共有三种选择方案：</p>
+<ul>
+<li>有限数据计算：选择了精确度高和实时性，必然不能处理较大量级的数据，比如 MySQL 对单机数据进行统计分析；</li>
+<li>离线计算：选择了大数据量和精确度高，导致实时性较差，比如 Hadoop 可以在 PB 级别数据上提供精确分析，但是可能要很长时间；</li>
+<li>近似计算：选择了大数据量和实时性，但会损失一定的精确度，比如0.5%，但提供相对准确的分析结果。</li>
+</ul>
+<p>Elasticsearch 目前支持两种近似算法，分别是 cardinality 和 percentiles。</p>
+<p>cardinality 用于计算字段的基数，即该字段的 distinct 或者 unique 值的数量。cardinality 基于 HyperLogLog（HLL）算法实现， HLL 会先对数据进行哈希运算，然后根据哈希运算的结果中的位数做概率估算从而得到基数。有关 HLL 算法的细节可以阅读<a href="https://mp.weixin.qq.com/s/AvPoG8ZZM8v9lKLyuSYnHQ" target="_blank" rel="noopener">《Redis HyperLogLog 详解》</a>一文。</p>
+<p>而 percentiles 则是本文的重点。</p>
+<h3 id="百分位数"><a href="#百分位数" class="headerlink" title="百分位数"></a>百分位数</h3><p>ElasticSearch 可以使用 percentiles 来分析指定字段的百分位数，具体请求如下所示，分析 logs 索引下的 latency 字段的百分位数，也就是计算网站请求的延迟百分位数。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-04-18-144614.png" alt=""></p>
+<p>percentiles 默认情况下会返回一组预设的百分位数值，分别是 <code>[1, 5, 25, 50, 75, 95, 99]</code> 。它们表示了人们感兴趣的常用百分位数值，极端的百分位数在范围的两边，其他的一些处于中部。具体的返回值如下图所示，我们可以看到最小延时在 75ms 左右，而最大延时差不多有 600ms。与之形成对比的是，平均延时在 200ms 左右。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-04-18-144620.png" alt="carbon"></p>
+<p>和前文的 cardinality 基数一样，计算百分位数需要一个近似算法。 </p>
+<p>对于少量数据，在内存中维护一个所有值的有序列表， 就可以计算各类百分位数，但是当有几十亿数据分布在几十个节点时，这类算法是不现实的。</p>
+<p>因此，percentiles 使用 TDigest 算法，它是一种近似算法，对不同百分位数的计算精确度不同，较为极端的百分位数范围更加准确，比如说 1% 或 99% 的百分位要比 50% 的百分位要准确。这是一个好的特性，因为多数人只关心极端的百分位。</p>
+<h3 id="TDigest"><a href="#TDigest" class="headerlink" title="TDigest"></a>TDigest</h3><p>TDigest 是一个简单，快速，精确度高，可并行化的近似百分位算法，被 ElastichSearch、Spark 和 Kylin 等系统使用。TDigest 主要有两种实现算法，一种是 buffer-and-merge 算法，一种是 AV L树的聚类算法。</p>
+<p>TDigest 使用的思想是近似算法常用的 Sketch，也就是素描，用一部分数据来刻画整体数据集的特征，就像我们日常的素描画一样，虽然和实物有差距，但是却看着和实物很像，能够展现实物的特征。</p>
+<p>下面，我们来介绍一下 TDigest 的原理。比如有 500 个 -30 ~ 30 间的数字，我们可以使用概率密度函数（PDF）来表示这一数据集。该函数上的某一点的 y 值就是其 x 值在整体数据集中的出现概率，整个函数的面积相加就正好为 1 ，可以说它刻画了数据在数据集中的分布态势（大家较为熟悉的正太分布示意图展示的就是该函数）。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-04-18-144626.jpg" alt="1618752254632"></p>
+<p>有了数据集对应的 PDF 函数，数据集的百分位数也能用 PDF 函数的面积表示。如下图所示，75% 百分位数就是面积占了 75% 时对应的 x 坐标。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-04-18-144630.png" alt="image-20210418213257594"></p>
+<p>我们知道，PDF 函数曲线中的点都对应着数据集中的数据，当数据量较少时，我们可以使用数据集的所有点来计算该函数，但是当数据量较大时，我们只有通过少量数据来代替数据集的所有数据。</p>
+<p>这里，我们需要将数据集进行分组，相邻的数据分为一组，用 平均数（Mean）和 个数（Weight）来代替这一组数。这两个数合称为 Centroid（质心数），然后用这个质心数来计算 PDF，这就是 TDigest 算法的核心思想。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-04-18-144636.png" alt="image-20210418214030421"></p>
+<p>如上图所示，质心数的平均值作为 x 值，个数作为 y 值，可以通过这组质心数大致绘制出这个数据集的 PDF 函数。</p>
+<p>对应的，计算百分位数也只需要从这些质心数中找到对应的位置的质心数，它的平均值就是百分位数值。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-04-18-144646.png" alt="质心数大小"></p>
+<p>很明显，<strong>质心数的个数值越大，表达它代表的数据越多，丢失的信息越大，也就越不精准</strong>。如上图所示，太大的质心数丢失精准度太多，太小的质心数则有消耗内存等资源较大，达不到近似算法实时性高的效果。</p>
+<p>所以，TDigest 在压缩比率（压缩比率越大，质心数代表的数据就要越多）的基础上，按照百分位数来控制各个质心数代表的数据的多少，在两侧的质心数较小，精准度更高，而在中间的质心数则较大，以此达到前文所说的 1% 或 99% 的百分位要比 50% 的百分位要准确的效果。</p>
+<h3 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h3><p>ElasticSearch 直接使用了 TDigest 的开源实现 t-digest，其 github 地址为 <a href="https://github.com/tdunning/t-digest，我们可以在" target="_blank" rel="noopener">https://github.com/tdunning/t-digest，我们可以在</a> ElastichSearch 的 <code>TDigestState</code> 类看到其对 t-digest 实现的封装。</p>
+<p>t-digest 提供了两种 TDigest 算法的实现：</p>
+<ul>
+<li><code>MergingDigest</code> 对应上文所说的 buffer-and-merge 算法</li>
+<li><code>AVLGroupTree</code>对应 AVL 树的聚类算法。</li>
+</ul>
+<p><code>MergingDigest</code> 用于数据集已经排序的场景，可以直接根据压缩比率计算质心数，而 <code>AVLGroupTree</code> 则需要使用 AVL 树来自信对数据根据其”接近程度“进行判断，然后计算质心数。</p>
+<p><code>MergingDigest</code>的实现较为简单，顾名思义，其算法名称叫做 buffer-and-merge，所以实现上使用 tempWeight 和  tempMean 两个数组来代表质心数数组，将数据和保存的质心数进行 merge，然后如果超出 weight 上限，则创建新的质心数，否则修改当前质心数的平均值和个数。</p>
+<p>而 <code>AVLGroupTree</code> 与 <code>MergingDigest</code> 相比，多了一步通过 AVL 二叉平衡树搜索数据最靠近质心数的步骤，找到最靠近的质心数后，也是将二者进行 merge，然后判断是否超过 weight 上线，进行修改或者创建操作。</p>
+<p>下面，我们直接来看 <code>AVLGroupTree</code> 的 add 方法。</p>
+<p><img src="http://cdn.remcarpediem.net/2021-04-18-144652.png" alt=""></p>
+<p>当 ElasticSearch 处理一个数据集时，就是不断将数据集中的数据通过调用 add 函数加入到质心数中，然后统计完毕后，调用其 <code>quantile</code> 来计算百分位数。</p>
+<h3 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h3><p>欢迎大家继续关注程序员历小冰，后续会继续为大家带来有关数据存储，数据分析，分布式相关的文章。下一篇文章我们回来学习一下 ElasticSearch 的其他聚合分析操作的实现原理。</p>
+<p><a href="http://remcarpediem.net/">个人博客，欢迎来玩</a></p>
+<p><img src="http://cdn.remcarpediem.net/2020-05-26-144752.png" alt=""></p>
+<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
+<li><a href="https://blog.bcmeng.com/post/tdigest.html" target="_blank" rel="noopener">https://blog.bcmeng.com/post/tdigest.html</a></li>
+<li><a href="https://blog.bcmeng.com/pdf/TDigest.pdf" target="_blank" rel="noopener">https://blog.bcmeng.com/pdf/TDigest.pdf</a></li>
+<li><a href="https://github.com/tdunning/t-digest" target="_blank" rel="noopener">https://github.com/tdunning/t-digest</a></li>
+<li><a href="https://op8867555.github.io/posts/2018-04-09-tdigest.html" target="_blank" rel="noopener">https://op8867555.github.io/posts/2018-04-09-tdigest.html</a></li>
+</ul>
+
+                </div>
+                    
+        <footer class="article-footer">
+            
+                <!-- id 将作为查询条件 -->
+                <span id="/article/147d0da9/" class="leancloud_visitors" data-flag-title="ElasticSearch 如何使用 TDigest 算法计算亿级数据的百分位数？">
+                    <em class="post-meta-item-text">阅读量 </em>
+                    <i class="leancloud-visitors-count">1000</i>
+                </span>
+             
+            <div class="share-container">
+
+
+
+</div>
+
+    <a data-url="http://remcarpediem.net/article/147d0da9/" data-id="cl1sxuvns001ro6jbqttidkyy" class="article-share-link"><i class="fa fa-share"></i>Partager</a>
+<script>
+    (function ($) {
+        // Prevent duplicate binding
+        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
+            __SHARE_BUTTON_BINDED__ = true;
+        } else {
+            return;
+        }
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+            
+    
+
+        </footer>
+    </div>
+    
+        
+<nav id="article-nav">
+    
+        <a href="/article/c1e308a7/" id="article-nav-newer" class="article-nav-link-wrap">
+            <strong class="article-nav-caption">Plus récent</strong>
+            <div class="article-nav-title">
+                
+                    ElasticSearch 如何配置Uptime 监控组件可用性
+                
+            </div>
+        </a>
+    
+    
+        <a href="/article/e68831dd/" id="article-nav-older" class="article-nav-link-wrap">
+            <strong class="article-nav-caption">Plus ancien</strong>
+            <div class="article-nav-title">ElasticSearch 如何使用 ik 进行中文分词？</div>
+        </a>
+    
+</nav>
+
+
+    
+</article>
+
+
+    
+    
+        <section id="comments">
+    <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+    <div id="vcomments"></div>
+    <script>
+        new Valine({
+            el: '#vcomments',
+            app_id: 'Py2W9ndz8WJGDduj0id77Yq7-gzGzoHsz',
+            app_key: 'cTJCvL6VOQL5ozXfABqDbAyP',
+            placeholder: '欢迎大家积极留言交流',
+            visitor: true
+        })
+    </script>
+</section>
+    
+
+</section>
+            
+                
+<aside id="sidebar">
+   
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Récents</h3>
+        <div class="widget">
+            <ul id="recent-post" class="">
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/304c0753/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"><a class="article-category-link" href="/categories/plan/">plan</a></p>
+                            <p class="item-title"><a href="/article/304c0753/" class="title">2022年记录目录</a></p>
+                            <p class="item-date"><time datetime="2022-04-10T02:37:08.000Z" itemprop="datePublished">2022-04-10</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/293e04b1/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/293e04b1/" class="title">Go 结构体函数调用底层实现</a></p>
+                            <p class="item-date"><time datetime="2021-11-01T13:12:00.000Z" itemprop="datePublished">2021-11-01</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/da48b455/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/da48b455/" class="title">Go 语言嵌入和多态机制对比</a></p>
+                            <p class="item-date"><time datetime="2021-09-22T14:24:00.000Z" itemprop="datePublished">2021-09-22</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/c1e308a7/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/c1e308a7/" class="title">ElasticSearch 如何配置Uptime 监控组件可用性</a></p>
+                            <p class="item-date"><time datetime="2021-05-31T14:26:20.000Z" itemprop="datePublished">2021-05-31</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <!-- <div class="item-thumbnail">
+                            <a href="/article/147d0da9/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div> -->
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/article/147d0da9/" class="title">ElasticSearch 如何使用 TDigest 算法计算亿级数据的百分位数？</a></p>
+                            <p class="item-date"><time datetime="2021-04-18T14:47:33.000Z" itemprop="datePublished">2021-04-18</time></p>
+                        </div>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Catégories</h3>
+        <div class="widget">
+            <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Android/">Android</a><span class="category-list-count">25</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MySQL/">MySQL</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Netty/">Netty</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Python/">Python</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Redis/">Redis</a><span class="category-list-count">16</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SICP/">SICP</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/docker/">docker</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/java-persistent/">java persistent</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/plan/">plan</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分布式/">分布式</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/并发/">并发</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/杂记/">杂记</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法/">算法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络/">网络</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a><span class="category-list-count">2</span></li></ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Archives</h3>
+        <div class="widget">
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">April 2022</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/11/">November 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/09/">September 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/05/">May 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/04/">April 2021</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/03/">March 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/02/">February 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/01/">January 2021</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/12/">December 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/11/">November 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/09/">September 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">August 2020</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/06/">June 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">May 2020</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/11/">November 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/10/">October 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/09/">September 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/08/">August 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">July 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/06/">June 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">May 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">April 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">March 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">February 2019</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">January 2019</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">December 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">November 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">March 2018</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">October 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">September 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">July 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">June 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">April 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">October 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">August 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">June 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">February 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li></ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">Nuage de tags</h3>
+        <div class="widget tagcloud">
+            <a href="/tags/AOP/" style="font-size: 12.5px;">AOP</a> <a href="/tags/Android/" style="font-size: 10px;">Android</a> <a href="/tags/Animation/" style="font-size: 10px;">Animation</a> <a href="/tags/Cookie/" style="font-size: 10px;">Cookie</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/ElasticSearch/" style="font-size: 17.5px;">ElasticSearch</a> <a href="/tags/GSON/" style="font-size: 10px;">GSON</a> <a href="/tags/Go/" style="font-size: 12.5px;">Go</a> <a href="/tags/JSON/" style="font-size: 10px;">JSON</a> <a href="/tags/JUC/" style="font-size: 15px;">JUC</a> <a href="/tags/Jenkins/" style="font-size: 10px;">Jenkins</a> <a href="/tags/Material-Design/" style="font-size: 10px;">Material Design</a> <a href="/tags/MotionEvent/" style="font-size: 10px;">MotionEvent</a> <a href="/tags/MySQL/" style="font-size: 20px;">MySQL</a> <a href="/tags/Netty/" style="font-size: 15px;">Netty</a> <a href="/tags/OkHttp/" style="font-size: 12.5px;">OkHttp</a> <a href="/tags/Raft/" style="font-size: 10px;">Raft</a> <a href="/tags/React-Native/" style="font-size: 10px;">React Native</a> <a href="/tags/Redis/" style="font-size: 10px;">Redis</a> <a href="/tags/RxJava/" style="font-size: 10px;">RxJava</a> <a href="/tags/SICP/" style="font-size: 10px;">SICP</a> <a href="/tags/Shader/" style="font-size: 10px;">Shader</a> <a href="/tags/Span/" style="font-size: 12.5px;">Span</a> <a href="/tags/Spring-Boot/" style="font-size: 12.5px;">Spring Boot</a> <a href="/tags/TCP/" style="font-size: 12.5px;">TCP</a> <a href="/tags/TCP-IP/" style="font-size: 15px;">TCP/IP</a> <a href="/tags/View/" style="font-size: 12.5px;">View</a> <a href="/tags/View-Architecture/" style="font-size: 10px;">View Architecture</a> <a href="/tags/ViewRoot/" style="font-size: 10px;">ViewRoot</a> <a href="/tags/Window机制/" style="font-size: 10px;">Window机制</a> <a href="/tags/animation/" style="font-size: 10px;">animation</a> <a href="/tags/cas/" style="font-size: 10px;">cas</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/draw/" style="font-size: 10px;">draw</a> <a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/filesystem/" style="font-size: 10px;">filesystem</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/kubernetes/" style="font-size: 10px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 10px;">linux</a> <a href="/tags/mysql/" style="font-size: 12.5px;">mysql</a> <a href="/tags/persistent/" style="font-size: 12.5px;">persistent</a> <a href="/tags/redis/" style="font-size: 17.5px;">redis</a> <a href="/tags/scroll/" style="font-size: 12.5px;">scroll</a> <a href="/tags/spring-cloud/" style="font-size: 10px;">spring-cloud</a> <a href="/tags/事件传递/" style="font-size: 12.5px;">事件传递</a> <a href="/tags/依赖注入/" style="font-size: 10px;">依赖注入</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/动态编程/" style="font-size: 10px;">动态编程</a> <a href="/tags/反射/" style="font-size: 10px;">反射</a> <a href="/tags/图像处理/" style="font-size: 10px;">图像处理</a> <a href="/tags/实习/" style="font-size: 10px;">实习</a> <a href="/tags/工具/" style="font-size: 12.5px;">工具</a> <a href="/tags/工具-Linux/" style="font-size: 10px;">工具, Linux</a> <a href="/tags/市场/" style="font-size: 10px;">市场</a> <a href="/tags/并发/" style="font-size: 10px;">并发</a> <a href="/tags/思维/" style="font-size: 10px;">思维</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/文件系统/" style="font-size: 10px;">文件系统</a> <a href="/tags/框架/" style="font-size: 10px;">框架</a> <a href="/tags/注解/" style="font-size: 15px;">注解</a> <a href="/tags/第三方库/" style="font-size: 12.5px;">第三方库</a> <a href="/tags/算法/" style="font-size: 15px;">算法</a> <a href="/tags/读书/" style="font-size: 10px;">读书</a> <a href="/tags/贪婪算法/" style="font-size: 10px;">贪婪算法</a> <a href="/tags/软件设计/" style="font-size: 10px;">软件设计</a> <a href="/tags/锁/" style="font-size: 10px;">锁</a> <a href="/tags/限流/" style="font-size: 12.5px;">限流</a>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">Liens</h3>
+        <div class="widget">
+            <ul>
+                
+                    <li>
+                        <a href="http://www.blueskykong.com/">aoho blog</a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+
+    
+    <div id="toTop" class="fa fa-angle-up"></div>
+</aside>
+
+            
+        </div>
+        <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2022 历小冰<br>
+            <a href="https://beian.miit.gov.cn">鲁ICP备19003047号</a> 
+        </div>
+    </div>
+</footer>
+        
+    
+        <script src="/libs/lightgallery/js/lightgallery.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-thumbnail.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-pager.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-autoplay.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-fullscreen.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-zoom.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-hash.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-share.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-video.min.js"></script>
+    
+    
+    
+
+
+
+<link rel="stylesheet" href="/css/prism.css">
+<script type="text/javascript" src="/js/prism.js"></script>
+<!-- Custom Scripts -->
+<script src="/js/main.js"></script>
+
+    </div>
+</body>
+</html>
